@@ -1,3 +1,11 @@
+#
+# Copyright (c) 2025 Neo Qiss
+# All rights reserved.
+# 
+# This software is proprietary and confidential.
+# Unauthorized copying, distribution, or use is strictly prohibited.
+#
+
 cmake_minimum_required(VERSION 3.20)
 
 # Test configuration

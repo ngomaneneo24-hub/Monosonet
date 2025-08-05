@@ -48,9 +48,14 @@ Sonet is a distributed social media platform designed to handle Twitter-scale tr
     └─────────┬─────────┘ └──────┬──────┘ └────────┬────────┘
               │                  │                 │
     ┌─────────▼─────────┐ ┌──────▼──────┐ ┌────────▼────────┐
-    │  Search Service   │ │Notification │ │Analytics Service│
-    │ (Elasticsearch)   │ │  Service    │ │   (Metrics)     │
-    └───────────────────┘ └─────────────┘ └─────────────────┘
+    │Messaging Service  │ │Notification │ │Analytics Service│
+    │(DMs, Groups, E2E) │ │  Service    │ │   (Metrics)     │
+    └─────────┬─────────┘ └──────┬──────┘ └────────┬────────┘
+              │                  │                 │
+    ┌─────────▼─────────┐        │        ┌────────▼────────┐
+    │  Search Service   │        │        │                 │
+    │ (Elasticsearch)   │        │        │                 │
+    └───────────────────┘        │        └─────────────────┘
                                  │
                     ┌────────────▼─────────────┐
                     │     Data Layer           │
@@ -70,6 +75,7 @@ Sonet is a distributed social media platform designed to handle Twitter-scale tr
 | **Fanout Service** | Content distribution to followers | Redis, Message Queues |
 | **Follow Service** | Social graph, relationships | PostgreSQL, Graph DB |
 | **Media Service** | Image/video processing, CDN | S3, Image Processing |
+| **Messaging Service** | Direct messages, group chats, real-time messaging | PostgreSQL, Redis, WebSocket |
 | **Search Service** | Full-text search, trending topics | Elasticsearch |
 | **Notification Service** | Push notifications, email, websockets | Redis, WebSocket |
 | **Analytics Service** | Real-time metrics, user insights | ClickHouse, Kafka |
@@ -171,6 +177,30 @@ curl -X GET "http://localhost:8080/api/v1/search?q=hello&type=notes" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
+### Messaging Features
+```bash
+# Send direct message
+curl -X POST http://localhost:8080/api/v1/messages \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"chat_id": "chat_123", "content": "Hello there! 👋", "type": "text"}'
+
+# Create group chat
+curl -X POST http://localhost:8080/api/v1/chats \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Dev Team", "type": "group", "participant_ids": ["user1", "user2", "user3"]}'
+
+# Get chat messages
+curl -X GET "http://localhost:8080/api/v1/chats/chat_123/messages?limit=50" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Upload attachment
+curl -X POST http://localhost:8080/api/v1/messages/attachments \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -F "file=@image.jpg"
+```
+
 ## 🛠️ Development
 
 ### Project Structure
@@ -234,6 +264,8 @@ JWT_EXPIRY=3600
 USER_SERVICE_PORT=8001
 NOTE_SERVICE_PORT=8002
 TIMELINE_SERVICE_PORT=8003
+MESSAGING_SERVICE_PORT=8004
+WEBSOCKET_PORT=9096
 ```
 
 ### Service Configuration

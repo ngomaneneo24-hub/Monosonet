@@ -1,4 +1,5 @@
 {
+  "_copyright": "Copyright (c) 2025 Neo Qiss. All rights reserved. Proprietary and confidential.",
   "environment": "development",
   "log_level": "debug",
   "services": {
@@ -38,6 +39,16 @@
       "host": "notification-service",
       "port": 8080,
       "grpc_port": 9090
+    },
+    "messaging_service": {
+      "host": "messaging-service", 
+      "port": 8080,
+      "grpc_port": 9090,
+      "websocket_port": 9096,
+      "encryption_enabled": true,
+      "max_message_size": 10485760,
+      "typing_timeout": 30,
+      "message_retention_days": 365
     }
   },
   "monitoring": {

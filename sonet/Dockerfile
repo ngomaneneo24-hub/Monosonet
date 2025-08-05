@@ -1,3 +1,11 @@
+#
+# Copyright (c) 2025 Neo Qiss
+# All rights reserved.
+# 
+# This software is proprietary and confidential.
+# Unauthorized copying, distribution, or use is strictly prohibited.
+#
+
 # Multi-stage Dockerfile for Sonet microservices
 
 # Build stage

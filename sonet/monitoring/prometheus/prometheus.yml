@@ -1,3 +1,11 @@
+#
+# Copyright (c) 2025 Neo Qiss
+# All rights reserved.
+# 
+# This software is proprietary and confidential.
+# Unauthorized copying, distribution, or use is strictly prohibited.
+#
+
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
@@ -25,6 +33,7 @@ scrape_configs:
         - 'media-service:8080'
         - 'follow-service:8080'
         - 'notification-service:8080'
+        - 'messaging-service:8080'
     metrics_path: '/metrics'
     scrape_interval: 10s
 
