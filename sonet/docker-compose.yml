@@ -1,3 +1,11 @@
+#
+# Copyright (c) 2025 Neo Qiss
+# All rights reserved.
+# 
+# This software is proprietary and confidential.
+# Unauthorized copying, distribution, or use is strictly prohibited.
+#
+
 version: '3.8'
 
 services:
@@ -8,7 +16,7 @@ services:
       POSTGRES_DB: sonet_dev
       POSTGRES_USER: sonet
       POSTGRES_PASSWORD: sonet_dev_password
-      POSTGRES_MULTIPLE_DATABASES: "user_service,note_service,media_service,follow_service,notification_service"
+      POSTGRES_MULTIPLE_DATABASES: "user_service,note_service,media_service,follow_service,notification_service,messaging_service"
     ports:
       - "5432:5432"
     volumes:
@@ -159,6 +167,30 @@ services:
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=debug
       - SERVICE_NAME=notification-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sonet-network
+
+  # Messaging Service
+  messaging-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    ports:
+      - "8086:8080"
+      - "9096:9090"  # WebSocket port for real-time messaging
+    environment:
+      - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/messaging_service
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=debug
+      - SERVICE_NAME=messaging-service
+      - WEBSOCKET_PORT=9090
+      - ENCRYPTION_ENABLED=true
     depends_on:
       postgres:
         condition: service_healthy
