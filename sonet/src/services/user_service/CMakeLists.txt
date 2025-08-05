@@ -1,8 +1,22 @@
 #
 # Copyright (c) 2025 Neo Qiss
-# All rights reserved.
-# 
-# This software is proprietary and confidential.
+# All rights r# Link with all the good stuff we need
+target_link_libraries(user_service PRIVATE
+    sonet_user_proto
+    gRPC::grpc++
+    gRPC::grpc++_reflection
+    protobuf::protobuf
+    libpqxx::pqxx
+    OpenSSL::SSL
+    OpenSSL::Crypto
+    Boost::system
+    Boost::filesystem
+    Boost::thread
+    nlohmann_json::nlohmann_json
+    spdlog::spdlog
+    fmt::fmt
+    uuid
+)is software is proprietary and confidential.
 # Unauthorized copying, distribution, or use is strictly prohibited.
 #
 
@@ -21,27 +35,24 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../core)
 
 # Source files - keeping it organized like a pro
 set(USER_SERVICE_SOURCES
-    src/main.cpp
-    src/user_service.cpp
-    src/auth_manager.cpp
+    main.cpp
+    src/user_service_impl.cpp
     src/password_manager.cpp
     src/jwt_manager.cpp
     src/user_repository.cpp
     src/session_manager.cpp
-    src/rate_limiter.cpp
     src/security_utils.cpp
 )
 
 set(USER_SERVICE_HEADERS
-    include/user_service.h
-    include/auth_manager.h
+    include/user_service_impl.h
     include/password_manager.h
     include/jwt_manager.h
     include/user_repository.h
     include/session_manager.h
-    include/rate_limiter.h
     include/security_utils.h
-    include/user_types.h
+    include/models/user.h
+    include/models/user_session.h
 )
 
 # Create the main service executable
