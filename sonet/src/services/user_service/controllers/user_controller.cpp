@@ -14,8 +14,12 @@
 
 namespace sonet::user::controllers {
 
-UserController::UserController(std::shared_ptr<UserServiceImpl> user_service)
-    : user_service_(std::move(user_service)) {
+UserController::UserController(std::shared_ptr<UserServiceImpl> user_service,
+                               std::shared_ptr<storage::FileUploadService> file_service,
+                               const std::string& connection_string)
+    : user_service_(std::move(user_service))
+    , file_service_(std::move(file_service))
+    , connection_string_(connection_string) {
     spdlog::info("User controller initialized");
 }
 
@@ -469,12 +473,140 @@ bool UserController::is_valid_image_format(const std::vector<uint8_t>& data) {
 }
 
 std::string UserController::save_uploaded_image(const std::vector<uint8_t>& data, const std::string& user_id, const std::string& type) {
-    // This would implement actual image saving logic
-    // For now, return a placeholder URL
-    auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(
-        std::chrono::system_clock::now().time_since_epoch()).count();
+    if (!file_service_) {
+        spdlog::error("File service not configured");
+        return "";
+    }
     
-    return "https://cdn.sonet.com/" + type + "s/" + user_id + "-" + std::to_string(timestamp) + ".jpg";
+    try {
+        // Determine upload type and call appropriate method
+        std::future<storage::UploadResult> upload_future;
+        
+        if (type == "avatar") {
+            upload_future = file_service_->upload_profile_picture(user_id, data, "avatar.jpg", "image/jpeg");
+        } else if (type == "banner") {
+            upload_future = file_service_->upload_profile_banner(user_id, data, "banner.jpg", "image/jpeg");
+        } else {
+            spdlog::error("Unknown upload type: {}", type);
+            return "";
+        }
+        
+        // Wait for upload to complete
+        auto result = upload_future.get();
+        
+        if (result.success) {
+            spdlog::info("Successfully uploaded {} for user {}: {}", type, user_id, result.url);
+            return result.url;
+        } else {
+            spdlog::error("Failed to upload {}: {}", type, result.error_message);
+            return "";
+        }
+        
+    } catch (const std::exception& e) {
+        spdlog::error("Image upload error: {}", e.what());
+        return "";
+    }
+}
+
+nlohmann::json UserController::handle_upload_avatar(const std::string& access_token,
+                                                   const std::vector<uint8_t>& file_data,
+                                                   const std::string& filename,
+                                                   const std::string& content_type) {
+    try {
+        if (access_token.empty()) {
+            return create_error_response("Access token is required");
+        }
+        
+        if (file_data.empty()) {
+            return create_error_response("File data is required");
+        }
+        
+        // Validate file type
+        if (!file_service_ || !file_service_->is_valid_image_format(content_type)) {
+            return create_error_response("Invalid image format. Supported formats: JPEG, PNG, WebP, GIF");
+        }
+        
+        // Validate file size
+        if (!file_service_->is_valid_file_size(file_data.size(), "avatar")) {
+            return create_error_response("File size too large. Maximum size for avatar is 10MB");
+        }
+        
+        // Extract user ID from token (would need JWT parsing)
+        // For now, using a placeholder
+        std::string user_id = "user_from_token"; // This should be extracted from JWT
+        
+        // Upload the avatar
+        auto upload_future = file_service_->upload_profile_picture(user_id, file_data, filename, content_type);
+        auto result = upload_future.get();
+        
+        if (!result.success) {
+            return create_error_response("Failed to upload avatar: " + result.error_message);
+        }
+        
+        // Update user profile with new avatar URL
+        // This would require updating the user record in the database
+        
+        nlohmann::json response_data;
+        response_data["avatar_url"] = result.url;
+        response_data["file_id"] = result.file_id;
+        response_data["file_size"] = result.file_size;
+        
+        return create_success_response("Avatar uploaded successfully", response_data);
+        
+    } catch (const std::exception& e) {
+        spdlog::error("Avatar upload error: {}", e.what());
+        return create_error_response("Internal server error");
+    }
+}
+
+nlohmann::json UserController::handle_upload_banner(const std::string& access_token,
+                                                   const std::vector<uint8_t>& file_data,
+                                                   const std::string& filename,
+                                                   const std::string& content_type) {
+    try {
+        if (access_token.empty()) {
+            return create_error_response("Access token is required");
+        }
+        
+        if (file_data.empty()) {
+            return create_error_response("File data is required");
+        }
+        
+        // Validate file type
+        if (!file_service_ || !file_service_->is_valid_image_format(content_type)) {
+            return create_error_response("Invalid image format. Supported formats: JPEG, PNG, WebP, GIF");
+        }
+        
+        // Validate file size
+        if (!file_service_->is_valid_file_size(file_data.size(), "banner")) {
+            return create_error_response("File size too large. Maximum size for banner is 15MB");
+        }
+        
+        // Extract user ID from token (would need JWT parsing)
+        std::string user_id = "user_from_token"; // This should be extracted from JWT
+        
+        // Upload the banner
+        auto upload_future = file_service_->upload_profile_banner(user_id, file_data, filename, content_type);
+        auto result = upload_future.get();
+        
+        if (!result.success) {
+            return create_error_response("Failed to upload banner: " + result.error_message);
+        }
+        
+        // Update user profile with new banner URL
+        // This would require updating the user record in the database
+        
+        nlohmann::json response_data;
+        response_data["banner_url"] = result.url;
+        response_data["file_id"] = result.file_id;
+        response_data["file_size"] = result.file_size;
+        
+        return create_success_response("Banner uploaded successfully", response_data);
+        
+    } catch (const std::exception& e) {
+        spdlog::error("Banner upload error: {}", e.what());
+        return create_error_response("Internal server error");
+    }
 }
 
 } // namespace sonet::user::controllers

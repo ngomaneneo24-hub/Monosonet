@@ -9,9 +9,12 @@
 #pragma once
 
 #include "user_service_impl.h"
+#include "../include/email_service.h"
+#include "../include/repository.h"
 #include <grpcpp/server_context.h>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace sonet::user::controllers {
 
@@ -21,7 +24,9 @@ namespace sonet::user::controllers {
  */
 class AuthController {
 public:
-    explicit AuthController(std::shared_ptr<UserServiceImpl> user_service);
+    explicit AuthController(std::shared_ptr<UserServiceImpl> user_service,
+                           std::shared_ptr<email::EmailService> email_service = nullptr,
+                           const std::string& connection_string = "");
     ~AuthController() = default;
 
     // REST endpoint handlers
@@ -93,10 +98,16 @@ public:
     nlohmann::json handle_check_username(const std::string& username);
     nlohmann::json handle_check_email(const std::string& email);
 
-    // Utility methods for request validation
+        // Utility methods
     bool validate_register_request(const RegisterRequest& request);
     bool validate_login_request(const LoginRequest& request);
     std::string extract_bearer_token(const std::string& authorization_header);
+    std::vector<std::string> generate_username_suggestions(const std::string& base_username);
+
+private:
+    std::shared_ptr<UserServiceImpl> user_service_;
+    std::shared_ptr<email::EmailService> email_service_;
+    std::string connection_string_;
 
 private:
     std::shared_ptr<UserServiceImpl> user_service_;

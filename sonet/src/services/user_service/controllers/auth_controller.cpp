@@ -13,8 +13,12 @@
 
 namespace sonet::user::controllers {
 
-AuthController::AuthController(std::shared_ptr<UserServiceImpl> user_service)
-    : user_service_(std::move(user_service)) {
+AuthController::AuthController(std::shared_ptr<UserServiceImpl> user_service,
+                               std::shared_ptr<email::EmailService> email_service,
+                               const std::string& connection_string)
+    : user_service_(std::move(user_service))
+    , email_service_(std::move(email_service))
+    , connection_string_(connection_string) {
     spdlog::info("Authentication controller initialized");
 }
 
@@ -141,8 +145,50 @@ nlohmann::json AuthController::handle_verify_email(const VerifyEmailRequest& req
         // For now, we'll implement email verification through the JWT manager
         // In a full implementation, this would involve a separate verification service
         
-        // This is a placeholder - would need to implement VerifyEmail in the gRPC service
-        return create_success_response("Email verification feature coming soon");
+        // Validate verification token
+        if (request.verification_token.empty()) {
+            return create_error_response("Verification token is required");
+        }
+        
+        try {
+            // Get user by verification token from repository
+            auto user_repo = repository::RepositoryFactory::create_user_repository(connection_string_);
+            auto user_id_opt = user_repo->get_user_by_verification_token(request.verification_token).get();
+            
+            if (!user_id_opt.has_value()) {
+                return create_error_response("Invalid or expired verification token");
+            }
+            
+            std::string user_id = user_id_opt.value();
+            
+            // Mark email as verified
+            bool verified = user_repo->mark_email_verified(user_id).get();
+            if (!verified) {
+                return create_error_response("Failed to verify email");
+            }
+            
+            // Delete the verification token
+            user_repo->delete_verification_token(request.verification_token).get();
+            
+            // Get user details for welcome email
+            auto user_opt = user_repo->get_user_by_id(user_id).get();
+            if (user_opt.has_value()) {
+                // Send welcome email
+                email_service_->send_welcome_email(user_opt->email, user_opt->username);
+            }
+            
+            nlohmann::json response;
+            response["success"] = true;
+            response["message"] = "Email verified successfully";
+            response["user_id"] = user_id;
+            
+            spdlog::info("Email verification successful for user: {}", user_id);
+            return response;
+            
+        } catch (const std::exception& e) {
+            spdlog::error("Email verification error: {}", e.what());
+            return create_error_response("Email verification failed");
+        }
         
     } catch (const std::exception& e) {
         spdlog::error("Email verification error: {}", e.what());
@@ -163,8 +209,35 @@ nlohmann::json AuthController::handle_forgot_password(const ForgotPasswordReques
         }
         
         // This would trigger password reset email
-        // For now, returning success (in production, always return success for security)
-        return create_success_response("If the email exists, a password reset link has been sent");
+        try {
+            auto user_repo = repository::RepositoryFactory::create_user_repository(connection_string_);
+            auto user_opt = user_repo->get_user_by_email(request.email).get();
+            
+            if (user_opt.has_value()) {
+                // Generate reset token
+                std::string reset_token = security::SecurityUtils::generate_secure_token(32);
+                int64_t expires_at = std::time(nullptr) + 3600; // 1 hour expiry
+                
+                // Store reset token
+                bool stored = user_repo->store_password_reset_token(user_opt->user_id, reset_token, expires_at).get();
+                
+                if (stored) {
+                    // Send password reset email
+                    std::string reset_url = "https://sonet.com/reset-password?token=" + reset_token;
+                    email_service_->send_password_reset_email(user_opt->email, user_opt->username, reset_token, reset_url);
+                    
+                    spdlog::info("Password reset email sent to: {}", request.email);
+                }
+            }
+            
+            // Always return success for security (don't reveal if email exists)
+            return create_success_response("If the email exists, a password reset link has been sent");
+            
+        } catch (const std::exception& e) {
+            spdlog::error("Password reset email error: {}", e.what());
+            // Still return success to prevent information disclosure
+            return create_success_response("If the email exists, a password reset link has been sent");
+        }
         
     } catch (const std::exception& e) {
         spdlog::error("Forgot password error: {}", e.what());
@@ -178,8 +251,61 @@ nlohmann::json AuthController::handle_reset_password(const ResetPasswordRequest&
             return create_error_response("Reset token and new password are required");
         }
         
-        // This would implement password reset logic
-        return create_success_response("Password reset feature coming soon");
+        // Validate password strength
+        if (!security::SecurityUtils::is_strong_password(request.new_password)) {
+            return create_error_response("Password does not meet security requirements");
+        }
+        
+        try {
+            auto user_repo = repository::RepositoryFactory::create_user_repository(connection_string_);
+            auto user_id_opt = user_repo->get_user_by_reset_token(request.reset_token).get();
+            
+            if (!user_id_opt.has_value()) {
+                return create_error_response("Invalid or expired reset token");
+            }
+            
+            std::string user_id = user_id_opt.value();
+            
+            // Get user details
+            auto user_opt = user_repo->get_user_by_id(user_id).get();
+            if (!user_opt.has_value()) {
+                return create_error_response("User not found");
+            }
+            
+            User user = user_opt.value();
+            
+            // Hash new password
+            user.password_hash = security::SecurityUtils::hash_password(request.new_password);
+            user.updated_at = std::time(nullptr);
+            
+            // Update user password
+            bool updated = user_repo->update_user(user).get();
+            if (!updated) {
+                return create_error_response("Failed to update password");
+            }
+            
+            // Delete the reset token
+            user_repo->delete_password_reset_token(request.reset_token).get();
+            
+            // Invalidate all existing sessions for security
+            auto session_repo = repository::RepositoryFactory::create_session_repository(connection_string_);
+            session_repo->delete_user_sessions(user_id).get();
+            
+            // Send security alert email
+            email_service_->send_security_alert_email(user.email, user.username, 
+                "Password Reset", "System", "Unknown");
+            
+            nlohmann::json response;
+            response["success"] = true;
+            response["message"] = "Password reset successfully";
+            
+            spdlog::info("Password reset successful for user: {}", user_id);
+            return response;
+            
+        } catch (const std::exception& e) {
+            spdlog::error("Password reset error: {}", e.what());
+            return create_error_response("Password reset failed");
+        }
         
     } catch (const std::exception& e) {
         spdlog::error("Reset password error: {}", e.what());
@@ -193,11 +319,32 @@ nlohmann::json AuthController::handle_check_username(const std::string& username
             return create_error_response("Username is required");
         }
         
-        // This would check username availability through the repository
-        // For now, this is a placeholder
-        nlohmann::json response;
-        response["available"] = true;  // Placeholder
-        response["username"] = username;
+        // Validate username format
+        if (!security::SecurityUtils::is_valid_username(username)) {
+            return create_error_response("Invalid username format");
+        }
+        
+        try {
+            auto user_repo = repository::RepositoryFactory::create_user_repository(connection_string_);
+            bool available = user_repo->is_username_available(username).get();
+            
+            nlohmann::json response;
+            response["available"] = available;
+            response["username"] = username;
+            
+            if (!available) {
+                response["message"] = "Username is already taken";
+                response["suggestions"] = generate_username_suggestions(username);
+            } else {
+                response["message"] = "Username is available";
+            }
+            
+            return create_success_response(response["message"], response);
+            
+        } catch (const std::exception& e) {
+            spdlog::error("Username check error: {}", e.what());
+            return create_error_response("Failed to check username availability");
+        }
         
         return create_success_response("Username availability checked", response);
         
@@ -213,10 +360,31 @@ nlohmann::json AuthController::handle_check_email(const std::string& email) {
             return create_error_response("Email is required");
         }
         
-        // This would check email availability through the repository
-        nlohmann::json response;
-        response["available"] = true;  // Placeholder
-        response["email"] = email;
+        // Validate email format
+        if (!security::SecurityUtils::is_valid_email(email)) {
+            return create_error_response("Invalid email format");
+        }
+        
+        try {
+            auto user_repo = repository::RepositoryFactory::create_user_repository(connection_string_);
+            bool available = user_repo->is_email_available(email).get();
+            
+            nlohmann::json response;
+            response["available"] = available;
+            response["email"] = email;
+            
+            if (!available) {
+                response["message"] = "Email is already registered";
+            } else {
+                response["message"] = "Email is available";
+            }
+            
+            return create_success_response(response["message"], response);
+            
+        } catch (const std::exception& e) {
+            spdlog::error("Email check error: {}", e.what());
+            return create_error_response("Failed to check email availability");
+        }
         
         return create_success_response("Email availability checked", response);
         
@@ -413,6 +581,27 @@ nlohmann::json AuthController::create_success_response(const std::string& messag
         response["data"] = data;
     }
     return response;
+}
+
+std::vector<std::string> AuthController::generate_username_suggestions(const std::string& base_username) {
+    std::vector<std::string> suggestions;
+    
+    // Generate numbered variations
+    for (int i = 1; i <= 5; ++i) {
+        suggestions.push_back(base_username + std::to_string(i));
+    }
+    
+    // Generate variations with year
+    int current_year = std::time(nullptr) / (365 * 24 * 3600) + 1970;
+    suggestions.push_back(base_username + std::to_string(current_year));
+    suggestions.push_back(base_username + std::to_string(current_year % 100));
+    
+    // Generate variations with underscores
+    suggestions.push_back(base_username + "_official");
+    suggestions.push_back("the_" + base_username);
+    suggestions.push_back(base_username + "_real");
+    
+    return suggestions;
 }
 
 } // namespace sonet::user::controllers
