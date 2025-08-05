@@ -1,0 +1,213 @@
+version: '3.8'
+
+services:
+  # Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: sonet_dev
+      POSTGRES_USER: sonet
+      POSTGRES_PASSWORD: sonet_dev_password
+      POSTGRES_MULTIPLE_DATABASES: "user_service,note_service,media_service,follow_service,notification_service"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schemas:/docker-entrypoint-initdb.d/schemas
+      - ./database/seeds:/docker-entrypoint-initdb.d/seeds
+    networks:
+      - sonet-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sonet -d sonet_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - sonet-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Gateway
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    environment:
+      - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/sonet_dev
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=debug
+      - ENVIRONMENT=development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sonet-network
+    volumes:
+      - ./config/development:/app/config
+
+  # User Service
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    ports:
+      - "8081:8080"
+    environment:
+      - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/user_service
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=debug
+      - SERVICE_NAME=user-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sonet-network
+
+  # Note Service
+  note-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    ports:
+      - "8082:8080"
+    environment:
+      - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/note_service
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=debug
+      - SERVICE_NAME=note-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sonet-network
+
+  # Follow Service
+  follow-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    ports:
+      - "8083:8080"
+    environment:
+      - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/follow_service
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=debug
+      - SERVICE_NAME=follow-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sonet-network
+
+  # Media Service
+  media-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    ports:
+      - "8084:8080"
+    environment:
+      - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/media_service
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=debug
+      - SERVICE_NAME=media-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sonet-network
+
+  # Notification Service
+  notification-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    ports:
+      - "8085:8080"
+    environment:
+      - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/notification_service
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=debug
+      - SERVICE_NAME=notification-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sonet-network
+
+  # Monitoring - Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - sonet-network
+
+  # Monitoring - Grafana
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning
+    networks:
+      - sonet-network
+
+  # Tracing - Jaeger
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - sonet-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  sonet-network:
+    driver: bridge
