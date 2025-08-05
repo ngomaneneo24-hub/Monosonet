@@ -1,0 +1,84 @@
+/*
+ * Copyright (c) 2025 Neo Qiss
+ * All rights reserved.
+ * 
+ * This software is proprietary and confidential.
+ * Unauthorized copying, distribution, or use is strictly prohibited.
+ */
+
+#include "user_service.h"
+#include <grpcpp/grpcpp.h>
+#include <spdlog/spdlog.h>
+#include <csignal>
+#include <memory>
+
+// I always want clean shutdowns - no zombie processes on my watch
+std::unique_ptr<grpc::Server> g_server;
+
+void signal_handler(int signal) {
+    if (signal == SIGINT || signal == SIGTERM) {
+        spdlog::info("Received shutdown signal, gracefully stopping server...");
+        if (g_server) {
+            g_server->Shutdown();
+        }
+    }
+}
+
+int main(int argc, char* argv[]) {
+    // Set up logging - I want to see everything that's happening
+    spdlog::set_level(spdlog::level::info);
+    spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] [%n] %v");
+    
+    spdlog::info("Starting Sonet User Service...");
+    spdlog::info("Copyright (c) 2025 Neo Qiss - All rights reserved");
+    
+    // Set up signal handlers for graceful shutdown
+    std::signal(SIGINT, signal_handler);
+    std::signal(SIGTERM, signal_handler);
+    
+    try {
+        // Configuration - in production this would come from environment variables
+        std::string server_address = "0.0.0.0:8080";
+        std::string grpc_address = "0.0.0.0:9090";
+        
+        // Create the service implementation
+        sonet::user::UserServiceImpl service;
+        
+        // Build the gRPC server
+        grpc::ServerBuilder builder;
+        
+        // Listen on the gRPC port without authentication (handled by API Gateway)
+        builder.AddListeningPort(grpc_address, grpc::InsecureServerCredentials());
+        
+        // Register our service
+        builder.RegisterService(&service);
+        
+        // Configure server settings for production load
+        builder.SetMaxSendMessageSize(4 * 1024 * 1024);    // 4MB max send
+        builder.SetMaxReceiveMessageSize(4 * 1024 * 1024); // 4MB max receive
+        builder.SetMaxConcurrentRpcs(1000);                // Handle 1000 concurrent requests
+        
+        // Build and start the server
+        g_server = builder.BuildAndStart();
+        
+        if (!g_server) {
+            spdlog::error("Failed to start gRPC server");
+            return 1;
+        }
+        
+        spdlog::info("User Service is running and ready to authenticate users!");
+        spdlog::info("gRPC server listening on: {}", grpc_address);
+        spdlog::info("Service health: OK");
+        spdlog::info("Ready to handle authentication requests like a boss 💪");
+        
+        // Wait for the server to shutdown
+        g_server->Wait();
+        
+    } catch (const std::exception& e) {
+        spdlog::error("Fatal error in User Service: {}", e.what());
+        return 1;
+    }
+    
+    spdlog::info("User Service stopped gracefully");
+    return 0;
+}
