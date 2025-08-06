@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2025 Neo Qiss
+ * 
+ * This file is part of Sonet - a social media platform built for real connections.
+ * 
+ * This implements the notification controller with WebSocket support for real-time
+ * notifications. I focused on making this fast and reliable for mobile users
+ * who expect instant notifications about their notes and interactions.
+ */
+
 #include "notification_controller.h"
 #include <jwt-cpp/jwt.h>
 #include <thread>
