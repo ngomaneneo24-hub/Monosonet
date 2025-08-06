@@ -7,48 +7,497 @@
  */
 
 #include "note_controller.h"
+#include "../../core/utils/id_generator.h"
+#include "../../core/utils/string_utils.h"
+#include "../../core/validation/input_sanitizer.h"
 #include <spdlog/spdlog.h>
 #include <regex>
 #include <algorithm>
 #include <chrono>
 #include <iomanip>
 #include <sstream>
+#include <future>
+#include <thread>
 
 namespace sonet::note::controllers {
 
-NoteController::NoteController(std::shared_ptr<NoteRepository> repository)
-    : note_repository_(repository) {
-    spdlog::info("NoteController initialized");
+// Constructor with comprehensive dependency injection
+NoteController::NoteController(
+    std::shared_ptr<NoteRepository> repository,
+    std::shared_ptr<services::NoteService> note_service,
+    std::shared_ptr<services::TimelineService> timeline_service,
+    std::shared_ptr<services::NotificationService> notification_service,
+    std::shared_ptr<services::AnalyticsService> analytics_service,
+    std::shared_ptr<core::cache::RedisClient> redis_client,
+    std::shared_ptr<core::security::RateLimiter> rate_limiter
+) : note_repository_(repository),
+    note_service_(note_service),
+    timeline_service_(timeline_service),
+    notification_service_(notification_service),
+    analytics_service_(analytics_service),
+    redis_client_(redis_client),
+    rate_limiter_(rate_limiter) {
+    
+    spdlog::info("Twitter-scale NoteController initialized with comprehensive services");
+    
+    // Start background cleanup task for WebSocket connections
+    std::thread cleanup_thread([this]() {
+        while (true) {
+            std::this_thread::sleep_for(std::chrono::minutes(5));
+            cleanup_dead_connections();
+        }
+    });
+    cleanup_thread.detach();
 }
 
-// Core CRUD operations
-nlohmann::json NoteController::create_note(const nlohmann::json& request_data, const std::string& user_id) {
+// ========== HTTP ROUTE REGISTRATION ==========
+
+void NoteController::register_http_routes(std::shared_ptr<core::network::HttpServer> server) {
+    // Core note operations
+    server->register_route("POST", "/api/v1/notes", 
+        [this](const core::network::HttpRequest& req) { return create_note(req); });
+    server->register_route("GET", "/api/v1/notes/:note_id", 
+        [this](const core::network::HttpRequest& req) { return get_note(req); });
+    server->register_route("PUT", "/api/v1/notes/:note_id", 
+        [this](const core::network::HttpRequest& req) { return update_note(req); });
+    server->register_route("DELETE", "/api/v1/notes/:note_id", 
+        [this](const core::network::HttpRequest& req) { return delete_note(req); });
+    server->register_route("GET", "/api/v1/notes/:note_id/thread", 
+        [this](const core::network::HttpRequest& req) { return get_note_thread(req); });
+
+    // Renote operations
+    server->register_route("POST", "/api/v1/notes/:note_id/renote", 
+        [this](const core::network::HttpRequest& req) { return renote(req); });
+    server->register_route("DELETE", "/api/v1/notes/:note_id/renote", 
+        [this](const core::network::HttpRequest& req) { return undo_renote(req); });
+    server->register_route("POST", "/api/v1/notes/:note_id/quote", 
+        [this](const core::network::HttpRequest& req) { return quote_renote(req); });
+    server->register_route("GET", "/api/v1/notes/:note_id/renotes", 
+        [this](const core::network::HttpRequest& req) { return get_renotes(req); });
+
+    // Engagement operations
+    server->register_route("POST", "/api/v1/notes/:note_id/like", 
+        [this](const core::network::HttpRequest& req) { return like_note(req); });
+    server->register_route("DELETE", "/api/v1/notes/:note_id/like", 
+        [this](const core::network::HttpRequest& req) { return unlike_note(req); });
+    server->register_route("POST", "/api/v1/notes/:note_id/bookmark", 
+        [this](const core::network::HttpRequest& req) { return bookmark_note(req); });
+    server->register_route("DELETE", "/api/v1/notes/:note_id/bookmark", 
+        [this](const core::network::HttpRequest& req) { return unbookmark_note(req); });
+    server->register_route("POST", "/api/v1/notes/:note_id/report", 
+        [this](const core::network::HttpRequest& req) { return report_note(req); });
+
+    // Timeline operations
+    server->register_route("GET", "/api/v1/timelines/home", 
+        [this](const core::network::HttpRequest& req) { return get_home_timeline(req); });
+    server->register_route("GET", "/api/v1/timelines/user/:user_id", 
+        [this](const core::network::HttpRequest& req) { return get_user_timeline(req); });
+    server->register_route("GET", "/api/v1/timelines/public", 
+        [this](const core::network::HttpRequest& req) { return get_public_timeline(req); });
+    server->register_route("GET", "/api/v1/timelines/trending", 
+        [this](const core::network::HttpRequest& req) { return get_trending_timeline(req); });
+    server->register_route("GET", "/api/v1/timelines/mentions", 
+        [this](const core::network::HttpRequest& req) { return get_mentions_timeline(req); });
+    server->register_route("GET", "/api/v1/timelines/bookmarks", 
+        [this](const core::network::HttpRequest& req) { return get_bookmarks_timeline(req); });
+
+    // Search operations
+    server->register_route("GET", "/api/v1/search/notes", 
+        [this](const core::network::HttpRequest& req) { return search_notes(req); });
+    server->register_route("GET", "/api/v1/search/trending", 
+        [this](const core::network::HttpRequest& req) { return get_trending_hashtags(req); });
+    server->register_route("GET", "/api/v1/search/hashtag/:tag", 
+        [this](const core::network::HttpRequest& req) { return get_notes_by_hashtag(req); });
+    server->register_route("POST", "/api/v1/search/advanced", 
+        [this](const core::network::HttpRequest& req) { return advanced_search(req); });
+
+    // Analytics operations
+    server->register_route("GET", "/api/v1/notes/:note_id/analytics", 
+        [this](const core::network::HttpRequest& req) { return get_note_analytics(req); });
+    server->register_route("GET", "/api/v1/users/:user_id/note-stats", 
+        [this](const core::network::HttpRequest& req) { return get_user_note_stats(req); });
+    server->register_route("GET", "/api/v1/notes/:note_id/engagement/live", 
+        [this](const core::network::HttpRequest& req) { return get_live_engagement(req); });
+
+    // Batch operations
+    server->register_route("POST", "/api/v1/notes/batch", 
+        [this](const core::network::HttpRequest& req) { return get_notes_batch(req); });
+    server->register_route("DELETE", "/api/v1/notes/batch", 
+        [this](const core::network::HttpRequest& req) { return delete_notes_batch(req); });
+    server->register_route("PATCH", "/api/v1/notes/batch", 
+        [this](const core::network::HttpRequest& req) { return update_notes_batch(req); });
+
+    // Content management
+    server->register_route("POST", "/api/v1/notes/schedule", 
+        [this](const core::network::HttpRequest& req) { return schedule_note(req); });
+    server->register_route("GET", "/api/v1/notes/scheduled", 
+        [this](const core::network::HttpRequest& req) { return get_scheduled_notes(req); });
+    server->register_route("POST", "/api/v1/notes/draft", 
+        [this](const core::network::HttpRequest& req) { return save_draft(req); });
+    server->register_route("GET", "/api/v1/notes/drafts", 
+        [this](const core::network::HttpRequest& req) { return get_drafts(req); });
+
+    spdlog::info("Registered {} HTTP routes for note service", 25);
+}
+
+void NoteController::register_websocket_handlers(std::shared_ptr<core::network::WebSocketServer> ws_server) {
+    ws_server->on_connection([this](std::shared_ptr<core::network::WebSocketConnection> connection) {
+        handle_websocket_connection(connection);
+    });
+
+    ws_server->on_message([this](std::shared_ptr<core::network::WebSocketConnection> connection, const std::string& message) {
+        handle_websocket_message(connection, message);
+    });
+
+    ws_server->on_disconnect([this](std::shared_ptr<core::network::WebSocketConnection> connection) {
+        unsubscribe_from_all(connection);
+        active_connections_--;
+    });
+
+    spdlog::info("Registered WebSocket handlers for real-time features");
+}
+
+// ========== CORE NOTE OPERATIONS ==========
+
+core::network::HttpResponse NoteController::create_note(const core::network::HttpRequest& request) {
+    auto start_time = std::chrono::steady_clock::now();
+    
     try {
-        // Validate request data
+        // Extract and validate user
+        std::string user_id = extract_user_id(request);
+        if (user_id.empty()) {
+            return create_error_response(401, "UNAUTHORIZED", "Authentication required");
+        }
+
+        // Check rate limiting
+        if (!check_rate_limit(user_id, "create_note")) {
+            return create_error_response(429, "RATE_LIMITED", 
+                "Too many notes created recently. Please wait before posting again.");
+        }
+
+        // Parse request body
+        json request_data;
+        try {
+            request_data = json::parse(request.body);
+        } catch (const json::parse_error& e) {
+            return create_error_response(400, "INVALID_JSON", "Invalid JSON in request body");
+        }
+
+        // Validate note content
         std::string error_message;
-        if (!validate_note_data(request_data, error_message)) {
-            return create_error_response(error_message, 400);
+        if (!validate_note_request(request_data, error_message)) {
+            return create_error_response(400, "VALIDATION_ERROR", error_message);
         }
-        
-        // Check rate limits
-        if (!check_rate_limits(user_id, "create_note")) {
-            return create_error_response("Rate limit exceeded. Please wait before posting again.", 429);
-        }
-        
-        // Get content and validate length
+
+        // Content policy and spam detection
         std::string content = request_data.value("content", "");
-        if (!validate_content_length(content, error_message)) {
-            return create_error_response(error_message, 400);
+        if (detect_spam_patterns(content, user_id)) {
+            return create_error_response(400, "SPAM_DETECTED", "Content flagged as potential spam");
         }
+
+        if (check_content_policy_violations(content)) {
+            return create_error_response(400, "POLICY_VIOLATION", "Content violates community guidelines");
+        }
+
+        // Create note through service layer
+        auto note = note_service_->create_note(user_id, request_data);
+        if (!note) {
+            return create_error_response(500, "CREATION_FAILED", "Failed to create note");
+        }
+
+        // Process attachments if present
+        if (request_data.contains("attachments") && request_data["attachments"].is_array()) {
+            for (const auto& attachment_data : request_data["attachments"]) {
+                // Trigger attachment processing (async)
+                note_service_->process_attachment(note->note_id, attachment_data);
+            }
+        }
+
+        // Trigger real-time broadcasting
+        broadcast_note_created(*note);
+
+        // Update timelines asynchronously
+        std::async(std::launch::async, [this, note]() {
+            timeline_service_->fan_out_note(*note);
+        });
+
+        // Track analytics
+        track_user_engagement(user_id, "note_created", note->note_id);
+
+        // Log performance metrics
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - start_time);
+        log_request_metrics(request, user_id, "create_note", duration);
+
+        // Build and return response
+        json response_data = build_note_response(*note, user_id);
+        return create_success_response(response_data, 201);
+
+    } catch (const std::exception& e) {
+        spdlog::error("Failed to create note: {}", e.what());
+        return create_error_response(500, "INTERNAL_ERROR", "Internal server error");
+    }
+}
+
+core::network::HttpResponse NoteController::get_note(const core::network::HttpRequest& request) {
+    try {
+        std::string note_id = request.path_params.at("note_id");
+        std::string viewer_id = extract_user_id(request); // Optional for public notes
+
+        // Check rate limiting
+        if (!viewer_id.empty() && !check_rate_limit(viewer_id, "get_note")) {
+            return create_error_response(429, "RATE_LIMITED", "Too many requests");
+        }
+
+        // Get note from service
+        auto note = note_service_->get_note(note_id);
+        if (!note) {
+            return create_error_response(404, "NOTE_NOT_FOUND", "Note not found");
+        }
+
+        // Check access permissions
+        if (!can_access_note(*note, viewer_id)) {
+            return create_error_response(403, "ACCESS_DENIED", "You don't have permission to view this note");
+        }
+
+        // Apply content filtering
+        if (should_filter_sensitive_content(*note, viewer_id)) {
+            return create_error_response(451, "CONTENT_FILTERED", "Content filtered by user preferences");
+        }
+
+        // Track view analytics (if user is authenticated)
+        if (!viewer_id.empty()) {
+            analytics_service_->track_note_view(note_id, viewer_id);
+        }
+
+        // Build response with privacy filtering
+        json response_data = build_note_response(*note, viewer_id);
         
-        // Check for spam and duplicate content
-        if (detect_spam_content(content)) {
-            return create_error_response("Content flagged as potential spam", 400);
+        // Add thread context if this is part of a conversation
+        if (!note->reply_to_id.empty()) {
+            auto thread_notes = note_service_->get_thread_context(note_id);
+            response_data["thread_context"] = build_timeline_response(thread_notes, viewer_id);
         }
+
+        return create_success_response(response_data);
+
+    } catch (const std::exception& e) {
+        spdlog::error("Failed to get note: {}", e.what());
+        return create_error_response(500, "INTERNAL_ERROR", "Internal server error");
+    }
+}
+
+core::network::HttpResponse NoteController::update_note(const core::network::HttpRequest& request) {
+    try {
+        std::string note_id = request.path_params.at("note_id");
+        std::string user_id = extract_user_id(request);
         
-        if (check_duplicate_content(content, user_id)) {
-            return create_error_response("Duplicate content detected", 400);
+        if (user_id.empty()) {
+            return create_error_response(401, "UNAUTHORIZED", "Authentication required");
         }
+
+        // Check if note exists and user owns it
+        auto note = note_service_->get_note(note_id);
+        if (!note) {
+            return create_error_response(404, "NOTE_NOT_FOUND", "Note not found");
+        }
+
+        if (note->author_id != user_id) {
+            return create_error_response(403, "ACCESS_DENIED", "You can only edit your own notes");
+        }
+
+        // Check edit window (30 minutes)
+        auto now = std::time(nullptr);
+        if (now - note->created_at > NOTE_EDIT_WINDOW_MINUTES * 60) {
+            return create_error_response(400, "EDIT_WINDOW_EXPIRED", "Note can no longer be edited");
+        }
+
+        // Parse and validate update data
+        json request_data = json::parse(request.body);
+        std::string error_message;
+        if (!validate_note_request(request_data, error_message)) {
+            return create_error_response(400, "VALIDATION_ERROR", error_message);
+        }
+
+        // Update note through service
+        auto updated_note = note_service_->update_note(note_id, request_data);
+        if (!updated_note) {
+            return create_error_response(500, "UPDATE_FAILED", "Failed to update note");
+        }
+
+        // Notify subscribers about the edit
+        broadcast_note_updated(*updated_note, "edited");
+
+        // Track analytics
+        track_user_engagement(user_id, "note_edited", note_id);
+
+        json response_data = build_note_response(*updated_note, user_id);
+        return create_success_response(response_data);
+
+    } catch (const std::exception& e) {
+        spdlog::error("Failed to update note: {}", e.what());
+        return create_error_response(500, "INTERNAL_ERROR", "Internal server error");
+    }
+}
+
+core::network::HttpResponse NoteController::delete_note(const core::network::HttpRequest& request) {
+    try {
+        std::string note_id = request.path_params.at("note_id");
+        std::string user_id = extract_user_id(request);
+        
+        if (user_id.empty()) {
+            return create_error_response(401, "UNAUTHORIZED", "Authentication required");
+        }
+
+        // Verify ownership
+        if (!validate_user_permissions(note_id, user_id, "delete")) {
+            return create_error_response(403, "ACCESS_DENIED", "You can only delete your own notes");
+        }
+
+        // Delete through service (handles cascading deletes)
+        bool success = note_service_->delete_note(note_id, user_id);
+        if (!success) {
+            return create_error_response(500, "DELETE_FAILED", "Failed to delete note");
+        }
+
+        // Broadcast deletion
+        broadcast_note_deleted(note_id, user_id);
+
+        // Invalidate caches
+        invalidate_user_caches(user_id);
+
+        // Track analytics
+        track_user_engagement(user_id, "note_deleted", note_id);
+
+        return create_success_response(json{{"message", "Note deleted successfully"}});
+
+    } catch (const std::exception& e) {
+        spdlog::error("Failed to delete note: {}", e.what());
+        return create_error_response(500, "INTERNAL_ERROR", "Internal server error");
+    }
+}
+
+core::network::HttpResponse NoteController::get_note_thread(const core::network::HttpRequest& request) {
+    try {
+        std::string note_id = request.path_params.at("note_id");
+        std::string viewer_id = extract_user_id(request);
+
+        // Get thread through service
+        auto thread_notes = note_service_->get_thread(note_id);
+        if (thread_notes.empty()) {
+            return create_error_response(404, "THREAD_NOT_FOUND", "Thread not found");
+        }
+
+        // Apply privacy filtering
+        apply_privacy_filters(thread_notes, viewer_id);
+
+        // Build response with thread structure
+        json response_data = {
+            {"thread", build_timeline_response(thread_notes, viewer_id)},
+            {"count", thread_notes.size()},
+            {"root_note_id", note_id}
+        };
+
+        return create_success_response(response_data);
+
+    } catch (const std::exception& e) {
+        spdlog::error("Failed to get thread: {}", e.what());
+        return create_error_response(500, "INTERNAL_ERROR", "Internal server error");
+    }
+}
+
+// ========== RENOTE OPERATIONS ==========
+
+core::network::HttpResponse NoteController::renote(const core::network::HttpRequest& request) {
+    try {
+        std::string note_id = request.path_params.at("note_id");
+        std::string user_id = extract_user_id(request);
+        
+        if (user_id.empty()) {
+            return create_error_response(401, "UNAUTHORIZED", "Authentication required");
+        }
+
+        // Check rate limiting
+        if (!check_rate_limit(user_id, "renote")) {
+            return create_error_response(429, "RATE_LIMITED", "Too many renotes recently");
+        }
+
+        // Check if note exists and can be renoted
+        auto original_note = note_service_->get_note(note_id);
+        if (!original_note) {
+            return create_error_response(404, "NOTE_NOT_FOUND", "Note not found");
+        }
+
+        if (!can_access_note(*original_note, user_id)) {
+            return create_error_response(403, "ACCESS_DENIED", "Cannot renote this note");
+        }
+
+        // Check if already renoted
+        if (note_service_->has_user_renoted(note_id, user_id)) {
+            return create_error_response(400, "ALREADY_RENOTED", "You have already renoted this note");
+        }
+
+        // Create renote
+        auto renote = note_service_->create_renote(note_id, user_id);
+        if (!renote) {
+            return create_error_response(500, "RENOTE_FAILED", "Failed to create renote");
+        }
+
+        // Send notification to original author
+        notification_service_->notify_renote(original_note->author_id, user_id, note_id);
+
+        // Broadcast to timelines
+        broadcast_note_created(*renote);
+
+        // Update engagement metrics
+        update_real_time_metrics(note_id, "renote_count");
+        broadcast_engagement_update(note_id, "renotes", original_note->renote_count + 1);
+
+        // Track analytics
+        track_user_engagement(user_id, "renoted", note_id);
+
+        json response_data = build_note_response(*renote, user_id);
+        return create_success_response(response_data, 201);
+
+    } catch (const std::exception& e) {
+        spdlog::error("Failed to renote: {}", e.what());
+        return create_error_response(500, "INTERNAL_ERROR", "Internal server error");
+    }
+}
+
+core::network::HttpResponse NoteController::undo_renote(const core::network::HttpRequest& request) {
+    try {
+        std::string note_id = request.path_params.at("note_id");
+        std::string user_id = extract_user_id(request);
+        
+        if (user_id.empty()) {
+            return create_error_response(401, "UNAUTHORIZED", "Authentication required");
+        }
+
+        // Remove renote
+        bool success = note_service_->remove_renote(note_id, user_id);
+        if (!success) {
+            return create_error_response(400, "NOT_RENOTED", "You haven't renoted this note");
+        }
+
+        // Update metrics
+        update_real_time_metrics(note_id, "renote_count");
+        
+        // Get updated count for broadcast
+        auto note = note_service_->get_note(note_id);
+        if (note) {
+            broadcast_engagement_update(note_id, "renotes", note->renote_count);
+        }
+
+        track_user_engagement(user_id, "unrenoted", note_id);
+
+        return create_success_response(json{{"message", "Renote removed successfully"}});
+
+    } catch (const std::exception& e) {
+        spdlog::error("Failed to undo renote: {}", e.what());
+        return create_error_response(500, "INTERNAL_ERROR", "Internal server error");
+    }
+}
         
         // Create note object
         Note note = process_note_request(request_data, user_id);
