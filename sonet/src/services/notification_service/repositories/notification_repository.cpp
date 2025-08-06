@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2025 Neo Qiss
+ * 
+ * This file is part of Sonet - a social media platform built for real connections.
+ * 
+ * This is the PostgreSQL implementation of the notification repository.
+ * I built this to handle millions of notifications with efficient caching
+ * and connection pooling. The performance is optimized for mobile apps.
+ */
+
 #include "notification_repository.h"
 #include <pqxx/pqxx>
 #include <hiredis/hiredis.h>

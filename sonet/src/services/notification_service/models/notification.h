@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2025 Neo Qiss
+ * 
+ * This file is part of Sonet - a social media platform built for real connections.
+ * 
+ * I designed this notification system to handle millions of users efficiently
+ * while keeping the code clean and maintainable. Every notification type here
+ * serves a specific purpose in building meaningful social interactions.
+ */
+
 #pragma once
 
 #include <string>
@@ -13,21 +23,22 @@ namespace models {
 
 /**
  * Notification types for different social media events
+ * I keep these focused on meaningful interactions that users actually care about
  */
 enum class NotificationType {
-    LIKE = 1,
-    COMMENT = 2,
-    FOLLOW = 3,
-    MENTION = 4,
-    REPLY = 5,
-    RETWEET = 6,
-    QUOTE_TWEET = 7,
-    DIRECT_MESSAGE = 8,
-    SYSTEM_ALERT = 9,
-    PROMOTION = 10,
-    TRENDING_POST = 11,
-    FOLLOWER_MILESTONE = 12,
-    POST_MILESTONE = 13
+    LIKE = 1,           // Someone liked your note
+    COMMENT = 2,        // Someone commented on your note
+    FOLLOW = 3,         // Someone started following you
+    MENTION = 4,        // Someone mentioned you in a note
+    REPLY = 5,          // Someone replied to your comment
+    RENOTE = 6,         // Someone renoted your note (like retweet but better)
+    QUOTE_NOTE = 7,     // Someone quoted your note with their own commentary
+    DIRECT_MESSAGE = 8, // Someone sent you a DM
+    SYSTEM_ALERT = 9,   // System notifications for important updates
+    PROMOTION = 10,     // Promotional content (used sparingly)
+    TRENDING_NOTE = 11, // Your note is trending
+    FOLLOWER_MILESTONE = 12, // You hit a follower milestone
+    NOTE_MILESTONE = 13      // Your note hit engagement milestones
 };
 
 /**
@@ -64,24 +75,25 @@ enum class DeliveryStatus {
 };
 
 /**
- * Core notification model for Twitter-scale social media platform
- * Handles millions of notifications with efficient storage and retrieval
+ * Core notification model for Sonet's social media platform
+ * I designed this to handle millions of notifications efficiently while keeping
+ * all the data we need for smart delivery and user preferences
  */
 class Notification {
 public:
-    // Core notification data
+    // Core notification data - the essentials every notification needs
     std::string id;
-    std::string user_id;          // Recipient user ID
-    std::string sender_id;        // User who triggered the notification
+    std::string user_id;          // Who's getting this notification
+    std::string sender_id;        // Who triggered it (can be system)
     NotificationType type;
     std::string title;
     std::string message;
-    std::string action_url;       // Deep link for the notification action
+    std::string action_url;       // Where to go when they tap it
     
-    // Content references
-    std::string post_id;          // Related post ID (if applicable)
-    std::string comment_id;       // Related comment ID (if applicable)
-    std::string conversation_id;  // Related conversation ID (if applicable)
+    // Content references - linking back to the social content
+    std::string note_id;          // Related note ID (our version of posts)
+    std::string comment_id;       // Related comment ID if applicable
+    std::string conversation_id;  // Related DM conversation if applicable
     
     // Delivery configuration
     int delivery_channels;        // Bitfield of DeliveryChannel values
@@ -99,25 +111,25 @@ public:
     int delivery_attempts;
     std::string failure_reason;
     
-    // Grouping and batching
-    std::string group_key;        // For grouping similar notifications
-    std::string batch_id;         // For batch processing
+    // Grouping and batching - I use this to avoid spam
+    std::string group_key;        // For grouping similar notifications together
+    std::string batch_id;         // For processing notifications in batches
     bool is_batched;
     
-    // Metadata and customization
-    nlohmann::json metadata;      // Additional notification data
-    nlohmann::json template_data; // Template rendering data
-    std::string template_id;      // Notification template reference
+    // Metadata and customization - where the magic happens
+    nlohmann::json metadata;      // Extra data specific to notification type
+    nlohmann::json template_data; // Variables for rendering templates
+    std::string template_id;      // Which template to use for rendering
     
-    // Performance and analytics
-    std::string tracking_id;      // For analytics and debugging
-    nlohmann::json analytics_data; // Click tracking, engagement metrics
+    // Performance and analytics - I track everything for insights
+    std::string tracking_id;      // Unique ID for analytics and debugging
+    nlohmann::json analytics_data; // Click tracking, engagement metrics, etc.
     
-    // User preferences
-    bool respect_quiet_hours;
-    bool allow_bundling;          // Can be bundled with similar notifications
+    // User preferences - respecting how people want to be notified
+    bool respect_quiet_hours;     // Don't wake people up at 3am
+    bool allow_bundling;          // Can this be grouped with similar notifications
     
-    // Constructors
+    // Constructors - keeping it simple but flexible
     Notification();
     Notification(const std::string& user_id, const std::string& sender_id, 
                 NotificationType type, const std::string& title, 
@@ -308,21 +320,26 @@ NotificationPriority string_to_priority(const std::string& priority_str);
 std::string status_to_string(DeliveryStatus status);
 DeliveryStatus string_to_status(const std::string& status_str);
 
-// Helper functions for notification creation
+// Helper functions for creating common notifications
+// I made these to keep notification creation consistent across the app
 std::shared_ptr<Notification> create_like_notification(
     const std::string& recipient_id, const std::string& liker_id, 
-    const std::string& post_id);
+    const std::string& note_id);
 
 std::shared_ptr<Notification> create_follow_notification(
     const std::string& recipient_id, const std::string& follower_id);
 
 std::shared_ptr<Notification> create_comment_notification(
     const std::string& recipient_id, const std::string& commenter_id,
-    const std::string& post_id, const std::string& comment_id);
+    const std::string& note_id, const std::string& comment_id);
 
 std::shared_ptr<Notification> create_mention_notification(
     const std::string& recipient_id, const std::string& mentioner_id,
-    const std::string& post_id);
+    const std::string& note_id);
+
+std::shared_ptr<Notification> create_renote_notification(
+    const std::string& recipient_id, const std::string& renoter_id,
+    const std::string& note_id);
 
 std::shared_ptr<Notification> create_system_notification(
     const std::string& recipient_id, const std::string& title,

@@ -1,3 +1,13 @@
+/*
+ * Copyright (c) 2025 Neo Qiss
+ * 
+ * This file is part of Sonet - a social media platform built for real connections.
+ * 
+ * Implementation of the notification model. I spent a lot of time thinking about
+ * how to make notifications feel natural and not spammy. Every method here serves
+ * the goal of keeping users engaged without overwhelming them.
+ */
+
 #include "notification.h"
 #include <algorithm>
 #include <sstream>
@@ -187,7 +197,7 @@ nlohmann::json Notification::get_template_context() const {
     context["user_id"] = user_id;
     context["sender_id"] = sender_id;
     context["type"] = notification_type_to_string(type);
-    context["post_id"] = post_id;
+    context["note_id"] = note_id;
     context["comment_id"] = comment_id;
     context["tracking_id"] = tracking_id;
     
@@ -204,7 +214,7 @@ nlohmann::json Notification::to_json() const {
     json["title"] = title;
     json["message"] = message;
     json["action_url"] = action_url;
-    json["post_id"] = post_id;
+    json["note_id"] = note_id;
     json["comment_id"] = comment_id;
     json["conversation_id"] = conversation_id;
     json["delivery_channels"] = delivery_channels;
@@ -818,14 +828,14 @@ std::string notification_type_to_string(NotificationType type) {
         case NotificationType::FOLLOW: return "follow";
         case NotificationType::MENTION: return "mention";
         case NotificationType::REPLY: return "reply";
-        case NotificationType::RETWEET: return "retweet";
-        case NotificationType::QUOTE_TWEET: return "quote_tweet";
+        case NotificationType::RENOTE: return "renote";
+        case NotificationType::QUOTE_NOTE: return "quote_note";
         case NotificationType::DIRECT_MESSAGE: return "direct_message";
         case NotificationType::SYSTEM_ALERT: return "system_alert";
         case NotificationType::PROMOTION: return "promotion";
-        case NotificationType::TRENDING_POST: return "trending_post";
+        case NotificationType::TRENDING_NOTE: return "trending_note";
         case NotificationType::FOLLOWER_MILESTONE: return "follower_milestone";
-        case NotificationType::POST_MILESTONE: return "post_milestone";
+        case NotificationType::NOTE_MILESTONE: return "note_milestone";
         default: return "unknown";
     }
 }
@@ -836,15 +846,15 @@ NotificationType string_to_notification_type(const std::string& type_str) {
     if (type_str == "follow") return NotificationType::FOLLOW;
     if (type_str == "mention") return NotificationType::MENTION;
     if (type_str == "reply") return NotificationType::REPLY;
-    if (type_str == "retweet") return NotificationType::RETWEET;
-    if (type_str == "quote_tweet") return NotificationType::QUOTE_TWEET;
+    if (type_str == "renote") return NotificationType::RENOTE;
+    if (type_str == "quote_note") return NotificationType::QUOTE_NOTE;
     if (type_str == "direct_message") return NotificationType::DIRECT_MESSAGE;
     if (type_str == "system_alert") return NotificationType::SYSTEM_ALERT;
     if (type_str == "promotion") return NotificationType::PROMOTION;
-    if (type_str == "trending_post") return NotificationType::TRENDING_POST;
+    if (type_str == "trending_note") return NotificationType::TRENDING_NOTE;
     if (type_str == "follower_milestone") return NotificationType::FOLLOWER_MILESTONE;
-    if (type_str == "post_milestone") return NotificationType::POST_MILESTONE;
-    return NotificationType::SYSTEM_ALERT; // Default
+    if (type_str == "note_milestone") return NotificationType::NOTE_MILESTONE;
+    return NotificationType::SYSTEM_ALERT; // Safe default
 }
 
 std::string delivery_channel_to_string(DeliveryChannel channel) {
@@ -911,18 +921,18 @@ DeliveryStatus string_to_status(const std::string& status_str) {
 
 std::shared_ptr<Notification> create_like_notification(
     const std::string& recipient_id, const std::string& liker_id, 
-    const std::string& post_id) {
+    const std::string& note_id) {
     
     auto notification = std::make_shared<Notification>(
         recipient_id, liker_id, NotificationType::LIKE,
-        "New like on your post",
-        "{{sender_name}} liked your post"
+        "New like on your note",
+        "{{sender_name}} liked your note"
     );
     
-    notification->post_id = post_id;
-    notification->action_url = "/posts/" + post_id;
-    notification->set_group_key("like_" + post_id);
-    notification->template_data["sender_name"] = liker_id; // Would be resolved to actual name
+    notification->note_id = note_id;
+    notification->action_url = "/notes/" + note_id;
+    notification->set_group_key("like_" + note_id);
+    notification->template_data["sender_name"] = liker_id; // Will be resolved to actual name
     
     return notification;
 }
@@ -944,39 +954,57 @@ std::shared_ptr<Notification> create_follow_notification(
 
 std::shared_ptr<Notification> create_comment_notification(
     const std::string& recipient_id, const std::string& commenter_id,
-    const std::string& post_id, const std::string& comment_id) {
+    const std::string& note_id, const std::string& comment_id) {
     
     auto notification = std::make_shared<Notification>(
         recipient_id, commenter_id, NotificationType::COMMENT,
-        "New comment on your post",
-        "{{sender_name}} commented on your post: {{comment_preview}}"
+        "New comment on your note",
+        "{{sender_name}} commented on your note: {{comment_preview}}"
     );
     
-    notification->post_id = post_id;
+    notification->note_id = note_id;
     notification->comment_id = comment_id;
-    notification->action_url = "/posts/" + post_id + "#comment-" + comment_id;
-    notification->set_group_key("comment_" + post_id);
+    notification->action_url = "/notes/" + note_id + "#comment-" + comment_id;
+    notification->set_group_key("comment_" + note_id);
     notification->template_data["sender_name"] = commenter_id;
-    notification->template_data["comment_preview"] = "..."; // Would contain actual comment preview
+    notification->template_data["comment_preview"] = "..."; // Will contain actual comment preview
     
     return notification;
 }
 
 std::shared_ptr<Notification> create_mention_notification(
     const std::string& recipient_id, const std::string& mentioner_id,
-    const std::string& post_id) {
+    const std::string& note_id) {
     
     auto notification = std::make_shared<Notification>(
         recipient_id, mentioner_id, NotificationType::MENTION,
         "You were mentioned",
-        "{{sender_name}} mentioned you in a post"
+        "{{sender_name}} mentioned you in a note"
     );
     
-    notification->post_id = post_id;
-    notification->action_url = "/posts/" + post_id;
+    notification->note_id = note_id;
+    notification->action_url = "/notes/" + note_id;
     notification->priority = NotificationPriority::HIGH;
-    notification->add_delivery_channel(DeliveryChannel::EMAIL); // Important mentions get email
+    notification->add_delivery_channel(DeliveryChannel::EMAIL); // Mentions are important
     notification->template_data["sender_name"] = mentioner_id;
+    
+    return notification;
+}
+
+std::shared_ptr<Notification> create_renote_notification(
+    const std::string& recipient_id, const std::string& renoter_id,
+    const std::string& note_id) {
+    
+    auto notification = std::make_shared<Notification>(
+        recipient_id, renoter_id, NotificationType::RENOTE,
+        "Your note was renoted",
+        "{{sender_name}} renoted your note"
+    );
+    
+    notification->note_id = note_id;
+    notification->action_url = "/notes/" + note_id;
+    notification->set_group_key("renote_" + note_id);
+    notification->template_data["sender_name"] = renoter_id;
     
     return notification;
 }

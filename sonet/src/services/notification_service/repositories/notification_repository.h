@@ -1,6 +1,16 @@
+/*
+ * Copyright (c) 2025 Neo Qiss
+ * 
+ * This file is part of Sonet - a social media platform built for real connections.
+ * 
+ * This is the repository interface for notifications. I designed this to be
+ * database-agnostic so we can switch from PostgreSQL to something else if needed.
+ * The interface is clean but powerful enough to handle millions of notifications.
+ */
+
 #pragma once
 
-#include "notification.h"
+#include "../models/notification.h"
 #include <memory>
 #include <vector>
 #include <optional>
@@ -14,7 +24,8 @@ namespace notification_service {
 namespace repositories {
 
 /**
- * Notification query filters for efficient database searches
+ * Query filter for finding notifications efficiently
+ * I made this flexible so we can filter by any combination of criteria
  */
 struct NotificationFilter {
     std::optional<std::string> user_id;
@@ -48,7 +59,8 @@ struct NotificationFilter {
 };
 
 /**
- * Notification aggregation and analytics data
+ * Analytics data for understanding notification performance
+ * I track these metrics to optimize the notification experience
  */
 struct NotificationStats {
     std::string user_id;
@@ -66,7 +78,8 @@ struct NotificationStats {
 };
 
 /**
- * Bulk operation result tracking
+ * Result tracking for bulk operations
+ * When you're processing thousands of notifications, you need to know what worked
  */
 struct BulkOperationResult {
     int total_requested;
@@ -83,14 +96,14 @@ struct BulkOperationResult {
 };
 
 /**
- * Repository interface for notification data operations
- * Supports Twitter-scale notification management with caching and performance optimization
+ * Main repository interface for notification storage
+ * I keep this abstract so we can swap out databases if needed
  */
 class NotificationRepository {
 public:
     virtual ~NotificationRepository() = default;
     
-    // CRUD Operations
+    // Core CRUD operations - the bread and butter
     virtual std::future<std::optional<models::Notification>> get_notification(
         const std::string& notification_id) = 0;
     
@@ -106,7 +119,7 @@ public:
     virtual std::future<bool> delete_notification(
         const std::string& notification_id) = 0;
     
-    // Bulk Operations
+    // Bulk operations for performance at scale
     virtual std::future<BulkOperationResult> create_notifications_bulk(
         const std::vector<models::Notification>& notifications) = 0;
     
@@ -119,7 +132,7 @@ public:
     virtual std::future<BulkOperationResult> mark_as_read_bulk(
         const std::string& user_id, const std::vector<std::string>& notification_ids) = 0;
     
-    // User-specific Operations
+    // User-focused operations - what the app actually needs
     virtual std::future<std::vector<models::Notification>> get_user_notifications(
         const std::string& user_id, int limit = 50, int offset = 0) = 0;
     
@@ -133,7 +146,7 @@ public:
     
     virtual std::future<bool> mark_all_as_read(const std::string& user_id) = 0;
     
-    // Status and Delivery Operations
+    // Delivery status tracking
     virtual std::future<bool> update_delivery_status(
         const std::string& notification_id, models::DeliveryStatus status,
         const std::string& failure_reason = "") = 0;
@@ -160,7 +173,7 @@ public:
     virtual std::future<std::vector<models::NotificationBatch>> get_pending_batches(
         int limit = 50) = 0;
     
-    // Preferences Operations
+    // User preferences for customization
     virtual std::future<std::optional<models::NotificationPreferences>> get_user_preferences(
         const std::string& user_id) = 0;
     
@@ -169,7 +182,7 @@ public:
     
     virtual std::future<bool> delete_user_preferences(const std::string& user_id) = 0;
     
-    // Analytics and Stats
+    // Analytics and insights
     virtual std::future<NotificationStats> get_user_stats(
         const std::string& user_id) = 0;
     
@@ -183,7 +196,7 @@ public:
     virtual std::future<std::vector<models::Notification>> get_failed_notifications(
         const std::chrono::system_clock::time_point& since, int limit = 100) = 0;
     
-    // Performance and Maintenance
+    // Maintenance operations - keeping things clean
     virtual std::future<int> cleanup_expired_notifications() = 0;
     
     virtual std::future<int> cleanup_old_notifications(
@@ -193,20 +206,20 @@ public:
     
     virtual std::future<std::unordered_map<std::string, std::string>> get_health_metrics() = 0;
     
-    // Search and Advanced Queries
+    // Advanced queries for complex use cases
     virtual std::future<std::vector<models::Notification>> search_notifications(
         const std::string& query, const NotificationFilter& filter) = 0;
     
     virtual std::future<std::vector<std::string>> get_grouped_notifications(
         const std::string& group_key, int limit = 50) = 0;
     
-    virtual std::future<std::vector<models::Notification>> get_notifications_by_post(
-        const std::string& post_id, int limit = 50) = 0;
+    virtual std::future<std::vector<models::Notification>> get_notifications_by_note(
+        const std::string& note_id, int limit = 50) = 0;
     
     virtual std::future<std::vector<models::Notification>> get_notifications_by_conversation(
         const std::string& conversation_id, int limit = 50) = 0;
     
-    // Cache Management
+    // Cache management for performance
     virtual void invalidate_user_cache(const std::string& user_id) = 0;
     virtual void invalidate_notification_cache(const std::string& notification_id) = 0;
     virtual void clear_all_caches() = 0;
@@ -215,7 +228,7 @@ public:
 
 /**
  * PostgreSQL implementation of NotificationRepository
- * Optimized for Twitter-scale notification handling with multi-layer caching
+ * I optimized this for Sonet-scale notification handling with multi-layer caching
  */
 class PostgreSQLNotificationRepository : public NotificationRepository {
 public:
@@ -350,8 +363,8 @@ public:
     std::future<std::vector<std::string>> get_grouped_notifications(
         const std::string& group_key, int limit = 50) override;
     
-    std::future<std::vector<models::Notification>> get_notifications_by_post(
-        const std::string& post_id, int limit = 50) override;
+    std::future<std::vector<models::Notification>> get_notifications_by_note(
+        const std::string& note_id, int limit = 50) override;
     
     std::future<std::vector<models::Notification>> get_notifications_by_conversation(
         const std::string& conversation_id, int limit = 50) override;
@@ -410,7 +423,8 @@ private:
 };
 
 /**
- * Factory for creating notification repository instances
+ * Factory for creating repository instances
+ * I use this pattern to keep the implementation details hidden
  */
 class NotificationRepositoryFactory {
 public:
