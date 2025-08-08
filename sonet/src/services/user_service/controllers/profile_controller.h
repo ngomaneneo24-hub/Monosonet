@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "user_service_impl.h"
+#include "../include/user_service.h"
 #include <nlohmann/json.hpp>
 #include <memory>
 #include <string>
@@ -22,7 +22,7 @@ namespace sonet::user::controllers {
  */
 class ProfileController {
 public:
-    explicit ProfileController(std::shared_ptr<UserServiceImpl> user_service);
+    explicit ProfileController(std::shared_ptr<sonet::user::UserServiceImpl> user_service);
     ~ProfileController() = default;
 
     // Request structures for profile operations
@@ -112,7 +112,7 @@ public:
     nlohmann::json handle_get_profile_analytics(const std::string& access_token, const std::string& time_range);
 
 private:
-    std::shared_ptr<UserServiceImpl> user_service_;
+    std::shared_ptr<sonet::user::UserServiceImpl> user_service_;
     
     // Helper methods
     nlohmann::json create_error_response(const std::string& message);
