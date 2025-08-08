@@ -32,6 +32,7 @@ struct MediaRecord {
 	double duration_seconds{};
 	std::string original_url;
 	std::string thumbnail_url;
+	std::string hls_url; // optional for videos
 };
 
 class MediaRepository {
@@ -48,6 +49,8 @@ public:
 	virtual ~StorageBackend() = default;
 	// Store a file from a local temp path to object storage. Returns public/signed URL.
 	virtual bool Put(const std::string& local_path, const std::string& object_key, std::string& out_url) = 0;
+	// Store a directory recursively (e.g., HLS assets). Returns base URL (object_prefix/) where index file lives.
+	virtual bool PutDir(const std::string& local_dir, const std::string& object_prefix, std::string& out_base_url) = 0;
 	virtual bool Delete(const std::string& object_key) = 0;
 };
 
