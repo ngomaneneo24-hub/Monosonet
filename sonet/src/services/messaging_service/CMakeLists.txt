@@ -79,6 +79,11 @@ endif()
 # Include directories
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/controllers
+    ${CMAKE_CURRENT_SOURCE_DIR}/models
+    ${CMAKE_CURRENT_SOURCE_DIR}/security
+    ${CMAKE_CURRENT_SOURCE_DIR}/repositories
+    ${CMAKE_CURRENT_SOURCE_DIR}/validators
     ${CMAKE_CURRENT_SOURCE_DIR}/../../core
     ${CMAKE_CURRENT_SOURCE_DIR}/../../external
     ${WEBSOCKETPP_INCLUDE_DIR}

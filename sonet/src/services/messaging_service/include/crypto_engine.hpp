@@ -375,3 +375,6 @@ public:
 };
 
 } // namespace sonet::messaging::crypto
+
+// Adapter note: new modular API available under services/messaging_service/security/crypto_engine.h
+// This header remains for compatibility; consider migrating call sites gradually.
