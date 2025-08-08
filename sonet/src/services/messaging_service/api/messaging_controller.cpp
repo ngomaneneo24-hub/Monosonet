@@ -397,7 +397,17 @@ MessagingController::handle_send_message(const boost::beast::http::request<boost
                     session_key.session_id, content, additional_data);
                 
                 if (!encrypted_msg.message_id.empty()) {
-                    message->content = encrypted_msg.ciphertext;
+                    // Persist an envelope with all required crypto metadata
+                    Json::Value envelope;
+                    envelope["v"] = 1; // version
+                    envelope["alg"] = static_cast<int>(session_key.algorithm);
+                    envelope["sid"] = session_key.session_id;
+                    envelope["ct"] = encrypted_msg.ciphertext; // base64
+                    envelope["n"] = encrypted_msg.nonce;       // base64
+                    envelope["t"] = encrypted_msg.tag;         // base64
+                    envelope["aad"] = encrypted_msg.additional_data; // base64 or string depending on manager
+                    Json::StreamWriterBuilder w;
+                    message->content = Json::writeString(w, envelope);
                     message->encryption_key_id = session_key.session_id;
                     message->is_encrypted = true;
                 }
@@ -487,11 +497,34 @@ MessagingController::handle_get_messages(const boost::beast::http::request<boost
         for (auto& message : messages) {
             if (message->is_encrypted && !message->encryption_key_id.empty()) {
                 try {
+                    // Parse envelope
+                    Json::Value envelope;
+                    Json::CharReaderBuilder r;
+                    std::string errs;
+                    std::unique_ptr<Json::CharReader> reader(r.newCharReader());
                     encryption::EncryptedMessage encrypted_msg;
-                    encrypted_msg.message_id = message->message_id;
-                    encrypted_msg.session_id = message->encryption_key_id;
-                    encrypted_msg.ciphertext = message->content;
-                    // Note: In production, nonce and tag would be stored separately
+                    if (reader->parse(message->content.data(), message->content.data() + message->content.size(), &envelope, &errs)) {
+                        if (envelope.isMember("ct") && envelope.isMember("n") && envelope.isMember("t")) {
+                            encrypted_msg.message_id = message->message_id;
+                            encrypted_msg.session_id = envelope.get("sid", message->encryption_key_id).asString();
+                            encrypted_msg.ciphertext = envelope["ct"].asString();
+                            encrypted_msg.nonce = envelope["n"].asString();
+                            encrypted_msg.tag = envelope["t"].asString();
+                            if (envelope.isMember("aad")) {
+                                encrypted_msg.additional_data = envelope["aad"].asString();
+                            }
+                        } else {
+                            // Fallback: treat whole content as ciphertext-only
+                            encrypted_msg.message_id = message->message_id;
+                            encrypted_msg.session_id = message->encryption_key_id;
+                            encrypted_msg.ciphertext = message->content;
+                        }
+                    } else {
+                        // Not JSON or parse failed; fallback
+                        encrypted_msg.message_id = message->message_id;
+                        encrypted_msg.session_id = message->encryption_key_id;
+                        encrypted_msg.ciphertext = message->content;
+                    }
                     
                     std::string decrypted_content = encryption_manager_->decrypt_message(encrypted_msg);
                     if (!decrypted_content.empty()) {
