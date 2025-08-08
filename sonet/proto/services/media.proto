@@ -10,8 +10,6 @@ syntax = "proto3";
 
 package sonet.media;
 
-import "common/timestamp.proto";
-
 // Media type enum
 enum MediaType {
 	MEDIA_TYPE_UNKNOWN = 0;
@@ -32,7 +30,6 @@ message Media {
 	double duration_seconds = 8; // for video/gif
 	string original_url = 9;     // storage URL (may be signed)
 	string thumbnail_url = 10;   // for images/videos
-	common.Timestamp created_at = 11;
 }
 
 // Upload streaming: client sends chunks
