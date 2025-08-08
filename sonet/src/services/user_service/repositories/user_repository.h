@@ -138,13 +138,12 @@ public:
     // Additional PostgreSQL-specific methods
     bool create_indexes();
     bool optimize_performance();
-    std::string get_connection_info() const;
-    pqxx::result execute_raw_query(const std::string& query);
+        std::string get_connection_info() const;
     bool backup_user_data(const std::string& backup_path);
     bool restore_user_data(const std::string& backup_path);
     
-private:
-    // Internal helper methods
+    private:
+// Internal helper methods
     void setup_prepared_statements();
     void create_database_schema();
     void migrate_database_schema();
