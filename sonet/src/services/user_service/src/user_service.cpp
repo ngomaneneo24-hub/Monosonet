@@ -9,32 +9,37 @@
 #include "user_service.h"
 #include <spdlog/spdlog.h>
 #include <grpcpp/grpcpp.h>
+#include <cstdlib>
 
 namespace sonet::user {
 
+static std::string getenv_or(const char* key, const std::string& def) {
+    const char* v = std::getenv(key);
+    return v ? std::string(v) : def;
+}
+
 UserServiceImpl::UserServiceImpl() {
-    // Initialize all our security components
     password_manager_ = std::make_shared<PasswordManager>();
-    jwt_manager_ = std::make_shared<JWTManager>("your-super-secret-key-change-in-production", "sonet");
+    const std::string jwt_secret = getenv_or("JWT_SECRET", "dev-insecure-secret-change");
+    const std::string jwt_issuer = getenv_or("JWT_ISSUER", "sonet");
+    jwt_manager_ = std::make_shared<JWTManager>(jwt_secret, jwt_issuer);
     session_manager_ = std::make_shared<SessionManager>();
     rate_limiter_ = std::make_shared<RateLimiter>();
-    
-    // Wire everything together through the auth manager
-    auth_manager_ = std::make_shared<AuthManager>(
-        password_manager_, jwt_manager_, session_manager_, rate_limiter_
-    );
-    
-    spdlog::info("User service initialized - ready to handle authentication like a boss");
+    auth_manager_ = std::make_shared<AuthManager>(password_manager_, jwt_manager_, session_manager_, rate_limiter_);
+    spdlog::info("User service initialized");
 }
 
 grpc::Status UserServiceImpl::RegisterUser(
     grpc::ServerContext* context,
     const sonet::user::RegisterUserRequest* request,
     sonet::user::RegisterUserResponse* response) {
-    
-    spdlog::info("Registration attempt for email: {}", request->email());
-    
-    // Convert gRPC request to our internal types
+    if (request->email().empty() || request->password().empty() || request->username().empty()) {
+        auto status = response->mutable_status();
+        status->set_success(false);
+        status->set_message("Missing required fields");
+        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "missing fields");
+    }
+    spdlog::info("Registration attempt");
     RegistrationRequest reg_request;
     reg_request.username = request->username();
     reg_request.email = request->email();
@@ -44,85 +49,70 @@ grpc::Status UserServiceImpl::RegisterUser(
     reg_request.ip_address = extract_ip_address(context);
     reg_request.accept_terms = request->accept_terms();
     reg_request.accept_privacy = request->accept_privacy();
-    
-    // Let the auth manager handle the heavy lifting
+
     User new_user;
     AuthResult result = auth_manager_->register_user(reg_request, new_user);
-    
-    // Build the response
+
     auto status = response->mutable_status();
     status->set_success(result == AuthResult::SUCCESS);
-    
+
     if (result == AuthResult::SUCCESS) {
-        // Fill in the user details
         auto user_proto = response->mutable_user();
         user_proto->set_user_id(new_user.user_id);
         user_proto->set_username(new_user.username);
         user_proto->set_email(new_user.email);
         user_proto->set_display_name(new_user.display_name);
         user_proto->set_is_verified(new_user.is_verified);
-        
         status->set_message("Registration successful");
-        spdlog::info("User registered successfully: {}", new_user.user_id);
+        return grpc::Status::OK;
     } else {
         status->set_message(get_auth_result_message(result));
-        spdlog::warn("Registration failed for {}: {}", request->email(), status->message());
+        return grpc::Status(grpc::StatusCode::ALREADY_EXISTS, status->message());
     }
-    
-    return grpc::Status::OK;
 }
 
 grpc::Status UserServiceImpl::LoginUser(
     grpc::ServerContext* context,
     const sonet::user::LoginUserRequest* request,
     sonet::user::LoginUserResponse* response) {
-    
-    spdlog::info("Login attempt for email: {}", request->credentials().email());
-    
-    // Convert gRPC credentials to our internal format
+    const auto& creds = request->credentials();
+    if (creds.email().empty() || creds.password().empty()) {
+        auto status = response->mutable_status();
+        status->set_success(false);
+        status->set_message("Missing credentials");
+        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "missing credentials");
+    }
+    spdlog::info("Login attempt");
     AuthCredentials credentials;
-    credentials.email = request->credentials().email();
-    credentials.password = request->credentials().password();
+    credentials.email = creds.email();
+    credentials.password = creds.password();
     credentials.client_info = extract_client_info(context);
     credentials.ip_address = extract_ip_address(context);
-    
-    if (request->credentials().has_two_factor_code()) {
-        credentials.two_factor_code = request->credentials().two_factor_code();
-    }
-    
-    // Authenticate through our auth manager
+    if (creds.has_two_factor_code()) { credentials.two_factor_code = creds.two_factor_code(); }
+
     UserSession session;
     AuthResult result = auth_manager_->authenticate_user(credentials, session);
-    
-    // Build response
+
     auto status = response->mutable_status();
     status->set_success(result == AuthResult::SUCCESS);
-    
+
     if (result == AuthResult::SUCCESS) {
-        // Generate tokens for successful login
-        User user = get_user_by_email(credentials.email); // This would come from repository
-        
+        User user = get_user_by_email(credentials.email);
         std::string access_token = jwt_manager_->generate_access_token(user, session);
         std::string refresh_token = jwt_manager_->generate_refresh_token(user.user_id, session.session_id);
-        
         response->set_access_token(access_token);
         response->set_refresh_token(refresh_token);
-        response->set_expires_in(3600); // 1 hour
-        
-        // Fill session info
+        response->set_expires_in(3600);
         auto session_proto = response->mutable_session();
         session_proto->set_session_id(session.session_id);
         session_proto->set_device_name(session.device_name);
         session_proto->set_ip_address(session.ip_address);
-        
         status->set_message("Login successful");
-        spdlog::info("User logged in successfully: {}", user.user_id);
+        return grpc::Status::OK;
     } else {
         status->set_message(get_auth_result_message(result));
-        spdlog::warn("Login failed for {}: {}", credentials.email, status->message());
+        return grpc::Status(grpc::StatusCode::UNAUTHENTICATED, status->message());
     }
-    
-    return grpc::Status::OK;
 }
 
 grpc::Status UserServiceImpl::VerifyToken(

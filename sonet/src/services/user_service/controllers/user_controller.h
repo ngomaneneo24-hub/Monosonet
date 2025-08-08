@@ -8,7 +8,8 @@
 
 #pragma once
 
-#include "user_service_impl.h"
+#include "../include/user_service.h"
+#include "services/user.grpc.pb.h"
 #include "../include/file_upload_service.h"
 #include "../include/repository.h"
 #include <nlohmann/json.hpp>
@@ -24,7 +25,7 @@ namespace sonet::user::controllers {
  */
 class UserController {
 public:
-    explicit UserController(std::shared_ptr<UserServiceImpl> user_service,
+    explicit UserController(std::shared_ptr<sonet::user::UserServiceImpl> user_service,
                            std::shared_ptr<storage::FileUploadService> file_service = nullptr,
                            const std::string& connection_string = "");
     ~UserController() = default;
@@ -91,7 +92,7 @@ public:
     nlohmann::json handle_terminate_all_sessions(const std::string& access_token);
     nlohmann::json handle_deactivate_account(const DeactivateAccountRequest& request);
     nlohmann::json handle_search_users(const SearchUsersRequest& request);
-    nlohmann::json handle_get_user_statistics(const std::string& access_token);
+    nlohmann::json handle_get_user_stats(const std::string& access_token, const std::string& user_id);
     
     // File upload handlers
     nlohmann::json handle_upload_avatar(const std::string& access_token, 
@@ -115,15 +116,15 @@ public:
     std::string extract_bearer_token(const std::string& authorization_header);
 
 private:
-    std::shared_ptr<UserServiceImpl> user_service_;
+    std::shared_ptr<sonet::user::UserServiceImpl> user_service_;
     std::shared_ptr<storage::FileUploadService> file_service_;
     std::string connection_string_;
     
     // Helper methods
     nlohmann::json create_error_response(const std::string& message);
     nlohmann::json create_success_response(const std::string& message, const nlohmann::json& data = nlohmann::json{});
-    nlohmann::json user_data_to_json(const UserData& user);
-    nlohmann::json session_data_to_json(const UserSession& session);
+    nlohmann::json user_data_to_json(const sonet::user::UserProfile& user);
+    nlohmann::json session_data_to_json(const sonet::user::Session& session);
     
     // Image processing helpers
     bool is_valid_image_format(const std::vector<uint8_t>& data);

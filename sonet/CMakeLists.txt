@@ -18,15 +18,18 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR})
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR})
 
-find_package(Boost REQUIRED COMPONENTS system filesystem thread)
-find_package(gRPC REQUIRED)
-find_package(protobuf REQUIRED)
-find_package(OpenSSL REQUIRED)
-find_package(nlohmann_json REQUIRED)
-find_package(spdlog REQUIRED)
-find_package(fmt REQUIRED)
-find_package(PostgreSQL REQUIRED)
-find_package(GTest REQUIRED)
+# Make Boost optional in this environment
+find_package(Boost COMPONENTS system filesystem thread)
+# Use protobuf; we'll locate gRPC plugin via find_program
+find_package(OpenSSL)
+
+# Locate protoc and grpc plugin
+find_program(PROTOC protoc REQUIRED)
+find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin REQUIRED)
+# Locate protobuf and gRPC libraries
+find_library(PROTOBUF_LIB protobuf REQUIRED)
+find_library(GRPCPP_LIB grpc++)
+find_library(GRPCPP_REFLECTION_LIB grpc++_reflection)
 
 # Compiler flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
@@ -36,6 +39,12 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
 # Include directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external)
+if(Boost_FOUND)
+    include_directories(${Boost_INCLUDE_DIRS})
+endif()
+if(OpenSSL_FOUND)
+    include_directories(${OPENSSL_INCLUDE_DIR})
+endif()
 
 # Protocol Buffers
 set(PROTO_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
@@ -44,7 +53,6 @@ file(MAKE_DIRECTORY ${PROTO_OUTPUT_DIR})
 # Function to compile proto files
 function(compile_proto_file proto_file)
     get_filename_component(proto_name ${proto_file} NAME_WE)
-    get_filename_component(proto_dir ${proto_file} DIRECTORY)
     
     set(proto_srcs "${PROTO_OUTPUT_DIR}/${proto_name}.pb.cc")
     set(proto_hdrs "${PROTO_OUTPUT_DIR}/${proto_name}.pb.h")
@@ -53,11 +61,11 @@ function(compile_proto_file proto_file)
     
     add_custom_command(
         OUTPUT "${proto_srcs}" "${proto_hdrs}" "${grpc_srcs}" "${grpc_hdrs}"
-        COMMAND protobuf::protoc
+        COMMAND ${PROTOC}
         ARGS --grpc_out "${PROTO_OUTPUT_DIR}"
              --cpp_out "${PROTO_OUTPUT_DIR}"
              -I "${CMAKE_CURRENT_SOURCE_DIR}/proto"
-             --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
+             --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
              "${proto_file}"
         DEPENDS "${proto_file}"
         COMMENT "Generating protocol buffer files for ${proto_file}"
@@ -75,11 +83,19 @@ endforeach()
 
 # Create proto library
 add_library(sonet_proto ${PROTO_SRCS})
-target_link_libraries(sonet_proto
-    protobuf::protobuf
-    gRPC::grpc++
-    gRPC::grpc++_reflection
-)
+# Link gRPC libraries by name
+if(GRPCPP_LIB)
+    target_link_libraries(sonet_proto ${GRPCPP_LIB})
+endif()
+if(GRPCPP_REFLECTION_LIB)
+    target_link_libraries(sonet_proto ${GRPCPP_REFLECTION_LIB})
+endif()
+# Protobuf core
+target_link_libraries(sonet_proto ${PROTOBUF_LIB})
+if(OpenSSL_FOUND)
+    target_link_libraries(sonet_proto OpenSSL::Crypto OpenSSL::SSL)
+endif()
+# Generated headers dir
 target_include_directories(sonet_proto PUBLIC ${PROTO_OUTPUT_DIR})
 
 # Add subdirectories

@@ -13,7 +13,7 @@
 
 namespace sonet::user::controllers {
 
-ProfileController::ProfileController(std::shared_ptr<UserServiceImpl> user_service)
+ProfileController::ProfileController(std::shared_ptr<sonet::user::UserServiceImpl> user_service)
     : user_service_(std::move(user_service)) {
     spdlog::info("Profile controller initialized");
 }

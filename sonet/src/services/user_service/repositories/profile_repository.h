@@ -147,7 +147,6 @@ public:
     bool create_profile_indexes();
     bool optimize_profile_performance();
     std::string get_connection_info() const;
-    pqxx::result execute_raw_query(const std::string& query);
     bool backup_profile_data(const std::string& backup_path);
     bool restore_profile_data(const std::string& backup_path);
     

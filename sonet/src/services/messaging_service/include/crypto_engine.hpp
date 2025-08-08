@@ -130,7 +130,7 @@ public:
 class CryptoEngine {
 private:
     std::unique_ptr<SecureRandom> random_;
-    std::unordered_map<std::string, std::unique_ptr<CryptoKey>> key_cache_;
+    std::unordered_map<std::string, std::shared_ptr<CryptoKey>> key_cache_;
     std::mutex key_cache_mutex_;
     
     // Configuration
@@ -144,7 +144,36 @@ private:
     uint32_t max_cached_keys_;
     bool perfect_forward_secrecy_enabled_;
     bool quantum_resistant_mode_;
-    
+
+    // Internal cipher helpers (implemented in .cpp)
+    std::vector<uint8_t> encrypt_aes_256_gcm(
+        const std::vector<uint8_t>& plaintext,
+        const std::vector<uint8_t>& key,
+        const std::vector<uint8_t>& iv,
+        const std::optional<std::vector<uint8_t>>& aad,
+        std::vector<uint8_t>& tag);
+
+    std::vector<uint8_t> decrypt_aes_256_gcm(
+        const std::vector<uint8_t>& ciphertext,
+        const std::vector<uint8_t>& key,
+        const std::vector<uint8_t>& iv,
+        const std::optional<std::vector<uint8_t>>& aad,
+        const std::vector<uint8_t>& tag);
+
+    std::vector<uint8_t> encrypt_chacha20_poly1305(
+        const std::vector<uint8_t>& plaintext,
+        const std::vector<uint8_t>& key,
+        const std::vector<uint8_t>& nonce,
+        const std::optional<std::vector<uint8_t>>& aad,
+        std::vector<uint8_t>& tag);
+
+    std::vector<uint8_t> decrypt_chacha20_poly1305(
+        const std::vector<uint8_t>& ciphertext,
+        const std::vector<uint8_t>& key,
+        const std::vector<uint8_t>& nonce,
+        const std::optional<std::vector<uint8_t>>& aad,
+        const std::vector<uint8_t>& tag);
+
 public:
     CryptoEngine();
     ~CryptoEngine();

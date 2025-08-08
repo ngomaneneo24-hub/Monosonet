@@ -47,6 +47,8 @@ struct NotificationProcessor::Impl {
     std::unordered_map<std::string, NotificationBatch> active_batches;
     std::unordered_map<models::NotificationType, NotificationProcessingRule> processing_rules;
     std::unordered_set<std::string> deduplication_cache;
+    std::unordered_map<std::string, std::chrono::steady_clock::time_point> dedup_expirations;
+    size_t dedup_cleanup_counter = 0;
     
     mutable std::mutex rate_limit_mutex;
     mutable std::mutex batch_mutex;
@@ -534,15 +536,41 @@ bool NotificationProcessor::check_deduplication(const models::Notification& noti
     
     std::string dedup_key = generate_deduplication_key(notification);
     
-    // Check if we've seen this notification recently
-    if (pimpl_->deduplication_cache.find(dedup_key) != pimpl_->deduplication_cache.end()) {
-        return true; // Duplicate found
+    // Determine TTL window based on rule for this notification type
+    auto rule_it = pimpl_->processing_rules.find(notification.type);
+    auto now = std::chrono::steady_clock::now();
+    auto ttl = std::chrono::minutes{30};
+    if (rule_it != pimpl_->processing_rules.end() && rule_it->second.deduplication_window.count() > 0) {
+        ttl = rule_it->second.deduplication_window;
     }
     
-    // Add to cache
-    pimpl_->deduplication_cache.insert(dedup_key);
+    // Cleanup a few expired entries opportunistically
+    if ((++pimpl_->dedup_cleanup_counter % 64) == 0) {
+        for (auto it = pimpl_->dedup_expirations.begin(); it != pimpl_->dedup_expirations.end(); ) {
+            if (it->second <= now) {
+                pimpl_->deduplication_cache.erase(it->first);
+                it = pimpl_->dedup_expirations.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
     
-    // TODO: Implement cache expiry cleanup
+    // Check if we've seen this notification recently
+    if (pimpl_->deduplication_cache.find(dedup_key) != pimpl_->deduplication_cache.end()) {
+        auto exp_it = pimpl_->dedup_expirations.find(dedup_key);
+        if (exp_it != pimpl_->dedup_expirations.end() && exp_it->second > now) {
+            return true; // Duplicate within TTL window
+        } else {
+            // Expired entry; remove and proceed
+            pimpl_->deduplication_cache.erase(dedup_key);
+            if (exp_it != pimpl_->dedup_expirations.end()) pimpl_->dedup_expirations.erase(exp_it);
+        }
+    }
+    
+    // Add to cache with expiration
+    pimpl_->deduplication_cache.insert(dedup_key);
+    pimpl_->dedup_expirations[dedup_key] = now + ttl;
     
     return false; // Not a duplicate
 }

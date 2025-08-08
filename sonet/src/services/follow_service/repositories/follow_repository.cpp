@@ -891,13 +891,18 @@ std::future<json> FollowRepository::execute_query(const std::string& query, cons
         
         try {
             // Simulate database query execution with realistic timing
-            std::this_thread::sleep_for(std::chrono::microseconds(100 + (std::rand() % 500))); // 100-600μs
+            thread_local std::mt19937 rng{std::random_device{}()};
+            std::uniform_int_distribution<int> delay_us_dist(100, 600);
+            std::uniform_int_distribution<int> query_time_dist(0, 999);
+            std::uniform_int_distribution<int> rows_affected_dist(0, 4);
+            
+            std::this_thread::sleep_for(std::chrono::microseconds(delay_us_dist(rng)));
             
             // Simulate successful result
             json result = {
                 {"success", true},
-                {"query_time_us", std::rand() % 1000},
-                {"rows_affected", std::rand() % 5},
+                {"query_time_us", query_time_dist(rng)},
+                {"rows_affected", rows_affected_dist(rng)},
                 {"rows", json::array()}
             };
             
