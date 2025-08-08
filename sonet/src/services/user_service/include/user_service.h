@@ -16,7 +16,7 @@
 #include "rate_limiter.h"
 
 // Include generated gRPC code
-#include "user.grpc.pb.h"
+#include "services/user.grpc.pb.h"
 
 #include <grpcpp/grpcpp.h>
 #include <memory>
