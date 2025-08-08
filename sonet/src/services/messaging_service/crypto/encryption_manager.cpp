@@ -20,6 +20,7 @@
 #include <cryptopp/ec2n.h>
 #include <cryptopp/eccrypto.h>
 #include <cryptopp/curve25519.h>
+#include <cryptopp/filters.h>
 #include <algorithm>
 #include <random>
 #include <sstream>
@@ -414,99 +415,96 @@ EncryptedMessage EncryptionManager::encrypt_message(const std::string& session_i
     try {
         switch (session_key.algorithm) {
             case EncryptionAlgorithm::AES_256_GCM: {
-                // Generate random nonce
-                const size_t nonce_size = 12; // 96-bit IV recommended for GCM
+                // Nonce
+                const size_t nonce_size = 12;
                 CryptoPP::SecByteBlock nonce(nonce_size);
                 rng_->GenerateBlock(nonce, nonce.size());
-                
-                // Encrypt with AES-256-GCM
+
+                // Encrypt
                 CryptoPP::GCM<CryptoPP::AES>::Encryption enc;
                 enc.SetKeyWithIV(
                     reinterpret_cast<const CryptoPP::byte*>(session_key.key_material.data()),
                     session_key.key_material.size(),
-                    nonce,
-                    nonce.size()
+                    nonce, nonce.size()
                 );
-                
-                std::string ciphertext;
-                CryptoPP::AuthenticatedEncryptionFilter aef(enc,
-                    new CryptoPP::StringSink(ciphertext),
+                enc.SpecifyDataLengths(additional_data.size(), plaintext.size(), 0);
+
+                std::string ct_and_tag;
+                CryptoPP::AuthenticatedEncryptionFilter aef(
+                    enc,
+                    new CryptoPP::StringSink(ct_and_tag),
                     false, // putMessage
-                    CryptoPP::DEFAULT_CHANNEL,
-                    additional_data.empty() ? nullptr : additional_data.c_str(),
-                    additional_data.size()
+                    16     // tag at end
                 );
-                
-                aef.Put(reinterpret_cast<const CryptoPP::byte*>(plaintext.data()), plaintext.size());
-                aef.MessageEnd();
-                
-                // Extract tag
-                std::string tag;
-                tag.resize(16); // GCM tag size
-                aef.Get(reinterpret_cast<CryptoPP::byte*>(&tag[0]), tag.size());
-                
-                // Extract ciphertext (without tag)
-                encrypted_msg.ciphertext = ciphertext.substr(0, ciphertext.size() - 16);
-                encrypted_msg.tag = tag;
+                if (!additional_data.empty()) {
+                    aef.ChannelPut(CryptoPP::AAD_CHANNEL,
+                        reinterpret_cast<const CryptoPP::byte*>(additional_data.data()),
+                        additional_data.size());
+                    aef.ChannelMessageEnd(CryptoPP::AAD_CHANNEL);
+                }
+                aef.ChannelPut(CryptoPP::DEFAULT_CHANNEL,
+                    reinterpret_cast<const CryptoPP::byte*>(plaintext.data()),
+                    plaintext.size());
+                aef.ChannelMessageEnd(CryptoPP::DEFAULT_CHANNEL);
+
+                if (ct_and_tag.size() < 16) return EncryptedMessage{};
+                encrypted_msg.ciphertext = ct_and_tag.substr(0, ct_and_tag.size() - 16);
+                encrypted_msg.tag = ct_and_tag.substr(ct_and_tag.size() - 16);
                 encrypted_msg.nonce.assign(nonce.begin(), nonce.end());
-                
                 break;
             }
-            
             case EncryptionAlgorithm::CHACHA20_POLY1305:
             case EncryptionAlgorithm::X25519_CHACHA20_POLY1305: {
-                // Generate random nonce
-                const size_t nonce_size = 12; // ChaCha20-Poly1305 nonce size
+                const size_t nonce_size = 12;
                 CryptoPP::SecByteBlock nonce(nonce_size);
                 rng_->GenerateBlock(nonce, nonce.size());
-                
-                // Encrypt with ChaCha20-Poly1305
+
                 CryptoPP::ChaCha20Poly1305::Encryption enc;
                 enc.SetKeyWithIV(
                     reinterpret_cast<const CryptoPP::byte*>(session_key.key_material.data()),
-                    32, // ChaCha20 key size
-                    nonce,
-                    nonce.size()
+                    32,
+                    nonce, nonce.size()
                 );
-                
-                std::string ciphertext_and_tag;
-                CryptoPP::AuthenticatedEncryptionFilter aef(enc,
-                    new CryptoPP::StringSink(ciphertext_and_tag),
-                    false, // putMessage
-                    CryptoPP::DEFAULT_CHANNEL,
-                    additional_data.empty() ? nullptr : additional_data.c_str(),
-                    additional_data.size()
+                enc.SpecifyDataLengths(additional_data.size(), plaintext.size(), 0);
+
+                std::string ct_and_tag;
+                CryptoPP::AuthenticatedEncryptionFilter aef(
+                    enc,
+                    new CryptoPP::StringSink(ct_and_tag),
+                    false,
+                    16
                 );
-                
-                aef.Put(reinterpret_cast<const CryptoPP::byte*>(plaintext.data()), plaintext.size());
-                aef.MessageEnd();
-                
-                // Extract ciphertext and tag
-                if (ciphertext_and_tag.size() >= 16) {
-                    encrypted_msg.ciphertext = ciphertext_and_tag.substr(0, ciphertext_and_tag.size() - 16);
-                    encrypted_msg.tag = ciphertext_and_tag.substr(ciphertext_and_tag.size() - 16);
-                } else {
-                    return EncryptedMessage{}; // Error
+                if (!additional_data.empty()) {
+                    aef.ChannelPut(CryptoPP::AAD_CHANNEL,
+                        reinterpret_cast<const CryptoPP::byte*>(additional_data.data()),
+                        additional_data.size());
+                    aef.ChannelMessageEnd(CryptoPP::AAD_CHANNEL);
                 }
-                
+                aef.ChannelPut(CryptoPP::DEFAULT_CHANNEL,
+                    reinterpret_cast<const CryptoPP::byte*>(plaintext.data()),
+                    plaintext.size());
+                aef.ChannelMessageEnd(CryptoPP::DEFAULT_CHANNEL);
+
+                if (ct_and_tag.size() < 16) return EncryptedMessage{};
+                encrypted_msg.ciphertext = ct_and_tag.substr(0, ct_and_tag.size() - 16);
+                encrypted_msg.tag = ct_and_tag.substr(ct_and_tag.size() - 16);
                 encrypted_msg.nonce.assign(nonce.begin(), nonce.end());
                 break;
             }
-            
             default:
                 return EncryptedMessage{}; // Unsupported algorithm
         }
         
-        // Increment session key usage
+        // Increment usage
         session_key.increment_usage();
         
-        // Convert binary data to base64 for JSON transport
+        // Base64 encode
         encrypted_msg.ciphertext = base64_encode(encrypted_msg.ciphertext);
         encrypted_msg.nonce = base64_encode(encrypted_msg.nonce);
         encrypted_msg.tag = base64_encode(encrypted_msg.tag);
         
     } catch (const std::exception& e) {
-        return EncryptedMessage{}; // Empty on error
+        return EncryptedMessage{};
     }
     
     return encrypted_msg;
@@ -522,7 +520,7 @@ std::string EncryptionManager::decrypt_message(const EncryptedMessage& encrypted
     const auto& session_key = session_it->second;
     
     try {
-        // Decode base64 data
+        // Decode base64
         std::string ciphertext = base64_decode(encrypted_msg.ciphertext);
         std::string nonce = base64_decode(encrypted_msg.nonce);
         std::string tag = base64_decode(encrypted_msg.tag);
@@ -531,7 +529,6 @@ std::string EncryptionManager::decrypt_message(const EncryptedMessage& encrypted
         
         switch (session_key.algorithm) {
             case EncryptionAlgorithm::AES_256_GCM: {
-                // Decrypt with AES-256-GCM
                 CryptoPP::GCM<CryptoPP::AES>::Decryption dec;
                 dec.SetKeyWithIV(
                     reinterpret_cast<const CryptoPP::byte*>(session_key.key_material.data()),
@@ -539,54 +536,65 @@ std::string EncryptionManager::decrypt_message(const EncryptedMessage& encrypted
                     reinterpret_cast<const CryptoPP::byte*>(nonce.data()),
                     nonce.size()
                 );
+                dec.SpecifyDataLengths(encrypted_msg.additional_data.size(), ciphertext.size(), 0);
                 
-                // Combine ciphertext and tag
-                std::string ciphertext_with_tag = ciphertext + tag;
-                
-                CryptoPP::AuthenticatedDecryptionFilter adf(dec,
+                std::string ct_and_tag = ciphertext + tag;
+                CryptoPP::AuthenticatedDecryptionFilter adf(
+                    dec,
                     new CryptoPP::StringSink(plaintext),
                     CryptoPP::AuthenticatedDecryptionFilter::DEFAULT_FLAGS,
-                    CryptoPP::DEFAULT_CHANNEL,
-                    encrypted_msg.additional_data.empty() ? nullptr : encrypted_msg.additional_data.c_str(),
-                    encrypted_msg.additional_data.size()
+                    16
                 );
+                if (!encrypted_msg.additional_data.empty()) {
+                    adf.ChannelPut(CryptoPP::AAD_CHANNEL,
+                        reinterpret_cast<const CryptoPP::byte*>(encrypted_msg.additional_data.data()),
+                        encrypted_msg.additional_data.size());
+                    adf.ChannelMessageEnd(CryptoPP::AAD_CHANNEL);
+                }
+                adf.ChannelPut(CryptoPP::DEFAULT_CHANNEL,
+                    reinterpret_cast<const CryptoPP::byte*>(ct_and_tag.data()),
+                    ct_and_tag.size());
+                adf.ChannelMessageEnd(CryptoPP::DEFAULT_CHANNEL);
                 
-                adf.Put(reinterpret_cast<const CryptoPP::byte*>(ciphertext_with_tag.data()), 
-                       ciphertext_with_tag.size());
-                adf.MessageEnd();
-                
+                if (!adf.GetLastResult()) {
+                    return "";
+                }
                 break;
             }
-            
             case EncryptionAlgorithm::CHACHA20_POLY1305:
             case EncryptionAlgorithm::X25519_CHACHA20_POLY1305: {
-                // Decrypt with ChaCha20-Poly1305
                 CryptoPP::ChaCha20Poly1305::Decryption dec;
                 dec.SetKeyWithIV(
                     reinterpret_cast<const CryptoPP::byte*>(session_key.key_material.data()),
-                    32, // ChaCha20 key size
+                    32,
                     reinterpret_cast<const CryptoPP::byte*>(nonce.data()),
                     nonce.size()
                 );
+                dec.SpecifyDataLengths(encrypted_msg.additional_data.size(), ciphertext.size(), 0);
                 
-                // Combine ciphertext and tag
-                std::string ciphertext_with_tag = ciphertext + tag;
-                
-                CryptoPP::AuthenticatedDecryptionFilter adf(dec,
+                std::string ct_and_tag = ciphertext + tag;
+                CryptoPP::AuthenticatedDecryptionFilter adf(
+                    dec,
                     new CryptoPP::StringSink(plaintext),
                     CryptoPP::AuthenticatedDecryptionFilter::DEFAULT_FLAGS,
-                    CryptoPP::DEFAULT_CHANNEL,
-                    encrypted_msg.additional_data.empty() ? nullptr : encrypted_msg.additional_data.c_str(),
-                    encrypted_msg.additional_data.size()
+                    16
                 );
+                if (!encrypted_msg.additional_data.empty()) {
+                    adf.ChannelPut(CryptoPP::AAD_CHANNEL,
+                        reinterpret_cast<const CryptoPP::byte*>(encrypted_msg.additional_data.data()),
+                        encrypted_msg.additional_data.size());
+                    adf.ChannelMessageEnd(CryptoPP::AAD_CHANNEL);
+                }
+                adf.ChannelPut(CryptoPP::DEFAULT_CHANNEL,
+                    reinterpret_cast<const CryptoPP::byte*>(ct_and_tag.data()),
+                    ct_and_tag.size());
+                adf.ChannelMessageEnd(CryptoPP::DEFAULT_CHANNEL);
                 
-                adf.Put(reinterpret_cast<const CryptoPP::byte*>(ciphertext_with_tag.data()), 
-                       ciphertext_with_tag.size());
-                adf.MessageEnd();
-                
+                if (!adf.GetLastResult()) {
+                    return "";
+                }
                 break;
             }
-            
             default:
                 return ""; // Unsupported algorithm
         }
@@ -814,7 +822,15 @@ std::string EncryptionManager::derive_key(const std::string& input_key_material,
                                          const std::string& info,
                                          size_t output_length) {
     try {
-        // Use HKDF-SHA256 for key derivation
+        // Deterministic salt derived from (info || IKM) to avoid empty salt
+        CryptoPP::SHA256 sha;
+        std::string salt_input = info + input_key_material;
+        std::string salt;
+        salt.resize(CryptoPP::SHA256::DIGESTSIZE);
+        sha.CalculateDigest(reinterpret_cast<CryptoPP::byte*>(&salt[0]),
+                            reinterpret_cast<const CryptoPP::byte*>(salt_input.data()),
+                            salt_input.size());
+        
         CryptoPP::HKDF<CryptoPP::SHA256> hkdf;
         CryptoPP::SecByteBlock derived_key(output_length);
         
@@ -823,8 +839,8 @@ std::string EncryptionManager::derive_key(const std::string& input_key_material,
             derived_key.size(),
             reinterpret_cast<const CryptoPP::byte*>(input_key_material.data()),
             input_key_material.size(),
-            nullptr, // salt
-            0, // salt length
+            reinterpret_cast<const CryptoPP::byte*>(salt.data()),
+            salt.size(),
             reinterpret_cast<const CryptoPP::byte*>(info.data()),
             info.size()
         );
@@ -867,16 +883,16 @@ std::string EncryptionManager::generate_state_id() {
 }
 
 std::string EncryptionManager::generate_random_id(const std::string& prefix) {
-    std::random_device rd;
-    std::mt19937_64 gen(rd());
-    std::uniform_int_distribution<uint64_t> dis;
-    
-    uint64_t high = dis(gen);
-    uint64_t low = dis(gen);
-    
-    std::stringstream ss;
-    ss << prefix << "_" << std::hex << high << low;
-    return ss.str();
+    // 128-bit CSPRNG ID -> hex
+    CryptoPP::SecByteBlock rnd(16);
+    rng_->GenerateBlock(rnd, rnd.size());
+    std::ostringstream oss;
+    oss << prefix << "_";
+    for (size_t i = 0; i < rnd.size(); ++i) {
+        oss << std::hex << std::setw(2) << std::setfill('0')
+            << static_cast<int>(static_cast<unsigned char>(rnd[i]));
+    }
+    return oss.str();
 }
 
 std::string EncryptionManager::algorithm_to_string(EncryptionAlgorithm algorithm) {

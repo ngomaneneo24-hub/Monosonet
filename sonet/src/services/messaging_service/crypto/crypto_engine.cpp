@@ -492,28 +492,41 @@ void CryptoEngine::cache_key(std::unique_ptr<CryptoKey> key) {
     std::lock_guard<std::mutex> lock(key_cache_mutex_);
     
     if (key_cache_.size() >= max_cached_keys_) {
-        // Remove oldest keys
+        // Remove expired first
         cleanup_expired_keys();
         
         if (key_cache_.size() >= max_cached_keys_) {
-            auto oldest = key_cache_.begin();
-            oldest->second->secure_erase();
-            key_cache_.erase(oldest);
+            // Remove an arbitrary (oldest would require tracking timestamps)
+            auto it = key_cache_.begin();
+            if (it != key_cache_.end()) {
+                if (it->second) {
+                    it->second->secure_erase();
+                }
+                key_cache_.erase(it);
+            }
         }
     }
     
     std::string key_id = key->id;
-    key_cache_[key_id] = std::move(key);
+    // Store with secure deleter to ensure zeroization on destruction
+    std::shared_ptr<CryptoKey> shared{
+        key.release(),
+        [](CryptoKey* p) {
+            if (p) {
+                p->secure_erase();
+                delete p;
+            }
+        }
+    };
+    key_cache_[key_id] = std::move(shared);
 }
 
 std::shared_ptr<CryptoKey> CryptoEngine::get_cached_key(const std::string& key_id) {
     std::lock_guard<std::mutex> lock(key_cache_mutex_);
     
     auto it = key_cache_.find(key_id);
-    if (it != key_cache_.end() && !it->second->is_expired()) {
-        return std::shared_ptr<CryptoKey>(it->second.get(), [](CryptoKey*) {
-            // Custom deleter that doesn't actually delete (managed by unique_ptr)
-        });
+    if (it != key_cache_.end() && it->second && !it->second->is_expired()) {
+        return it->second; // share ownership
     }
     
     return nullptr;
@@ -522,10 +535,11 @@ std::shared_ptr<CryptoKey> CryptoEngine::get_cached_key(const std::string& key_i
 void CryptoEngine::cleanup_expired_keys() {
     std::lock_guard<std::mutex> lock(key_cache_mutex_);
     
-    auto it = key_cache_.begin();
-    while (it != key_cache_.end()) {
-        if (it->second->is_expired()) {
-            it->second->secure_erase();
+    for (auto it = key_cache_.begin(); it != key_cache_.end();) {
+        if (!it->second || it->second->is_expired()) {
+            if (it->second) {
+                it->second->secure_erase();
+            }
             it = key_cache_.erase(it);
         } else {
             ++it;
@@ -537,7 +551,9 @@ void CryptoEngine::clear_key_cache() {
     std::lock_guard<std::mutex> lock(key_cache_mutex_);
     
     for (auto& [id, key] : key_cache_) {
-        key->secure_erase();
+        if (key) {
+            key->secure_erase();
+        }
     }
     key_cache_.clear();
 }
