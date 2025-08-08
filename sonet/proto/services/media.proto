@@ -30,6 +30,8 @@ message Media {
 	double duration_seconds = 8; // for video/gif
 	string original_url = 9;     // storage URL (may be signed)
 	string thumbnail_url = 10;   // for images/videos
+	string hls_url = 11;         // video HLS master playlist (optional)
+	string created_at = 12;      // RFC3339 timestamp
 }
 
 // Upload streaming: client sends chunks
@@ -56,6 +58,7 @@ message UploadResponse {
 	MediaType type = 2;
 	string url = 3;
 	string thumbnail_url = 4;
+	string hls_url = 5;
 }
 
 message GetMediaRequest { string media_id = 1; }

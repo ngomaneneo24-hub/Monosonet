@@ -84,6 +84,24 @@ public:
 		out_url = base_url_ + "/" + object_key;
 		return true;
 	}
+	bool PutDir(const std::string& local_dir, const std::string& object_prefix, std::string& out_base_url) override {
+		auto target_dir = fs::path(base_dir_) / object_prefix;
+		std::error_code ec;
+		fs::create_directories(target_dir, ec);
+		if (ec) return false;
+		for (auto& entry : fs::recursive_directory_iterator(local_dir)) {
+			if (!entry.is_regular_file()) continue;
+			auto rel = fs::relative(entry.path(), local_dir, ec);
+			if (ec) return false;
+			auto dest = target_dir / rel;
+			fs::create_directories(dest.parent_path(), ec);
+			if (ec) return false;
+			fs::copy_file(entry.path(), dest, fs::copy_options::overwrite_existing, ec);
+			if (ec) return false;
+		}
+		out_base_url = base_url_ + "/" + object_prefix;
+		return true;
+	}
 	bool Delete(const std::string& object_key) override {
 		std::error_code ec;
 		fs::remove(fs::path(base_dir_) / object_key, ec);
@@ -187,6 +205,7 @@ static std::string GenId() {
 	// Decide processor by type
 	std::string processed = tmp_path; // may be replaced by processors
 	std::string thumb = tmp_path;
+	std::string hls_dir; // if generated
 	uint32_t width = 0, height = 0; double duration = 0;
 	bool ok = false;
 	switch (init.type()) {
@@ -203,6 +222,11 @@ static std::string GenId() {
 	std::string url;
 	if (!storage_->Put(processed, object_key, url)) { fs::remove(processed); return {::grpc::StatusCode::INTERNAL, "storage failed"}; }
 	std::string thumb_url = url; // Placeholder. In real impl store thumb separately.
+	std::string hls_url;
+	if (init.type() == MEDIA_TYPE_VIDEO) {
+		// Optional: generate HLS with ffmpeg here; for now, skip heavy work and leave blank.
+		// If you add generation, push directory via storage_->PutDir and set hls_url accordingly.
+	}
 
 	// Save metadata
 	MediaRecord rec{};
@@ -212,13 +236,14 @@ static std::string GenId() {
 	rec.mime_type = init.mime_type();
 	rec.size_bytes = total;
 	rec.width = width; rec.height = height; rec.duration_seconds = duration;
-	rec.original_url = url; rec.thumbnail_url = thumb_url;
+	rec.original_url = url; rec.thumbnail_url = thumb_url; rec.hls_url = hls_url;
 	repo_->Save(rec);
 
 	response->set_media_id(id);
 	response->set_type(init.type());
 	response->set_url(url);
 	response->set_thumbnail_url(thumb_url);
+	if (!hls_url.empty()) response->set_hls_url(hls_url);
 	return ::grpc::Status::OK;
 }
 
