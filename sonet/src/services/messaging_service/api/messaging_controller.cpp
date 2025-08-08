@@ -500,46 +500,11 @@ MessagingController::handle_get_messages(const boost::beast::http::request<boost
         // Get messages
         auto messages = message_service_->get_messages_by_chat(chat_id, limit, offset);
         
-        // Decrypt messages if necessary
+        // Do not decrypt on server; return ciphertext envelopes as-is for clients to decrypt
         for (auto& message : messages) {
             if (message->is_encrypted && !message->encryption_key_id.empty()) {
-                try {
-                    // Parse envelope
-                    Json::Value envelope;
-                    Json::CharReaderBuilder r;
-                    std::string errs;
-                    std::unique_ptr<Json::CharReader> reader(r.newCharReader());
-                    encryption::EncryptedMessage encrypted_msg;
-                    if (reader->parse(message->content.data(), message->content.data() + message->content.size(), &envelope, &errs)) {
-                        if (envelope.isMember("ct") && envelope.isMember("n") && envelope.isMember("t")) {
-                            encrypted_msg.message_id = message->message_id;
-                            encrypted_msg.session_id = envelope.get("sid", message->encryption_key_id).asString();
-                            encrypted_msg.ciphertext = envelope["ct"].asString();
-                            encrypted_msg.nonce = envelope["n"].asString();
-                            encrypted_msg.tag = envelope["t"].asString();
-                            if (envelope.isMember("aad")) {
-                                encrypted_msg.additional_data = envelope["aad"].asString();
-                            }
-                        } else {
-                            // Fallback: treat whole content as ciphertext-only
-                            encrypted_msg.message_id = message->message_id;
-                            encrypted_msg.session_id = message->encryption_key_id;
-                            encrypted_msg.ciphertext = message->content;
-                        }
-                    } else {
-                        // Not JSON or parse failed; fallback
-                        encrypted_msg.message_id = message->message_id;
-                        encrypted_msg.session_id = message->encryption_key_id;
-                        encrypted_msg.ciphertext = message->content;
-                    }
-                    
-                    std::string decrypted_content = encryption_manager_->decrypt_message(encrypted_msg);
-                    if (!decrypted_content.empty()) {
-                        message->content = decrypted_content;
-                    }
-                } catch (const std::exception& e) {
-                    // Leave encrypted if decryption fails
-                }
+                // Intentionally left blank to preserve ciphertext
+                continue;
             }
         }
         

@@ -230,13 +230,13 @@ EncryptionManager::EncryptionManager() : rng_(std::make_unique<CryptoPP::AutoSee
                         s.chat_id = sk["chat_id"].asString();
                         s.user_id = sk["user_id"].asString();
                         s.algorithm = static_cast<EncryptionAlgorithm>(sk["algorithm"].asInt());
-                        s.key_material = sk["key_material"].asString();
-                        s.created_at = std::chrono::system_clock::time_point(std::chrono::milliseconds(sk["created_at"].asInt64()));
-                        s.expires_at = std::chrono::system_clock::time_point(std::chrono::milliseconds(sk["expires_at"].asInt64()));
-                        s.message_count = sk["message_count"].asUInt();
-                        s.max_messages = sk["max_messages"].asUInt();
-                        session_keys_[s.session_id] = s;
-                        chat_session_keys_[s.chat_id].insert(s.session_id);
+                                                 // Do not load key material from disk for security
+                         s.created_at = std::chrono::system_clock::time_point(std::chrono::milliseconds(sk["created_at"].asInt64()));
+                         s.expires_at = std::chrono::system_clock::time_point(std::chrono::milliseconds(sk["expires_at"].asInt64()));
+                         s.message_count = sk["message_count"].asUInt();
+                         s.max_messages = sk["max_messages"].asUInt();
+                         session_keys_[s.session_id] = s;
+chat_session_keys_[s.chat_id].insert(s.session_id);
                         user_session_keys_[s.user_id].insert(s.session_id);
                     }
                 }
@@ -263,7 +263,6 @@ EncryptionManager::~EncryptionManager() {
             j["chat_id"] = sk.chat_id;
             j["user_id"] = sk.user_id;
             j["algorithm"] = static_cast<int>(sk.algorithm);
-            j["key_material"] = sk.key_material;
             j["created_at"] = std::chrono::duration_cast<std::chrono::milliseconds>(sk.created_at.time_since_epoch()).count();
             j["expires_at"] = std::chrono::duration_cast<std::chrono::milliseconds>(sk.expires_at.time_since_epoch()).count();
             j["message_count"] = sk.message_count;
@@ -368,7 +367,6 @@ SessionKey EncryptionManager::create_session_key(const std::string& chat_id,
                 j["chat_id"] = sk.second.chat_id;
                 j["user_id"] = sk.second.user_id;
                 j["algorithm"] = static_cast<int>(sk.second.algorithm);
-                j["key_material"] = sk.second.key_material;
                 j["created_at"] = std::chrono::duration_cast<std::chrono::milliseconds>(sk.second.created_at.time_since_epoch()).count();
                 j["expires_at"] = std::chrono::duration_cast<std::chrono::milliseconds>(sk.second.expires_at.time_since_epoch()).count();
                 j["message_count"] = sk.second.message_count;
@@ -764,7 +762,6 @@ void EncryptionManager::cleanup_expired_keys() {
             j["chat_id"] = sk.second.chat_id;
             j["user_id"] = sk.second.user_id;
             j["algorithm"] = static_cast<int>(sk.second.algorithm);
-            j["key_material"] = sk.second.key_material;
             j["created_at"] = std::chrono::duration_cast<std::chrono::milliseconds>(sk.second.created_at.time_since_epoch()).count();
             j["expires_at"] = std::chrono::duration_cast<std::chrono::milliseconds>(sk.second.expires_at.time_since_epoch()).count();
             j["message_count"] = sk.second.message_count;
