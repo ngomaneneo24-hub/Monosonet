@@ -24,6 +24,21 @@
 #include <random>
 #include <sstream>
 #include <iomanip>
+#include <filesystem>
+#include <fstream>
+
+namespace {
+    std::string get_session_keys_path() {
+        const char* env = std::getenv("SONET_SESSION_KEYS_PATH");
+        if (env && *env) return std::string(env);
+        return std::string("/tmp/sonet/messaging/session_keys.json");
+    }
+
+    void ensure_parent_dir(const std::string& path) {
+        std::error_code ec;
+        std::filesystem::create_directories(std::filesystem::path(path).parent_path(), ec);
+    }
+}
 
 namespace sonet::messaging::encryption {
 
@@ -195,6 +210,40 @@ EncryptionManager::EncryptionManager() : rng_(std::make_unique<CryptoPP::AutoSee
             std::this_thread::sleep_for(std::chrono::minutes(5));
         }
     });
+
+    // Load persisted session keys
+    try {
+        std::ifstream in(get_session_keys_path());
+        if (in.good()) {
+            Json::Value root;
+            Json::CharReaderBuilder rb;
+            std::string errs;
+            std::unique_ptr<Json::CharReader> reader(rb.newCharReader());
+            std::string buf((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+            if (reader->parse(buf.data(), buf.data() + buf.size(), &root, &errs)) {
+                if (root.isMember("session_keys") && root["session_keys"].isArray()) {
+                    std::lock_guard<std::mutex> lock(session_keys_mutex_);
+                    for (const auto& sk : root["session_keys"]) {
+                        SessionKey s;
+                        s.session_id = sk["session_id"].asString();
+                        s.chat_id = sk["chat_id"].asString();
+                        s.user_id = sk["user_id"].asString();
+                        s.algorithm = static_cast<EncryptionAlgorithm>(sk["algorithm"].asInt());
+                        s.key_material = sk["key_material"].asString();
+                        s.created_at = std::chrono::system_clock::time_point(std::chrono::milliseconds(sk["created_at"].asInt64()));
+                        s.expires_at = std::chrono::system_clock::time_point(std::chrono::milliseconds(sk["expires_at"].asInt64()));
+                        s.message_count = sk["message_count"].asUInt();
+                        s.max_messages = sk["max_messages"].asUInt();
+                        session_keys_[s.session_id] = s;
+                        chat_session_keys_[s.chat_id].insert(s.session_id);
+                        user_session_keys_[s.user_id].insert(s.session_id);
+                    }
+                }
+            }
+        }
+    } catch (...) {
+        // ignore
+    }
 }
 
 EncryptionManager::~EncryptionManager() {
@@ -202,6 +251,30 @@ EncryptionManager::~EncryptionManager() {
     if (cleanup_thread_.joinable()) {
         cleanup_thread_.join();
     }
+    // Save on shutdown
+    try {
+        std::lock_guard<std::mutex> lock(session_keys_mutex_);
+        Json::Value root;
+        root["session_keys"] = Json::arrayValue;
+        for (const auto& [id, sk] : session_keys_) {
+            Json::Value j;
+            j["session_id"] = sk.session_id;
+            j["chat_id"] = sk.chat_id;
+            j["user_id"] = sk.user_id;
+            j["algorithm"] = static_cast<int>(sk.algorithm);
+            j["key_material"] = sk.key_material;
+            j["created_at"] = std::chrono::duration_cast<std::chrono::milliseconds>(sk.created_at.time_since_epoch()).count();
+            j["expires_at"] = std::chrono::duration_cast<std::chrono::milliseconds>(sk.expires_at.time_since_epoch()).count();
+            j["message_count"] = sk.message_count;
+            j["max_messages"] = sk.max_messages;
+            root["session_keys"].append(j);
+        }
+        auto path = get_session_keys_path();
+        ensure_parent_dir(path);
+        std::ofstream out(path, std::ios::trunc);
+        Json::StreamWriterBuilder wb;
+        out << Json::writeString(wb, root);
+    } catch (...) { /* ignore */ }
 }
 
 EncryptionKeyPair EncryptionManager::generate_key_pair(EncryptionAlgorithm algorithm) {
@@ -283,6 +356,31 @@ SessionKey EncryptionManager::create_session_key(const std::string& chat_id,
         chat_session_keys_[chat_id].insert(session_key.session_id);
         user_session_keys_[user_id].insert(session_key.session_id);
         
+        // Persist after creation
+        try {
+            std::lock_guard<std::mutex> lock(session_keys_mutex_);
+            Json::Value root;
+            root["session_keys"] = Json::arrayValue;
+            for (const auto& [id, sk] : session_keys_) {
+                Json::Value j;
+                j["session_id"] = sk.second.session_id;
+                j["chat_id"] = sk.second.chat_id;
+                j["user_id"] = sk.second.user_id;
+                j["algorithm"] = static_cast<int>(sk.second.algorithm);
+                j["key_material"] = sk.second.key_material;
+                j["created_at"] = std::chrono::duration_cast<std::chrono::milliseconds>(sk.second.created_at.time_since_epoch()).count();
+                j["expires_at"] = std::chrono::duration_cast<std::chrono::milliseconds>(sk.second.expires_at.time_since_epoch()).count();
+                j["message_count"] = sk.second.message_count;
+                j["max_messages"] = sk.second.max_messages;
+                root["session_keys"].append(j);
+            }
+            auto path = get_session_keys_path();
+            ensure_parent_dir(path);
+            std::ofstream out(path, std::ios::trunc);
+            Json::StreamWriterBuilder wb;
+            out << Json::writeString(wb, root);
+        } catch (...) { /* ignore */ }
+        
     } catch (const std::exception& e) {
         // Return empty session key on error
         session_key = SessionKey{};
@@ -302,7 +400,7 @@ EncryptedMessage EncryptionManager::encrypt_message(const std::string& session_i
         return encrypted_msg; // Empty on error
     }
     
-    auto& session_key = session_it->second;
+    const auto& session_key = session_it->second;
     if (session_key.is_expired()) {
         return encrypted_msg; // Empty on error
     }
@@ -317,7 +415,7 @@ EncryptedMessage EncryptionManager::encrypt_message(const std::string& session_i
         switch (session_key.algorithm) {
             case EncryptionAlgorithm::AES_256_GCM: {
                 // Generate random nonce
-                const size_t nonce_size = CryptoPP::AES::BLOCKSIZE;
+                const size_t nonce_size = 12; // 96-bit IV recommended for GCM
                 CryptoPP::SecByteBlock nonce(nonce_size);
                 rng_->GenerateBlock(nonce, nonce.size());
                 
@@ -647,6 +745,30 @@ void EncryptionManager::cleanup_expired_keys() {
             }
         }
     }
+    // After cleanup, persist
+    try {
+        std::lock_guard<std::mutex> lock(session_keys_mutex_);
+        Json::Value root;
+        root["session_keys"] = Json::arrayValue;
+        for (const auto& [id, sk] : session_keys_) {
+            Json::Value j;
+            j["session_id"] = sk.second.session_id;
+            j["chat_id"] = sk.second.chat_id;
+            j["user_id"] = sk.second.user_id;
+            j["algorithm"] = static_cast<int>(sk.second.algorithm);
+            j["key_material"] = sk.second.key_material;
+            j["created_at"] = std::chrono::duration_cast<std::chrono::milliseconds>(sk.second.created_at.time_since_epoch()).count();
+            j["expires_at"] = std::chrono::duration_cast<std::chrono::milliseconds>(sk.second.expires_at.time_since_epoch()).count();
+            j["message_count"] = sk.second.message_count;
+            j["max_messages"] = sk.second.max_messages;
+            root["session_keys"].append(j);
+        }
+        auto path = get_session_keys_path();
+        ensure_parent_dir(path);
+        std::ofstream out(path, std::ios::trunc);
+        Json::StreamWriterBuilder wb;
+        out << Json::writeString(wb, root);
+    } catch (...) { /* ignore */ }
 }
 
 size_t EncryptionManager::get_key_size(EncryptionAlgorithm algorithm) const {

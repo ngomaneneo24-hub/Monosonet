@@ -230,16 +230,7 @@ if(BUILD_TESTING)
     enable_testing()
     
     # Unit tests
-    add_subdirectory(tests/unit)
-    
-    # Integration tests
-    add_subdirectory(tests/integration)
-    
-    # Performance tests
-    add_subdirectory(tests/performance)
-    
-    # Security tests
-    add_subdirectory(tests/security)
+    add_subdirectory(tests)
 endif()
 
 # Static analysis targets
