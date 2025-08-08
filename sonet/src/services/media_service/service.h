@@ -64,6 +64,9 @@ class NsfwScanner { public: virtual ~NsfwScanner() = default; virtual bool IsAll
 // Simple local implementations provided in this service for now
 std::unique_ptr<MediaRepository> CreateInMemoryRepo();
 std::unique_ptr<StorageBackend> CreateLocalStorage(const std::string& base_dir, const std::string& base_url);
+std::unique_ptr<StorageBackend> CreateS3Storage(const std::string& bucket,
+												const std::string& public_base_url,
+												const std::string& endpoint = "");
 std::unique_ptr<ImageProcessor> CreateImageProcessor();
 std::unique_ptr<VideoProcessor> CreateVideoProcessor();
 std::unique_ptr<GifProcessor> CreateGifProcessor();
