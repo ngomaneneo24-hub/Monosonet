@@ -15,6 +15,8 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <ctime>
+#include <sodium.h>
 
 namespace sonet::messaging::api {
 
@@ -105,13 +107,18 @@ APIResponse APIResponse::error(const std::string& message, const std::string& er
 }
 
 std::string APIResponse::generate_request_id() {
-    std::random_device rd;
-    std::mt19937_64 gen(rd());
-    std::uniform_int_distribution<uint64_t> dis;
-    
-    uint64_t id = dis(gen);
+    if (sodium_init() < 0) {
+        // Fallback: timestamp-based
+        std::stringstream ss; ss << "req_" << std::hex << std::time(nullptr);
+        return ss.str();
+    }
+    unsigned char buf[16];
+    randombytes_buf(buf, sizeof(buf));
     std::stringstream ss;
-    ss << "req_" << std::hex << id;
+    ss << "req_";
+    for (unsigned char b : buf) {
+        ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(b);
+    }
     return ss.str();
 }
 
@@ -755,13 +762,17 @@ std::string MessagingController::generate_event_id() {
 }
 
 std::string MessagingController::generate_random_id(const std::string& prefix) {
-    std::random_device rd;
-    std::mt19937_64 gen(rd());
-    std::uniform_int_distribution<uint64_t> dis;
-    
-    uint64_t id = dis(gen);
+    if (sodium_init() < 0) {
+        std::stringstream ss; ss << prefix << "_" << std::hex << std::time(nullptr);
+        return ss.str();
+    }
+    unsigned char buf[16];
+    randombytes_buf(buf, sizeof(buf));
     std::stringstream ss;
-    ss << prefix << "_" << std::hex << id;
+    ss << prefix << "_";
+    for (unsigned char b : buf) {
+        ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(b);
+    }
     return ss.str();
 }
 
