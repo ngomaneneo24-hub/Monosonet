@@ -14,7 +14,7 @@
 
 namespace sonet::user::controllers {
 
-UserController::UserController(std::shared_ptr<UserServiceImpl> user_service,
+UserController::UserController(std::shared_ptr<sonet::user::UserServiceImpl> user_service,
                                std::shared_ptr<storage::FileUploadService> file_service,
                                const std::string& connection_string)
     : user_service_(std::move(user_service))
@@ -25,37 +25,20 @@ UserController::UserController(std::shared_ptr<UserServiceImpl> user_service,
 
 nlohmann::json UserController::handle_get_profile(const GetProfileRequest& request) {
     try {
-        if (request.access_token.empty()) {
-            return create_error_response("Access token is required");
-        }
-        
-        // Create gRPC request
-        GetUserProfileRequest grpc_request;
-        grpc_request.set_access_token(request.access_token);
-        if (!request.user_id.empty()) {
-            grpc_request.set_user_id(request.user_id);
-        }
-        
-        GetUserProfileResponse grpc_response;
+        if (request.access_token.empty()) { return create_error_response("Access token is required"); }
+        sonet::user::GetUserProfileRequest grpc_request;
+        grpc_request.set_user_id(request.user_id);
+        sonet::user::GetUserProfileResponse grpc_response;
         grpc::ServerContext context;
-        
         auto status = user_service_->GetUserProfile(&context, &grpc_request, &grpc_response);
-        
-        if (!status.ok()) {
-            spdlog::error("gRPC call failed: {}", status.error_message());
-            return create_error_response("Profile service unavailable");
-        }
-        
+        if (!status.ok()) { return create_error_response("Profile service unavailable"); }
         nlohmann::json response;
-        response["success"] = grpc_response.success();
-        response["message"] = grpc_response.message();
-        
-        if (grpc_response.success() && grpc_response.has_user()) {
+        response["success"] = grpc_response.status().success();
+        response["message"] = grpc_response.status().message();
+        if (grpc_response.status().success() && grpc_response.has_user()) {
             response["user"] = user_data_to_json(grpc_response.user());
         }
-        
         return response;
-        
     } catch (const std::exception& e) {
         spdlog::error("Get profile error: {}", e.what());
         return create_error_response("Internal server error");
@@ -392,56 +375,33 @@ std::string UserController::extract_bearer_token(const std::string& authorizatio
 // Helper methods
 
 nlohmann::json UserController::create_error_response(const std::string& message) {
-    nlohmann::json response;
-    response["success"] = false;
-    response["message"] = message;
-    return response;
+    nlohmann::json response; response["success"] = false; response["message"] = message; return response;
 }
 
 nlohmann::json UserController::create_success_response(const std::string& message, const nlohmann::json& data) {
-    nlohmann::json response;
-    response["success"] = true;
-    response["message"] = message;
-    if (!data.empty()) {
-        response["data"] = data;
-    }
-    return response;
+    nlohmann::json response; response["success"] = true; response["message"] = message; if (!data.empty()) response["data"] = data; return response;
 }
 
-nlohmann::json UserController::user_data_to_json(const UserData& user) {
+nlohmann::json UserController::user_data_to_json(const sonet::user::UserProfile& user) {
     nlohmann::json json_user;
     json_user["user_id"] = user.user_id();
     json_user["username"] = user.username();
     json_user["email"] = user.email();
-    json_user["full_name"] = user.full_name();
+    json_user["display_name"] = user.display_name();
     json_user["bio"] = user.bio();
     json_user["avatar_url"] = user.avatar_url();
-    json_user["banner_url"] = user.banner_url();
     json_user["location"] = user.location();
     json_user["website"] = user.website();
     json_user["is_verified"] = user.is_verified();
     json_user["is_private"] = user.is_private();
-    json_user["status"] = static_cast<int>(user.status());
-    json_user["created_at"] = user.created_at();
-    json_user["updated_at"] = user.updated_at();
-    if (user.last_login_at() > 0) {
-        json_user["last_login_at"] = user.last_login_at();
-    }
     return json_user;
 }
 
-nlohmann::json UserController::session_data_to_json(const UserSession& session) {
+nlohmann::json UserController::session_data_to_json(const sonet::user::Session& session) {
     nlohmann::json json_session;
-    json_session["session_id"] = session.session_id;
-    json_session["device_type"] = static_cast<int>(session.device_type);
-    json_session["ip_address"] = session.ip_address;
-    json_session["user_agent"] = session.user_agent;
-    json_session["created_at"] = std::chrono::duration_cast<std::chrono::seconds>(
-        session.created_at.time_since_epoch()).count();
-    json_session["last_activity"] = std::chrono::duration_cast<std::chrono::seconds>(
-        session.last_activity.time_since_epoch()).count();
-    json_session["expires_at"] = std::chrono::duration_cast<std::chrono::seconds>(
-        session.expires_at.time_since_epoch()).count();
+    json_session["session_id"] = session.session_id();
+    json_session["ip_address"] = session.ip_address();
+    json_session["user_agent"] = session.user_agent();
     return json_session;
 }
 

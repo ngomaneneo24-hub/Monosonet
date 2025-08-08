@@ -63,7 +63,8 @@ UserValidator::ValidationResult UserValidator::validate_username(const std::stri
     
     // Reserved username check
     std::string lower_username = username;
-    std::transform(lower_username.begin(), lower_username.end(), lower_username.begin(), ::tolower);
+    std::transform(lower_username.begin(), lower_username.end(), lower_username.begin(),
+               [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
     
     if (reserved_usernames_.count(lower_username)) {
         result.errors.push_back("This username is reserved and cannot be used");
@@ -100,17 +101,17 @@ UserValidator::ValidationResult UserValidator::validate_email(const std::string&
     }
     
     // Pattern validation
-    if (!std::regex_match(email, email_pattern_)) {
+    bool pattern_ok = std::regex_match(email, email_pattern_);
+    if (!pattern_ok) {
         result.errors.push_back("Invalid email format");
         result.is_valid = false;
     }
     
-    // Check for disposable email
-    std::string domain = email.substr(email.find('@') + 1);
-    std::transform(domain.begin(), domain.end(), domain.begin(), ::tolower);
-    
-    if (is_disposable_email(email)) {
-        result.warnings.push_back("Disposable email addresses are discouraged");
+    // Check for disposable email only if email structure looks valid
+    if (pattern_ok && email.find('@') != std::string::npos) {
+        if (is_disposable_email(email)) {
+            result.warnings.push_back("Disposable email addresses are discouraged");
+        }
     }
     
     // Check for suspicious patterns
@@ -146,10 +147,11 @@ UserValidator::ValidationResult UserValidator::validate_password(const std::stri
     bool has_upper = false, has_lower = false, has_digit = false, has_special = false;
     
     for (char c : password) {
-        if (std::isupper(c)) has_upper = true;
-        else if (std::islower(c)) has_lower = true;
-        else if (std::isdigit(c)) has_digit = true;
-        else if (std::ispunct(c)) has_special = true;
+        unsigned char uc = static_cast<unsigned char>(c);
+        if (std::isupper(uc)) has_upper = true;
+        else if (std::islower(uc)) has_lower = true;
+        else if (std::isdigit(uc)) has_digit = true;
+        else if (std::ispunct(uc)) has_special = true;
     }
     
     if (!has_upper) {
@@ -209,7 +211,8 @@ UserValidator::ValidationResult UserValidator::validate_full_name(const std::str
     // Check for excessive special characters
     int special_count = 0;
     for (char c : full_name) {
-        if (!std::isalnum(c) && !std::isspace(c) && c != '.' && c != '\'' && c != '-') {
+        unsigned char uc = static_cast<unsigned char>(c);
+        if (!std::isalnum(uc) && !std::isspace(uc) && c != '.' && c != '\'' && c != '-') {
             special_count++;
         }
     }
@@ -336,7 +339,8 @@ UserValidator::ValidationResult UserValidator::validate_profile_update(
 std::string UserValidator::sanitize_username(const std::string& username) {
     std::string sanitized;
     for (char c : username) {
-        if (std::isalnum(c) || c == '_') {
+        unsigned char uc = static_cast<unsigned char>(c);
+        if (std::isalnum(uc) || c == '_') {
             sanitized += c;
         }
     }
@@ -373,7 +377,8 @@ std::string UserValidator::sanitize_display_text(const std::string& text) {
 
 bool UserValidator::is_suspicious_username(const std::string& username) {
     std::string lower_username = username;
-    std::transform(lower_username.begin(), lower_username.end(), lower_username.begin(), ::tolower);
+    std::transform(lower_username.begin(), lower_username.end(), lower_username.begin(),
+               [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
     
     // Check for patterns indicating bot accounts
     for (const auto& pattern : suspicious_patterns_) {
@@ -384,7 +389,7 @@ bool UserValidator::is_suspicious_username(const std::string& username) {
     
     // Check for excessive numbers at the end
     int trailing_digits = 0;
-    for (auto it = username.rbegin(); it != username.rend() && std::isdigit(*it); ++it) {
+    for (auto it = username.rbegin(); it != username.rend() && std::isdigit(static_cast<unsigned char>(*it)); ++it) {
         trailing_digits++;
     }
     
@@ -401,8 +406,13 @@ bool UserValidator::is_suspicious_username(const std::string& username) {
 }
 
 bool UserValidator::is_disposable_email(const std::string& email) {
-    std::string domain = email.substr(email.find('@') + 1);
-    std::transform(domain.begin(), domain.end(), domain.begin(), ::tolower);
+    auto at_pos = email.find('@');
+    if (at_pos == std::string::npos || at_pos + 1 >= email.size()) {
+        return false;
+    }
+    std::string domain = email.substr(at_pos + 1);
+    std::transform(domain.begin(), domain.end(), domain.begin(),
+                   [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
     
     return disposable_email_domains_.count(domain) > 0;
 }
@@ -423,7 +433,7 @@ bool UserValidator::is_spam_like_content(const std::string& content) {
     // Check for excessive capitalization
     int uppercase_count = 0;
     for (char c : content) {
-        if (std::isupper(c)) {
+        if (std::isupper(static_cast<unsigned char>(c))) {
             uppercase_count++;
         }
     }
@@ -435,7 +445,7 @@ bool UserValidator::is_spam_like_content(const std::string& content) {
     // Check for excessive punctuation
     int punct_count = 0;
     for (char c : content) {
-        if (std::ispunct(c)) {
+        if (std::ispunct(static_cast<unsigned char>(c))) {
             punct_count++;
         }
     }
@@ -600,11 +610,12 @@ bool UserValidator::has_repeated_patterns(const std::string& text) {
 
 std::string UserValidator::normalize_text(const std::string& text) {
     std::string normalized = text;
-    std::transform(normalized.begin(), normalized.end(), normalized.begin(), ::tolower);
+    std::transform(normalized.begin(), normalized.end(), normalized.begin(),
+               [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
     
     // Remove spaces and special characters for comparison
     normalized.erase(std::remove_if(normalized.begin(), normalized.end(),
-        [](char c) { return !std::isalnum(c); }), normalized.end());
+        [](char c) { return !std::isalnum(static_cast<unsigned char>(c)); }), normalized.end());
     
     return normalized;
 }

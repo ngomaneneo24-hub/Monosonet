@@ -15,6 +15,8 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <ctime>
+#include <sodium.h>
 
 namespace sonet::messaging::api {
 
@@ -105,13 +107,18 @@ APIResponse APIResponse::error(const std::string& message, const std::string& er
 }
 
 std::string APIResponse::generate_request_id() {
-    std::random_device rd;
-    std::mt19937_64 gen(rd());
-    std::uniform_int_distribution<uint64_t> dis;
-    
-    uint64_t id = dis(gen);
+    if (sodium_init() < 0) {
+        // Fallback: timestamp-based
+        std::stringstream ss; ss << "req_" << std::hex << std::time(nullptr);
+        return ss.str();
+    }
+    unsigned char buf[16];
+    randombytes_buf(buf, sizeof(buf));
     std::stringstream ss;
-    ss << "req_" << std::hex << id;
+    ss << "req_";
+    for (unsigned char b : buf) {
+        ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(b);
+    }
     return ss.str();
 }
 
@@ -397,7 +404,17 @@ MessagingController::handle_send_message(const boost::beast::http::request<boost
                     session_key.session_id, content, additional_data);
                 
                 if (!encrypted_msg.message_id.empty()) {
-                    message->content = encrypted_msg.ciphertext;
+                    // Persist an envelope with all required crypto metadata
+                    Json::Value envelope;
+                    envelope["v"] = 1; // version
+                    envelope["alg"] = static_cast<int>(session_key.algorithm);
+                    envelope["sid"] = session_key.session_id;
+                    envelope["ct"] = encrypted_msg.ciphertext; // base64
+                    envelope["n"] = encrypted_msg.nonce;       // base64
+                    envelope["t"] = encrypted_msg.tag;         // base64
+                    envelope["aad"] = encrypted_msg.additional_data; // base64 or string depending on manager
+                    Json::StreamWriterBuilder w;
+                    message->content = Json::writeString(w, envelope);
                     message->encryption_key_id = session_key.session_id;
                     message->is_encrypted = true;
                 }
@@ -483,23 +500,11 @@ MessagingController::handle_get_messages(const boost::beast::http::request<boost
         // Get messages
         auto messages = message_service_->get_messages_by_chat(chat_id, limit, offset);
         
-        // Decrypt messages if necessary
+        // Do not decrypt on server; return ciphertext envelopes as-is for clients to decrypt
         for (auto& message : messages) {
             if (message->is_encrypted && !message->encryption_key_id.empty()) {
-                try {
-                    encryption::EncryptedMessage encrypted_msg;
-                    encrypted_msg.message_id = message->message_id;
-                    encrypted_msg.session_id = message->encryption_key_id;
-                    encrypted_msg.ciphertext = message->content;
-                    // Note: In production, nonce and tag would be stored separately
-                    
-                    std::string decrypted_content = encryption_manager_->decrypt_message(encrypted_msg);
-                    if (!decrypted_content.empty()) {
-                        message->content = decrypted_content;
-                    }
-                } catch (const std::exception& e) {
-                    // Leave encrypted if decryption fails
-                }
+                // Intentionally left blank to preserve ciphertext
+                continue;
             }
         }
         
@@ -722,13 +727,17 @@ std::string MessagingController::generate_event_id() {
 }
 
 std::string MessagingController::generate_random_id(const std::string& prefix) {
-    std::random_device rd;
-    std::mt19937_64 gen(rd());
-    std::uniform_int_distribution<uint64_t> dis;
-    
-    uint64_t id = dis(gen);
+    if (sodium_init() < 0) {
+        std::stringstream ss; ss << prefix << "_" << std::hex << std::time(nullptr);
+        return ss.str();
+    }
+    unsigned char buf[16];
+    randombytes_buf(buf, sizeof(buf));
     std::stringstream ss;
-    ss << prefix << "_" << std::hex << id;
+    ss << prefix << "_";
+    for (unsigned char b : buf) {
+        ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(b);
+    }
     return ss.str();
 }
 

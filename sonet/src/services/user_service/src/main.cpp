@@ -11,35 +11,35 @@
 #include <spdlog/spdlog.h>
 #include <csignal>
 #include <memory>
+#include <cstdlib>
 
 // I always want clean shutdowns - no zombie processes on my watch
 std::unique_ptr<grpc::Server> g_server;
 
+static std::string getenv_or(const char* key, const std::string& def) {
+    const char* v = std::getenv(key); return v ? std::string(v) : def;
+}
+
 void signal_handler(int signal) {
     if (signal == SIGINT || signal == SIGTERM) {
         spdlog::info("Received shutdown signal, gracefully stopping server...");
-        if (g_server) {
-            g_server->Shutdown();
-        }
+        if (g_server) { g_server->Shutdown(); }
     }
 }
 
 int main(int argc, char* argv[]) {
     // Set up logging - I want to see everything that's happening
     spdlog::set_level(spdlog::level::info);
-    spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] [%n] %v");
+    spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%l] %v");
     
     spdlog::info("Starting Sonet User Service...");
-    spdlog::info("Copyright (c) 2025 Neo Qiss - All rights reserved");
     
     // Set up signal handlers for graceful shutdown
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
     
     try {
-        // Configuration - in production this would come from environment variables
-        std::string server_address = "0.0.0.0:8080";
-        std::string grpc_address = "0.0.0.0:9090";
+        const std::string grpc_address = getenv_or("GRPC_ADDRESS", "0.0.0.0:9090");
         
         // Create the service implementation
         sonet::user::UserServiceImpl service;
@@ -66,7 +66,6 @@ int main(int argc, char* argv[]) {
             return 1;
         }
         
-        spdlog::info("User Service is running and ready to authenticate users!");
         spdlog::info("gRPC server listening on: {}", grpc_address);
         spdlog::info("Service health: OK");
         spdlog::info("Ready to handle authentication requests like a boss 💪");

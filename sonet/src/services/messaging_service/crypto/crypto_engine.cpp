@@ -15,6 +15,9 @@
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
 #include <sodium.h>
+#include <sodium/crypto_aead_chacha20poly1305.h>
+#include <sodium/utils.h>
+#include <sodium/randombytes.h>
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
@@ -225,13 +228,12 @@ CryptoEngine::generate_keypair(KeyExchangeProtocol protocol,
             private_key->algorithm = public_key->algorithm = "X25519";
             
             // Generate X25519 keypair using libsodium
-            private_key->key_data.resize(crypto_scalarmult_curve25519_BYTES);
-            public_key->key_data.resize(crypto_scalarmult_curve25519_BYTES);
+            private_key->key_data.resize(crypto_box_SECRETKEYBYTES);
+            public_key->key_data.resize(crypto_box_PUBLICKEYBYTES);
             
-            crypto_scalarmult_curve25519_base(
-                public_key->key_data.data(),
-                private_key->key_data.data()
-            );
+            if (crypto_box_keypair(public_key->key_data.data(), private_key->key_data.data()) != 0) {
+                throw std::runtime_error("Failed to generate X25519 keypair");
+            }
             break;
         }
         
@@ -440,7 +442,7 @@ std::vector<uint8_t> CryptoEngine::generate_iv(CryptoAlgorithm algorithm) {
             iv_length = 16; // 128 bits for CBC
             break;
         case CryptoAlgorithm::CHACHA20_POLY1305:
-            iv_length = 12; // 96 bits for ChaCha20
+            iv_length = crypto_aead_chacha20poly1305_IETF_NPUBBYTES; // 12 bytes per RFC 7539
             break;
         case CryptoAlgorithm::XCHACHA20_POLY1305:
             iv_length = 24; // 192 bits for XChaCha20
@@ -490,28 +492,41 @@ void CryptoEngine::cache_key(std::unique_ptr<CryptoKey> key) {
     std::lock_guard<std::mutex> lock(key_cache_mutex_);
     
     if (key_cache_.size() >= max_cached_keys_) {
-        // Remove oldest keys
+        // Remove expired first
         cleanup_expired_keys();
         
         if (key_cache_.size() >= max_cached_keys_) {
-            auto oldest = key_cache_.begin();
-            oldest->second->secure_erase();
-            key_cache_.erase(oldest);
+            // Remove an arbitrary (oldest would require tracking timestamps)
+            auto it = key_cache_.begin();
+            if (it != key_cache_.end()) {
+                if (it->second) {
+                    it->second->secure_erase();
+                }
+                key_cache_.erase(it);
+            }
         }
     }
     
     std::string key_id = key->id;
-    key_cache_[key_id] = std::move(key);
+    // Store with secure deleter to ensure zeroization on destruction
+    std::shared_ptr<CryptoKey> shared{
+        key.release(),
+        [](CryptoKey* p) {
+            if (p) {
+                p->secure_erase();
+                delete p;
+            }
+        }
+    };
+    key_cache_[key_id] = std::move(shared);
 }
 
 std::shared_ptr<CryptoKey> CryptoEngine::get_cached_key(const std::string& key_id) {
     std::lock_guard<std::mutex> lock(key_cache_mutex_);
     
     auto it = key_cache_.find(key_id);
-    if (it != key_cache_.end() && !it->second->is_expired()) {
-        return std::shared_ptr<CryptoKey>(it->second.get(), [](CryptoKey*) {
-            // Custom deleter that doesn't actually delete (managed by unique_ptr)
-        });
+    if (it != key_cache_.end() && it->second && !it->second->is_expired()) {
+        return it->second; // share ownership
     }
     
     return nullptr;
@@ -520,10 +535,11 @@ std::shared_ptr<CryptoKey> CryptoEngine::get_cached_key(const std::string& key_i
 void CryptoEngine::cleanup_expired_keys() {
     std::lock_guard<std::mutex> lock(key_cache_mutex_);
     
-    auto it = key_cache_.begin();
-    while (it != key_cache_.end()) {
-        if (it->second->is_expired()) {
-            it->second->secure_erase();
+    for (auto it = key_cache_.begin(); it != key_cache_.end();) {
+        if (!it->second || it->second->is_expired()) {
+            if (it->second) {
+                it->second->secure_erase();
+            }
             it = key_cache_.erase(it);
         } else {
             ++it;
@@ -535,7 +551,9 @@ void CryptoEngine::clear_key_cache() {
     std::lock_guard<std::mutex> lock(key_cache_mutex_);
     
     for (auto& [id, key] : key_cache_) {
-        key->secure_erase();
+        if (key) {
+            key->secure_erase();
+        }
     }
     key_cache_.clear();
 }
@@ -675,13 +693,14 @@ std::vector<uint8_t> CryptoEngine::encrypt_chacha20_poly1305(
     const std::optional<std::vector<uint8_t>>& aad,
     std::vector<uint8_t>& tag) {
     
-    std::vector<uint8_t> ciphertext(plaintext.size());
-    tag.resize(crypto_aead_chacha20poly1305_ABYTES);
+    // libsodium writes ciphertext+tag together when you pass the same buffer.
+    std::vector<uint8_t> ciphertext_with_tag(plaintext.size() + crypto_aead_chacha20poly1305_ietf_ABYTES);
+    tag.resize(crypto_aead_chacha20poly1305_ietf_ABYTES);
     
-    unsigned long long ciphertext_len;
+    unsigned long long ciphertext_len = 0;
     
-    int result = crypto_aead_chacha20poly1305_encrypt(
-        ciphertext.data(), &ciphertext_len,
+    int result = crypto_aead_chacha20poly1305_ietf_encrypt(
+        ciphertext_with_tag.data(), &ciphertext_len,
         plaintext.data(), plaintext.size(),
         aad ? aad->data() : nullptr, aad ? aad->size() : 0,
         nullptr, // nsec (not used)
@@ -692,12 +711,12 @@ std::vector<uint8_t> CryptoEngine::encrypt_chacha20_poly1305(
         throw std::runtime_error("ChaCha20-Poly1305 encryption failed");
     }
     
-    // Extract tag from end of ciphertext
-    size_t pure_ciphertext_len = ciphertext_len - crypto_aead_chacha20poly1305_ABYTES;
-    std::copy(ciphertext.begin() + pure_ciphertext_len, 
-             ciphertext.begin() + ciphertext_len, tag.begin());
+    // Split out tag at the end
+    size_t pure_ciphertext_len = ciphertext_len - crypto_aead_chacha20poly1305_ietf_ABYTES;
+    std::vector<uint8_t> ciphertext(pure_ciphertext_len);
+    std::copy(ciphertext_with_tag.begin(), ciphertext_with_tag.begin() + pure_ciphertext_len, ciphertext.begin());
+    std::copy(ciphertext_with_tag.begin() + pure_ciphertext_len, ciphertext_with_tag.begin() + ciphertext_len, tag.begin());
     
-    ciphertext.resize(pure_ciphertext_len);
     return ciphertext;
 }
 
@@ -713,9 +732,9 @@ std::vector<uint8_t> CryptoEngine::decrypt_chacha20_poly1305(
     ciphertext_with_tag.insert(ciphertext_with_tag.end(), tag.begin(), tag.end());
     
     std::vector<uint8_t> plaintext(ciphertext.size());
-    unsigned long long plaintext_len;
+    unsigned long long plaintext_len = 0;
     
-    int result = crypto_aead_chacha20poly1305_decrypt(
+    int result = crypto_aead_chacha20poly1305_ietf_decrypt(
         plaintext.data(), &plaintext_len,
         nullptr, // nsec (not used)
         ciphertext_with_tag.data(), ciphertext_with_tag.size(),
@@ -733,75 +752,26 @@ std::vector<uint8_t> CryptoEngine::decrypt_chacha20_poly1305(
 
 // Base64 encoding/decoding helpers
 std::string base64_encode(const std::vector<uint8_t>& data) {
-    const char* chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    std::string result;
-    
-    size_t i = 0;
-    uint8_t buffer[3];
-    
-    while (i < data.size()) {
-        buffer[0] = data[i++];
-        buffer[1] = (i < data.size()) ? data[i++] : 0;
-        buffer[2] = (i < data.size()) ? data[i++] : 0;
-        
-        result += chars[(buffer[0] & 0xfc) >> 2];
-        result += chars[((buffer[0] & 0x03) << 4) + ((buffer[1] & 0xf0) >> 4)];
-        result += chars[((buffer[1] & 0x0f) << 2) + ((buffer[2] & 0xc0) >> 6)];
-        result += chars[buffer[2] & 0x3f];
+    // Use libsodium for correct and constant-time base64 (standard variant)
+    size_t encoded_len = sodium_base64_encoded_len(data.size(), sodium_base64_VARIANT_ORIGINAL);
+    std::string out(encoded_len, '\0');
+    sodium_bin2base64(out.data(), out.size(), data.data(), data.size(), sodium_base64_VARIANT_ORIGINAL);
+    // Remove trailing null terminator if present
+    if (!out.empty() && out.back() == '\0') {
+        out.pop_back();
     }
-    
-    // Add padding
-    size_t padding = (3 - (data.size() % 3)) % 3;
-    for (size_t j = 0; j < padding; ++j) {
-        result[result.size() - 1 - j] = '=';
-    }
-    
-    return result;
+    return out;
 }
 
 std::vector<uint8_t> base64_decode(const std::string& encoded) {
-    const int lookup[256] = {
-        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,62,-1,-1,-1,63,
-        52,53,54,55,56,57,58,59,60,61,-1,-1,-1,-1,-1,-1,
-        -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,
-        15,16,17,18,19,20,21,22,23,24,25,-1,-1,-1,-1,-1,
-        -1,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,
-        41,42,43,44,45,46,47,48,49,50,51,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
-    };
-    
-    std::vector<uint8_t> result;
-    size_t padding = 0;
-    
-    // Count padding
-    for (size_t i = encoded.size(); i > 0 && encoded[i-1] == '='; --i) {
-        ++padding;
+    std::vector<uint8_t> out;
+    out.resize(encoded.size());
+    size_t bin_len = 0;
+    if (sodium_base642bin(out.data(), out.size(), encoded.c_str(), encoded.size(), nullptr, &bin_len, nullptr, sodium_base64_VARIANT_ORIGINAL) != 0) {
+        throw std::runtime_error("Invalid base64 input");
     }
-    
-    size_t length = encoded.size() - padding;
-    result.reserve((length * 3) / 4);
-    
-    for (size_t i = 0; i < length; i += 4) {
-        int n = (lookup[encoded[i]] << 18) + 
-                (lookup[encoded[i+1]] << 12) + 
-                (lookup[encoded[i+2]] << 6) + 
-                lookup[encoded[i+3]];
-        
-        result.push_back((n >> 16) & 255);
-        if (i + 2 < length) result.push_back((n >> 8) & 255);
-        if (i + 3 < length) result.push_back(n & 255);
-    }
-    
-    return result;
+    out.resize(bin_len);
+    return out;
 }
 
 } // namespace sonet::messaging::crypto

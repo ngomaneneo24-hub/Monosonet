@@ -22,6 +22,7 @@
 #include "message.hpp"
 #include "chat.hpp"
 #include "crypto_engine.hpp"
+#include "encryption_manager.hpp"
 #include "websocket_manager.hpp"
 
 namespace sonet::messaging {
@@ -95,7 +96,7 @@ class MessagingController {
 private:
     // Core components
     std::unique_ptr<ChatManager> chat_manager_;
-    std::unique_ptr<crypto::E2EEncryptionManager> encryption_manager_;
+    std::unique_ptr<encryption::EncryptionManager> encryption_manager_;
     std::unique_ptr<realtime::WebSocketManager> websocket_manager_;
     
     // Database and storage
