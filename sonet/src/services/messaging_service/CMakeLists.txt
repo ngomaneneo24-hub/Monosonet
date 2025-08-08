@@ -120,6 +120,21 @@ set(MESSAGING_SERVICE_SOURCES
     src/service_utils.cpp
     src/validation.cpp
     
+    # New structured sources
+    controllers/chat_controller.cpp
+    controllers/encryption_controller.cpp
+    controllers/channel_controller.cpp
+    models/message.cpp
+    models/conversation.cpp
+    models/encryption_key.cpp
+    security/crypto_engine.cpp
+    security/key_manager.cpp
+    security/secure_memory.cpp
+    repositories/message_repository.cpp
+    repositories/key_repository.cpp
+    validators/message_validator.cpp
+    validators/security_validator.cpp
+    
     # Main entry point
     main.cpp
 )
