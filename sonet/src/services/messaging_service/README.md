@@ -75,6 +75,8 @@ GET /api/v1/chats/{chat_id}/messages?limit=50&before=2025-01-01T00:00:00Z
 Authorization: Bearer <token>
 ```
 
+Note: For encrypted chats, the server returns ciphertext envelopes as-is and does not decrypt on the server. Clients must decrypt using their session keys.
+
 #### Create Chat
 ```http
 POST /api/v1/chats
