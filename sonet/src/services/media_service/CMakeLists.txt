@@ -13,6 +13,8 @@ project(media_service LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_package(Threads REQUIRED)
+
 file(GLOB MEDIA_SERVICE_SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/controllers/*.cpp
@@ -94,6 +96,17 @@ endif()
 if(ABSL_STATUS_LIB)
 	target_link_libraries(media_service PRIVATE ${ABSL_STATUS_LIB})
 endif()
+
+# libpqxx (optional)
+find_package(PkgConfig)
+pkg_check_modules(PQXX libpqxx)
+if(PQXX_FOUND)
+	target_include_directories(media_service PRIVATE ${PQXX_INCLUDE_DIRS})
+	target_link_libraries(media_service PRIVATE ${PQXX_LIBRARIES})
+endif()
+
+# Threads
+target_link_libraries(media_service PRIVATE Threads::Threads)
 
 if(OpenSSL_FOUND)
 	target_link_libraries(media_service PRIVATE OpenSSL::Crypto OpenSSL::SSL)

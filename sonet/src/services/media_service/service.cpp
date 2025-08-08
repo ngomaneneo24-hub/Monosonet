@@ -13,6 +13,7 @@
 #include <random>
 #include <chrono>
 #include <algorithm>
+#include <cstdlib>
 
 namespace fs = std::filesystem;
 
@@ -97,39 +98,31 @@ std::unique_ptr<StorageBackend> CreateLocalStorage(const std::string& base_dir, 
 	return std::make_unique<LocalStorage>(base_dir, base_url);
 }
 
-// ---------------- Processors (no-op/minimal placeholders) ----------------
-class BasicImageProcessor final : public ImageProcessor {
-public:
-	bool Process(const std::string& path_in, std::string& path_out, std::string& thumb_out, uint32_t& width, uint32_t& height) override {
-		// TODO: integrate real image library (stb, ImageMagick, etc.)
-		path_out = path_in; // no conversion for now
-		thumb_out = path_in; // same file as placeholder
-		width = 0; height = 0; // unknown
-		return true;
-	}
-};
-std::unique_ptr<ImageProcessor> CreateImageProcessor() { return std::make_unique<BasicImageProcessor>(); }
-
-class BasicVideoProcessor final : public VideoProcessor {
-public:
-	bool Process(const std::string& path_in, std::string& path_out, std::string& thumb_out, double& duration, uint32_t& width, uint32_t& height) override {
-		// TODO: call ffmpeg for transcoding and thumbnail
-		path_out = path_in;
-		thumb_out = path_in;
-		duration = 0.0; width = 0; height = 0;
-		return true;
-	}
-};
-std::unique_ptr<VideoProcessor> CreateVideoProcessor() { return std::make_unique<BasicVideoProcessor>(); }
-
+// ---------------- Processors ----------------
 class BasicGifProcessor final : public GifProcessor {
 public:
 	bool Process(const std::string& path_in, std::string& path_out, std::string& thumb_out, double& duration, uint32_t& width, uint32_t& height) override {
-		// TODO: optimize frames/size
+		// Placeholder: keep as-is; could shell out to gifsicle for optimization
 		path_out = path_in; thumb_out = path_in; duration = 0.0; width = 0; height = 0; return true;
 	}
 };
 std::unique_ptr<GifProcessor> CreateGifProcessor() { return std::make_unique<BasicGifProcessor>(); }
+
+// ---------------- NSFW Scanner (placeholder) ----------------
+class BasicScanner final : public NsfwScanner {
+public:
+	explicit BasicScanner(bool enable): enable_(enable) {}
+	bool IsAllowed(const std::string& /*local_path*/, ::sonet::media::MediaType /*type*/, std::string& reason) override {
+		if (!enable_) return true; // scanning disabled -> allow
+		// TODO: plug a real model or API here. For now always allow.
+		reason.clear();
+		return true;
+	}
+private:
+	bool enable_{};
+};
+
+std::unique_ptr<NsfwScanner> CreateBasicScanner(bool enable) { return std::make_unique<BasicScanner>(enable); }
 
 // -------------- Utility --------------
 static std::string GenId() {
@@ -181,6 +174,15 @@ static std::string GenId() {
 	ofs.close();
 
 	if (!got_init) return {::grpc::StatusCode::INVALID_ARGUMENT, "missing init"};
+
+	// Moderation/content scan before expensive processing/storage
+	if (nsfw_) {
+		std::string reason;
+		if (!nsfw_->IsAllowed(tmp_path.string(), init.type(), reason)) {
+			fs::remove(tmp_path);
+			return {::grpc::StatusCode::PERMISSION_DENIED, reason.empty() ? "blocked by moderation" : reason};
+		}
+	}
 
 	// Decide processor by type
 	std::string processed = tmp_path; // may be replaced by processors

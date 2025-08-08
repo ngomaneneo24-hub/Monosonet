@@ -55,12 +55,19 @@ class ImageProcessor { public: virtual ~ImageProcessor() = default; virtual bool
 class VideoProcessor { public: virtual ~VideoProcessor() = default; virtual bool Process(const std::string& path_in, std::string& path_out, std::string& thumb_out, double& duration, uint32_t& width, uint32_t& height) = 0; };
 class GifProcessor   { public: virtual ~GifProcessor()   = default; virtual bool Process(const std::string& path_in, std::string& path_out, std::string& thumb_out, double& duration, uint32_t& width, uint32_t& height) = 0; };
 
+// NSFW/content scanning hook (simple interface; implementations can call external tools/models)
+class NsfwScanner { public: virtual ~NsfwScanner() = default; virtual bool IsAllowed(const std::string& local_path, ::sonet::media::MediaType type, std::string& reason) = 0; };
+
 // Simple local implementations provided in this service for now
 std::unique_ptr<MediaRepository> CreateInMemoryRepo();
 std::unique_ptr<StorageBackend> CreateLocalStorage(const std::string& base_dir, const std::string& base_url);
 std::unique_ptr<ImageProcessor> CreateImageProcessor();
 std::unique_ptr<VideoProcessor> CreateVideoProcessor();
 std::unique_ptr<GifProcessor> CreateGifProcessor();
+std::unique_ptr<NsfwScanner> CreateBasicScanner(bool enable);
+
+// Optional Postgres repository factory (returns nullptr if not available/configured)
+std::unique_ptr<MediaRepository> CreatePostgresRepo(const std::string& conn_str);
 
 class MediaServiceImpl final : public ::sonet::media::MediaService::Service {
 public:
@@ -69,8 +76,9 @@ public:
 					 std::shared_ptr<ImageProcessor> img,
 					 std::shared_ptr<VideoProcessor> vid,
 					 std::shared_ptr<GifProcessor> gif,
+					 std::shared_ptr<NsfwScanner> nsfw,
 					 uint64_t max_upload_bytes)
-		: repo_(std::move(repo)), storage_(std::move(storage)), img_(std::move(img)), vid_(std::move(vid)), gif_(std::move(gif)), max_upload_bytes_(max_upload_bytes) {}
+		: repo_(std::move(repo)), storage_(std::move(storage)), img_(std::move(img)), vid_(std::move(vid)), gif_(std::move(gif)), nsfw_(std::move(nsfw)), max_upload_bytes_(max_upload_bytes) {}
 
 	// Client streaming upload implementation
 	::grpc::Status Upload(::grpc::ServerContext* context,
@@ -95,6 +103,7 @@ private:
 	std::shared_ptr<ImageProcessor> img_;
 	std::shared_ptr<VideoProcessor> vid_;
 	std::shared_ptr<GifProcessor> gif_;
+	std::shared_ptr<NsfwScanner> nsfw_;
 	uint64_t max_upload_bytes_{};
 };
 
