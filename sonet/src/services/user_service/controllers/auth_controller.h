@@ -8,7 +8,8 @@
 
 #pragma once
 
-#include "user_service_impl.h"
+#include "../include/user_service.h"
+#include "services/user.grpc.pb.h"
 #include "../include/email_service.h"
 #include "../include/repository.h"
 #include <grpcpp/server_context.h>
@@ -24,7 +25,7 @@ namespace sonet::user::controllers {
  */
 class AuthController {
 public:
-    explicit AuthController(std::shared_ptr<UserServiceImpl> user_service,
+    explicit AuthController(std::shared_ptr<sonet::user::UserServiceImpl> user_service,
                            std::shared_ptr<email::EmailService> email_service = nullptr,
                            const std::string& connection_string = "");
     ~AuthController() = default;
@@ -34,40 +35,29 @@ public:
         std::string username;
         std::string email;
         std::string password;
-        std::string full_name;
+        std::string full_name; // mapped to display_name in proto
         std::string bio;
         std::string device_fingerprint;
         int device_type;
     };
 
     struct LoginRequest {
-        std::string username;  // Can be username or email
+        std::string username;  // email for proto credentials.email; keep name for compatibility
         std::string password;
         std::string device_fingerprint;
         int device_type;
     };
 
-    struct RefreshTokenRequest {
-        std::string refresh_token;
-    };
+    struct RefreshTokenRequest { std::string refresh_token; };
 
     struct LogoutRequest {
-        std::string access_token;
-        std::string refresh_token;
+        std::string session_id; // proto expects session_id
+        bool logout_all_devices{false};
     };
 
-    struct VerifyEmailRequest {
-        std::string verification_token;
-    };
-
-    struct ForgotPasswordRequest {
-        std::string email;
-    };
-
-    struct ResetPasswordRequest {
-        std::string reset_token;
-        std::string new_password;
-    };
+    struct VerifyEmailRequest { std::string verification_token; };
+    struct ForgotPasswordRequest { std::string email; };
+    struct ResetPasswordRequest { std::string reset_token; std::string new_password; };
 
     // Response structures
     struct AuthResponse {
@@ -76,16 +66,12 @@ public:
         std::string access_token;
         std::string refresh_token;
         std::string user_id;
-        int64_t access_token_expires_at;
-        int64_t refresh_token_expires_at;
+        int64_t access_token_expires_at{0};
+        int64_t refresh_token_expires_at{0};
         nlohmann::json user_data;
     };
 
-    struct StandardResponse {
-        bool success;
-        std::string message;
-        nlohmann::json data;
-    };
+    struct StandardResponse { bool success; std::string message; nlohmann::json data; };
 
     // HTTP endpoint handlers
     nlohmann::json handle_register(const RegisterRequest& request);
@@ -105,22 +91,21 @@ public:
     std::vector<std::string> generate_username_suggestions(const std::string& base_username);
 
 private:
-    std::shared_ptr<UserServiceImpl> user_service_;
+    std::shared_ptr<sonet::user::UserServiceImpl> user_service_;
     std::shared_ptr<email::EmailService> email_service_;
     std::string connection_string_;
 
 private:
-    std::shared_ptr<UserServiceImpl> user_service_;
-    
-    // Helper methods to convert between REST and gRPC
-    RegisterUserRequest to_grpc_register_request(const RegisterRequest& request);
-    AuthenticateUserRequest to_grpc_auth_request(const LoginRequest& request);
-    RefreshTokenRequest to_grpc_refresh_request(const RefreshTokenRequest& request);
-    LogoutUserRequest to_grpc_logout_request(const LogoutRequest& request);
-    
-    nlohmann::json grpc_response_to_json(const RegisterUserResponse& response);
-    nlohmann::json grpc_response_to_json(const AuthenticateUserResponse& response);
-    nlohmann::json grpc_response_to_json(const RefreshTokenResponse& response);
+    // Converters to proto
+    sonet::user::RegisterUserRequest to_grpc_register_request(const RegisterRequest& request);
+    sonet::user::LoginUserRequest to_grpc_login_request(const LoginRequest& request);
+    sonet::user::RefreshTokenRequest to_grpc_refresh_request(const RefreshTokenRequest& request);
+    sonet::user::LogoutRequest to_grpc_logout_request(const LogoutRequest& request);
+
+    // Response mappers
+    nlohmann::json grpc_response_to_json(const sonet::user::RegisterUserResponse& response);
+    nlohmann::json grpc_response_to_json(const sonet::user::LoginUserResponse& response);
+    nlohmann::json grpc_response_to_json(const sonet::user::RefreshTokenResponse& response);
     nlohmann::json create_error_response(const std::string& message);
     nlohmann::json create_success_response(const std::string& message, const nlohmann::json& data = nlohmann::json{});
 };
