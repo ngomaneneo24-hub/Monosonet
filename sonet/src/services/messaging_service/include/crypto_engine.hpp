@@ -130,7 +130,7 @@ public:
 class CryptoEngine {
 private:
     std::unique_ptr<SecureRandom> random_;
-    std::unordered_map<std::string, std::unique_ptr<CryptoKey>> key_cache_;
+    std::unordered_map<std::string, std::shared_ptr<CryptoKey>> key_cache_;
     std::mutex key_cache_mutex_;
     
     // Configuration
