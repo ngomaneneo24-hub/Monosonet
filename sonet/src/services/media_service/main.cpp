@@ -36,8 +36,15 @@ int main(int argc, char** argv) {
 	std::string storage_kind = std::getenv("SONET_MEDIA_STORAGE") ? std::getenv("SONET_MEDIA_STORAGE") : std::string("local");
 	std::shared_ptr<sonet::media_service::StorageBackend> storage;
 	if (storage_kind == "s3") {
-		// TODO: implement S3/R2/MinIO backend (use env: AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, SONET_MEDIA_BUCKET)
-		storage.reset(sonet::media_service::CreateLocalStorage(local_store_dir, local_base_url).release());
+		const char* bucket = std::getenv("SONET_MEDIA_BUCKET");
+		const char* public_url = std::getenv("SONET_MEDIA_PUBLIC_BASE_URL"); // e.g., https://cdn.example.com/media
+		const char* endpoint = std::getenv("SONET_MEDIA_S3_ENDPOINT"); // for MinIO/R2
+		if (bucket && public_url) {
+			storage.reset(sonet::media_service::CreateS3Storage(bucket, public_url, endpoint ? endpoint : "").release());
+		} else {
+			std::cerr << "S3 storage selected but SONET_MEDIA_BUCKET or SONET_MEDIA_PUBLIC_BASE_URL not set; falling back to local" << std::endl;
+			storage.reset(sonet::media_service::CreateLocalStorage(local_store_dir, local_base_url).release());
+		}
 	} else {
 		storage.reset(sonet::media_service::CreateLocalStorage(local_store_dir, local_base_url).release());
 	}

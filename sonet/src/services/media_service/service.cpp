@@ -224,8 +224,42 @@ static std::string GenId() {
 	std::string thumb_url = url; // Placeholder. In real impl store thumb separately.
 	std::string hls_url;
 	if (init.type() == MEDIA_TYPE_VIDEO) {
-		// Optional: generate HLS with ffmpeg here; for now, skip heavy work and leave blank.
-		// If you add generation, push directory via storage_->PutDir and set hls_url accordingly.
+		// Generate simple HLS renditions (360p/480p/720p) using ffmpeg
+		fs::path hls_tmp = fs::temp_directory_path() / ("hls-" + GenId());
+		fs::create_directories(hls_tmp);
+		struct Rendition { const char* name; int w; int h; const char* vb; const char* ab; };
+		Rendition variants[] = {
+			{"360p", 640, 360, "800k", "96k"},
+			{"480p", 854, 480, "1400k", "128k"},
+			{"720p", 1280, 720, "2800k", "128k"}
+		};
+		for (const auto& v : variants) {
+			fs::path outdir = hls_tmp / v.name;
+			fs::create_directories(outdir);
+			std::string seg = (outdir / "seg_%03d.ts").string();
+			std::string m3u8 = (outdir / "index.m3u8").string();
+			std::string cmd =
+				"ffmpeg -y -i '" + processed + "' -vf 'scale=w=" + std::to_string(v.w) + ":h=" + std::to_string(v.h) + ":force_original_aspect_ratio=decrease' "
+				"-c:v h264 -profile:v main -crf 20 -g 48 -keyint_min 48 -sc_threshold 0 -b:v " + v.vb + " -maxrate " + v.vb + " -bufsize " + v.vb + " "
+				"-c:a aac -ar 48000 -b:a " + v.ab + " -hls_time 4 -hls_playlist_type vod -hls_segment_filename '" + seg + "' '" + m3u8 + "' >/dev/null 2>&1";
+			int rc = std::system(cmd.c_str());
+			(void)rc; // best-effort; missing variant is acceptable
+		}
+		// Write a basic master playlist
+		{
+			std::ofstream mf(hls_tmp / "master.m3u8");
+			mf << "#EXTM3U\n#EXT-X-VERSION:3\n";
+			mf << "#EXT-X-STREAM-INF:BANDWIDTH=900000,RESOLUTION=640x360\n360p/index.m3u8\n";
+			mf << "#EXT-X-STREAM-INF:BANDWIDTH=1600000,RESOLUTION=854x480\n480p/index.m3u8\n";
+			mf << "#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720\n720p/index.m3u8\n";
+		}
+		// Upload HLS dir under object prefix
+		std::string base_hls_url;
+		if (storage_->PutDir(hls_tmp.string(), object_key + "/hls", base_hls_url)) {
+			hls_url = base_hls_url + "/master.m3u8";
+		}
+		// Cleanup temp dir best-effort
+		std::error_code ec; fs::remove_all(hls_tmp, ec);
 	}
 
 	// Save metadata
@@ -263,6 +297,7 @@ static std::string GenId() {
 	m->set_duration_seconds(rec.duration_seconds);
 	m->set_original_url(rec.original_url);
 	m->set_thumbnail_url(rec.thumbnail_url);
+	m->set_hls_url(rec.hls_url);
 	// created_at omitted in placeholder
 	return ::grpc::Status::OK;
 }
@@ -306,6 +341,7 @@ static std::string GenId() {
 		m->set_duration_seconds(r.duration_seconds);
 		m->set_original_url(r.original_url);
 		m->set_thumbnail_url(r.thumbnail_url);
+		m->set_hls_url(r.hls_url);
 	}
 	return ::grpc::Status::OK;
 }
