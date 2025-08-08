@@ -8,9 +8,14 @@
 
 cmake_minimum_required(VERSION 3.20)
 
-# Services subdirectory
-add_subdirectory(user_service)
-add_subdirectory(messaging_service)
+option(BUILD_OTHER_SERVICES "Build additional services besides media" OFF)
+
 # Media service
 add_subdirectory(media_service)
+
+if(BUILD_OTHER_SERVICES)
+	add_subdirectory(user_service)
+	add_subdirectory(messaging_service)
+endif()
+
 # Add other services as they're implemented

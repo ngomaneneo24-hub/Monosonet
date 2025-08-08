@@ -27,8 +27,73 @@ add_executable(media_service
 
 target_include_directories(media_service PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
+# Generate gRPC/Protobuf sources for media service only
+set(PROTO_DIR ${CMAKE_SOURCE_DIR}/proto)
+set(MEDIA_PROTO ${PROTO_DIR}/services/media.proto)
+set(GEN_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated)
+file(MAKE_DIRECTORY ${GEN_DIR})
+
+find_program(PROTOC protoc)
+find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin)
+if(PROTOC AND GRPC_CPP_PLUGIN)
+	set(GEN_SRCS
+		${GEN_DIR}/services/media.pb.cc
+		${GEN_DIR}/services/media.grpc.pb.cc
+	)
+	set(GEN_HDRS
+		${GEN_DIR}/services/media.pb.h
+		${GEN_DIR}/services/media.grpc.pb.h
+	)
+	add_custom_command(
+		OUTPUT ${GEN_SRCS} ${GEN_HDRS}
+		COMMAND ${PROTOC}
+		ARGS --grpc_out ${GEN_DIR}
+			 --cpp_out ${GEN_DIR}
+			 -I ${PROTO_DIR}
+			 --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
+			 ${MEDIA_PROTO}
+		DEPENDS ${MEDIA_PROTO}
+		COMMENT "Generating gRPC sources for media.proto"
+	)
+	target_sources(media_service PRIVATE ${GEN_SRCS})
+	target_include_directories(media_service PRIVATE ${GEN_DIR} ${PROTO_DIR})
+else()
+	message(WARNING "protoc or grpc_cpp_plugin not found; expecting pre-generated sources in include path.")
+	target_include_directories(media_service PRIVATE ${PROTO_DIR})
+endif()
+
 # Link against proto lib and common libs
 target_link_libraries(media_service PRIVATE sonet_proto)
+
+# Link protobuf/grpc
+find_package(Protobuf)
+if(Protobuf_FOUND)
+	target_link_libraries(media_service PRIVATE protobuf::libprotobuf)
+endif()
+find_library(GRPCPP_LIB grpc++)
+find_library(GRPCPP_REFLECTION_LIB grpc++_reflection)
+find_library(GPR_LIB gpr)
+find_library(ABSL_SYNCHRONIZATION_LIB absl_synchronization)
+find_library(ABSL_STRINGS_LIB absl_strings)
+find_library(ABSL_STATUS_LIB absl_status)
+if(GRPCPP_LIB)
+	target_link_libraries(media_service PRIVATE ${GRPCPP_LIB})
+endif()
+if(GRPCPP_REFLECTION_LIB)
+	target_link_libraries(media_service PRIVATE ${GRPCPP_REFLECTION_LIB})
+endif()
+if(GPR_LIB)
+	target_link_libraries(media_service PRIVATE ${GPR_LIB})
+endif()
+if(ABSL_SYNCHRONIZATION_LIB)
+	target_link_libraries(media_service PRIVATE ${ABSL_SYNCHRONIZATION_LIB})
+endif()
+if(ABSL_STRINGS_LIB)
+	target_link_libraries(media_service PRIVATE ${ABSL_STRINGS_LIB})
+endif()
+if(ABSL_STATUS_LIB)
+	target_link_libraries(media_service PRIVATE ${ABSL_STATUS_LIB})
+endif()
 
 if(OpenSSL_FOUND)
 	target_link_libraries(media_service PRIVATE OpenSSL::Crypto OpenSSL::SSL)

@@ -16,7 +16,7 @@
 #include <grpcpp/grpcpp.h>
 
 // Generated from proto (built at top-level into include path)
-#include <media.grpc.pb.h>
+#include <services/media.grpc.pb.h>
 
 namespace sonet::media_service {
 
