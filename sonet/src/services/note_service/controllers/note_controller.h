@@ -12,7 +12,7 @@
 #include "../models/attachment.h"
 #include "../repositories/note_repository.h"
 #include "../validators/note_validator.h"
-#include "../services/note_service.h"
+#include "../service.h"
 #include "../services/timeline_service.h"
 #include "../services/notification_service.h"
 #include "../services/analytics_service.h"
@@ -66,12 +66,12 @@ public:
     // Constructor with comprehensive service injection
     explicit NoteController(
         std::shared_ptr<NoteRepository> repository,
-        std::shared_ptr<services::NoteService> note_service,
+        std::shared_ptr<sonet::note::NoteService> note_service,
         std::shared_ptr<services::TimelineService> timeline_service,
         std::shared_ptr<services::NotificationService> notification_service,
         std::shared_ptr<services::AnalyticsService> analytics_service,
-        std::shared_ptr<core::cache::RedisClient> redis_client,
-        std::shared_ptr<core::security::RateLimiter> rate_limiter
+        std::shared_ptr<sonet::core::cache::RedisClient> redis_client,
+        std::shared_ptr<sonet::core::security::RateLimiter> rate_limiter
     );
 
     // HTTP Route Registration for REST API
@@ -459,12 +459,12 @@ public:
 private:
     // ========== SERVICE DEPENDENCIES ==========
     std::shared_ptr<NoteRepository> note_repository_;
-    std::shared_ptr<services::NoteService> note_service_;
+    std::shared_ptr<sonet::note::NoteService> note_service_;
     std::shared_ptr<services::TimelineService> timeline_service_;
     std::shared_ptr<services::NotificationService> notification_service_;
     std::shared_ptr<services::AnalyticsService> analytics_service_;
-    std::shared_ptr<core::cache::RedisClient> redis_client_;
-    std::shared_ptr<core::security::RateLimiter> rate_limiter_;
+    std::shared_ptr<sonet::core::cache::RedisClient> redis_client_;
+    std::shared_ptr<sonet::core::security::RateLimiter> rate_limiter_;
 
     // ========== WEBSOCKET CONNECTION MANAGEMENT ==========
     std::unordered_map<std::string, std::vector<std::shared_ptr<core::network::WebSocketConnection>>> timeline_subscribers_;

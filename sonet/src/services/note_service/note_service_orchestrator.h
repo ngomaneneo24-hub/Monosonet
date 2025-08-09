@@ -21,10 +21,10 @@
 #include "grpc/note_grpc_service.h"
 #include "websocket/note_websocket_handler.h"
 
-#include "services/note_service.h"
-#include "services/timeline_service.h"
-#include "services/notification_service.h"
-#include "services/analytics_service.h"
+#include "service.h"
+// #include "services/timeline_service.h"
+// #include "services/notification_service.h"
+// #include "services/analytics_service.h"
 
 #include "../core/network/http_server.h"
 #include "../core/network/websocket_server.h"
@@ -198,10 +198,10 @@ private:
 
     // ========== BUSINESS SERVICES ==========
     std::shared_ptr<repositories::NoteRepository> note_repository_;
-    std::shared_ptr<services::NoteService> note_service_;
-    std::shared_ptr<services::TimelineService> timeline_service_;
-    std::shared_ptr<services::NotificationService> notification_service_;
-    std::shared_ptr<services::AnalyticsService> analytics_service_;
+    std::shared_ptr<NoteService> note_service_;
+    // std::shared_ptr<services::TimelineService> timeline_service_;
+    // std::shared_ptr<services::NotificationService> notification_service_;
+    // std::shared_ptr<services::AnalyticsService> analytics_service_;
 
     // ========== API CONTROLLERS ==========
     std::shared_ptr<controllers::NoteController> note_controller_;
