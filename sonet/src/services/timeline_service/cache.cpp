@@ -78,12 +78,18 @@ namespace {
 RedisTimelineCache::RedisTimelineCache(const std::string& redis_host, int redis_port)
     : redis_host_(redis_host), redis_port_(redis_port) {
     
-    // TODO: Initialize Redis connection
-    // For now, use in-memory fallback
-    redis_available_ = false;
+    const char* use_redis = std::getenv("SONET_USE_REDIS");
+    if (use_redis && std::string(use_redis) == "1") {
+        // TODO: Initialize actual Redis client and set redis_available_ = true if successful
+        std::cout << "Attempting Redis connection at " << redis_host_ << ":" << redis_port_ << std::endl;
+        redis_available_ = false; // keep false until implemented
+    } else {
+        redis_available_ = false;
+    }
     
-    std::cout << "Redis Timeline Cache initialized (fallback mode - Redis at " 
-              << redis_host_ << ":" << redis_port_ << " not available)" << std::endl;
+    std::cout << "Redis Timeline Cache initialized (" 
+              << (redis_available_ ? "redis" : "fallback mode") << ") - Redis at " 
+              << redis_host_ << ":" << redis_port_ << std::endl;
 }
 
 bool RedisTimelineCache::GetTimeline(

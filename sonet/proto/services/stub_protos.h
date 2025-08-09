@@ -109,7 +109,35 @@ namespace note {
     // Stub service
     struct NoteService {
         struct Stub {
-            // Stub implementation
+            // List recent notes by authors since a timestamp
+            struct ListRecentNotesByAuthorsRequest {
+                std::vector<std::string> author_ids;
+                sonet::common::Timestamp since;
+                int32_t limit = 50;
+            };
+            struct ListRecentNotesByAuthorsResponse {
+                std::vector<Note> notes;
+            };
+            ListRecentNotesByAuthorsResponse ListRecentNotesByAuthors(const ListRecentNotesByAuthorsRequest& req) {
+                // Generate synthetic notes deterministically for testing
+                ListRecentNotesByAuthorsResponse resp;
+                int idx = 1;
+                for (const auto& aid : req.author_ids) {
+                    for (int i = 0; i < 3 && static_cast<int>(resp.notes.size()) < req.limit; ++i) {
+                        Note n;
+                        n.set_id("auth_" + aid + "_" + std::to_string(idx++));
+                        n.set_author_id(aid);
+                        n.set_content("Recent note #" + std::to_string(i+1) + " by " + aid);
+                        n.set_visibility(VISIBILITY_PUBLIC);
+                        auto now = std::chrono::system_clock::now();
+                        auto secs = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+                        n.mutable_created_at()->set_seconds(secs);
+                        n.mutable_updated_at()->set_seconds(secs);
+                        resp.notes.push_back(n);
+                    }
+                }
+                return resp;
+            }
         };
     };
 }
@@ -457,6 +485,40 @@ namespace timeline {
                 ::grpc::ServerContext* context,
                 const GetFollowingTimelineRequest* request,
                 GetFollowingTimelineResponse* response) = 0;
+        };
+    };
+}
+
+namespace follow {
+    struct GetFollowingRequest { std::string user_id_; std::string user_id() const { return user_id_; } };
+    struct GetFollowingResponse { std::vector<std::string> user_ids_; const std::vector<std::string>& user_ids() const { return user_ids_; } };
+    struct GetFollowersRequest { std::string user_id_; std::string user_id() const { return user_id_; } };
+    struct GetFollowersResponse { std::vector<std::string> user_ids_; const std::vector<std::string>& user_ids() const { return user_ids_; } };
+    
+    struct FollowService {
+        struct Stub {
+            GetFollowingResponse GetFollowing(const GetFollowingRequest& req) {
+                // Deterministic sample following list per user id hash
+                GetFollowingResponse resp;
+                std::hash<std::string> h;
+                size_t base = h(req.user_id()) % 5;
+                std::vector<std::string> candidates = {"alice_dev","bob_designer","charlie_pm","diana_data","eve_security","frank_frontend"};
+                for (size_t i = 0; i < candidates.size(); ++i) {
+                    if ((i + base) % 2 == 0) resp.user_ids_.push_back(candidates[i]);
+                }
+                return resp;
+            }
+            GetFollowersResponse GetFollowers(const GetFollowersRequest& req) {
+                // Deterministic sample followers list per user id
+                GetFollowersResponse resp;
+                std::hash<std::string> h;
+                size_t base = h(req.user_id()) % 7;
+                std::vector<std::string> crowd = {"user123","user456","user789","userABC","userDEF","userGHI","userJKL"};
+                for (size_t i = 0; i < crowd.size(); ++i) {
+                    if ((i + base) % 3 != 0) resp.user_ids_.push_back(crowd[i]);
+                }
+                return resp;
+            }
         };
     };
 }
