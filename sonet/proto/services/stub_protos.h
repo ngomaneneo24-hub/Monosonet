@@ -1,0 +1,323 @@
+#pragma once
+
+// Stub proto includes for compilation testing
+// In production, these would be generated from proto files
+
+#include <string>
+#include <vector>
+#include <memory>
+#include <map>
+
+namespace sonet {
+namespace common {
+    struct Timestamp {
+        int64_t seconds_ = 0;
+        int32_t nanos_ = 0;
+        
+        int64_t seconds() const { return seconds_; }
+        int32_t nanos() const { return nanos_; }
+        void set_seconds(int64_t s) { seconds_ = s; }
+        void set_nanos(int32_t n) { nanos_ = n; }
+    };
+    
+    struct Pagination {
+        int32_t offset = 0;
+        int32_t limit = 0;
+        int32_t total_count = 0;
+        bool has_next = false;
+        bool has_previous = false;
+        
+        void set_offset(int32_t o) { offset = o; }
+        void set_limit(int32_t l) { limit = l; }
+        void set_total_count(int32_t t) { total_count = t; }
+        void set_has_next(bool h) { has_next = h; }
+        void set_has_previous(bool h) { has_previous = h; }
+    };
+}
+
+namespace note {
+    enum Visibility {
+        VISIBILITY_PUBLIC = 0,
+        VISIBILITY_FOLLOWERS = 1,
+        VISIBILITY_FRIENDS = 2,
+        VISIBILITY_PRIVATE = 3,
+        VISIBILITY_MENTIONED = 4
+    };
+    
+    struct NoteMetrics {
+        int32_t views_ = 0;
+        int32_t likes_ = 0;
+        int32_t reposts_ = 0;
+        int32_t replies_ = 0;
+        int32_t quotes_ = 0;
+        
+        int32_t views() const { return views_; }
+        int32_t likes() const { return likes_; }
+        int32_t reposts() const { return reposts_; }
+        int32_t replies() const { return replies_; }
+        int32_t quotes() const { return quotes_; }
+        
+        void set_views(int32_t v) { views_ = v; }
+        void set_likes(int32_t l) { likes_ = l; }
+        void set_reposts(int32_t r) { reposts_ = r; }
+        void set_replies(int32_t r) { replies_ = r; }
+        void set_quotes(int32_t q) { quotes_ = q; }
+    };
+    
+    struct MediaItem {
+        std::string url;
+        std::string type;
+        int32_t items_size() const { return 1; }
+    };
+    
+    struct Note {
+        std::string id_;
+        std::string author_id_;
+        std::string content_;
+        Visibility visibility_ = VISIBILITY_PUBLIC;
+        std::string content_warning_;
+        sonet::common::Timestamp created_at_;
+        sonet::common::Timestamp updated_at_;
+        NoteMetrics metrics_;
+        MediaItem media_;
+        
+        std::string id() const { return id_; }
+        std::string author_id() const { return author_id_; }
+        std::string content() const { return content_; }
+        Visibility visibility() const { return visibility_; }
+        std::string content_warning() const { return content_warning_; }
+        sonet::common::Timestamp created_at() const { return created_at_; }
+        sonet::common::Timestamp updated_at() const { return updated_at_; }
+        
+        void set_id(const std::string& i) { id_ = i; }
+        void set_author_id(const std::string& a) { author_id_ = a; }
+        void set_content(const std::string& c) { content_ = c; }
+        void set_visibility(Visibility v) { visibility_ = v; }
+        
+        sonet::common::Timestamp* mutable_created_at() { return &created_at_; }
+        sonet::common::Timestamp* mutable_updated_at() { return &updated_at_; }
+        NoteMetrics* mutable_metrics() { return &metrics_; }
+        
+        bool has_metrics() const { return true; }
+        bool has_media() const { return true; }
+        bool has_content_warning() const { return !content_warning_.empty(); }
+        
+        const NoteMetrics& metrics() const { return metrics_; }
+        const MediaItem& media() const { return media_; }
+    };
+    
+    // Stub service
+    struct NoteService {
+        struct Stub {
+            // Stub implementation
+        };
+    };
+}
+
+namespace timeline {
+    enum ContentSource {
+        CONTENT_SOURCE_FOLLOWING = 0,
+        CONTENT_SOURCE_RECOMMENDED = 1,
+        CONTENT_SOURCE_TRENDING = 2
+    };
+    
+    enum TimelineAlgorithm {
+        TIMELINE_ALGORITHM_UNKNOWN = 0,
+        TIMELINE_ALGORITHM_CHRONOLOGICAL = 1,
+        TIMELINE_ALGORITHM_ALGORITHMIC = 2,
+        TIMELINE_ALGORITHM_HYBRID = 3
+    };
+    
+    enum TimelineUpdateType {
+        UPDATE_TYPE_NEW_ITEM = 0,
+        UPDATE_TYPE_ITEM_CHANGED = 1,
+        UPDATE_TYPE_ITEM_DELETED = 2
+    };
+    
+    struct RankingSignals {
+        double author_affinity_score = 0.0;
+        double content_quality_score = 0.0;
+        double engagement_velocity_score = 0.0;
+        double recency_score = 0.0;
+        double personalization_score = 0.0;
+        
+        void set_author_affinity_score(double s) { author_affinity_score = s; }
+        void set_content_quality_score(double s) { content_quality_score = s; }
+        void set_engagement_velocity_score(double s) { engagement_velocity_score = s; }
+        void set_recency_score(double s) { recency_score = s; }
+        void set_personalization_score(double s) { personalization_score = s; }
+    };
+    
+    struct TimelineUpdate {
+        TimelineUpdateType update_type_ = UPDATE_TYPE_NEW_ITEM;
+        TimelineUpdateType update_type() const { return update_type_; }
+    };
+    
+    struct TimelineMetadata {
+        int32_t total_items = 0;
+        TimelineAlgorithm algorithm_used = TIMELINE_ALGORITHM_HYBRID;
+        std::string timeline_version;
+        sonet::common::Timestamp last_updated;
+        sonet::common::Timestamp last_user_read;
+        int32_t new_items_since_last_fetch = 0;
+        
+        void set_total_items(int32_t t) { total_items = t; }
+        void set_algorithm_used(TimelineAlgorithm a) { algorithm_used = a; }
+        void set_timeline_version(const std::string& v) { timeline_version = v; }
+        void set_new_items_since_last_fetch(int32_t n) { new_items_since_last_fetch = n; }
+        
+        sonet::common::Timestamp* mutable_last_updated() { return &last_updated; }
+        sonet::common::Timestamp* mutable_last_user_read() { return &last_user_read; }
+    };
+    
+    // Stub gRPC service requests/responses
+    struct GetTimelineRequest {
+        std::string user_id_;
+        TimelineAlgorithm algorithm_ = TIMELINE_ALGORITHM_UNKNOWN;
+        sonet::common::Pagination pagination_;
+        bool include_ranking_signals_ = false;
+        
+        std::string user_id() const { return user_id_; }
+        TimelineAlgorithm algorithm() const { return algorithm_; }
+        const sonet::common::Pagination& pagination() const { return pagination_; }
+        bool include_ranking_signals() const { return include_ranking_signals_; }
+    };
+    
+    struct TimelineItem {
+        sonet::note::Note note_;
+        ContentSource source_ = CONTENT_SOURCE_FOLLOWING;
+        double final_score_ = 0.0;
+        sonet::common::Timestamp injected_at_;
+        std::string injection_reason_;
+        RankingSignals ranking_signals_;
+        
+        sonet::note::Note* mutable_note() { return &note_; }
+        void set_source(ContentSource s) { source_ = s; }
+        void set_final_score(double s) { final_score_ = s; }
+        void set_injection_reason(const std::string& r) { injection_reason_ = r; }
+        sonet::common::Timestamp* mutable_injected_at() { return &injected_at_; }
+        RankingSignals* mutable_ranking_signals() { return &ranking_signals_; }
+    };
+    
+    struct GetTimelineResponse {
+        std::vector<TimelineItem> items_;
+        TimelineMetadata metadata_;
+        sonet::common::Pagination pagination_;
+        bool success_ = false;
+        std::string error_message_;
+        
+        TimelineItem* add_items() { items_.emplace_back(); return &items_.back(); }
+        TimelineMetadata* mutable_metadata() { return &metadata_; }
+        sonet::common::Pagination* mutable_pagination() { return &pagination_; }
+        void set_success(bool s) { success_ = s; }
+        void set_error_message(const std::string& e) { error_message_ = e; }
+    };
+    
+    // Other stub requests/responses
+    struct RefreshTimelineRequest {
+        std::string user_id_;
+        sonet::common::Timestamp since_;
+        int32_t max_items_ = 0;
+        
+        std::string user_id() const { return user_id_; }
+        sonet::common::Timestamp since() const { return since_; }
+        int32_t max_items() const { return max_items_; }
+    };
+    
+    struct RefreshTimelineResponse {
+        std::vector<TimelineItem> new_items_;
+        int32_t total_new_items_ = 0;
+        bool has_more_ = false;
+        bool success_ = false;
+        std::string error_message_;
+        
+        TimelineItem* add_new_items() { new_items_.emplace_back(); return &new_items_.back(); }
+        void set_total_new_items(int32_t t) { total_new_items_ = t; }
+        void set_has_more(bool h) { has_more_ = h; }
+        void set_success(bool s) { success_ = s; }
+        void set_error_message(const std::string& e) { error_message_ = e; }
+    };
+    
+    struct MarkTimelineReadRequest {
+        std::string user_id_;
+        sonet::common::Timestamp read_until_;
+        
+        std::string user_id() const { return user_id_; }
+        sonet::common::Timestamp read_until() const { return read_until_; }
+    };
+    
+    struct MarkTimelineReadResponse {
+        bool success_ = false;
+        std::string error_message_;
+        
+        void set_success(bool s) { success_ = s; }
+        void set_error_message(const std::string& e) { error_message_ = e; }
+    };
+    
+    struct HealthCheckRequest {};
+    
+    struct HealthCheckResponse {
+        std::string status_;
+        std::map<std::string, std::string> details_;
+        
+        void set_status(const std::string& s) { status_ = s; }
+        std::map<std::string, std::string>* mutable_details() { return &details_; }
+    };
+    
+    // Additional stub requests for completeness
+    struct GetUserTimelineRequest { std::string user_id() const { return ""; } };
+    struct GetUserTimelineResponse { void set_success(bool) {} };
+    struct UpdateTimelinePreferencesRequest { std::string user_id() const { return ""; } };
+    struct UpdateTimelinePreferencesResponse { void set_success(bool) {} };
+    struct GetTimelinePreferencesRequest { std::string user_id() const { return ""; } };
+    struct GetTimelinePreferencesResponse { void set_success(bool) {} };
+    struct SubscribeTimelineUpdatesRequest { std::string user_id() const { return ""; } };
+    
+    // Timeline service base class
+    struct TimelineService {
+        struct Service {
+            virtual ~Service() = default;
+            
+            virtual ::grpc::Status GetTimeline(
+                ::grpc::ServerContext* context,
+                const GetTimelineRequest* request,
+                GetTimelineResponse* response) = 0;
+                
+            virtual ::grpc::Status RefreshTimeline(
+                ::grpc::ServerContext* context,
+                const RefreshTimelineRequest* request,
+                RefreshTimelineResponse* response) = 0;
+                
+            virtual ::grpc::Status MarkTimelineRead(
+                ::grpc::ServerContext* context,
+                const MarkTimelineReadRequest* request,
+                MarkTimelineReadResponse* response) = 0;
+                
+            virtual ::grpc::Status HealthCheck(
+                ::grpc::ServerContext* context,
+                const HealthCheckRequest* request,
+                HealthCheckResponse* response) = 0;
+                
+            virtual ::grpc::Status GetUserTimeline(
+                ::grpc::ServerContext* context,
+                const GetUserTimelineRequest* request,
+                GetUserTimelineResponse* response) = 0;
+                
+            virtual ::grpc::Status UpdateTimelinePreferences(
+                ::grpc::ServerContext* context,
+                const UpdateTimelinePreferencesRequest* request,
+                UpdateTimelinePreferencesResponse* response) = 0;
+                
+            virtual ::grpc::Status GetTimelinePreferences(
+                ::grpc::ServerContext* context,
+                const GetTimelinePreferencesRequest* request,
+                GetTimelinePreferencesResponse* response) = 0;
+                
+            virtual ::grpc::Status SubscribeTimelineUpdates(
+                ::grpc::ServerContext* context,
+                const SubscribeTimelineUpdatesRequest* request,
+                ::grpc::ServerWriter<TimelineUpdate>* writer) = 0;
+        };
+    };
+}
+} // namespace sonet

@@ -1,4 +1,4 @@
-# Timeline Service CMakeLists.txt
+# Timeline Service CMakeLists.txt (Simplified)
 cmake_minimum_required(VERSION 3.22)
 
 # Define the timeline service library
@@ -19,26 +19,16 @@ target_include_directories(timeline_service PUBLIC
     ${CMAKE_SOURCE_DIR}/proto/common
 )
 
-# Link required libraries
+# Link required libraries (simplified for testing)
+find_package(Threads REQUIRED)
 target_link_libraries(timeline_service PUBLIC
-    common_proto
-    note_proto
-    timeline_proto
-    fanout_proto
-    ${_REFLECTION}
-    ${_GRPC_GRPCPP}
-    ${_PROTOBUF_LIBPROTOBUF}
+    Threads::Threads
 )
 
 # Set C++ standard
 set_target_properties(timeline_service PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
-)
-
-# Add compile definitions for logging
-target_compile_definitions(timeline_service PRIVATE
-    SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_DEBUG
 )
 
 # Add timeline service executable for standalone testing
@@ -48,13 +38,6 @@ add_executable(timeline_service_main
 
 target_link_libraries(timeline_service_main
     timeline_service
-    common_proto
-    note_proto
-    timeline_proto
-    fanout_proto
-    ${_REFLECTION}
-    ${_GRPC_GRPCPP}
-    ${_PROTOBUF_LIBPROTOBUF}
     Threads::Threads
 )
 
@@ -83,4 +66,4 @@ install(FILES
     DESTINATION include/sonet/timeline
 )
 
-message(STATUS "Timeline service configured successfully")
+message(STATUS "Timeline service configured successfully (simplified build)")
