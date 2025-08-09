@@ -440,10 +440,37 @@ UserEngagementProfile TimelineServiceImpl::GetOrCreateUserProfile(const std::str
     return profile;
 }
 
-TimelineConfig TimelineServiceImpl::GetUserTimelineConfig(const std::string& /*user_id*/) {
+TimelineConfig TimelineServiceImpl::GetUserTimelineConfig(const std::string& user_id) {
     // For now, return default config
     // In production, this would fetch user preferences from database
-    return default_config_;
+    ::sonet::timeline::TimelinePreferences prefs;
+    {
+        std::lock_guard<std::mutex> lock(preferences_mutex_);
+        auto it = user_preferences_.find(user_id);
+        if (it != user_preferences_.end()) {
+            prefs = it->second;
+        }
+    }
+    // Defaults if not set
+    TimelineConfig config;
+    config.algorithm = prefs.algorithm() != ::sonet::timeline::TIMELINE_ALGORITHM_UNKNOWN ? prefs.algorithm() : default_config_.algorithm;
+    config.max_items = prefs.max_items() > 0 ? prefs.max_items() : default_config_.max_items;
+    config.max_age_hours = prefs.max_age_hours() > 0 ? prefs.max_age_hours() : default_config_.max_age_hours;
+    config.min_score_threshold = prefs.min_score_threshold() > 0.0 ? prefs.min_score_threshold() : default_config_.min_score_threshold;
+    
+    // Algorithm weights
+    config.recency_weight = prefs.recency_weight() > 0.0 ? prefs.recency_weight() : default_config_.recency_weight;
+    config.engagement_weight = prefs.engagement_weight() > 0.0 ? prefs.engagement_weight() : default_config_.engagement_weight;
+    config.author_affinity_weight = prefs.author_affinity_weight() > 0.0 ? prefs.author_affinity_weight() : default_config_.author_affinity_weight;
+    config.content_quality_weight = prefs.content_quality_weight() > 0.0 ? prefs.content_quality_weight() : default_config_.content_quality_weight;
+    config.diversity_weight = prefs.diversity_weight() > 0.0 ? prefs.diversity_weight() : default_config_.diversity_weight;
+    
+    // Content mix
+    config.following_content_ratio = prefs.following_content_ratio() > 0.0 ? prefs.following_content_ratio() : default_config_.following_content_ratio;
+    config.recommended_content_ratio = prefs.recommended_content_ratio() > 0.0 ? prefs.recommended_content_ratio() : default_config_.recommended_content_ratio;
+    config.trending_content_ratio = prefs.trending_content_ratio() > 0.0 ? prefs.trending_content_ratio() : default_config_.trending_content_ratio;
+    
+    return config;
 }
 
 ::sonet::timeline::TimelineMetadata TimelineServiceImpl::BuildTimelineMetadata(
@@ -552,22 +579,56 @@ grpc::Status TimelineServiceImpl::GetUserTimeline(
 
 grpc::Status TimelineServiceImpl::UpdateTimelinePreferences(
     grpc::ServerContext* /*context*/,
-    const ::sonet::timeline::UpdateTimelinePreferencesRequest* /*request*/,
+    const ::sonet::timeline::UpdateTimelinePreferencesRequest* request,
     ::sonet::timeline::UpdateTimelinePreferencesResponse* response
 ) {
-    // TODO: Implement preferences update
-    response->set_success(true);
-    return grpc::Status::OK;
+    try {
+        if (!request) {
+            response->set_success(false);
+            response->set_error_message("invalid request");
+            return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "invalid request");
+        }
+        {
+            std::lock_guard<std::mutex> lock(preferences_mutex_);
+            user_preferences_[request->user_id()] = request->preferences_;
+        }
+        response->set_success(true);
+        return grpc::Status::OK;
+    } catch (const std::exception& e) {
+        response->set_success(false);
+        response->set_error_message(e.what());
+        return grpc::Status(grpc::StatusCode::INTERNAL, e.what());
+    }
 }
 
 grpc::Status TimelineServiceImpl::GetTimelinePreferences(
     grpc::ServerContext* /*context*/,
-    const ::sonet::timeline::GetTimelinePreferencesRequest* /*request*/,
+    const ::sonet::timeline::GetTimelinePreferencesRequest* request,
     ::sonet::timeline::GetTimelinePreferencesResponse* response
 ) {
-    // TODO: Implement preferences retrieval
-    response->set_success(true);
-    return grpc::Status::OK;
+    try {
+        if (!request) {
+            response->set_success(false);
+            response->set_error_message("invalid request");
+            return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "invalid request");
+        }
+        ::sonet::timeline::TimelinePreferences prefs;
+        {
+            std::lock_guard<std::mutex> lock(preferences_mutex_);
+            auto it = user_preferences_.find(request->user_id());
+            if (it != user_preferences_.end()) {
+                prefs = it->second;
+            }
+        }
+        // Defaults if not set
+        response->preferences_ = prefs;
+        response->set_success(true);
+        return grpc::Status::OK;
+    } catch (const std::exception& e) {
+        response->set_success(false);
+        response->set_error_message(e.what());
+        return grpc::Status(grpc::StatusCode::INTERNAL, e.what());
+    }
 }
 
 grpc::Status TimelineServiceImpl::SubscribeTimelineUpdates(

@@ -100,7 +100,7 @@ struct EngagementEvent {
     std::string user_id;
     std::string author_id;
     std::string note_id;
-    std::string action; // like, repost, reply, follow, etc.
+    std::string action; // like, renote, reply, follow, hide
     double duration_seconds = 0.0;
     std::chrono::system_clock::time_point timestamp{};
 };
@@ -356,6 +356,10 @@ private:
     // Metrics and monitoring
     std::unordered_map<std::string, std::atomic<uint64_t>> metrics_;
     mutable std::mutex metrics_mutex_;
+    
+    // Internal user preferences storage (in-memory for now)
+    std::unordered_map<std::string, ::sonet::timeline::TimelinePreferences> user_preferences_;
+    mutable std::mutex preferences_mutex_;
     
     // Thread safety
     mutable std::shared_mutex service_mutex_;
