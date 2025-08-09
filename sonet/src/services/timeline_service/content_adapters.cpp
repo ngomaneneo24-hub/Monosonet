@@ -534,17 +534,25 @@ std::shared_ptr<TimelineServiceImpl> CreateTimelineService(
     // Create content source adapters
     std::unordered_map<::sonet::timeline::ContentSource, std::shared_ptr<ContentSourceAdapter>> content_sources;
     
-    content_sources[::sonet::timeline::CONTENT_SOURCE_FOLLOWING] = 
-        std::make_shared<FollowingContentAdapter>(note_service);
+    // Prefer real adapters when available services are provided
+    if (note_service) {
+        auto follow_service = std::make_shared<::sonet::follow::FollowService::Stub>();
+        content_sources[::sonet::timeline::CONTENT_SOURCE_FOLLOWING] = 
+            std::make_shared<RealFollowingContentAdapter>(note_service, follow_service);
+        content_sources[::sonet::timeline::CONTENT_SOURCE_LISTS] =
+            std::make_shared<RealListsContentAdapter>(note_service);
+    } else {
+        content_sources[::sonet::timeline::CONTENT_SOURCE_FOLLOWING] = 
+            std::make_shared<FollowingContentAdapter>(note_service);
+        content_sources[::sonet::timeline::CONTENT_SOURCE_LISTS] =
+            std::make_shared<ListsContentAdapter>(note_service);
+    }
     
     content_sources[::sonet::timeline::CONTENT_SOURCE_RECOMMENDED] = 
         std::make_shared<RecommendedContentAdapter>(note_service, ranking_engine);
     
     content_sources[::sonet::timeline::CONTENT_SOURCE_TRENDING] = 
         std::make_shared<TrendingContentAdapter>(note_service);
-
-    content_sources[::sonet::timeline::CONTENT_SOURCE_LISTS] =
-        std::make_shared<ListsContentAdapter>(note_service);
     
     // Start real-time notifier
     realtime_notifier->Start();

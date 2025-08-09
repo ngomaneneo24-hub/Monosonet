@@ -343,6 +343,60 @@ private:
     mutable std::mutex trends_mutex_;
 };
 
+class RealFollowingContentAdapter : public ContentSourceAdapter {
+public:
+    RealFollowingContentAdapter(std::shared_ptr<::sonet::note::NoteService::Stub> note_service,
+                                std::shared_ptr<::sonet::follow::FollowService::Stub> follow_service)
+        : note_service_(std::move(note_service)), follow_service_(std::move(follow_service)) {}
+
+    std::vector<::sonet::note::Note> GetContent(
+        const std::string& user_id,
+        const TimelineConfig& /*config*/,
+        std::chrono::system_clock::time_point since,
+        int32_t limit
+    ) override {
+        if (!follow_service_ || !note_service_) return {};
+        ::sonet::follow::GetFollowingRequest freq; freq.user_id_ = user_id;
+        auto following = follow_service_->GetFollowing(freq).user_ids();
+        if (following.empty()) return {};
+        ::sonet::note::NoteService::Stub::ListRecentNotesByAuthorsRequest req;
+        req.author_ids = following;
+        auto secs = std::chrono::duration_cast<std::chrono::seconds>(since.time_since_epoch()).count();
+        req.since.set_seconds(secs);
+        req.limit = limit;
+        auto resp = note_service_->ListRecentNotesByAuthors(req);
+        return resp.notes;
+    }
+private:
+    std::shared_ptr<::sonet::note::NoteService::Stub> note_service_;
+    std::shared_ptr<::sonet::follow::FollowService::Stub> follow_service_;
+};
+
+class RealListsContentAdapter : public ContentSourceAdapter {
+public:
+    RealListsContentAdapter(std::shared_ptr<::sonet::note::NoteService::Stub> note_service)
+        : note_service_(std::move(note_service)) {}
+
+    std::vector<::sonet::note::Note> GetContent(
+        const std::string& user_id,
+        const TimelineConfig& /*config*/,
+        std::chrono::system_clock::time_point since,
+        int32_t limit
+    ) override {
+        // Placeholder: in real system, fetch list memberships
+        std::vector<std::string> list_authors = {"list_author_a","list_author_b"};
+        ::sonet::note::NoteService::Stub::ListRecentNotesByAuthorsRequest req;
+        req.author_ids = list_authors;
+        auto secs = std::chrono::duration_cast<std::chrono::seconds>(since.time_since_epoch()).count();
+        req.since.set_seconds(secs);
+        req.limit = limit;
+        auto resp = note_service_->ListRecentNotesByAuthors(req);
+        return resp.notes;
+    }
+private:
+    std::shared_ptr<::sonet::note::NoteService::Stub> note_service_;
+};
+
 // ============= FACTORY FUNCTIONS =============
 
 std::shared_ptr<TimelineServiceImpl> CreateTimelineService(
