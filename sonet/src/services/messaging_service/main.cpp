@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <string>
 #include <vector>
+#include "../../core/logging/logger.h"
 #include "include/messaging_service.hpp"
 
 using namespace sonet::messaging;
@@ -310,6 +311,9 @@ namespace {
 }
 
 int main(int argc, char* argv[]) {
+    // Initialize JSON logger for ELK ingestion
+    (void)sonet::logging::init_json_stdout_logger();
+    spdlog::info(R"({"event":"startup","message":"Starting Sonet Messaging Service"})");
     try {
         // Parse command line arguments
         ServiceConfiguration config;
