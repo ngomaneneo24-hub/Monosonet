@@ -14,6 +14,7 @@
 #include <chrono>
 #include <algorithm>
 #include <cstdlib>
+#include <cctype>
 
 namespace fs = std::filesystem;
 
@@ -171,6 +172,35 @@ static std::string GenId() {
 	return s;
 }
 
+// Simple MIME sniffing from magic bytes
+static std::string SniffMime(const fs::path& p) {
+	std::ifstream ifs(p, std::ios::binary);
+	if (!ifs) return "application/octet-stream";
+	unsigned char buf[16]{}; ifs.read(reinterpret_cast<char*>(buf), sizeof(buf));
+	size_t n = static_cast<size_t>(ifs.gcount());
+	auto starts_with = [&](std::initializer_list<unsigned char> sig){
+		size_t i=0; for (auto b: sig) { if (i>=n || buf[i]!=b) return false; ++i;} return true; };
+	if (n>=8 && starts_with({0x89,'P','N','G',0x0D,0x0A,0x1A,0x0A})) return "image/png";
+	if (n>=3 && buf[0]==0xFF && buf[1]==0xD8 && buf[2]==0xFF) return "image/jpeg";
+	if (n>=6 && (memcmp(buf,"GIF87a",6)==0 || memcmp(buf,"GIF89a",6)==0)) return "image/gif";
+	if (n>=12 && memcmp(buf,"RIFF",4)==0 && memcmp(buf+8,"WEBP",4)==0) return "image/webp";
+	// MP4: look for 'ftyp' at offset 4
+	if (n>=12 && memcmp(buf+4,"ftyp",4)==0) return "video/mp4";
+	return "application/octet-stream";
+}
+
+static std::string GetMetadataValue(grpc::ServerContext* ctx, const std::string& key) {
+	auto& client_md = ctx->client_metadata();
+	auto it = client_md.find(grpc::string_ref(key.c_str(), key.size()));
+	if (it != client_md.end()) return std::string(it->second.data(), it->second.length());
+	return {};
+}
+
+static bool IsAdmin(grpc::ServerContext* ctx) {
+	auto v = GetMetadataValue(ctx, "x-admin");
+	return !v.empty() && (v=="1" || v=="true" || v=="yes");
+}
+
 // -------------- gRPC methods --------------
 ::grpc::Status MediaServiceImpl::Upload(::grpc::ServerContext* context,
 										::grpc::ServerReader< ::sonet::media::UploadRequest>* reader,
@@ -211,12 +241,38 @@ static std::string GenId() {
 
 	if (!got_init) return {::grpc::StatusCode::INVALID_ARGUMENT, "missing init"};
 
+	// Authorization: ensure caller identity (x-user-id metadata) matches owner unless admin
+	std::string caller = GetMetadataValue(context, "x-user-id");
+	if (!caller.empty() && caller != init.owner_user_id() && !IsAdmin(context)) {
+		fs::remove(tmp_path);
+		return {::grpc::StatusCode::PERMISSION_DENIED, "owner mismatch"};
+	}
+
 	// Moderation/content scan before expensive processing/storage
 	if (nsfw_) {
 		std::string reason;
 		if (!nsfw_->IsAllowed(tmp_path.string(), init.type(), reason)) {
 			fs::remove(tmp_path);
 			return {::grpc::StatusCode::PERMISSION_DENIED, reason.empty() ? "blocked by moderation" : reason};
+		}
+	}
+
+	// MIME sniffing override / validation
+	std::string sniffed = SniffMime(tmp_path);
+	if (init.mime_type().empty()) {
+		init.set_mime_type(sniffed); // trust sniffed when none supplied
+	} else {
+		// If supplied clearly mismatches expected type family, reject
+		bool mismatch = false;
+		switch (init.type()) {
+			case MEDIA_TYPE_IMAGE: mismatch = (sniffed.rfind("image/",0)!=0); break;
+			case MEDIA_TYPE_VIDEO: mismatch = (sniffed.rfind("video/",0)!=0); break;
+			case MEDIA_TYPE_GIF: mismatch = (sniffed != "image/gif"); break;
+			default: break;
+		}
+		if (mismatch) {
+			fs::remove(tmp_path);
+			return {::grpc::StatusCode::INVALID_ARGUMENT, "mime/type mismatch"};
 		}
 	}
 
@@ -234,41 +290,45 @@ static std::string GenId() {
 	}
 	if (!ok) { fs::remove(tmp_path); return {::grpc::StatusCode::INTERNAL, "processing failed"}; }
 
+	// Track uploaded object keys for rollback if something fails mid-way
+	std::vector<std::string> uploaded_keys;
+	bool failure = false;
+	std::string failure_reason;
+
 	// Store processed file
 	auto id = GenId();
 	std::string object_key = init.owner_user_id() + "/" + id;
 	std::string url;
 	if (!storage_->Put(processed, object_key, url)) { fs::remove(processed); return {::grpc::StatusCode::INTERNAL, "storage failed"}; }
+	uploaded_keys.push_back(object_key);
 	// Store thumbnail if different
 	std::string thumb_url = url;
 	if (thumb != processed) {
 		std::string tkey = object_key + ".thumb.jpg";
-		if (storage_->Put(thumb, tkey, thumb_url)) {
-			// ok
-		}
+		if (storage_->Put(thumb, tkey, thumb_url)) { uploaded_keys.push_back(tkey); } else { failure = true; failure_reason = "thumbnail upload failed"; }
 	}
 	// Optional variants
 	std::string webp_url;
-	if (init.type() == MEDIA_TYPE_IMAGE) {
+	if (!failure && init.type() == MEDIA_TYPE_IMAGE) {
 		// Try a simple WebP conversion
 		fs::path wpath = fs::path(processed).parent_path() / (fs::path(processed).filename().string() + ".webp");
 		std::string cmd = "convert '" + processed + "' -quality 85 '" + wpath.string() + "' >/dev/null 2>&1";
 		int rc = std::system(cmd.c_str()); (void)rc;
 		if (fs::exists(wpath)) {
-			storage_->Put(wpath.string(), object_key + ".webp", webp_url);
+			if (storage_->Put(wpath.string(), object_key + ".webp", webp_url)) { uploaded_keys.push_back(object_key + ".webp"); }
 		}
 	}
 	std::string mp4_url;
-	if (init.type() == MEDIA_TYPE_GIF) {
+	if (!failure && init.type() == MEDIA_TYPE_GIF) {
 		fs::path mpath = fs::path(processed).parent_path() / (fs::path(processed).filename().string() + ".mp4");
 		std::string cmd = "ffmpeg -y -i '" + processed + "' -movflags +faststart -pix_fmt yuv420p -vf 'scale=trunc(iw/2)*2:trunc(ih/2)*2' '" + mpath.string() + "' >/dev/null 2>&1";
 		int rc = std::system(cmd.c_str()); (void)rc;
 		if (fs::exists(mpath)) {
-			storage_->Put(mpath.string(), object_key + ".mp4", mp4_url);
+			if (storage_->Put(mpath.string(), object_key + ".mp4", mp4_url)) { uploaded_keys.push_back(object_key + ".mp4"); }
 		}
 	}
 	std::string hls_url;
-	if (init.type() == MEDIA_TYPE_VIDEO) {
+	if (!failure && init.type() == MEDIA_TYPE_VIDEO) {
 		// Generate simple HLS renditions (360p/480p/720p) using ffmpeg
 		fs::path hls_tmp = fs::temp_directory_path() / ("hls-" + GenId());
 		fs::create_directories(hls_tmp);
@@ -307,6 +367,12 @@ static std::string GenId() {
 		std::error_code ec; fs::remove_all(hls_tmp, ec);
 	}
 
+	if (failure) {
+		// Best-effort rollback (skip HLS directory). We only remove objects uploaded so far.
+		for (const auto& k : uploaded_keys) { storage_->Delete(k); }
+		return {::grpc::StatusCode::INTERNAL, failure_reason};
+	}
+
 	// Save metadata
 	MediaRecord rec{};
 	rec.id = id;
@@ -326,14 +392,33 @@ static std::string GenId() {
 	if (!hls_url.empty()) response->set_hls_url(hls_url);
 	if (!webp_url.empty()) response->set_webp_url(webp_url);
 	if (!mp4_url.empty()) response->set_mp4_url(mp4_url);
+
+	// Signed URL TTL override
+	int ttl = 3600;
+	{
+		std::string ttl_md = GetMetadataValue(context, "x-url-ttl");
+		if (!ttl_md.empty() && std::all_of(ttl_md.begin(), ttl_md.end(), ::isdigit)) {
+			try { ttl = std::stoi(ttl_md); } catch(...) {}
+			if (ttl <= 0) ttl = 3600;
+		}
+	}
+	response->set_url(storage_->SignUrl(response->url(), ttl));
+	response->set_thumbnail_url(storage_->SignUrl(response->thumbnail_url(), ttl));
+	if (!hls_url.empty()) response->set_hls_url(storage_->SignUrl(response->hls_url(), ttl));
+	if (!webp_url.empty()) response->set_webp_url(storage_->SignUrl(response->webp_url(), ttl));
+	if (!mp4_url.empty()) response->set_mp4_url(storage_->SignUrl(response->mp4_url(), ttl));
 	return ::grpc::Status::OK;
 }
 
-::grpc::Status MediaServiceImpl::GetMedia(::grpc::ServerContext* /*context*/,
+::grpc::Status MediaServiceImpl::GetMedia(::grpc::ServerContext* context,
 										  const ::sonet::media::GetMediaRequest* request,
 										  ::sonet::media::GetMediaResponse* response) {
 	MediaRecord rec{};
 	if (!repo_->Get(request->media_id(), rec)) return {::grpc::StatusCode::NOT_FOUND, "not found"};
+	std::string caller = GetMetadataValue(context, "x-user-id");
+	if (!caller.empty() && caller != rec.owner_user_id && !IsAdmin(context)) {
+		return {::grpc::StatusCode::PERMISSION_DENIED, "forbidden"};
+	}
 	auto* m = response->mutable_media();
 	m->set_id(rec.id);
 	m->set_owner_user_id(rec.owner_user_id);
@@ -354,13 +439,17 @@ static std::string GenId() {
 	return ::grpc::Status::OK;
 }
 
-::grpc::Status MediaServiceImpl::DeleteMedia(::grpc::ServerContext* /*context*/,
+::grpc::Status MediaServiceImpl::DeleteMedia(::grpc::ServerContext* context,
 											 const ::sonet::media::DeleteMediaRequest* request,
 											 ::sonet::media::DeleteMediaResponse* response) {
 	// We delete from storage best-effort, then repo
 	MediaRecord rec{};
 	bool ok = repo_->Get(request->media_id(), rec);
 	if (ok) {
+		std::string caller = GetMetadataValue(context, "x-user-id");
+		if (!caller.empty() && caller != rec.owner_user_id && !IsAdmin(context)) {
+			return {::grpc::StatusCode::PERMISSION_DENIED, "forbidden"};
+		}
 		// Derive object key from URL in our local storage scheme
 		// Natural: assume URL ends with object key
 		auto pos = rec.original_url.find_last_of('/');
@@ -373,9 +462,14 @@ static std::string GenId() {
 	return ::grpc::Status::OK;
 }
 
-::grpc::Status MediaServiceImpl::ListUserMedia(::grpc::ServerContext* /*context*/,
+::grpc::Status MediaServiceImpl::ListUserMedia(::grpc::ServerContext* context,
 											   const ::sonet::media::ListUserMediaRequest* request,
 											   ::sonet::media::ListUserMediaResponse* response) {
+	// Authorization: caller must match requested owner unless admin
+	std::string caller = GetMetadataValue(context, "x-user-id");
+	if (!caller.empty() && caller != request->owner_user_id() && !IsAdmin(context)) {
+		return {::grpc::StatusCode::PERMISSION_DENIED, "forbidden"};
+	}
 	uint32_t total_pages = 0;
 	auto items = repo_->ListByOwner(request->owner_user_id(), request->page(), request->page_size(), total_pages);
 	response->set_page(request->page());
