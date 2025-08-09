@@ -44,6 +44,18 @@ Listens on 0.0.0.0:50053.
 
 Service proto lives at `proto/services/media.proto`.
 
+## AWS SDK (Optional Native S3 Backend)
+
+To enable native AWS SDK S3 backend instead of CLI fallback:
+
+```bash
+./scripts/build/install_aws_sdk.sh --version v1.11.210
+cmake -S sonet -B sonet/build
+cmake --build sonet/build --target media_service -j
+```
+
+If the SDK is found, build output will show `AWS SDK found; enabling native S3 backend`.
+
 ## Notes
 
 - Replace LocalStorage with S3/R2/MinIO implementation for production.

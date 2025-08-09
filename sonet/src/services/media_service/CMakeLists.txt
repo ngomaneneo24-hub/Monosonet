@@ -105,6 +105,16 @@ if(PQXX_FOUND)
 	target_link_libraries(media_service PRIVATE ${PQXX_LIBRARIES})
 endif()
 
+# Optional AWS SDK for S3 (SDK migration)
+find_package(AWSSDK COMPONENTS s3 core QUIET)
+if(AWSSDK_FOUND)
+	message(STATUS "AWS SDK found; enabling native S3 backend")
+	target_link_libraries(media_service PRIVATE AWS::aws-sdk-cpp::s3 AWS::aws-sdk-cpp::core)
+	target_compile_definitions(media_service PRIVATE USE_AWS_SDK_S3=1)
+else()
+	message(STATUS "AWS SDK not found; falling back to CLI S3 backend implementation")
+endif()
+
 # Threads
 target_link_libraries(media_service PRIVATE Threads::Threads)
 
