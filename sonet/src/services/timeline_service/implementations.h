@@ -17,8 +17,9 @@
 #include <atomic>
 #include <mutex>
 #include <random>
-#include "../../../proto/services/note.pb.h"
-#include "../../../proto/services/timeline.pb.h"
+// Stub includes for compilation testing
+#include "../../../proto/grpc_stub.h"
+#include "../../../proto/services/stub_protos.h"
 #include "service.h"
 
 namespace sonet::timeline {

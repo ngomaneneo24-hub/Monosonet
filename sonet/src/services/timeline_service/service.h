@@ -2,7 +2,54 @@
 // Copyright (c) 2025 Neo Qiss
 // All rights reserved.
 //
-// This software is proprietary and confidential.
+// // User engagement profile for ML ranking
+struct UserEngagementProfile {
+    std::string user_id;
+    std::chrono::system_clock::time_point last_updated;
+    double avg_session_length_minutes = 15.0;
+    double daily_engagement_score = 0.5;
+    std::unordered_set<std::string> following_ids;
+    std::unordered_set<std::string> interested_hashtags;
+};
+
+// Timeline configuration
+struct TimelineConfig {
+    ::sonet::timeline::TimelineAlgorithm algorithm;
+    int32_t max_items = 50;
+    int32_t max_age_hours = 24;
+    double min_score_threshold = 0.1;
+    
+    // Algorithm weights
+    double recency_weight = 0.3;
+    double engagement_weight = 0.25;
+    double author_affinity_weight = 0.2;
+    double content_quality_weight = 0.15;
+    double diversity_weight = 0.1;
+    
+    // Content mix ratios
+    double following_content_ratio = 0.7;
+    double recommended_content_ratio = 0.2;
+    double trending_content_ratio = 0.1;
+};
+
+// Content filter preferences
+struct ContentFilterPreferences {
+    bool filter_nsfw = true;
+    bool filter_spoilers = true;
+    bool filter_violence = false;
+    std::vector<std::string> blocked_keywords;
+    std::vector<std::string> blocked_users;
+};
+
+// Engagement event for ML training
+struct EngagementEvent {
+    std::string user_id;
+    std::string author_id;
+    std::string note_id;
+    std::string action; // like, repost, reply, etc.
+    double duration_seconds;
+    std::chrono::system_clock::time_point timestamp;
+};oprietary and confidential.
 // Unauthorized copying, distribution, or use is strictly prohibited.
 //
 
@@ -18,10 +65,9 @@
 #include <queue>
 #include <future>
 
-#include <grpcpp/grpcpp.h>
-#include <services/timeline.grpc.pb.h>
-#include <services/note.grpc.pb.h>
-#include <services/follow.grpc.pb.h>
+// Stub includes for compilation testing
+#include "../../../proto/grpc_stub.h"
+#include "../../../proto/services/stub_protos.h"
 
 namespace sonet::timeline {
 
@@ -159,12 +205,12 @@ public:
     virtual ~RealtimeNotifier() = default;
     
     // Subscribe user to real-time updates
-    virtual void Subscribe(const std::string& user_id, grpc::ServerWriter<::sonet::timeline::TimelineUpdate>* writer) = 0;
-    virtual void Unsubscribe(const std::string& user_id) = 0;
+    virtual void Subscribe(const std::string& user_id, const std::string& connection_id) = 0;
+    virtual void Unsubscribe(const std::string& user_id, const std::string& connection_id) = 0;
     
     // Notify subscribers of timeline updates
     virtual void NotifyNewItems(const std::string& user_id, const std::vector<RankedTimelineItem>& items) = 0;
-    virtual void NotifyItemUpdate(const std::string& user_id, const std::string& note_id) = 0;
+    virtual void NotifyItemUpdate(const std::string& user_id, const std::string& item_id, const ::sonet::timeline::TimelineUpdate& update) = 0;
     virtual void NotifyItemDeleted(const std::string& user_id, const std::string& note_id) = 0;
 };
 
@@ -246,6 +292,9 @@ public:
     void OnNoteUpdated(const ::sonet::note::Note& note);
     void OnFollowEvent(const std::string& follower_id, const std::string& following_id, bool is_follow);
 
+    // Public access for testing
+    std::shared_ptr<RankingEngine> ranking_engine_;
+
 private:
     // Core timeline generation
     std::vector<RankedTimelineItem> GenerateTimeline(
@@ -294,7 +343,6 @@ private:
     
     // Components
     std::shared_ptr<TimelineCache> cache_;
-    std::shared_ptr<RankingEngine> ranking_engine_;
     std::shared_ptr<ContentFilter> content_filter_;
     std::shared_ptr<RealtimeNotifier> realtime_notifier_;
     std::unordered_map<::sonet::timeline::ContentSource, std::shared_ptr<ContentSourceAdapter>> content_sources_;
