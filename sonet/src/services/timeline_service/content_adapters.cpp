@@ -1,0 +1,507 @@
+//
+// Copyright (c) 2025 Neo Qiss
+// All rights reserved.
+//
+// This software is proprietary and confidential.
+// Unauthorized copying, distribution, or use is strictly prohibited.
+//
+
+#include "implementations.h"
+#include <algorithm>
+#include <random>
+#include <iostream>
+
+namespace sonet::timeline {
+
+namespace {
+    // Helper to convert system_clock::time_point to protobuf timestamp
+    ::sonet::common::Timestamp ToProtoTimestamp(std::chrono::system_clock::time_point tp) {
+        ::sonet::common::Timestamp result;
+        auto duration = tp.time_since_epoch();
+        auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
+        auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(duration - seconds);
+        
+        result.set_seconds(seconds.count());
+        result.set_nanos(static_cast<int32_t>(nanos.count()));
+        return result;
+    }
+
+    // Create sample note for testing
+    ::sonet::note::Note CreateSampleNote(
+        const std::string& note_id,
+        const std::string& author_id,
+        const std::string& content,
+        std::chrono::system_clock::time_point created_at = std::chrono::system_clock::now()
+    ) {
+        ::sonet::note::Note note;
+        note.set_id(note_id);
+        note.set_author_id(author_id);
+        note.set_content(content);
+        note.set_visibility(::sonet::note::VISIBILITY_PUBLIC);
+        *note.mutable_created_at() = ToProtoTimestamp(created_at);
+        *note.mutable_updated_at() = ToProtoTimestamp(created_at);
+        
+        // Add some sample metrics
+        auto* metrics = note.mutable_metrics();
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dis(0, 100);
+        
+        metrics->set_views(dis(gen) + 10);
+        metrics->set_likes(dis(gen) / 5);
+        metrics->set_reposts(dis(gen) / 10);
+        metrics->set_replies(dis(gen) / 8);
+        metrics->set_quotes(dis(gen) / 15);
+        
+        return note;
+    }
+}
+
+// ============= FOLLOWING CONTENT ADAPTER IMPLEMENTATION =============
+
+FollowingContentAdapter::FollowingContentAdapter(std::shared_ptr<::sonet::note::NoteService::Stub> note_service)
+    : note_service_(note_service) {
+    std::cout << "Following Content Adapter initialized" << std::endl;
+}
+
+std::vector<::sonet::note::Note> FollowingContentAdapter::GetContent(
+    const std::string& user_id,
+    const TimelineConfig& config,
+    std::chrono::system_clock::time_point since,
+    int32_t limit
+) {
+    std::cout << "Fetching following content for user " << user_id 
+              << " (limit: " << limit << ")" << std::endl;
+    
+    std::vector<::sonet::note::Note> notes;
+    
+    // Get the user's following list
+    auto following_list = GetFollowingList(user_id);
+    
+    if (following_list.empty()) {
+        std::cout << "User " << user_id << " is not following anyone" << std::endl;
+        return notes;
+    }
+    
+    std::cout << "User " << user_id << " follows " << following_list.size() << " accounts" << std::endl;
+    
+    // For now, create sample content from followed users
+    // In production, this would query the note service
+    
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> content_dis(0, following_list.size() - 1);
+    
+    std::vector<std::string> sample_contents = {
+        "Just had an amazing coffee! ☕ #coffee #morning",
+        "Working on some exciting new features today! 💻 #coding #development",
+        "Beautiful sunset from my window 🌅 #photography #nature",
+        "Reading a great book about machine learning 📚 #ai #learning",
+        "Weekend plans: hiking and relaxation 🏔️ #weekend #hiking",
+        "New recipe turned out perfectly! 👨‍🍳 #cooking #food",
+        "Concert was absolutely incredible! 🎵 #music #livemusic",
+        "Travel planning for next month ✈️ #travel #adventure",
+        "Great workout session this morning 💪 #fitness #health",
+        "Team lunch at our favorite restaurant 🍕 #team #food"
+    };
+    
+    // Generate sample notes from followed users
+    int notes_per_user = std::max(1, limit / static_cast<int>(following_list.size()));
+    int generated = 0;
+    
+    for (const auto& followed_user : following_list) {
+        if (generated >= limit) break;
+        
+        for (int i = 0; i < notes_per_user && generated < limit; ++i) {
+            std::uniform_int_distribution<> time_dis(1, 24 * 7); // Last week
+            auto created_time = std::chrono::system_clock::now() - std::chrono::hours(time_dis(gen));
+            
+            if (created_time < since) continue; // Respect since filter
+            
+            std::string note_id = "note_" + std::to_string(generated + 1);
+            std::string content = sample_contents[content_dis(gen) % sample_contents.size()];
+            
+            notes.push_back(CreateSampleNote(note_id, followed_user, content, created_time));
+            generated++;
+        }
+    }
+    
+    // Sort by creation time (newest first)
+    std::sort(notes.begin(), notes.end(), 
+        [](const ::sonet::note::Note& a, const ::sonet::note::Note& b) {
+            return a.created_at().seconds() > b.created_at().seconds();
+        });
+    
+    std::cout << "Generated " << notes.size() << " notes from following content" << std::endl;
+    return notes;
+}
+
+std::vector<std::string> FollowingContentAdapter::GetFollowingList(const std::string& user_id) {
+    std::lock_guard<std::mutex> lock(cache_mutex_);
+    
+    // Check cache first
+    auto cache_it = following_cache_.find(user_id);
+    auto timestamp_it = cache_timestamps_.find(user_id);
+    
+    auto now = std::chrono::system_clock::now();
+    bool cache_valid = (cache_it != following_cache_.end() && 
+                       timestamp_it != cache_timestamps_.end() &&
+                       (now - timestamp_it->second) < std::chrono::minutes(10)); // 10 min cache
+    
+    if (cache_valid) {
+        return cache_it->second;
+    }
+    
+    // In production, this would query the follow service
+    // For now, create sample following lists
+    std::vector<std::string> following_list;
+    
+    // Create some sample followed users
+    std::vector<std::string> sample_users = {
+        "alice_dev", "bob_designer", "charlie_pm", "diana_data", "eve_security",
+        "frank_frontend", "grace_backend", "henry_devops", "iris_mobile", "jack_ml"
+    };
+    
+    // Random sample of 3-7 followed users
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> count_dis(3, 7);
+    std::uniform_int_distribution<> user_dis(0, sample_users.size() - 1);
+    
+    int follow_count = count_dis(gen);
+    std::unordered_set<std::string> selected;
+    
+    while (static_cast<int>(selected.size()) < follow_count) {
+        selected.insert(sample_users[user_dis(gen)]);
+    }
+    
+    following_list.assign(selected.begin(), selected.end());
+    
+    // Update cache
+    following_cache_[user_id] = following_list;
+    cache_timestamps_[user_id] = now;
+    
+    return following_list;
+}
+
+// ============= RECOMMENDED CONTENT ADAPTER IMPLEMENTATION =============
+
+RecommendedContentAdapter::RecommendedContentAdapter(
+    std::shared_ptr<::sonet::note::NoteService::Stub> note_service,
+    std::shared_ptr<MLRankingEngine> ranking_engine
+) : note_service_(note_service), ranking_engine_(ranking_engine) {
+    std::cout << "Recommended Content Adapter initialized" << std::endl;
+}
+
+std::vector<::sonet::note::Note> RecommendedContentAdapter::GetContent(
+    const std::string& user_id,
+    const TimelineConfig& config,
+    std::chrono::system_clock::time_point since,
+    int32_t limit
+) {
+    std::cout << "Fetching recommended content for user " << user_id 
+              << " (limit: " << limit << ")" << std::endl;
+    
+    // In production, this would use ML models to find similar content
+    // For now, create sample recommended content
+    
+    std::vector<::sonet::note::Note> notes;
+    
+    std::vector<std::string> recommended_topics = {
+        "Exciting developments in #AI and machine learning! 🤖 #technology #innovation",
+        "Great tips for #productivity and time management ⏰ #lifehacks #efficiency",
+        "Amazing #photography from around the world 📸 #art #travel",
+        "Delicious #recipes for busy weekdays 🍽️ #cooking #quickmeals",
+        "Latest trends in #webdevelopment and #programming 💻 #coding #tech",
+        "Inspiring #entrepreneurship stories from startups 🚀 #business #success",
+        "Fascinating #science discoveries and breakthroughs 🔬 #research #knowledge",
+        "Creative #design patterns and user experience tips 🎨 #ux #ui",
+        "Sustainable living and #environment friendly tips 🌱 #sustainability #green",
+        "Mental health awareness and #wellness strategies 🧘‍♀️ #mindfulness #health"
+    };
+    
+    std::vector<std::string> recommended_authors = {
+        "ai_researcher", "productivity_guru", "photo_artist", "chef_alex", "code_ninja",
+        "startup_mentor", "science_explorer", "design_wizard", "eco_warrior", "wellness_coach"
+    };
+    
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> topic_dis(0, recommended_topics.size() - 1);
+    std::uniform_int_distribution<> author_dis(0, recommended_authors.size() - 1);
+    std::uniform_int_distribution<> time_dis(1, 48); // Last 2 days
+    
+    for (int i = 0; i < limit; ++i) {
+        auto created_time = std::chrono::system_clock::now() - std::chrono::hours(time_dis(gen));
+        
+        if (created_time < since) {
+            created_time = since + std::chrono::minutes(i * 10); // Ensure it's after since
+        }
+        
+        std::string note_id = "rec_note_" + std::to_string(i + 1);
+        std::string author = recommended_authors[author_dis(gen)];
+        std::string content = recommended_topics[topic_dis(gen)];
+        
+        notes.push_back(CreateSampleNote(note_id, author, content, created_time));
+    }
+    
+    // Sort by creation time (newest first)
+    std::sort(notes.begin(), notes.end(), 
+        [](const ::sonet::note::Note& a, const ::sonet::note::Note& b) {
+            return a.created_at().seconds() > b.created_at().seconds();
+        });
+    
+    std::cout << "Generated " << notes.size() << " recommended notes" << std::endl;
+    return notes;
+}
+
+std::vector<::sonet::note::Note> RecommendedContentAdapter::FindSimilarContent(
+    const std::string& user_id,
+    const UserEngagementProfile& profile,
+    int32_t limit
+) {
+    // TODO: Implement content similarity using ML
+    // This would analyze user's engagement history and find similar content
+    
+    std::vector<::sonet::note::Note> similar_notes;
+    // Placeholder implementation
+    return similar_notes;
+}
+
+// ============= TRENDING CONTENT ADAPTER IMPLEMENTATION =============
+
+TrendingContentAdapter::TrendingContentAdapter(std::shared_ptr<::sonet::note::NoteService::Stub> note_service)
+    : note_service_(note_service) {
+    
+    // Initialize with some default trending data
+    UpdateTrendingHashtags();
+    UpdateTrendingAuthors();
+    
+    std::cout << "Trending Content Adapter initialized" << std::endl;
+}
+
+std::vector<::sonet::note::Note> TrendingContentAdapter::GetContent(
+    const std::string& user_id,
+    const TimelineConfig& config,
+    std::chrono::system_clock::time_point since,
+    int32_t limit
+) {
+    std::cout << "Fetching trending content for user " << user_id 
+              << " (limit: " << limit << ")" << std::endl;
+    
+    // Update trending data if it's stale
+    auto now = std::chrono::system_clock::now();
+    if ((now - last_trends_update_) > std::chrono::hours(1)) {
+        UpdateTrendingHashtags();
+        UpdateTrendingAuthors();
+    }
+    
+    std::vector<::sonet::note::Note> notes;
+    
+    // Get trending hashtag content (70% of trending timeline)
+    int hashtag_limit = static_cast<int>(limit * 0.7);
+    auto hashtag_notes = GetHashtagTrends(hashtag_limit);
+    notes.insert(notes.end(), hashtag_notes.begin(), hashtag_notes.end());
+    
+    // Get trending author content (30% of trending timeline)
+    int author_limit = limit - static_cast<int>(hashtag_notes.size());
+    auto author_notes = GetAuthorTrends(author_limit);
+    notes.insert(notes.end(), author_notes.begin(), author_notes.end());
+    
+    // Filter by since timestamp
+    notes.erase(
+        std::remove_if(notes.begin(), notes.end(),
+            [since](const ::sonet::note::Note& note) {
+                auto created_time = std::chrono::system_clock::time_point(
+                    std::chrono::seconds(note.created_at().seconds()));
+                return created_time < since;
+            }),
+        notes.end()
+    );
+    
+    // Sort by engagement (trending score)
+    std::sort(notes.begin(), notes.end(), 
+        [](const ::sonet::note::Note& a, const ::sonet::note::Note& b) {
+            if (!a.has_metrics() || !b.has_metrics()) return false;
+            
+            auto a_score = a.metrics().likes() + a.metrics().reposts() + a.metrics().replies();
+            auto b_score = b.metrics().likes() + b.metrics().reposts() + b.metrics().replies();
+            return a_score > b_score;
+        });
+    
+    // Limit results
+    if (static_cast<int>(notes.size()) > limit) {
+        notes.resize(limit);
+    }
+    
+    std::cout << "Generated " << notes.size() << " trending notes" << std::endl;
+    return notes;
+}
+
+void TrendingContentAdapter::UpdateTrendingHashtags() {
+    std::lock_guard<std::mutex> lock(trends_mutex_);
+    
+    // In production, this would analyze hashtag velocity from the database
+    // For now, simulate trending hashtags
+    
+    trending_hashtags_ = {
+        "ai", "technology", "coding", "startup", "innovation",
+        "productivity", "design", "photography", "travel", "food",
+        "fitness", "music", "books", "gaming", "science"
+    };
+    
+    std::cout << "Updated trending hashtags: " << trending_hashtags_.size() << " hashtags" << std::endl;
+}
+
+void TrendingContentAdapter::UpdateTrendingAuthors() {
+    std::lock_guard<std::mutex> lock(trends_mutex_);
+    
+    // In production, this would analyze author engagement velocity
+    // For now, simulate trending authors
+    
+    trending_authors_ = {
+        "tech_influencer", "startup_founder", "design_expert", "photo_pro", "travel_blogger",
+        "fitness_trainer", "music_producer", "book_critic", "game_dev", "science_writer"
+    };
+    
+    last_trends_update_ = std::chrono::system_clock::now();
+    
+    std::cout << "Updated trending authors: " << trending_authors_.size() << " authors" << std::endl;
+}
+
+std::vector<::sonet::note::Note> TrendingContentAdapter::GetHashtagTrends(int32_t limit) {
+    std::lock_guard<std::mutex> lock(trends_mutex_);
+    
+    std::vector<::sonet::note::Note> notes;
+    
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> hashtag_dis(0, trending_hashtags_.size() - 1);
+    std::uniform_int_distribution<> time_dis(1, 6); // Last 6 hours
+    
+    std::vector<std::string> trending_content_templates = {
+        "Breaking: Major developments in #{} technology! This could change everything 🚀",
+        "Amazing {} tips that everyone should know! Thread 🧵",
+        "The future of {} is looking incredibly bright ✨",
+        "Just discovered this incredible {} resource - sharing with everyone!",
+        "Hot take: {} is about to revolutionize the industry 💡",
+        "Weekly {} roundup: Here are the highlights you missed 📅",
+        "Deep dive into {} - what you need to know right now 🔍",
+        "Game-changing {} announcement just dropped! 🎮",
+        "The {} community is absolutely crushing it today! 💪",
+        "Mind-blowing {} facts that will surprise you 🤯"
+    };
+    
+    for (int i = 0; i < limit && !trending_hashtags_.empty(); ++i) {
+        std::string hashtag = trending_hashtags_[hashtag_dis(gen)];
+        std::string content_template = trending_content_templates[i % trending_content_templates.size()];
+        
+        // Replace {} with hashtag
+        size_t pos = content_template.find("{}");
+        if (pos != std::string::npos) {
+            content_template.replace(pos, 2, "#" + hashtag);
+        }
+        
+        auto created_time = std::chrono::system_clock::now() - std::chrono::hours(time_dis(gen));
+        std::string note_id = "trend_hash_" + std::to_string(i + 1);
+        std::string author = "trending_user_" + std::to_string((i % 5) + 1);
+        
+        auto note = CreateSampleNote(note_id, author, content_template, created_time);
+        
+        // Boost metrics for trending content
+        auto* metrics = note.mutable_metrics();
+        metrics->set_views(metrics->views() * 5);
+        metrics->set_likes(metrics->likes() * 3);
+        metrics->set_reposts(metrics->reposts() * 4);
+        metrics->set_replies(metrics->replies() * 2);
+        
+        notes.push_back(note);
+    }
+    
+    return notes;
+}
+
+std::vector<::sonet::note::Note> TrendingContentAdapter::GetAuthorTrends(int32_t limit) {
+    std::lock_guard<std::mutex> lock(trends_mutex_);
+    
+    std::vector<::sonet::note::Note> notes;
+    
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> author_dis(0, trending_authors_.size() - 1);
+    std::uniform_int_distribution<> time_dis(1, 4); // Last 4 hours
+    
+    std::vector<std::string> viral_content = {
+        "This thread is going viral! Here's what happened... 🔥",
+        "UPDATE: The response has been overwhelming! Thank you all 🙏",
+        "Plot twist: This just got even more interesting... 😱",
+        "BREAKING: Major announcement coming soon! Stay tuned 📢",
+        "The community response to this has been incredible! 🌟",
+        "Exclusive: Behind the scenes of what really happened 👀",
+        "This is blowing up faster than expected! Here's the story 💥",
+        "Update #2: Things just got even crazier... 🎢",
+        "Final update: Thank you for making this possible! ❤️",
+        "Trending worldwide! Here's what it means... 🌍"
+    };
+    
+    for (int i = 0; i < limit && !trending_authors_.empty(); ++i) {
+        std::string author = trending_authors_[author_dis(gen)];
+        std::string content = viral_content[i % viral_content.size()];
+        
+        auto created_time = std::chrono::system_clock::now() - std::chrono::hours(time_dis(gen));
+        std::string note_id = "trend_author_" + std::to_string(i + 1);
+        
+        auto note = CreateSampleNote(note_id, author, content, created_time);
+        
+        // Significantly boost metrics for viral content
+        auto* metrics = note.mutable_metrics();
+        metrics->set_views(metrics->views() * 10);
+        metrics->set_likes(metrics->likes() * 8);
+        metrics->set_reposts(metrics->reposts() * 6);
+        metrics->set_replies(metrics->replies() * 5);
+        metrics->set_quotes(metrics->quotes() * 4);
+        
+        notes.push_back(note);
+    }
+    
+    return notes;
+}
+
+// ============= FACTORY FUNCTION =============
+
+std::shared_ptr<TimelineServiceImpl> CreateTimelineService(
+    const std::string& redis_host,
+    int redis_port,
+    int websocket_port,
+    std::shared_ptr<::sonet::note::NoteService::Stub> note_service
+) {
+    // Create components
+    auto cache = std::make_shared<RedisTimelineCache>(redis_host, redis_port);
+    auto ranking_engine = std::make_shared<MLRankingEngine>();
+    auto content_filter = std::make_shared<AdvancedContentFilter>();
+    auto realtime_notifier = std::make_shared<WebSocketRealtimeNotifier>(websocket_port);
+    
+    // Create content source adapters
+    std::unordered_map<::sonet::timeline::ContentSource, std::shared_ptr<ContentSourceAdapter>> content_sources;
+    
+    content_sources[::sonet::timeline::CONTENT_SOURCE_FOLLOWING] = 
+        std::make_shared<FollowingContentAdapter>(note_service);
+    
+    content_sources[::sonet::timeline::CONTENT_SOURCE_RECOMMENDED] = 
+        std::make_shared<RecommendedContentAdapter>(note_service, ranking_engine);
+    
+    content_sources[::sonet::timeline::CONTENT_SOURCE_TRENDING] = 
+        std::make_shared<TrendingContentAdapter>(note_service);
+    
+    // Start real-time notifier
+    realtime_notifier->Start();
+    
+    auto timeline_service = std::make_shared<TimelineServiceImpl>(
+        cache, ranking_engine, content_filter, realtime_notifier, content_sources);
+    
+    std::cout << "Timeline service created with all components initialized" << std::endl;
+    
+    return timeline_service;
+}
+
+} // namespace sonet::timeline

@@ -107,6 +107,7 @@ else()
 endif()
 
 # Add subdirectories
+add_subdirectory(proto)
 add_subdirectory(src/services)
 option(BUILD_EXTERNAL "Build external helper libs" OFF)
 if(BUILD_EXTERNAL)

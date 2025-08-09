@@ -18,4 +18,7 @@ if(BUILD_OTHER_SERVICES)
 	add_subdirectory(messaging_service)
 endif()
 
+# Timeline service
+add_subdirectory(timeline_service)
+
 # Add other services as they're implemented
