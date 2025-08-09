@@ -30,6 +30,9 @@ public:
                 duration_seconds DOUBLE PRECISION,
                 original_url TEXT,
                 thumbnail_url TEXT,
+                hls_url TEXT,
+                webp_url TEXT,
+                mp4_url TEXT,
                 created_at TIMESTAMPTZ DEFAULT now()
             );
             CREATE INDEX IF NOT EXISTS idx_media_owner ON media(owner_user_id);
@@ -41,22 +44,25 @@ public:
         try {
             pqxx::connection c(conn_str_);
             pqxx::work tx(c);
-            tx.exec_params(R"SQL(
-                INSERT INTO media (id, owner_user_id, type, mime_type, size_bytes, width, height, duration_seconds, original_url, thumbnail_url)
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-                ON CONFLICT (id) DO UPDATE SET
-                  owner_user_id=EXCLUDED.owner_user_id,
-                  type=EXCLUDED.type,
-                  mime_type=EXCLUDED.mime_type,
-                  size_bytes=EXCLUDED.size_bytes,
-                  width=EXCLUDED.width,
-                  height=EXCLUDED.height,
-                  duration_seconds=EXCLUDED.duration_seconds,
-                  original_url=EXCLUDED.original_url,
-                  thumbnail_url=EXCLUDED.thumbnail_url
-            )SQL",
-                r.id, r.owner_user_id, static_cast<int>(r.type), r.mime_type, static_cast<long long>(r.size_bytes),
-                static_cast<int>(r.width), static_cast<int>(r.height), r.duration_seconds, r.original_url, r.thumbnail_url);
+                        tx.exec_params(R"SQL(
+                                INSERT INTO media (id, owner_user_id, type, mime_type, size_bytes, width, height, duration_seconds, original_url, thumbnail_url, hls_url, webp_url, mp4_url)
+                                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+                                ON CONFLICT (id) DO UPDATE SET
+                                    owner_user_id=EXCLUDED.owner_user_id,
+                                    type=EXCLUDED.type,
+                                    mime_type=EXCLUDED.mime_type,
+                                    size_bytes=EXCLUDED.size_bytes,
+                                    width=EXCLUDED.width,
+                                    height=EXCLUDED.height,
+                                    duration_seconds=EXCLUDED.duration_seconds,
+                                    original_url=EXCLUDED.original_url,
+                                    thumbnail_url=EXCLUDED.thumbnail_url,
+                                    hls_url=EXCLUDED.hls_url,
+                                    webp_url=EXCLUDED.webp_url,
+                                    mp4_url=EXCLUDED.mp4_url
+                        )SQL",
+                                r.id, r.owner_user_id, static_cast<int>(r.type), r.mime_type, static_cast<long long>(r.size_bytes),
+                                static_cast<int>(r.width), static_cast<int>(r.height), r.duration_seconds, r.original_url, r.thumbnail_url, r.hls_url, r.webp_url, r.mp4_url);
             tx.commit();
             return true;
         } catch (...) { return false; }
@@ -66,7 +72,7 @@ public:
         try {
             pqxx::connection c(conn_str_);
             pqxx::read_transaction tx(c);
-            auto r = tx.exec_params1("SELECT id, owner_user_id, type, mime_type, size_bytes, width, height, duration_seconds, original_url, thumbnail_url FROM media WHERE id=$1", id);
+            auto r = tx.exec_params1("SELECT id, owner_user_id, type, mime_type, size_bytes, width, height, duration_seconds, original_url, thumbnail_url, hls_url, webp_url, mp4_url, to_char(created_at,'YYYY-MM-DD""T""HH24:MI:SSZ') FROM media WHERE id=$1", id);
             out.id = r[0].c_str();
             out.owner_user_id = r[1].c_str();
             out.type = static_cast<::sonet::media::MediaType>(r[2].as<int>());
@@ -77,6 +83,10 @@ public:
             out.duration_seconds = r[7].as<double>();
             out.original_url = r[8].c_str();
             out.thumbnail_url = r[9].c_str();
+            out.hls_url = r[10].c_str();
+            out.webp_url = r[11].c_str();
+            out.mp4_url = r[12].c_str();
+            out.created_at = r[13].c_str();
             return true;
         } catch (...) { return false; }
     }
@@ -102,7 +112,7 @@ public:
             total_pages = static_cast<uint32_t>((cnt + page_size - 1) / page_size);
             auto offset = static_cast<long long>((page - 1) * page_size);
             auto rs = tx.exec_params(
-                "SELECT id, owner_user_id, type, mime_type, size_bytes, width, height, duration_seconds, original_url, thumbnail_url FROM media WHERE owner_user_id=$1 ORDER BY created_at DESC OFFSET $2 LIMIT $3",
+                "SELECT id, owner_user_id, type, mime_type, size_bytes, width, height, duration_seconds, original_url, thumbnail_url, hls_url, webp_url, mp4_url, to_char(created_at,'YYYY-MM-DD""T""HH24:MI:SSZ') FROM media WHERE owner_user_id=$1 ORDER BY created_at DESC OFFSET $2 LIMIT $3",
                 owner, offset, static_cast<int>(page_size));
             for (const auto& row : rs) {
                 MediaRecord m{};
@@ -116,6 +126,10 @@ public:
                 m.duration_seconds = row[7].as<double>();
                 m.original_url = row[8].c_str();
                 m.thumbnail_url = row[9].c_str();
+                m.hls_url = row[10].c_str();
+                m.webp_url = row[11].c_str();
+                m.mp4_url = row[12].c_str();
+                m.created_at = row[13].c_str();
                 res.emplace_back(std::move(m));
             }
         } catch (...) { total_pages = 0; }

@@ -12,6 +12,7 @@
 #include "../service.h"
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 
 namespace fs = std::filesystem;
 namespace sonet::media_service {
@@ -31,8 +32,14 @@ public:
 		} else {
 			thumb_out = tpath.string();
 		}
-		// We could probe dimensions via 'identify -format', but skipping for now
-		width = 0; height = 0;
+		// Probe dimensions via ImageMagick identify
+		{
+			std::string dim_cmd = "identify -format '%w %h' '" + path_in + "' 2>/dev/null > '" + (tpath.string() + ".dim") + "'";
+			int drc = std::system(dim_cmd.c_str()); (void)drc;
+			std::ifstream ifs(tpath.string() + ".dim");
+			if (ifs) { ifs >> width >> height; }
+			fs::remove(tpath.string() + ".dim");
+		}
 		return true;
 	}
 };
