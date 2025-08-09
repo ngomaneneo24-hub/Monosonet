@@ -129,7 +129,7 @@ struct PostgreSQLNotificationRepository::Impl {
         // Prepare all SQL statements for better performance
         conn.get().prepare(STMT_GET_NOTIFICATION,
             "SELECT id, user_id, sender_id, type, title, message, action_url, "
-            "post_id, comment_id, conversation_id, delivery_channels, priority, "
+            "note_id, comment_id, conversation_id, delivery_channels, priority, "
             "created_at, scheduled_at, expires_at, status, delivered_at, read_at, "
             "delivery_attempts, failure_reason, group_key, batch_id, is_batched, "
             "template_id, tracking_id, respect_quiet_hours, allow_bundling, "
@@ -138,7 +138,7 @@ struct PostgreSQLNotificationRepository::Impl {
         
         conn.get().prepare(STMT_CREATE_NOTIFICATION,
             "INSERT INTO notifications (id, user_id, sender_id, type, title, message, "
-            "action_url, post_id, comment_id, conversation_id, delivery_channels, "
+            "action_url, note_id, comment_id, conversation_id, delivery_channels, "
             "priority, created_at, scheduled_at, expires_at, status, delivery_attempts, "
             "group_key, batch_id, is_batched, template_id, tracking_id, "
             "respect_quiet_hours, allow_bundling, metadata, template_data, analytics_data) "
@@ -158,7 +158,7 @@ struct PostgreSQLNotificationRepository::Impl {
         
         conn.get().prepare(STMT_GET_USER_NOTIFICATIONS,
             "SELECT id, user_id, sender_id, type, title, message, action_url, "
-            "post_id, comment_id, conversation_id, delivery_channels, priority, "
+            "note_id, comment_id, conversation_id, delivery_channels, priority, "
             "created_at, scheduled_at, expires_at, status, delivered_at, read_at, "
             "delivery_attempts, failure_reason, group_key, batch_id, is_batched, "
             "template_id, tracking_id, respect_quiet_hours, allow_bundling, "
@@ -181,7 +181,7 @@ struct PostgreSQLNotificationRepository::Impl {
         
         conn.get().prepare(STMT_GET_PENDING,
             "SELECT id, user_id, sender_id, type, title, message, action_url, "
-            "post_id, comment_id, conversation_id, delivery_channels, priority, "
+            "note_id, comment_id, conversation_id, delivery_channels, priority, "
             "created_at, scheduled_at, expires_at, status, delivered_at, read_at, "
             "delivery_attempts, failure_reason, group_key, batch_id, is_batched, "
             "template_id, tracking_id, respect_quiet_hours, allow_bundling, "
@@ -191,7 +191,7 @@ struct PostgreSQLNotificationRepository::Impl {
         
         conn.get().prepare(STMT_GET_SCHEDULED,
             "SELECT id, user_id, sender_id, type, title, message, action_url, "
-            "post_id, comment_id, conversation_id, delivery_channels, priority, "
+            "note_id, comment_id, conversation_id, delivery_channels, priority, "
             "created_at, scheduled_at, expires_at, status, delivered_at, read_at, "
             "delivery_attempts, failure_reason, group_key, batch_id, is_batched, "
             "template_id, tracking_id, respect_quiet_hours, allow_bundling, "
@@ -201,7 +201,7 @@ struct PostgreSQLNotificationRepository::Impl {
         
         conn.get().prepare(STMT_GET_EXPIRED,
             "SELECT id, user_id, sender_id, type, title, message, action_url, "
-            "post_id, comment_id, conversation_id, delivery_channels, priority, "
+            "note_id, comment_id, conversation_id, delivery_channels, priority, "
             "created_at, scheduled_at, expires_at, status, delivered_at, read_at, "
             "delivery_attempts, failure_reason, group_key, batch_id, is_batched, "
             "template_id, tracking_id, respect_quiet_hours, allow_bundling, "
@@ -285,9 +285,9 @@ struct PostgreSQLNotificationRepository::Impl {
         notification.type = static_cast<models::NotificationType>(row["type"].as<int>());
         notification.title = row["title"].as<std::string>();
         notification.message = row["message"].as<std::string>();
-        notification.action_url = row["action_url"].as<std::string>("");
-        notification.post_id = row["post_id"].as<std::string>("");
-        notification.comment_id = row["comment_id"].as<std::string>("");
+                 notification.action_url = row["action_url"].as<std::string>("");
+         notification.note_id = row["note_id"].as<std::string>("");
+         notification.comment_id = row["comment_id"].as<std::string>("");
         notification.conversation_id = row["conversation_id"].as<std::string>("");
         notification.delivery_channels = row["delivery_channels"].as<int>();
         notification.priority = static_cast<models::NotificationPriority>(row["priority"].as<int>());
@@ -543,7 +543,7 @@ PostgreSQLNotificationRepository::create_notification(const models::Notification
                 notification.title,
                 notification.message,
                 notification.action_url,
-                notification.post_id,
+                notification.note_id,
                 notification.comment_id,
                 notification.conversation_id,
                 notification.delivery_channels,
@@ -719,9 +719,9 @@ PostgreSQLNotificationRepository::create_notifications_bulk(
                             static_cast<int>(notification.type),
                             notification.title,
                             notification.message,
-                            notification.action_url,
-                            notification.post_id,
-                            notification.comment_id,
+                                                         notification.action_url,
+                             notification.note_id,
+                             notification.comment_id,
                             notification.conversation_id,
                             notification.delivery_channels,
                             static_cast<int>(notification.priority),
@@ -952,7 +952,7 @@ void PostgreSQLNotificationRepository::clear_all_caches() {
 std::string PostgreSQLNotificationRepository::build_filter_query(const NotificationFilter& filter) const {
     std::stringstream query;
     query << "SELECT id, user_id, sender_id, type, title, message, action_url, "
-          << "post_id, comment_id, conversation_id, delivery_channels, priority, "
+          << "note_id, comment_id, conversation_id, delivery_channels, priority, "
           << "created_at, scheduled_at, expires_at, status, delivered_at, read_at, "
           << "delivery_attempts, failure_reason, group_key, batch_id, is_batched, "
           << "template_id, tracking_id, respect_quiet_hours, allow_bundling, "
