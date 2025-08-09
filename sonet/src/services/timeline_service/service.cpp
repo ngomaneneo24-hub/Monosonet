@@ -383,10 +383,8 @@ std::vector<RankedTimelineItem> TimelineServiceImpl::GenerateTimeline(
 
     // Score and rank content
     std::vector<RankedTimelineItem> ranked_items;
-    if (ranking_engine_) {
-        ranked_items = ranking_engine_->ScoreNotes(all_notes, user_id, profile, config);
-    } else {
-        // Simple chronological fallback
+    if (config.algorithm == ::sonet::timeline::TIMELINE_ALGORITHM_CHRONOLOGICAL || !ranking_engine_) {
+        // Pure chronological ordering
         for (const auto& note : all_notes) {
             RankedTimelineItem item;
             item.note = note;
@@ -396,6 +394,8 @@ std::vector<RankedTimelineItem> TimelineServiceImpl::GenerateTimeline(
             item.injection_reason = "chronological";
             ranked_items.push_back(item);
         }
+    } else {
+        ranked_items = ranking_engine_->ScoreNotes(all_notes, user_id, profile, config);
     }
 
     // Sort by score (descending)
