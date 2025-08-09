@@ -11,12 +11,15 @@ add_library(timeline_service STATIC
     content_adapters.cpp
     controllers/timeline_controller.cpp
     rankers/chronological_ranking_engine.cpp
+    clients/grpc_clients.h
+    clients/kafka_fanout.h
 )
 
 # Set include directories
 target_include_directories(timeline_service PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/controllers
+    ${CMAKE_CURRENT_SOURCE_DIR}/clients
     ${CMAKE_SOURCE_DIR}/proto
     ${CMAKE_SOURCE_DIR}/proto/services
     ${CMAKE_SOURCE_DIR}/proto/common
@@ -67,6 +70,8 @@ install(FILES
     service.h
     implementations.h
     controllers/timeline_controller.h
+    clients/grpc_clients.h
+    clients/kafka_fanout.h
     DESTINATION include/sonet/timeline
 )
 
