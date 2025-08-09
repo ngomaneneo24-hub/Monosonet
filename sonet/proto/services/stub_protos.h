@@ -161,6 +161,7 @@ namespace timeline {
         sonet::common::Timestamp last_updated;
         sonet::common::Timestamp last_user_read;
         int32_t new_items_since_last_fetch = 0;
+        std::map<std::string, double> algorithm_params_;
         
         void set_total_items(int32_t t) { total_items = t; }
         void set_algorithm_used(TimelineAlgorithm a) { algorithm_used = a; }
@@ -169,6 +170,7 @@ namespace timeline {
         
         sonet::common::Timestamp* mutable_last_updated() { return &last_updated; }
         sonet::common::Timestamp* mutable_last_user_read() { return &last_user_read; }
+        std::map<std::string, double>* mutable_algorithm_params() { return &algorithm_params_; }
     };
 
     struct TimelinePreferences {
@@ -352,6 +354,50 @@ namespace timeline {
         void set_error_message(const std::string& e) { error_message_ = e; }
     };
     
+    struct GetForYouTimelineRequest {
+        std::string user_id_;
+        sonet::common::Pagination pagination_;
+        bool include_ranking_signals_ = false;
+        std::string user_id() const { return user_id_; }
+        const sonet::common::Pagination& pagination() const { return pagination_; }
+        bool include_ranking_signals() const { return include_ranking_signals_; }
+    };
+
+    struct GetForYouTimelineResponse {
+        std::vector<TimelineItem> items_;
+        TimelineMetadata metadata_;
+        sonet::common::Pagination pagination_;
+        bool success_ = false;
+        std::string error_message_;
+        TimelineItem* add_items() { items_.emplace_back(); return &items_.back(); }
+        TimelineMetadata* mutable_metadata() { return &metadata_; }
+        sonet::common::Pagination* mutable_pagination() { return &pagination_; }
+        void set_success(bool s) { success_ = s; }
+        void set_error_message(const std::string& e) { error_message_ = e; }
+    };
+
+    struct GetFollowingTimelineRequest {
+        std::string user_id_;
+        sonet::common::Pagination pagination_;
+        bool include_ranking_signals_ = false;
+        std::string user_id() const { return user_id_; }
+        const sonet::common::Pagination& pagination() const { return pagination_; }
+        bool include_ranking_signals() const { return include_ranking_signals_; }
+    };
+
+    struct GetFollowingTimelineResponse {
+        std::vector<TimelineItem> items_;
+        TimelineMetadata metadata_;
+        sonet::common::Pagination pagination_;
+        bool success_ = false;
+        std::string error_message_;
+        TimelineItem* add_items() { items_.emplace_back(); return &items_.back(); }
+        TimelineMetadata* mutable_metadata() { return &metadata_; }
+        sonet::common::Pagination* mutable_pagination() { return &pagination_; }
+        void set_success(bool s) { success_ = s; }
+        void set_error_message(const std::string& e) { error_message_ = e; }
+    };
+
     // Timeline service base class
     struct TimelineService {
         struct Service {
@@ -401,6 +447,16 @@ namespace timeline {
                 ::grpc::ServerContext* context,
                 const RecordEngagementRequest* request,
                 RecordEngagementResponse* response) = 0;
+
+            virtual ::grpc::Status GetForYouTimeline(
+                ::grpc::ServerContext* context,
+                const GetForYouTimelineRequest* request,
+                GetForYouTimelineResponse* response) = 0;
+
+            virtual ::grpc::Status GetFollowingTimeline(
+                ::grpc::ServerContext* context,
+                const GetFollowingTimelineRequest* request,
+                GetFollowingTimelineResponse* response) = 0;
         };
     };
 }

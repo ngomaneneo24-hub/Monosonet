@@ -39,6 +39,68 @@ HomeTimelineResult TimelineController::get_home_timeline(
     return result;
 }
 
+HomeTimelineResult TimelineController::get_for_you_timeline(
+    const std::string& user_id,
+    int32_t offset,
+    int32_t limit,
+    bool include_ranking_signals
+) {
+    HomeTimelineResult result;
+
+    ::sonet::timeline::GetForYouTimelineRequest req;
+    req.user_id_ = user_id;
+    req.pagination_.offset = offset;
+    req.pagination_.limit = limit;
+    req.include_ranking_signals_ = include_ranking_signals;
+
+    ::sonet::timeline::GetForYouTimelineResponse resp;
+    grpc::ServerContext ctx;
+    auto status = service_->GetForYouTimeline(&ctx, &req, &resp);
+
+    if (status.ok()) {
+        result.items = std::move(resp.items_);
+        result.metadata = resp.metadata_;
+        result.pagination = resp.pagination_;
+        result.success = true;
+    } else {
+        result.success = false;
+        result.error_message = status.error_message();
+    }
+
+    return result;
+}
+
+HomeTimelineResult TimelineController::get_following_timeline(
+    const std::string& user_id,
+    int32_t offset,
+    int32_t limit,
+    bool include_ranking_signals
+) {
+    HomeTimelineResult result;
+
+    ::sonet::timeline::GetFollowingTimelineRequest req;
+    req.user_id_ = user_id;
+    req.pagination_.offset = offset;
+    req.pagination_.limit = limit;
+    req.include_ranking_signals_ = include_ranking_signals;
+
+    ::sonet::timeline::GetFollowingTimelineResponse resp;
+    grpc::ServerContext ctx;
+    auto status = service_->GetFollowingTimeline(&ctx, &req, &resp);
+
+    if (status.ok()) {
+        result.items = std::move(resp.items_);
+        result.metadata = resp.metadata_;
+        result.pagination = resp.pagination_;
+        result.success = true;
+    } else {
+        result.success = false;
+        result.error_message = status.error_message();
+    }
+
+    return result;
+}
+
 UserTimelineResult TimelineController::get_user_timeline(
     const std::string& target_user_id,
     const std::string& requesting_user_id,

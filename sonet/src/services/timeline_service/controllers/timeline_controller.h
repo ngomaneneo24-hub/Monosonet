@@ -35,6 +35,20 @@ public:
         bool include_ranking_signals = false
     );
 
+    HomeTimelineResult get_for_you_timeline(
+        const std::string& user_id,
+        int32_t offset,
+        int32_t limit,
+        bool include_ranking_signals = false
+    );
+
+    HomeTimelineResult get_following_timeline(
+        const std::string& user_id,
+        int32_t offset,
+        int32_t limit,
+        bool include_ranking_signals = false
+    );
+
     UserTimelineResult get_user_timeline(
         const std::string& target_user_id,
         const std::string& requesting_user_id,

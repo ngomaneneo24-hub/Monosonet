@@ -94,6 +94,18 @@ struct TimelineConfig {
     double recommended_content_ratio = 0.2;
     double trending_content_ratio = 0.08;
     double lists_content_ratio = 0.02;
+
+    // Per-source caps
+    int32_t cap_following = 100;
+    int32_t cap_recommended = 50;
+    int32_t cap_trending = 30;
+    int32_t cap_lists = 20;
+
+    // A/B weighting parameters for source mixing
+    double ab_following_weight = 1.0;
+    double ab_recommended_weight = 1.0;
+    double ab_trending_weight = 1.0;
+    double ab_lists_weight = 1.0;
 };
 
 // Engagement event for ML training
@@ -291,6 +303,18 @@ public:
         grpc::ServerContext* context,
         const ::sonet::timeline::RecordEngagementRequest* request,
         ::sonet::timeline::RecordEngagementResponse* response
+    ) override;
+
+    grpc::Status GetForYouTimeline(
+        grpc::ServerContext* context,
+        const ::sonet::timeline::GetForYouTimelineRequest* request,
+        ::sonet::timeline::GetForYouTimelineResponse* response
+    ) override;
+
+    grpc::Status GetFollowingTimeline(
+        grpc::ServerContext* context,
+        const ::sonet::timeline::GetFollowingTimelineRequest* request,
+        ::sonet::timeline::GetFollowingTimelineResponse* response
     ) override;
     
     // Public methods for external services
