@@ -9,7 +9,9 @@
  */
 
 #include "elasticsearch_engine.h"
+#ifdef HAVE_CURL
 #include <curl/curl.h>
+#endif
 #include <thread>
 #include <queue>
 #include <condition_variable>
@@ -19,6 +21,7 @@
 #include <chrono>
 #include <random>
 #include <future>
+#include <stdexcept>
 
 namespace sonet {
 namespace search_service {
@@ -27,7 +30,9 @@ namespace engines {
 // PIMPL implementation
 struct ElasticsearchEngine::Impl {
     ElasticsearchConfig config;
+#ifdef HAVE_CURL
     CURL* curl_handle;
+#endif
     std::atomic<bool> initialized{false};
     std::atomic<bool> shutdown_requested{false};
     std::atomic<bool> debug_mode{false};
@@ -55,15 +60,20 @@ struct ElasticsearchEngine::Impl {
     mutable std::mutex slow_queries_mutex;
     static constexpr size_t MAX_SLOW_QUERIES = 100;
     
-    Impl(const ElasticsearchConfig& cfg) : config(cfg) {
+    Impl(const ElasticsearchConfig& cfg) : config(cfg)
+#ifdef HAVE_CURL
+    , curl_handle(nullptr)
+#endif
+    {
+#ifdef HAVE_CURL
         curl_handle = curl_easy_init();
         if (curl_handle) {
-            curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, config.request_timeout.count());
-            curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, config.connection_timeout.count());
             curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
+            curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, static_cast<long>(config.request_timeout.count()));
+            curl_easy_setopt(curl_handle, CURLOPT_CONNECTTIMEOUT, static_cast<long>(config.connection_timeout.count()));
             curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, config.verify_ssl ? 1L : 0L);
         }
-        
+#endif
         // Start bulk processor thread
         bulk_processor_thread = std::thread([this] { bulk_processor_loop(); });
     }
@@ -74,14 +84,75 @@ struct ElasticsearchEngine::Impl {
         if (bulk_processor_thread.joinable()) {
             bulk_processor_thread.join();
         }
+#ifdef HAVE_CURL
         if (curl_handle) {
             curl_easy_cleanup(curl_handle);
+            curl_handle = nullptr;
         }
+#endif
     }
     
     void bulk_processor_loop();
-    std::string execute_http_request(const std::string& method, const std::string& url, 
-                                    const std::string& body, const std::unordered_map<std::string, std::string>& headers);
+#ifdef HAVE_CURL
+    static size_t write_callback(void* contents, size_t size, size_t nmemb, void* userp) {
+        size_t total = size * nmemb;
+        std::string* s = static_cast<std::string*>(userp);
+        s->append(static_cast<char*>(contents), total);
+        return total;
+    }
+#endif
+    std::string execute_http_request(const std::string& method,
+                                     const std::string& url,
+                                     const std::string& body,
+                                     const std::unordered_map<std::string, std::string>& headers) {
+#ifdef HAVE_CURL
+        if (!curl_handle) {
+            throw std::runtime_error("CURL handle not initialized");
+        }
+        std::string response;
+        struct curl_slist* header_list = nullptr;
+        for (const auto& [k, v] : headers) {
+            std::string h = k + ": " + v;
+            header_list = curl_slist_append(header_list, h.c_str());
+        }
+        curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, header_list);
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, &Impl::write_callback);
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &response);
+
+        if (method == "GET") {
+            curl_easy_setopt(curl_handle, CURLOPT_HTTPGET, 1L);
+        } else if (method == "POST") {
+            curl_easy_setopt(curl_handle, CURLOPT_POST, 1L);
+            curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, body.c_str());
+        } else if (method == "PUT") {
+            curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "PUT");
+            curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, body.c_str());
+        } else if (method == "DELETE") {
+            curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "DELETE");
+        } else {
+            curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, method.c_str());
+            if (!body.empty()) {
+                curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, body.c_str());
+            }
+        }
+
+        CURLcode res = curl_easy_perform(curl_handle);
+        long http_code = 0;
+        curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &http_code);
+        if (header_list) curl_slist_free_all(header_list);
+        if (res != CURLE_OK) {
+            throw std::runtime_error(std::string("CURL error: ") + curl_easy_strerror(res));
+        }
+        if (http_code >= 400) {
+            // Return response anyway; caller will inspect and handle
+        }
+        return response;
+#else
+        (void)method; (void)url; (void)body; (void)headers;
+        throw std::runtime_error("CURL not available (HAVE_CURL is off)");
+#endif
+    }
 };
 
 /**
@@ -617,6 +688,72 @@ bool ElasticsearchEngine::is_ready() const {
 
 std::future<nlohmann::json> ElasticsearchEngine::get_cluster_health() {
     return execute_request("GET", "/_cluster/health");
+}
+
+std::string ElasticsearchEngine::build_url(
+    const std::string& path,
+    const std::unordered_map<std::string, std::string>& params) const {
+    if (pimpl_->config.hosts.empty()) {
+        throw std::runtime_error("Elasticsearch hosts not configured");
+    }
+    // Use first host for now; production should round-robin
+    std::ostringstream oss;
+    std::string base = pimpl_->config.hosts.front();
+    if (base.rfind("http://", 0) != 0 && base.rfind("https://", 0) != 0) {
+        base = std::string(pimpl_->config.use_ssl ? "https://" : "http://") + base;
+    }
+    if (!path.empty() && path[0] != '/') {
+        oss << base << "/" << path;
+    } else {
+        oss << base << path;
+    }
+    if (!params.empty()) {
+        bool first = true;
+        oss << "?";
+        for (const auto& [k, v] : params) {
+            if (!first) oss << "&";
+            first = false;
+            oss << k << "=" << v; // TODO: URL-encode if needed
+        }
+    }
+    return oss.str();
+}
+
+std::future<nlohmann::json> ElasticsearchEngine::execute_request(
+    const std::string& method,
+    const std::string& path,
+    const nlohmann::json& body,
+    const std::unordered_map<std::string, std::string>& params) {
+    return std::async(std::launch::async, [this, method, path, body, params]() {
+        // Build URL
+        const std::string url = build_url(path, params);
+
+        // Prepare headers
+        std::unordered_map<std::string, std::string> headers;
+        headers["Content-Type"] = "application/json";
+        if (!pimpl_->config.api_key.empty()) {
+            headers["Authorization"] = std::string("ApiKey ") + pimpl_->config.api_key;
+        } else if (!pimpl_->config.username.empty()) {
+            // Basic auth via libcurl option; still set header if needed by proxies
+        }
+
+        // Serialize body
+        const std::string body_str = body.is_null() || body.empty() ? std::string() : body.dump();
+
+        // Use Impl::execute_http_request to actually send
+        const std::string response_str = pimpl_->execute_http_request(method, url, body_str, headers);
+        if (response_str.empty()) {
+            throw std::runtime_error("Empty response from Elasticsearch");
+        }
+        nlohmann::json json_resp = nlohmann::json::parse(response_str, nullptr, true);
+
+        // Handle ES errors
+        if (json_resp.contains("error")) {
+            // Update metrics as failure
+            handle_error(json_resp);
+        }
+        return json_resp;
+    });
 }
 
 std::future<models::SearchResult> ElasticsearchEngine::search(const models::SearchQuery& query) {

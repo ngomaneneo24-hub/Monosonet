@@ -330,37 +330,27 @@ private:
  */
 class MessageQueueSubscriber {
 public:
-    /**
-     * Constructor
-     */
     explicit MessageQueueSubscriber(const SearchServiceConfig& config);
-    
-    /**
-     * Start subscribing to message queues
-     */
-    std::future<bool> start();
-    
-    /**
-     * Stop subscribing
-     */
-    void stop();
-    
-    /**
-     * Register message handler
-     */
-    void register_handler(
-        const std::string& topic,
-        std::function<void(const std::string& message)> handler
-    );
-    
-    /**
-     * Get subscription statistics
-     */
+    ~MessageQueueSubscriber();
+
+    bool start_consuming();
+    void stop_consuming();
+
+    using MessageHandler = std::function<void(const nlohmann::json& message)>;
+    void subscribe(const std::string& topic, MessageHandler handler);
+
     nlohmann::json get_statistics() const;
 
 private:
-    struct Impl;
-    std::unique_ptr<Impl> pimpl_;
+    // PIMPL not used in implementation; define fields inline to match .cpp usage
+    SearchServiceConfig config_;
+    std::atomic<bool> consuming_active_{false};
+    std::vector<std::thread> consumer_threads_;
+    std::vector<std::string> topics_;
+    std::unordered_map<std::string, MessageHandler> message_handlers_;
+    mutable std::mutex mutex_;
+
+    void consume_messages(const std::string& topic);
 };
 
 /**
@@ -368,44 +358,25 @@ private:
  */
 class ServiceDiscoveryClient {
 public:
-    /**
-     * Constructor
-     */
     explicit ServiceDiscoveryClient(const SearchServiceConfig& config);
-    
-    /**
-     * Register this service instance
-     */
-    std::future<bool> register_service();
-    
-    /**
-     * Deregister this service instance
-     */
-    std::future<bool> deregister_service();
-    
-    /**
-     * Send heartbeat
-     */
-    std::future<bool> send_heartbeat();
-    
-    /**
-     * Discover other service instances
-     */
-    std::future<std::vector<std::string>> discover_services(const std::string& service_name);
-    
-    /**
-     * Start automatic heartbeat
-     */
+    ~ServiceDiscoveryClient();
+
+    bool register_service();
+    bool unregister_service();
+    bool send_heartbeat();
+
+    std::vector<ServiceInfo> discover_services(const std::string& service_name);
+
+    ServiceInfo get_service_info() const;
+
     void start_heartbeat();
-    
-    /**
-     * Stop automatic heartbeat
-     */
     void stop_heartbeat();
 
 private:
-    struct Impl;
-    std::unique_ptr<Impl> pimpl_;
+    // Inline fields to match implementation
+    SearchServiceConfig config_;
+    bool registered_ = false;
+    ServiceInfo service_info_;
 };
 
 /**
