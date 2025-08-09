@@ -110,6 +110,10 @@ public:
 								 const ::sonet::media::ListUserMediaRequest* request,
 								 ::sonet::media::ListUserMediaResponse* response) override;
 
+	::grpc::Status HealthCheck(::grpc::ServerContext* context,
+									 const ::sonet::media::HealthCheckRequest* request,
+									 ::sonet::media::HealthCheckResponse* response) override;
+
 private:
 	std::shared_ptr<MediaRepository> repo_;
 	std::shared_ptr<StorageBackend> storage_;
