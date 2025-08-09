@@ -109,7 +109,8 @@ grpc::Status TimelineServiceImpl::GetTimeline(
 ) {
     try {
         // Per-user rate limit
-        if (!RateAllow("tl:" + request->user_id())) {
+        int rpm_override = -1; try { auto v = GetMetadataValue(context, "x-rate-rpm"); if (!v.empty()) rpm_override = std::stoi(v); } catch (...) {}
+        if (!RateAllow("tl:" + request->user_id(), rpm_override)) {
             return grpc::Status(grpc::StatusCode::RESOURCE_EXHAUSTED, "rate limit");
         }
         if (!IsAuthorized(context, request->user_id())) {
@@ -756,14 +757,15 @@ void TimelineServiceImpl::ApplyABOverridesFromMetadata(grpc::ServerContext* cont
 
 // ============= EVENT HANDLERS =============
 
-bool TimelineServiceImpl::RateAllow(const std::string& key) {
+bool TimelineServiceImpl::RateAllow(const std::string& key, int override_rpm) {
     std::lock_guard<std::mutex> lock(rate_mutex_);
     auto& b = rate_buckets_[key];
     auto now = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - b.last_refill).count();
     if (elapsed > 0) {
-        double tokens_to_add = (static_cast<double>(rate_rpm_) / 60000.0) * elapsed;
-        b.tokens = std::min(1.0 * rate_rpm_, b.tokens + tokens_to_add);
+        int rpm = override_rpm > 0 ? override_rpm : rate_rpm_;
+        double tokens_to_add = (static_cast<double>(rpm) / 60000.0) * elapsed;
+        b.tokens = std::min(1.0 * rpm, b.tokens + tokens_to_add);
         b.last_refill = now;
     }
     if (b.tokens >= 1.0) { b.tokens -= 1.0; return true; }
