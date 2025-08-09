@@ -79,6 +79,22 @@ public:
 		Aws::S3::Model::DeleteObjectRequest req; req.SetBucket(bucket_.c_str()); req.SetKey(object_key.c_str());
 		return client_->DeleteObject(req).IsSuccess();
 	}
+	bool DeletePrefix(const std::string& object_prefix) override {
+		Aws::S3::Model::ListObjectsV2Request listReq; listReq.SetBucket(bucket_.c_str()); listReq.SetPrefix(object_prefix.c_str());
+		bool ok = true; while (true) {
+			auto outcome = client_->ListObjectsV2(listReq);
+			if (!outcome.IsSuccess()) return false;
+			Aws::Vector<Aws::S3::Model::ObjectIdentifier> objs;
+			for (auto& o : outcome.GetResult().GetContents()) { Aws::S3::Model::ObjectIdentifier id; id.SetKey(o.GetKey()); objs.push_back(id); }
+			if (!objs.empty()) {
+				Aws::S3::Model::Delete del; del.SetObjects(objs); Aws::S3::Model::DeleteObjectsRequest delReq; delReq.SetBucket(bucket_.c_str()); delReq.SetDelete(del);
+				auto d = client_->DeleteObjects(delReq); if (!d.IsSuccess()) ok = false;
+			}
+			if (!outcome.GetResult().GetIsTruncated()) break;
+			listReq.SetContinuationToken(outcome.GetResult().GetNextContinuationToken());
+		}
+		return ok;
+	}
 	std::string Sign(const std::string& object_key, int ttl_seconds) override {
 		// Simple pre-signed URL generation
 		Aws::Http::URI uri;
@@ -164,6 +180,11 @@ public:
 		std::string cmd = "aws s3 rm 's3://" + bucket_ + "/" + object_key + "'" + extra + " >/dev/null 2>&1";
 		int rc = std::system(cmd.c_str());
 		return rc == 0;
+	}
+	bool DeletePrefix(const std::string& object_prefix) override {
+		std::string extra = endpoint_.empty() ? "" : (" --endpoint-url '" + endpoint_ + "'");
+		std::string cmd = "aws s3 rm 's3://" + bucket_ + "/" + object_prefix + "' --recursive" + extra + " >/dev/null 2>&1";
+		int rc = std::system(cmd.c_str()); return rc == 0;
 	}
 	std::string Sign(const std::string& object_key, int ttl_seconds) override {
 		char tmpl[] = "/tmp/presignXXXXXX";

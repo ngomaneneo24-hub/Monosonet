@@ -15,6 +15,7 @@ using grpc::Server;
 using grpc::ServerBuilder;
 
 int main(int argc, char** argv) {
+	(void)argc; (void)argv;
 	// Natural comments: tune via env/flags later; good defaults for dev
 	std::string listen_addr = "0.0.0.0:50053"; // avoid clashing with other services
 	std::string local_store_dir = "/tmp/sonet-media";
@@ -52,13 +53,18 @@ int main(int argc, char** argv) {
 	auto vid = std::shared_ptr<sonet::media_service::VideoProcessor>(sonet::media_service::CreateVideoProcessor().release());
 	auto gif = std::shared_ptr<sonet::media_service::GifProcessor>(sonet::media_service::CreateGifProcessor().release());
 
-	auto nsfw = std::shared_ptr<sonet::media_service::NsfwScanner>(sonet::media_service::CreateBasicScanner(true).release());
+	bool enable_nsfw = true;
+	if (const char* e = std::getenv("SONET_MEDIA_NSFW")) {
+		std::string v = e; for (auto& c : v) c = static_cast<char>(std::tolower(c));
+		if (v=="0" || v=="false" || v=="no") enable_nsfw = false;
+	}
+	auto nsfw = std::shared_ptr<sonet::media_service::NsfwScanner>(sonet::media_service::CreateBasicScanner(enable_nsfw).release());
 	sonet::media_service::MediaServiceImpl service(repo, storage, img, vid, gif, nsfw, max_upload);
 
-	ServerBuilder builder;
+	grpc::ServerBuilder builder;
 	builder.AddListeningPort(listen_addr, grpc::InsecureServerCredentials());
 	builder.RegisterService(&service);
-	std::unique_ptr<Server> server(builder.BuildAndStart());
+	std::unique_ptr<grpc::Server> server(builder.BuildAndStart());
 	std::cout << "Media service listening on " << listen_addr << std::endl;
 	server->Wait();
 	return 0;
