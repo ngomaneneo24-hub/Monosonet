@@ -50,6 +50,8 @@ public:
 
     std::optional<::sonet::timeline::TimelinePreferences> get_preferences(const std::string& user_id);
 
+    bool record_engagement(const std::string& user_id, const std::string& note_id, const std::string& action, double duration_seconds = 0.0);
+
 private:
     std::shared_ptr<sonet::timeline::TimelineServiceImpl> service_;
 };

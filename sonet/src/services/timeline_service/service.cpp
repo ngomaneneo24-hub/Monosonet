@@ -276,11 +276,35 @@ grpc::Status TimelineServiceImpl::HealthCheck(
         std::lock_guard<std::mutex> lock(metrics_mutex_);
         details["total_requests"] = std::to_string(metrics_["timeline_requests"].load());
         details["cache_hit_ratio"] = metrics_["timeline_requests"] > 0 
-            ? std::to_string(static_cast<double>(metrics_["cache_hits"]) / metrics_["timeline_requests"])
+            ? std::to_string(static_cast<double>(metrics_["cache_hits"]) / metrics_["timeline_requests"]) 
             : "0.0";
     }
     
     return grpc::Status::OK;
+}
+
+grpc::Status TimelineServiceImpl::RecordEngagement(
+    grpc::ServerContext* /*context*/,
+    const ::sonet::timeline::RecordEngagementRequest* request,
+    ::sonet::timeline::RecordEngagementResponse* response
+) {
+    try {
+        if (!request) {
+            response->set_success(false);
+            response->set_error_message("invalid request");
+            return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "invalid request");
+        }
+        if (ranking_engine_) {
+            ranking_engine_->UpdateUserEngagement(
+                request->user_id(), request->note_id(), request->action(), request->duration_seconds());
+        }
+        response->set_success(true);
+        return grpc::Status::OK;
+    } catch (const std::exception& e) {
+        response->set_success(false);
+        response->set_error_message(e.what());
+        return grpc::Status(grpc::StatusCode::INTERNAL, e.what());
+    }
 }
 
 // ============= PRIVATE METHODS =============
@@ -316,12 +340,23 @@ std::vector<RankedTimelineItem> TimelineServiceImpl::GenerateTimeline(
         std::cout << "Fetched " << recommended_notes.size() << " recommended notes" << std::endl;
     }
     
-    // Trending content (10% of timeline)
+    // Trending content
     int32_t trending_limit = static_cast<int32_t>(limit * config.trending_content_ratio);
     if (trending_limit > 0) {
         auto trending_notes = FetchTrendingContent(user_id, config, trending_limit);
         all_notes.insert(all_notes.end(), trending_notes.begin(), trending_notes.end());
         std::cout << "Fetched " << trending_notes.size() << " trending notes" << std::endl;
+    }
+
+    // Lists content
+    int32_t lists_limit = static_cast<int32_t>(limit * config.lists_content_ratio);
+    if (lists_limit > 0) {
+        auto it = content_sources_.find(::sonet::timeline::CONTENT_SOURCE_LISTS);
+        if (it != content_sources_.end()) {
+            auto lists_notes = it->second->GetContent(user_id, config, since, lists_limit);
+            all_notes.insert(all_notes.end(), lists_notes.begin(), lists_notes.end());
+            std::cout << "Fetched " << lists_notes.size() << " lists notes" << std::endl;
+        }
     }
 
     // Deduplicate by note id

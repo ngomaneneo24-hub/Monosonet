@@ -118,7 +118,8 @@ namespace timeline {
     enum ContentSource {
         CONTENT_SOURCE_FOLLOWING = 0,
         CONTENT_SOURCE_RECOMMENDED = 1,
-        CONTENT_SOURCE_TRENDING = 2
+        CONTENT_SOURCE_TRENDING = 2,
+        CONTENT_SOURCE_LISTS = 3
     };
     
     enum TimelineAlgorithm {
@@ -331,6 +332,25 @@ namespace timeline {
     struct GetTimelinePreferencesResponse { TimelinePreferences preferences_; void set_success(bool) {} void set_error_message(const std::string&) {} };
     
     struct SubscribeTimelineUpdatesRequest { std::string user_id() const { return ""; } };
+
+    struct RecordEngagementRequest {
+        std::string user_id_;
+        std::string note_id_;
+        std::string action_;
+        double duration_seconds_ = 0.0;
+        
+        std::string user_id() const { return user_id_; }
+        std::string note_id() const { return note_id_; }
+        std::string action() const { return action_; }
+        double duration_seconds() const { return duration_seconds_; }
+    };
+
+    struct RecordEngagementResponse {
+        bool success_ = false;
+        std::string error_message_;
+        void set_success(bool s) { success_ = s; }
+        void set_error_message(const std::string& e) { error_message_ = e; }
+    };
     
     // Timeline service base class
     struct TimelineService {
@@ -376,6 +396,11 @@ namespace timeline {
                 ::grpc::ServerContext* context,
                 const SubscribeTimelineUpdatesRequest* request,
                 ::grpc::ServerWriter<TimelineUpdate>* writer) = 0;
+
+            virtual ::grpc::Status RecordEngagement(
+                ::grpc::ServerContext* context,
+                const RecordEngagementRequest* request,
+                RecordEngagementResponse* response) = 0;
         };
     };
 }
