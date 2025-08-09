@@ -764,6 +764,16 @@ void MessageQueueSubscriber::consume_messages(const std::string& topic) {
     }
 }
 
+nlohmann::json MessageQueueSubscriber::get_statistics() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return nlohmann::json{
+        {"topics", topics_},
+        {"handlers", message_handlers_.size()},
+        {"active", consuming_active_.load()},
+        {"threads", consumer_threads_.size()}
+    };
+}
+
 /**
  * ServiceDiscoveryClient implementation
  */
@@ -820,6 +830,14 @@ std::vector<ServiceInfo> ServiceDiscoveryClient::discover_services(const std::st
 
 ServiceInfo ServiceDiscoveryClient::get_service_info() const {
     return service_info_;
+}
+
+void ServiceDiscoveryClient::start_heartbeat() {
+    // No-op placeholder for future implementation
+}
+
+void ServiceDiscoveryClient::stop_heartbeat() {
+    // No-op placeholder for future implementation
 }
 
 /**
@@ -922,7 +940,7 @@ std::future<bool> SearchService::initialize() {
             es_config.username = pimpl_->config.elasticsearch_username;
             es_config.password = pimpl_->config.elasticsearch_password;
             es_config.use_ssl = pimpl_->config.elasticsearch_use_ssl;
-            es_config.verify_certificates = pimpl_->config.elasticsearch_verify_certs;
+            es_config.verify_ssl = pimpl_->config.elasticsearch_verify_certs;
             es_config.connection_timeout_ms = pimpl_->config.elasticsearch_connection_timeout_ms;
             es_config.request_timeout_ms = pimpl_->config.elasticsearch_request_timeout_ms;
             es_config.max_retries = pimpl_->config.elasticsearch_max_retries;
