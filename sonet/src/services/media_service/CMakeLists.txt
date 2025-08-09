@@ -131,6 +131,7 @@ install(TARGETS media_service RUNTIME DESTINATION bin)
 if(BUILD_TESTS)
 	add_executable(media_service_unit_tests
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/media_service_unit_tests.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/upload_integration_test.cpp
 	)
 	target_include_directories(media_service_unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 	target_link_libraries(media_service_unit_tests PRIVATE media_service_core)

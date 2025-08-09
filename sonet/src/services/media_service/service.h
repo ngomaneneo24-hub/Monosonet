@@ -55,6 +55,7 @@ public:
 	// Store a directory recursively (e.g., HLS assets). Returns base URL (object_prefix/) where index file lives.
 	virtual bool PutDir(const std::string& local_dir, const std::string& object_prefix, std::string& out_base_url) = 0;
 	virtual bool Delete(const std::string& object_key) = 0;
+	virtual bool DeletePrefix(const std::string& /*object_prefix*/) { return true; }
 	// Optionally produce a signed URL (default just returns provided URL if signing unsupported)
 	virtual std::string Sign(const std::string& object_key, int /*ttl_seconds*/) { return object_key; }
 	// Optionally produce a signed URL from an existing public URL; default returns the input url unchanged.
