@@ -157,6 +157,10 @@ private:
     std::string redis_host_;
     int redis_port_;
     
+#ifdef SONET_USE_REDIS_PLUS_PLUS
+    std::unique_ptr<sw::redis::Redis> redis_;
+#endif
+    
     // In-memory fallback cache for when Redis is unavailable
     std::unordered_map<std::string, std::vector<RankedTimelineItem>> memory_timeline_cache_;
     std::unordered_map<std::string, std::chrono::system_clock::time_point> memory_timeline_expiry_;
