@@ -48,6 +48,9 @@ SocialGraph::SocialGraph(std::shared_ptr<void> graph_store, const json& config)
                 graph_algorithm_type_, max_recommendations_, enable_real_time_updates_);
 }
 
+// Default constructor delegates to the configurable one
+SocialGraph::SocialGraph() : SocialGraph(nullptr, json::object()) {}
+
 // ========== GRAPH OPERATIONS ==========
 
 void SocialGraph::add_follow_relationship(const std::string& follower_id, const std::string& following_id) {
@@ -195,66 +198,41 @@ std::future<std::vector<json>> SocialGraph::get_mutual_friend_recommendations(co
                 return limited;
             }
             
-            std::unordered_map<std::string, MutualFriendScore> candidate_scores;
-            
+            // Use simple double score per candidate
+            std::unordered_map<std::string, double> candidate_scores;
+            std::unordered_map<std::string, std::unordered_set<std::string>> candidate_mutuals;
             {
                 std::shared_lock<std::shared_mutex> lock(graph_mutex_);
-                
-                // Get user's following list
                 auto user_following_it = adjacency_list_.find(user_id);
                 if (user_following_it == adjacency_list_.end()) {
-                    return std::vector<json>{}; // User follows no one
+                    return std::vector<json>{};
                 }
-                
                 const auto& user_following = user_following_it->second;
-                
-                // For each user that our user follows
                 for (const auto& following_id : user_following) {
-                    // Get who that user follows
                     auto following_following_it = adjacency_list_.find(following_id);
                     if (following_following_it == adjacency_list_.end()) continue;
-                    
-                    // For each user that our following follows
                     for (const auto& candidate_id : following_following_it->second) {
-                        // Skip if it's the original user or already following
-                        if (candidate_id == user_id || user_following.count(candidate_id)) {
-                            continue;
-                        }
-                        
-                        // Increment mutual friend count
-                        candidate_scores[candidate_id].mutual_friends.insert(following_id);
-                        candidate_scores[candidate_id].score += mutual_friend_weight_;
-                        
-                        // Add follower count as secondary factor
+                        if (candidate_id == user_id || user_following.count(candidate_id)) continue;
+                        candidate_scores[candidate_id] += mutual_friend_weight_;
+                        candidate_mutuals[candidate_id].insert(following_id);
                         auto metrics_it = user_metrics_.find(candidate_id);
                         if (metrics_it != user_metrics_.end()) {
-                            candidate_scores[candidate_id].follower_count = metrics_it->second.follower_count;
-                            candidate_scores[candidate_id].score += std::log(metrics_it->second.follower_count + 1) * 0.1;
+                            candidate_scores[candidate_id] += std::log(metrics_it->second.follower_count + 1) * 0.1;
                         }
                     }
                 }
             }
-            
-            // Convert to recommendations and sort
             std::vector<json> recommendations;
-            for (const auto& [candidate_id, score_data] : candidate_scores) {
+            for (const auto& [candidate_id, score] : candidate_scores) {
                 json rec = {
                     {"user_id", candidate_id},
-                    {"score", score_data.score},
-                    {"mutual_friend_count", score_data.mutual_friends.size()},
-                    {"follower_count", score_data.follower_count},
-                    {"reason", "mutual_friends"},
-                    {"mutual_friends", std::vector<std::string>(score_data.mutual_friends.begin(), 
-                                                               score_data.mutual_friends.end())}
+                    {"score", score},
+                    {"mutual_friend_count", candidate_mutuals[candidate_id].size()},
                 };
                 recommendations.push_back(rec);
             }
-            
-            // Sort by score (descending)
             std::sort(recommendations.begin(), recommendations.end(),
-                     [](const json& a, const json& b) {
-                         return a["score"].get<double>() > b["score"].get<double>();
-                     });
+                       [](const json& a, const json& b) { return a["score"].get<double>() > b["score"].get<double>(); });
             
             // Cache results
             cache_recommendations(cache_key, recommendations);
@@ -294,87 +272,46 @@ std::future<std::vector<json>> SocialGraph::get_interest_based_recommendations(c
                 return limited;
             }
             
-            std::unordered_map<std::string, InterestScore> candidate_scores;
-            
+            std::unordered_map<std::string, double> candidate_scores;
             {
                 std::shared_lock<std::shared_mutex> lock(graph_mutex_);
-                
-                // Get user's following list
                 auto user_following_it = adjacency_list_.find(user_id);
                 if (user_following_it == adjacency_list_.end()) {
-                    return std::vector<json>{}; // User follows no one
+                    return std::vector<json>{};
                 }
-                
                 const auto& user_following = user_following_it->second;
-                
-                // Build interest profile based on who user follows
                 std::unordered_map<std::string, double> interest_weights;
                 for (const auto& following_id : user_following) {
-                    // Simulate interest categories (in real implementation, would use ML/NLP)
                     auto interests = simulate_user_interests(following_id);
-                    for (const auto& [interest, weight] : interests) {
-                        interest_weights[interest] += weight;
-                    }
+                    for (const auto& [interest, weight] : interests) interest_weights[interest] += weight;
                 }
-                
-                // Normalize interest weights
                 double total_weight = 0.0;
-                for (const auto& [interest, weight] : interest_weights) {
-                    total_weight += weight;
-                }
-                
+                for (const auto& [interest, weight] : interest_weights) total_weight += weight;
                 if (total_weight > 0) {
-                    for (auto& [interest, weight] : interest_weights) {
-                        weight /= total_weight;
-                    }
+                    for (auto& [interest, weight] : interest_weights) weight /= total_weight;
                 }
-                
-                // Find users with similar interests
                 for (const auto& [candidate_id, metrics] : user_metrics_) {
-                    if (candidate_id == user_id || user_following.count(candidate_id)) {
-                        continue; // Skip self and already following
-                    }
-                    
+                    if (candidate_id == user_id || user_following.count(candidate_id)) continue;
                     auto candidate_interests = simulate_user_interests(candidate_id);
                     double similarity_score = 0.0;
-                    
-                    // Compute cosine similarity
                     for (const auto& [interest, user_weight] : interest_weights) {
                         auto it = candidate_interests.find(interest);
-                        if (it != candidate_interests.end()) {
-                            similarity_score += user_weight * it->second;
-                        }
+                        if (it != candidate_interests.end()) similarity_score += user_weight * it->second;
                     }
-                    
-                    if (similarity_score > 0.1) { // Minimum similarity threshold
-                        candidate_scores[candidate_id].similarity_score = similarity_score;
-                        candidate_scores[candidate_id].score = similarity_score * interest_weight_;
-                        candidate_scores[candidate_id].follower_count = metrics.follower_count;
-                        
-                        // Boost score based on follower count
-                        candidate_scores[candidate_id].score += std::log(metrics.follower_count + 1) * 0.05;
+                    if (similarity_score > 0.1) {
+                        double score = similarity_score * interest_weight_;
+                        score += std::log(metrics.follower_count + 1) * 0.05;
+                        candidate_scores[candidate_id] = score;
                     }
                 }
             }
-            
-            // Convert to recommendations and sort
             std::vector<json> recommendations;
-            for (const auto& [candidate_id, score_data] : candidate_scores) {
-                json rec = {
-                    {"user_id", candidate_id},
-                    {"score", score_data.score},
-                    {"similarity_score", score_data.similarity_score},
-                    {"follower_count", score_data.follower_count},
-                    {"reason", "similar_interests"}
-                };
+            for (const auto& [candidate_id, score] : candidate_scores) {
+                json rec = {{"user_id", candidate_id}, {"score", score}};
                 recommendations.push_back(rec);
             }
-            
-            // Sort by score (descending)
             std::sort(recommendations.begin(), recommendations.end(),
-                     [](const json& a, const json& b) {
-                         return a["score"].get<double>() > b["score"].get<double>();
-                     });
+                       [](const json& a, const json& b) { return a["score"].get<double>() > b["score"].get<double>(); });
             
             // Cache results
             cache_recommendations(cache_key, recommendations);

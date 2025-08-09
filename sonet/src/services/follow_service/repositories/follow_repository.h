@@ -17,6 +17,7 @@
 #include <future>
 #include <chrono>
 #include <unordered_map>
+#include <set>
 #include <nlohmann/json.hpp>
 
 namespace sonet::follow::repositories {
@@ -570,6 +571,7 @@ protected:
         const std::vector<json>& operations
     );
 
+    void track_operation_performance(const std::string& operation, int64_t duration_us);
 private:
     // ========== MEMBER VARIABLES ==========
     
