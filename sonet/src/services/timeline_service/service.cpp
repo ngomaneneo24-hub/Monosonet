@@ -109,6 +109,9 @@ grpc::Status TimelineServiceImpl::GetTimeline(
             config.algorithm = request->algorithm();
         }
 
+        // Allow A/B overrides via metadata
+        ApplyABOverridesFromMetadata(context, config);
+
         // Try cache first
         std::vector<RankedTimelineItem> timeline_items;
         bool cache_hit = cache_->GetTimeline(request->user_id(), timeline_items);
@@ -308,7 +311,7 @@ grpc::Status TimelineServiceImpl::RecordEngagement(
 }
 
 grpc::Status TimelineServiceImpl::GetForYouTimeline(
-    grpc::ServerContext* /*context*/,
+    grpc::ServerContext* context,
     const ::sonet::timeline::GetForYouTimelineRequest* request,
     ::sonet::timeline::GetForYouTimelineResponse* response
 ) {
@@ -320,6 +323,7 @@ grpc::Status TimelineServiceImpl::GetForYouTimeline(
         config.algorithm == ::sonet::timeline::TIMELINE_ALGORITHM_CHRONOLOGICAL) {
         config.algorithm = ::sonet::timeline::TIMELINE_ALGORITHM_HYBRID;
     }
+    ApplyABOverridesFromMetadata(context, config);
     auto since = std::chrono::system_clock::now() - std::chrono::hours(config.max_age_hours);
     auto items = GenerateTimeline(request->user_id(), config, since, config.max_items);
  
@@ -361,7 +365,7 @@ grpc::Status TimelineServiceImpl::GetForYouTimeline(
 }
 
 grpc::Status TimelineServiceImpl::GetFollowingTimeline(
-    grpc::ServerContext* /*context*/,
+    grpc::ServerContext* context,
     const ::sonet::timeline::GetFollowingTimelineRequest* request,
     ::sonet::timeline::GetFollowingTimelineResponse* response
 ) {
@@ -370,6 +374,7 @@ grpc::Status TimelineServiceImpl::GetFollowingTimeline(
     }
     TimelineConfig config = GetUserTimelineConfig(request->user_id());
     config.algorithm = ::sonet::timeline::TIMELINE_ALGORITHM_CHRONOLOGICAL;
+    ApplyABOverridesFromMetadata(context, config);
     config.following_content_ratio = 1.0;
     config.recommended_content_ratio = 0.0;
     config.trending_content_ratio = 0.0;
@@ -664,6 +669,7 @@ std::string TimelineServiceImpl::GetMetadataValue(grpc::ServerContext* context, 
 }
 
 bool TimelineServiceImpl::IsAuthorized(grpc::ServerContext* context, const std::string& user_id) {
+
     // Check x-user-id metadata matches requested user
     std::string caller_id = GetMetadataValue(context, "x-user-id");
     if (!caller_id.empty() && caller_id != user_id) {
@@ -684,6 +690,30 @@ bool TimelineServiceImpl::IsAuthorized(grpc::ServerContext* context, const std::
     }
     
     return true;
+}
+
+void TimelineServiceImpl::ApplyABOverridesFromMetadata(grpc::ServerContext* context, TimelineConfig& config) {
+    if (!context) return;
+    auto parse_double = [&](const std::string& key, double& target) {
+        auto v = GetMetadataValue(context, key);
+        if (!v.empty()) {
+            try { target = std::stod(v); } catch (...) {}
+        }
+    };
+    auto parse_int = [&](const std::string& key, int32_t& target) {
+        auto v = GetMetadataValue(context, key);
+        if (!v.empty()) {
+            try { target = std::stoi(v); } catch (...) {}
+        }
+    };
+    parse_double("x-ab-following-weight", config.ab_following_weight);
+    parse_double("x-ab-recommended-weight", config.ab_recommended_weight);
+    parse_double("x-ab-trending-weight", config.ab_trending_weight);
+    parse_double("x-ab-lists-weight", config.ab_lists_weight);
+    parse_int("x-cap-following", config.cap_following);
+    parse_int("x-cap-recommended", config.cap_recommended);
+    parse_int("x-cap-trending", config.cap_trending);
+    parse_int("x-cap-lists", config.cap_lists);
 }
 
 // ============= EVENT HANDLERS =============

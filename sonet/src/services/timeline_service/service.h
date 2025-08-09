@@ -375,6 +375,8 @@ private:
     std::string GetMetadataValue(grpc::ServerContext* context, const std::string& key);
     bool IsAuthorized(grpc::ServerContext* context, const std::string& user_id);
     
+    void ApplyABOverridesFromMetadata(grpc::ServerContext* context, TimelineConfig& config);
+    
     // Components
     std::shared_ptr<TimelineCache> cache_;
     std::shared_ptr<ContentFilter> content_filter_;
