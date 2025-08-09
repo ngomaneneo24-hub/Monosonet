@@ -324,6 +324,29 @@ grpc::Status TimelineServiceImpl::GetForYouTimeline(
         config.algorithm = ::sonet::timeline::TIMELINE_ALGORITHM_HYBRID;
     }
     ApplyABOverridesFromMetadata(context, config);
+    // Discovery toggles from headers (For You only)
+    auto disc = GetMetadataValue(context, "x-discovery-share");
+    if (!disc.empty()) {
+        try {
+            double share = std::stod(disc); // 0..1
+            share = std::max(0.0, std::min(1.0, share));
+            // Scale non-following ratios proportionally
+            double non_following = config.recommended_content_ratio + config.trending_content_ratio + config.lists_content_ratio;
+            if (non_following > 0.0) {
+                double scale = (share) / non_following;
+                config.recommended_content_ratio *= scale;
+                config.trending_content_ratio *= scale;
+                config.lists_content_ratio *= scale;
+                config.following_content_ratio = 1.0 - share;
+            }
+        } catch (...) {}
+    }
+    auto cap_rec = GetMetadataValue(context, "x-cap-recommended-for-you");
+    if (!cap_rec.empty()) { try { config.cap_recommended = std::stoi(cap_rec); } catch (...) {} }
+    auto cap_tr = GetMetadataValue(context, "x-cap-trending-for-you");
+    if (!cap_tr.empty()) { try { config.cap_trending = std::stoi(cap_tr); } catch (...) {} }
+    auto cap_ls = GetMetadataValue(context, "x-cap-lists-for-you");
+    if (!cap_ls.empty()) { try { config.cap_lists = std::stoi(cap_ls); } catch (...) {} }
     auto since = std::chrono::system_clock::now() - std::chrono::hours(config.max_age_hours);
     auto items = GenerateTimeline(request->user_id(), config, since, config.max_items);
  
@@ -726,6 +749,10 @@ void TimelineServiceImpl::OnNewNote(const ::sonet::note::Note& note) {
     
     // TODO: Trigger fanout process for this note
     // fanout_service_->InitiateFanout(note);
+
+    // Notify streaming subscribers for the author followers (best-effort)
+    ::sonet::timeline::TimelineUpdate upd;
+    PushUpdateToSubscribers(note.author_id(), upd);
 }
 
 void TimelineServiceImpl::OnNoteDeleted(const std::string& note_id, const std::string& author_id) {
@@ -736,6 +763,9 @@ void TimelineServiceImpl::OnNoteDeleted(const std::string& note_id, const std::s
     
     // TODO: Notify real-time subscribers about deletion
     // realtime_notifier_->NotifyItemDeleted("*", note_id);
+
+    ::sonet::timeline::TimelineUpdate upd;
+    PushUpdateToSubscribers(author_id, upd);
 }
 
 void TimelineServiceImpl::OnFollowEvent(const std::string& follower_id, const std::string& following_id, bool is_follow) {
@@ -756,8 +786,9 @@ void TimelineServiceImpl::OnNoteUpdated(const ::sonet::note::Note& note) {
     // Optionally notify live connections (best-effort)
     ::sonet::timeline::TimelineUpdate update;
     if (realtime_notifier_) {
-        // We only have user-targeted notifications; broadcast would require tracking
-        // Here we do nothing; upstream services should call NotifyItemUpdate with specific users
+        // Also push to streaming sessions
+        ::sonet::timeline::TimelineUpdate upd;
+        PushUpdateToSubscribers(note.author_id(), upd);
     }
 }
 
@@ -908,6 +939,25 @@ grpc::Status TimelineServiceImpl::GetTimelinePreferences(
     }
 }
 
+void TimelineServiceImpl::PushUpdateToSubscribers(const std::string& user_id, const ::sonet::timeline::TimelineUpdate& update) {
+    std::lock_guard<std::mutex> lock(stream_mutex_);
+    auto it = stream_sessions_.find(user_id);
+    if (it == stream_sessions_.end()) return;
+    auto& vec = it->second;
+    for (auto iter = vec.begin(); iter != vec.end();) {
+        if (auto sp = iter->lock()) {
+            {
+                std::lock_guard<std::mutex> ql(sp->mutex);
+                sp->pending_updates.push_back(update);
+            }
+            sp->cv.notify_one();
+            ++iter;
+        } else {
+            iter = vec.erase(iter);
+        }
+    }
+}
+
 grpc::Status TimelineServiceImpl::SubscribeTimelineUpdates(
     grpc::ServerContext* /*context*/,
     const ::sonet::timeline::SubscribeTimelineUpdatesRequest* request,
@@ -915,13 +965,49 @@ grpc::Status TimelineServiceImpl::SubscribeTimelineUpdates(
 ) {
     if (!writer || !request) return grpc::Status::OK;
 
-    // Send periodic heartbeat updates and a synthetic bulk refresh to simulate streaming
-    for (int i = 0; i < 3; ++i) {
-        ::sonet::timeline::TimelineUpdate update;
-        // UPDATE_TYPE_BULK_REFRESH not in stub; use UPDATE_TYPE_ITEM_CHANGED equivalent
-        writer->Write(update);
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    auto session = std::make_shared<StreamSession>();
+    {
+        std::lock_guard<std::mutex> lock(stream_mutex_);
+        stream_sessions_[request->user_id()].push_back(session);
     }
+
+    // Lightweight token-bucket rate limiter per stream
+    const int max_msgs_per_sec = 5;
+    int tokens = max_msgs_per_sec;
+    auto last_refill = std::chrono::steady_clock::now();
+
+    while (session->open.load()) {
+        // Refill tokens
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_refill).count();
+        if (elapsed_ms >= 1000) {
+            tokens = max_msgs_per_sec;
+            last_refill = now;
+        }
+
+        ::sonet::timeline::TimelineUpdate update;
+        {
+            std::unique_lock<std::mutex> uq(session->mutex);
+            if (session->pending_updates.empty()) {
+                session->cv.wait_for(uq, std::chrono::milliseconds(500));
+            }
+            if (!session->pending_updates.empty()) {
+                update = session->pending_updates.front();
+                session->pending_updates.pop_front();
+            } else {
+                // heartbeat
+                // update defaults
+            }
+        }
+
+        if (tokens > 0) {
+            writer->Write(update);
+            tokens--;
+        } else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
+
     return grpc::Status::OK;
 }
 

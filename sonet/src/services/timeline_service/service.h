@@ -16,6 +16,8 @@
 #include <future>
 #include <atomic>
 #include <shared_mutex>
+#include <condition_variable>
+#include <deque>
 
 // Stub includes for compilation testing
 #include "../../../proto/grpc_stub.h"
@@ -376,6 +378,17 @@ private:
     bool IsAuthorized(grpc::ServerContext* context, const std::string& user_id);
     
     void ApplyABOverridesFromMetadata(grpc::ServerContext* context, TimelineConfig& config);
+    
+    // Streaming updates support
+    struct StreamSession {
+        std::mutex mutex;
+        std::condition_variable cv;
+        std::deque<::sonet::timeline::TimelineUpdate> pending_updates;
+        std::atomic<bool> open{true};
+    };
+    void PushUpdateToSubscribers(const std::string& user_id, const ::sonet::timeline::TimelineUpdate& update);
+    std::unordered_map<std::string, std::vector<std::weak_ptr<StreamSession>>> stream_sessions_;
+    std::mutex stream_mutex_;
     
     // Components
     std::shared_ptr<TimelineCache> cache_;
