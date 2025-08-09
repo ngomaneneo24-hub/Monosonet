@@ -2,56 +2,6 @@
 // Copyright (c) 2025 Neo Qiss
 // All rights reserved.
 //
-// // User engagement profile for ML ranking
-struct UserEngagementProfile {
-    std::string user_id;
-    std::chrono::system_clock::time_point last_updated;
-    double avg_session_length_minutes = 15.0;
-    double daily_engagement_score = 0.5;
-    std::unordered_set<std::string> following_ids;
-    std::unordered_set<std::string> interested_hashtags;
-};
-
-// Timeline configuration
-struct TimelineConfig {
-    ::sonet::timeline::TimelineAlgorithm algorithm;
-    int32_t max_items = 50;
-    int32_t max_age_hours = 24;
-    double min_score_threshold = 0.1;
-    
-    // Algorithm weights
-    double recency_weight = 0.3;
-    double engagement_weight = 0.25;
-    double author_affinity_weight = 0.2;
-    double content_quality_weight = 0.15;
-    double diversity_weight = 0.1;
-    
-    // Content mix ratios
-    double following_content_ratio = 0.7;
-    double recommended_content_ratio = 0.2;
-    double trending_content_ratio = 0.1;
-};
-
-// Content filter preferences
-struct ContentFilterPreferences {
-    bool filter_nsfw = true;
-    bool filter_spoilers = true;
-    bool filter_violence = false;
-    std::vector<std::string> blocked_keywords;
-    std::vector<std::string> blocked_users;
-};
-
-// Engagement event for ML training
-struct EngagementEvent {
-    std::string user_id;
-    std::string author_id;
-    std::string note_id;
-    std::string action; // like, repost, reply, etc.
-    double duration_seconds;
-    std::chrono::system_clock::time_point timestamp;
-};oprietary and confidential.
-// Unauthorized copying, distribution, or use is strictly prohibited.
-//
 
 #pragma once
 
@@ -64,6 +14,8 @@ struct EngagementEvent {
 #include <mutex>
 #include <queue>
 #include <future>
+#include <atomic>
+#include <shared_mutex>
 
 // Stub includes for compilation testing
 #include "../../../proto/grpc_stub.h"
@@ -77,13 +29,22 @@ class RankingEngine;
 class ContentFilter;
 class RealtimeNotifier;
 
+// Content filter preferences
+struct ContentFilterPreferences {
+    bool filter_nsfw = true;
+    bool filter_spoilers = true;
+    bool filter_violence = false;
+    std::vector<std::string> blocked_keywords;
+    std::vector<std::string> blocked_users;
+};
+
 // Timeline item with computed ranking data
 struct RankedTimelineItem {
     ::sonet::note::Note note;
     ::sonet::timeline::ContentSource source;
     ::sonet::timeline::RankingSignals signals;
-    double final_score;
-    std::chrono::system_clock::time_point injected_at;
+    double final_score = 0.0;
+    std::chrono::system_clock::time_point injected_at{};
     std::string injection_reason;
     
     // For sorting by score
@@ -95,14 +56,19 @@ struct RankedTimelineItem {
 // User engagement profile for personalization
 struct UserEngagementProfile {
     std::string user_id;
+
+    // Relationships and mutes
+    std::unordered_set<std::string> following_ids;
+    std::unordered_set<std::string> muted_users;
+    std::unordered_set<std::string> muted_keywords;
+
+    // Interests and affinities
     std::unordered_map<std::string, double> author_affinity;      // author_id -> affinity score
     std::unordered_map<std::string, double> hashtag_interests;    // hashtag -> interest score
     std::unordered_map<std::string, double> topic_interests;      // topic -> interest score
-    std::unordered_set<std::string> muted_users;
-    std::unordered_set<std::string> muted_keywords;
-    std::chrono::system_clock::time_point last_updated;
-    
+
     // Engagement statistics
+    std::chrono::system_clock::time_point last_updated{};
     double avg_session_length_minutes = 0.0;
     double daily_engagement_score = 0.0;
     int32_t posts_per_day = 0;
@@ -129,18 +95,32 @@ struct TimelineConfig {
     double trending_content_ratio = 0.1;
 };
 
+// Engagement event for ML training
+struct EngagementEvent {
+    std::string user_id;
+    std::string author_id;
+    std::string note_id;
+    std::string action; // like, renote, reply, follow, hide
+    double duration_seconds = 0.0;
+    std::chrono::system_clock::time_point timestamp{};
+};
+
 // Content ranking engine interface
 class RankingEngine {
 public:
     virtual ~RankingEngine() = default;
     
-    // Score a single note for a user
+    // Score a single note for a user (default implementation uses batch scorer)
     virtual double ScoreNote(
         const ::sonet::note::Note& note,
         const std::string& user_id,
         const UserEngagementProfile& profile,
         const TimelineConfig& config
-    ) = 0;
+    ) {
+        std::vector<::sonet::note::Note> single{note};
+        auto scored = ScoreNotes(single, user_id, profile, config);
+        return scored.empty() ? 0.0 : scored.front().final_score;
+    }
     
     // Batch score multiple notes
     virtual std::vector<RankedTimelineItem> ScoreNotes(
@@ -151,11 +131,16 @@ public:
     ) = 0;
     
     // Update ML models with user feedback
-    virtual void UpdateWithFeedback(
+    virtual void UpdateUserEngagement(
         const std::string& user_id,
         const std::string& note_id,
-        const std::string& action,  // "like", "share", "skip", "hide"
-        double engagement_time_seconds
+        const std::string& action,  // "like", "renote", "reply", "follow", "hide"
+        double duration_seconds
+    ) = 0;
+
+    // Train from historical engagement data
+    virtual void TrainOnEngagementData(
+        const std::vector<EngagementEvent>& events
     ) = 0;
 };
 
@@ -164,12 +149,12 @@ class ContentFilter {
 public:
     virtual ~ContentFilter() = default;
     
-    // Check if note should be shown to user
+    // Check if note should be shown to user (default allow)
     virtual bool ShouldShowNote(
-        const ::sonet::note::Note& note,
-        const std::string& user_id,
-        const UserEngagementProfile& profile
-    ) = 0;
+        const ::sonet::note::Note& /*note*/,
+        const std::string& /*user_id*/,
+        const UserEngagementProfile& /*profile*/
+    ) { return true; }
     
     // Filter out inappropriate content
     virtual std::vector<::sonet::note::Note> FilterNotes(
@@ -177,6 +162,17 @@ public:
         const std::string& user_id,
         const UserEngagementProfile& profile
     ) = 0;
+
+    // Preference/mute management
+    virtual void UpdateUserPreferences(
+        const std::string& user_id,
+        const ContentFilterPreferences& preferences
+    ) = 0;
+
+    virtual void AddMutedUser(const std::string& user_id, const std::string& muted_user_id) = 0;
+    virtual void RemoveMutedUser(const std::string& user_id, const std::string& muted_user_id) = 0;
+    virtual void AddMutedKeyword(const std::string& user_id, const std::string& keyword) = 0;
+    virtual void RemoveMutedKeyword(const std::string& user_id, const std::string& keyword) = 0;
 };
 
 // Timeline caching layer
@@ -186,7 +182,11 @@ public:
     
     // Cache operations
     virtual bool GetTimeline(const std::string& user_id, std::vector<RankedTimelineItem>& items) = 0;
-    virtual void SetTimeline(const std::string& user_id, const std::vector<RankedTimelineItem>& items) = 0;
+    virtual void SetTimeline(
+        const std::string& user_id,
+        const std::vector<RankedTimelineItem>& items,
+        std::chrono::seconds ttl = std::chrono::seconds(3600)
+    ) = 0;
     virtual void InvalidateTimeline(const std::string& user_id) = 0;
     virtual void InvalidateAuthorTimelines(const std::string& author_id) = 0;
     
@@ -307,6 +307,7 @@ private:
     // Content source integration
     std::vector<::sonet::note::Note> FetchFollowingContent(
         const std::string& user_id,
+        const TimelineConfig& config,
         std::chrono::system_clock::time_point since,
         int32_t limit
     );
@@ -314,11 +315,13 @@ private:
     std::vector<::sonet::note::Note> FetchRecommendedContent(
         const std::string& user_id,
         const UserEngagementProfile& profile,
+        const TimelineConfig& config,
         int32_t limit
     );
     
     std::vector<::sonet::note::Note> FetchTrendingContent(
         const std::string& user_id,
+        const TimelineConfig& config,
         int32_t limit
     );
     
@@ -354,29 +357,12 @@ private:
     std::unordered_map<std::string, std::atomic<uint64_t>> metrics_;
     mutable std::mutex metrics_mutex_;
     
+    // Internal user preferences storage (in-memory for now)
+    std::unordered_map<std::string, ::sonet::timeline::TimelinePreferences> user_preferences_;
+    mutable std::mutex preferences_mutex_;
+    
     // Thread safety
     mutable std::shared_mutex service_mutex_;
 };
-
-// Factory functions for creating implementations
-std::unique_ptr<RankingEngine> CreateMLRankingEngine(const std::string& model_path = "");
-std::unique_ptr<ContentFilter> CreateAdvancedContentFilter();
-std::unique_ptr<TimelineCache> CreateRedisTimelineCache(const std::string& redis_url);
-std::unique_ptr<RealtimeNotifier> CreateWebSocketNotifier();
-
-// Content source adapters
-std::unique_ptr<ContentSourceAdapter> CreateFollowingContentAdapter(
-    std::shared_ptr<::sonet::note::NoteService::Stub> note_service,
-    std::shared_ptr<::sonet::follow::FollowService::Stub> follow_service
-);
-
-std::unique_ptr<ContentSourceAdapter> CreateTrendingContentAdapter(
-    std::shared_ptr<::sonet::note::NoteService::Stub> note_service
-);
-
-std::unique_ptr<ContentSourceAdapter> CreateRecommendedContentAdapter(
-    std::shared_ptr<::sonet::note::NoteService::Stub> note_service,
-    const std::string& recommendation_model_path = ""
-);
 
 } // namespace sonet::timeline

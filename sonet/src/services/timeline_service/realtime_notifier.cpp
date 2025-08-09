@@ -11,6 +11,7 @@
 #include <sstream>
 #include <thread>
 #include <random>
+#include <algorithm>
 
 namespace sonet::timeline {
 
@@ -37,11 +38,37 @@ namespace {
         return oss.str();
     }
 
+    // Escape string for JSON
+    std::string JsonEscape(const std::string& s) {
+        std::string out;
+        out.reserve(s.size() + 16);
+        for (unsigned char c : s) {
+            switch (c) {
+                case '"': out += "\\\""; break;
+                case '\\': out += "\\\\"; break;
+                case '\b': out += "\\b"; break;
+                case '\f': out += "\\f"; break;
+                case '\n': out += "\\n"; break;
+                case '\r': out += "\\r"; break;
+                case '\t': out += "\\t"; break;
+                default:
+                    if (c < 0x20) {
+                        char buf[7];
+                        std::snprintf(buf, sizeof(buf), "\\u%04x", c);
+                        out += buf;
+                    } else {
+                        out.push_back(static_cast<char>(c));
+                    }
+            }
+        }
+        return out;
+    }
+
     // Simple JSON message formatting
     std::string FormatJsonMessage(const std::string& type, const std::string& data) {
         std::ostringstream oss;
         oss << "{"
-            << "\"type\":\"" << type << "\","
+            << "\"type\":\"" << JsonEscape(type) << "\"," 
             << "\"timestamp\":" << std::chrono::duration_cast<std::chrono::milliseconds>(
                    std::chrono::system_clock::now().time_since_epoch()).count() << ","
             << "\"data\":" << data
@@ -67,16 +94,16 @@ void WebSocketRealtimeNotifier::NotifyNewItems(
     if (items.empty()) return;
     
     std::ostringstream data_stream;
-    data_stream << "{\"user_id\":\"" << user_id << "\",\"new_items\":[";
+    data_stream << "{\"user_id\":\"" << JsonEscape(user_id) << "\",\"new_items\":[";
     
     for (size_t i = 0; i < items.size(); ++i) {
         if (i > 0) data_stream << ",";
         
         const auto& item = items[i];
         data_stream << "{"
-                   << "\"note_id\":\"" << item.note.id() << "\","
-                   << "\"author_id\":\"" << item.note.author_id() << "\","
-                   << "\"content\":\"" << item.note.content() << "\","
+                   << "\"note_id\":\"" << JsonEscape(item.note.id()) << "\"," 
+                   << "\"author_id\":\"" << JsonEscape(item.note.author_id()) << "\"," 
+                   << "\"content\":\"" << JsonEscape(item.note.content()) << "\"," 
                    << "\"final_score\":" << item.final_score
                    << "}";
     }
@@ -96,9 +123,9 @@ void WebSocketRealtimeNotifier::NotifyItemUpdate(
 ) {
     std::ostringstream data_stream;
     data_stream << "{"
-               << "\"user_id\":\"" << user_id << "\","
-               << "\"item_id\":\"" << item_id << "\","
-               << "\"update_type\":\"" << static_cast<int>(update.update_type()) << "\""
+               << "\"user_id\":\"" << JsonEscape(user_id) << "\"," 
+               << "\"item_id\":\"" << JsonEscape(item_id) << "\"," 
+               << "\"update_type\":\"" << static_cast<int>(update.update_type()) << "\"" 
                << "}";
     
     std::string message = FormatJsonMessage("item_update", data_stream.str());
@@ -113,8 +140,8 @@ void WebSocketRealtimeNotifier::NotifyItemDeleted(
 ) {
     std::ostringstream data_stream;
     data_stream << "{"
-               << "\"user_id\":\"" << user_id << "\","
-               << "\"item_id\":\"" << item_id << "\""
+               << "\"user_id\":\"" << JsonEscape(user_id) << "\"," 
+               << "\"item_id\":\"" << JsonEscape(item_id) << "\"" 
                << "}";
     
     std::string message = FormatJsonMessage("item_deleted", data_stream.str());

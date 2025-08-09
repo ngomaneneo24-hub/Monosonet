@@ -47,7 +47,7 @@ namespace note {
     struct NoteMetrics {
         int32_t views_ = 0;
         int32_t likes_ = 0;
-        int32_t reposts_ = 0;
+        int32_t reposts_ = 0; // renotes in product terminology
         int32_t replies_ = 0;
         int32_t quotes_ = 0;
         
@@ -169,6 +169,32 @@ namespace timeline {
         sonet::common::Timestamp* mutable_last_updated() { return &last_updated; }
         sonet::common::Timestamp* mutable_last_user_read() { return &last_user_read; }
     };
+
+    struct TimelinePreferences {
+        TimelineAlgorithm preferred_algorithm_ = TIMELINE_ALGORITHM_UNKNOWN;
+        bool show_replies_ = true;
+        bool show_reposts_ = true; // renotes shown
+        bool show_recommended_content_ = true;
+        bool show_trending_content_ = true;
+        bool sensitive_content_warning_ = true;
+        int32_t timeline_refresh_minutes_ = 5;
+
+        TimelineAlgorithm algorithm() const { return preferred_algorithm_; }
+        bool show_recommended_content() const { return show_recommended_content_; }
+        bool show_trending_content() const { return show_trending_content_; }
+        // Convenience for compatibility with service config builder
+        int32_t max_items() const { return 0; }
+        int32_t max_age_hours() const { return 0; }
+        double min_score_threshold() const { return 0.0; }
+        double recency_weight() const { return 0.0; }
+        double engagement_weight() const { return 0.0; }
+        double author_affinity_weight() const { return 0.0; }
+        double content_quality_weight() const { return 0.0; }
+        double diversity_weight() const { return 0.0; }
+        double following_content_ratio() const { return 0.0; }
+        double recommended_content_ratio() const { return 0.0; }
+        double trending_content_ratio() const { return 0.0; }
+    };
     
     // Stub gRPC service requests/responses
     struct GetTimelineRequest {
@@ -265,12 +291,45 @@ namespace timeline {
     };
     
     // Additional stub requests for completeness
-    struct GetUserTimelineRequest { std::string user_id() const { return ""; } };
-    struct GetUserTimelineResponse { void set_success(bool) {} };
-    struct UpdateTimelinePreferencesRequest { std::string user_id() const { return ""; } };
-    struct UpdateTimelinePreferencesResponse { void set_success(bool) {} };
-    struct GetTimelinePreferencesRequest { std::string user_id() const { return ""; } };
-    struct GetTimelinePreferencesResponse { void set_success(bool) {} };
+    struct GetUserTimelineRequest {
+        std::string target_user_id_;
+        std::string requesting_user_id_;
+        sonet::common::Pagination pagination_;
+        bool include_replies_ = false;
+        bool include_reposts_ = true;
+        
+        std::string target_user_id() const { return target_user_id_; }
+        std::string requesting_user_id() const { return requesting_user_id_; }
+        const sonet::common::Pagination& pagination() const { return pagination_; }
+        bool include_replies() const { return include_replies_; }
+        bool include_reposts() const { return include_reposts_; }
+    };
+    
+    struct GetUserTimelineResponse {
+        std::vector<TimelineItem> items_;
+        sonet::common::Pagination pagination_;
+        bool success_ = false;
+        std::string error_message_;
+        
+        TimelineItem* add_items() { items_.emplace_back(); return &items_.back(); }
+        sonet::common::Pagination* mutable_pagination() { return &pagination_; }
+        void set_success(bool s) { success_ = s; }
+        void set_error_message(const std::string& e) { error_message_ = e; }
+    };
+
+    struct UpdateTimelinePreferencesRequest {
+        std::string user_id_;
+        TimelinePreferences preferences_;
+        std::string user_id() const { return user_id_; }
+        const TimelinePreferences& preferences() const { return preferences_; }
+    };
+
+    struct UpdateTimelinePreferencesResponse { void set_success(bool) {} void set_error_message(const std::string&) {} };
+
+    struct GetTimelinePreferencesRequest { std::string user_id_ ; std::string user_id() const { return user_id_; } };
+
+    struct GetTimelinePreferencesResponse { TimelinePreferences preferences_; void set_success(bool) {} void set_error_message(const std::string&) {} };
+    
     struct SubscribeTimelineUpdatesRequest { std::string user_id() const { return ""; } };
     
     // Timeline service base class
