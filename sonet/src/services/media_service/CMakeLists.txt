@@ -13,6 +13,14 @@ project(media_service LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(ENABLE_COVERAGE "Enable coverage flags" OFF)
+
+if(ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+	message(STATUS "Coverage enabled for media_service")
+	add_compile_options(--coverage -O0 -g)
+	add_link_options(--coverage)
+endif()
+
 find_package(Threads REQUIRED)
 
 file(GLOB MEDIA_SERVICE_SOURCES
@@ -123,4 +131,18 @@ if(OpenSSL_FOUND)
 endif()
 
 install(TARGETS media_service RUNTIME DESTINATION bin)
+
+if(BUILD_TESTS)
+	add_executable(media_service_unit_tests
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/media_service_unit_tests.cpp
+	)
+	target_include_directories(media_service_unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+	target_link_libraries(media_service_unit_tests PRIVATE media_service)
+	if(ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+		target_compile_options(media_service_unit_tests PRIVATE --coverage -O0 -g)
+		target_link_options(media_service_unit_tests PRIVATE --coverage)
+	endif()
+	enable_testing()
+	add_test(NAME media_service_unit_tests COMMAND media_service_unit_tests)
+endif()
 
