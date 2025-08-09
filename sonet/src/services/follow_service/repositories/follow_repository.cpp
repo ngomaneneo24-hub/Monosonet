@@ -10,8 +10,9 @@
 #include <spdlog/spdlog.h>
 #include <chrono>
 #include <algorithm>
-#include <random>
 #include <sstream>
+#include <thread>
+#include <set>
 
 namespace sonet::follow::repositories {
 
@@ -183,68 +184,26 @@ std::future<bool> FollowRepository::is_following(
 ) {
     return std::async(std::launch::async, [this, follower_id, following_id]() {
         auto start = high_resolution_clock::now();
-        
         try {
-            // Check cache first
-            std::string cache_key = "following:" + follower_id + ":" + following_id;
-            
-            // Simulate cache lookup
-            bool cache_hit = (std::hash<std::string>{}(cache_key) % 10) < 7; // 70% cache hit rate
-            
-            if (cache_hit) {
-                cache_hits_++;
-                // Simulate cached result
-                bool cached_result = (std::hash<std::string>{}(follower_id + following_id) % 10) < 3; // 30% follow rate
-                
-                auto end = high_resolution_clock::now();
-                auto duration = duration_cast<microseconds>(end - start).count();
-                
-                track_operation_performance("is_following_cached", duration);
-                
-                spdlog::debug("🎯 Follow check (cached): {} -> {} = {} ({}μs)", 
-                             follower_id, following_id, cached_result, duration);
-                
-                return cached_result;
-            }
-            
-            cache_misses_++;
-            
-            // Query database
+            // Deterministic: skip simulated cache; perform simple existence check via execute_query
             std::string query = R"(
                 SELECT EXISTS(
                     SELECT 1 FROM follows 
                     WHERE follower_id = $1 AND following_id = $2 AND is_active = true
                 ) as exists
             )";
-            
-            json params = {
-                {"follower_id", follower_id},
-                {"following_id", following_id}
-            };
-            
+            json params = {{"follower_id", follower_id}, {"following_id", following_id}};
             auto result = execute_query(query, params).get();
             bool exists = result.value("exists", false);
-            
-            // Cache the result (simulated)
-            // cache_client_->set(cache_key, exists, 300); // 5 min TTL
-            
             auto end = high_resolution_clock::now();
             auto duration = duration_cast<microseconds>(end - start).count();
-            
             track_operation_performance("is_following", duration);
-            query_count_++;
-            
-            spdlog::debug("✅ Follow check (db): {} -> {} = {} ({}μs)", 
-                         follower_id, following_id, exists, duration);
-            
+            spdlog::debug("✅ Follow check (db): {} -> {} = {} ({}μs)", follower_id, following_id, exists, duration);
             return exists;
-            
         } catch (const std::exception& e) {
             auto end = high_resolution_clock::now();
             auto duration = duration_cast<microseconds>(end - start).count();
-            
-            spdlog::error("❌ Follow check failed: {} -> {} - {} ({}μs)", 
-                         follower_id, following_id, e.what(), duration);
+            spdlog::error("❌ Follow check failed: {} -> {} - {} ({}μs)", follower_id, following_id, e.what(), duration);
             return false;
         }
     });
@@ -542,7 +501,7 @@ std::future<json> FollowRepository::get_followers(
             query_count_++;
             
             spdlog::debug("✅ Followers retrieved for {}: {} results in {}μs", 
-                         user_id, followers_result["count"], duration);
+                         user_id, followers_result.value("count", 0), duration);
             
             return followers_result;
             
@@ -691,69 +650,29 @@ std::future<json> FollowRepository::bulk_follow(
 
 // ========== ANALYTICS & METRICS ==========
 
-std::future<int64_t> FollowRepository::get_follower_count(const std::string& user_id, bool use_cache) {
-    return std::async(std::launch::async, [this, user_id, use_cache]() {
+std::future<int64_t> FollowRepository::get_follower_count(const std::string& user_id, bool /*use_cache*/) {
+    return std::async(std::launch::async, [this, user_id]() {
         auto start = high_resolution_clock::now();
-        
         try {
-            // Check cache first if requested
-            if (use_cache) {
-                std::string cache_key = "follower_count:" + user_id;
-                
-                // Simulate cache lookup (70% hit rate)
-                bool cache_hit = (std::hash<std::string>{}(cache_key) % 10) < 7;
-                
-                if (cache_hit) {
-                    cache_hits_++;
-                    // Simulate realistic follower count
-                    int64_t cached_count = std::hash<std::string>{}(user_id) % 10000;
-                    
-                    auto end = high_resolution_clock::now();
-                    auto duration = duration_cast<microseconds>(end - start).count();
-                    
-                    track_operation_performance("get_follower_count_cached", duration);
-                    
-                    spdlog::debug("🎯 Follower count (cached): {} = {} ({}μs)", user_id, cached_count, duration);
-                    
-                    return cached_count;
-                }
-                
-                cache_misses_++;
-            }
-            
-            // Query database
             std::string query = R"(
                 SELECT COUNT(*) as follower_count
                 FROM follows 
                 WHERE following_id = $1 AND is_active = true
             )";
-            
             json params = {{"following_id", user_id}};
-            
             auto result = execute_query(query, params).get();
-            
             int64_t count = 0;
             if (result.contains("rows") && result["rows"].is_array() && !result["rows"].empty()) {
                 count = result["rows"][0].value("follower_count", 0);
             }
-            
-            // Cache the result (simulated)
-            // cache_client_->set("follower_count:" + user_id, count, 300);
-            
             auto end = high_resolution_clock::now();
             auto duration = duration_cast<microseconds>(end - start).count();
-            
             track_operation_performance("get_follower_count", duration);
-            query_count_++;
-            
             spdlog::debug("✅ Follower count (db): {} = {} ({}μs)", user_id, count, duration);
-            
             return count;
-            
         } catch (const std::exception& e) {
             auto end = high_resolution_clock::now();
             auto duration = duration_cast<microseconds>(end - start).count();
-            
             spdlog::error("❌ Get follower count failed for {}: {} ({}μs)", user_id, e.what(), duration);
             return static_cast<int64_t>(0);
         }
@@ -885,34 +804,21 @@ std::future<json> FollowRepository::get_follower_analytics(const std::string& us
 
 // ========== HELPER METHODS ==========
 
-std::future<json> FollowRepository::execute_query(const std::string& query, const json& params) {
-    return std::async(std::launch::async, [this, query, params]() {
+std::future<json> FollowRepository::execute_query(const std::string& /*query*/, const json& /*params*/) {
+    return std::async(std::launch::async, [this]() {
         auto start = high_resolution_clock::now();
-        
         try {
-            // Simulate database query execution with realistic timing
-            thread_local std::mt19937 rng{std::random_device{}()};
-            std::uniform_int_distribution<int> delay_us_dist(100, 600);
-            std::uniform_int_distribution<int> query_time_dist(0, 999);
-            std::uniform_int_distribution<int> rows_affected_dist(0, 4);
-            
-            std::this_thread::sleep_for(std::chrono::microseconds(delay_us_dist(rng)));
-            
-            // Simulate successful result
+            // Deterministic stubbed result
             json result = {
                 {"success", true},
-                {"query_time_us", query_time_dist(rng)},
-                {"rows_affected", rows_affected_dist(rng)},
+                {"query_time_us", 0},
+                {"rows_affected", 0},
                 {"rows", json::array()}
             };
-            
             auto end = high_resolution_clock::now();
             auto duration = duration_cast<microseconds>(end - start).count();
-            
             avg_query_time_ = (avg_query_time_ + duration) / 2.0;
-            
             return result;
-            
         } catch (const std::exception& e) {
             spdlog::error("❌ Query execution failed: {}", e.what());
             throw;
@@ -931,9 +837,8 @@ void FollowRepository::track_operation_performance(const std::string& operation,
 }
 
 std::future<bool> FollowRepository::invalidate_user_cache(const std::string& user_id) {
-    return std::async(std::launch::async, [this, user_id]() {
+    return std::async(std::launch::async, [user_id]() {
         try {
-            // Invalidate all user-related cache keys
             std::vector<std::string> cache_keys = {
                 "follower_count:" + user_id,
                 "following_count:" + user_id,
@@ -941,14 +846,8 @@ std::future<bool> FollowRepository::invalidate_user_cache(const std::string& use
                 "following:" + user_id,
                 "social_metrics:" + user_id
             };
-            
-            // Simulate cache invalidation
-            for (const auto& key : cache_keys) {
-                // cache_client_->delete(key);
-            }
-            
+            (void)cache_keys; // deterministic stub; no-op
             return true;
-            
         } catch (const std::exception& e) {
             spdlog::warn("⚠️ Cache invalidation failed for {}: {}", user_id, e.what());
             return false;

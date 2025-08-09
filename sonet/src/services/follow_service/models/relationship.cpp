@@ -189,7 +189,7 @@ bool Relationship::is_muted_by(const std::string& user_id) const {
     return false;
 }
 
-RelationshipType Relationship::get_relationship_type() const {
+Relationship::RelationshipType Relationship::get_relationship_type() const {
     try {
         // Check for blocking first
         if (user1_blocked_user2) return RelationshipType::BLOCKED;
@@ -222,7 +222,7 @@ RelationshipType Relationship::get_relationship_type() const {
 
 std::string Relationship::get_relationship_status() const {
     try {
-        RelationshipType type = get_relationship_type();
+        auto type = get_relationship_type();
         
         switch (type) {
             case RelationshipType::NONE: return "none";
@@ -562,9 +562,6 @@ bool Relationship::operator==(const Relationship& other) const {
            (user1_id == other.user2_id && user2_id == other.user1_id);
 }
 
-bool Relationship::operator!=(const Relationship& other) const {
-    return !(*this == other);
-}
 
 bool Relationship::operator<(const Relationship& other) const {
     if (user1_id != other.user1_id) {
