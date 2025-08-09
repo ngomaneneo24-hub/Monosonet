@@ -92,6 +92,15 @@ bool RedisTimelineCache::GetTimeline(
 ) {
     std::lock_guard<std::mutex> lock(memory_cache_mutex_);
     
+    // Purge expired entries lazily on access
+    auto expiry_it = memory_timeline_expiry_.find(user_id);
+    if (expiry_it != memory_timeline_expiry_.end()) {
+        if (std::chrono::system_clock::now() >= expiry_it->second) {
+            memory_timeline_cache_.erase(user_id);
+            memory_timeline_expiry_.erase(expiry_it);
+        }
+    }
+    
     auto it = memory_timeline_cache_.find(user_id);
     if (it != memory_timeline_cache_.end()) {
         items = it->second;
@@ -111,18 +120,17 @@ void RedisTimelineCache::SetTimeline(
     std::lock_guard<std::mutex> lock(memory_cache_mutex_);
     
     memory_timeline_cache_[user_id] = items;
+    memory_timeline_expiry_[user_id] = std::chrono::system_clock::now() + ttl;
     
     std::cout << "Timeline cached for user " << user_id << ": " << items.size() 
               << " items (TTL: " << ttl.count() << "s)" << std::endl;
-    
-    // TODO: Set TTL for in-memory cache as well
-    // For production, implement Redis SETEX command
 }
 
 void RedisTimelineCache::InvalidateTimeline(const std::string& user_id) {
     std::lock_guard<std::mutex> lock(memory_cache_mutex_);
     
     auto erased = memory_timeline_cache_.erase(user_id);
+    memory_timeline_expiry_.erase(user_id);
     if (erased > 0) {
         std::cout << "Timeline invalidated for user " << user_id << std::endl;
     }
@@ -148,6 +156,7 @@ void RedisTimelineCache::InvalidateAuthorTimelines(const std::string& author_id)
         }
         
         if (has_author_content) {
+            memory_timeline_expiry_.erase(it->first);
             it = memory_timeline_cache_.erase(it);
             invalidated++;
         } else {
@@ -215,12 +224,12 @@ std::string RedisTimelineCache::SerializeTimelineItems(const std::vector<RankedT
         
         const auto& item = items[i];
         oss << "{"
-            << "\"note_id\":\"" << EscapeString(item.note.id()) << "\","
-            << "\"author_id\":\"" << EscapeString(item.note.author_id()) << "\","
-            << "\"content\":\"" << EscapeString(item.note.content()) << "\","
+            << "\"note_id\":\"" << EscapeString(item.note.id()) << "\"," 
+            << "\"author_id\":\"" << EscapeString(item.note.author_id()) << "\"," 
+            << "\"content\":\"" << EscapeString(item.note.content()) << "\"," 
             << "\"source\":" << static_cast<int>(item.source) << ","
             << "\"final_score\":" << item.final_score << ","
-            << "\"injection_reason\":\"" << EscapeString(item.injection_reason) << "\","
+            << "\"injection_reason\":\"" << EscapeString(item.injection_reason) << "\"," 
             << "\"created_at\":" << item.note.created_at().seconds()
             << "}";
     }
@@ -229,7 +238,7 @@ std::string RedisTimelineCache::SerializeTimelineItems(const std::vector<RankedT
     return oss.str();
 }
 
-std::vector<RankedTimelineItem> RedisTimelineCache::DeserializeTimelineItems(const std::string& data) {
+std::vector<RankedTimelineItem> RedisTimelineCache::DeserializeTimelineItems(const std::string& /*data*/) {
     std::vector<RankedTimelineItem> items;
     
     // TODO: Implement proper JSON parsing
@@ -242,7 +251,7 @@ std::vector<RankedTimelineItem> RedisTimelineCache::DeserializeTimelineItems(con
 std::string RedisTimelineCache::SerializeUserProfile(const UserEngagementProfile& profile) {
     std::ostringstream oss;
     oss << "{"
-        << "\"user_id\":\"" << EscapeString(profile.user_id) << "\","
+        << "\"user_id\":\"" << EscapeString(profile.user_id) << "\"," 
         << "\"avg_session_length_minutes\":" << profile.avg_session_length_minutes << ","
         << "\"daily_engagement_score\":" << profile.daily_engagement_score << ","
         << "\"last_updated\":" << std::chrono::duration_cast<std::chrono::seconds>(
@@ -252,7 +261,7 @@ std::string RedisTimelineCache::SerializeUserProfile(const UserEngagementProfile
     return oss.str();
 }
 
-UserEngagementProfile RedisTimelineCache::DeserializeUserProfile(const std::string& data) {
+UserEngagementProfile RedisTimelineCache::DeserializeUserProfile(const std::string& /*data*/) {
     UserEngagementProfile profile;
     
     // TODO: Implement proper JSON parsing
