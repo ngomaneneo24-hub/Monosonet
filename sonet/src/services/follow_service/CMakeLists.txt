@@ -87,10 +87,10 @@ file(MAKE_DIRECTORY ${PROTO_GENERATED_DIR})
 foreach(PROTO_FILE ${PROTO_FILES})
     get_filename_component(PROTO_NAME ${PROTO_FILE} NAME_WE)
     
-    set(PROTO_SRCS ${PROTO_GENERATED_DIR}/${PROTO_NAME}.pb.cc)
-    set(PROTO_HDRS ${PROTO_GENERATED_DIR}/${PROTO_NAME}.pb.h)
-    set(GRPC_SRCS ${PROTO_GENERATED_DIR}/${PROTO_NAME}.grpc.pb.cc)
-    set(GRPC_HDRS ${PROTO_GENERATED_DIR}/${PROTO_NAME}.grpc.pb.h)
+    set(PROTO_SRCS ${PROTO_GENERATED_DIR}/proto/${PROTO_NAME}.pb.cc)
+    set(PROTO_HDRS ${PROTO_GENERATED_DIR}/proto/${PROTO_NAME}.pb.h)
+    set(GRPC_SRCS ${PROTO_GENERATED_DIR}/proto/${PROTO_NAME}.grpc.pb.cc)
+    set(GRPC_HDRS ${PROTO_GENERATED_DIR}/proto/${PROTO_NAME}.grpc.pb.h)
     
     add_custom_command(
         OUTPUT ${PROTO_SRCS} ${PROTO_HDRS} ${GRPC_SRCS} ${GRPC_HDRS}
@@ -158,6 +158,9 @@ add_library(sonet_follow_service_lib STATIC
     ${FOLLOW_SERVICE_HEADERS}
 )
 
+# Use std::format backend for spdlog to avoid compile-time fmt issues
+target_compile_definitions(sonet_follow_service_lib PUBLIC SPDLOG_USE_STD_FORMAT=1 SPDLOG_HEADER_ONLY=1)
+
 target_link_libraries(sonet_follow_service_lib
     PUBLIC
         nlohmann_json::nlohmann_json
@@ -176,22 +179,29 @@ target_include_directories(sonet_follow_service_lib
 
 # ========== EXECUTABLE TARGET ==========
 
-# Create follow service executable
-add_executable(sonet_follow_service
-    main.cpp
-)
+option(BUILD_FOLLOW_EXECUTABLE "Build the Follow Service main executable" OFF)
 
-target_link_libraries(sonet_follow_service
-    PRIVATE
-        sonet_follow_service_lib
-)
+if(BUILD_FOLLOW_EXECUTABLE)
+  add_executable(sonet_follow_service
+      main.cpp
+  )
+
+  target_compile_definitions(sonet_follow_service PRIVATE SPDLOG_USE_STD_FORMAT=1 SPDLOG_HEADER_ONLY=1)
+
+  target_link_libraries(sonet_follow_service
+      PRIVATE
+          sonet_follow_service_lib
+  )
+endif()
 
 # ========== PERFORMANCE OPTIMIZATION ==========
 
 # Link-time optimization for Release builds
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set_property(TARGET sonet_follow_service_lib PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
-    set_property(TARGET sonet_follow_service PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+    if(BUILD_FOLLOW_EXECUTABLE)
+      set_property(TARGET sonet_follow_service PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+    endif()
     message(STATUS "🔥 Enabled link-time optimization for performance")
 endif()
 
@@ -199,63 +209,45 @@ endif()
 
 enable_testing()
 
-# Unit tests
-add_executable(follow_service_tests
-    tests/test_follow_model.cpp
-    tests/test_relationship_model.cpp
-    tests/test_social_graph.cpp
-    tests/test_follow_service.cpp
-    tests/test_follow_repository.cpp
-)
-
-target_link_libraries(follow_service_tests
-    PRIVATE
-        sonet_follow_service_lib
-        GTest::gtest
-        GTest::gtest_main
-)
-
-add_test(NAME FollowServiceUnitTests COMMAND follow_service_tests)
+# Only add tests if sources exist
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+  file(GLOB TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
+  if(TEST_SOURCES)
+    add_executable(follow_service_tests ${TEST_SOURCES})
+    target_link_libraries(follow_service_tests PRIVATE sonet_follow_service_lib GTest::gtest GTest::gtest_main)
+    add_test(NAME FollowServiceUnitTests COMMAND follow_service_tests)
+  endif()
+endif()
 
 # Integration tests
-add_executable(follow_service_integration_tests
-    tests/integration/test_follow_api.cpp
-    tests/integration/test_grpc_service.cpp
-    tests/integration/test_recommendation_engine.cpp
-)
-
-target_link_libraries(follow_service_integration_tests
-    PRIVATE
-        sonet_follow_service_lib
-        GTest::gtest
-        GTest::gtest_main
-)
-
-add_test(NAME FollowServiceIntegrationTests COMMAND follow_service_integration_tests)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration)
+  file(GLOB INTEGRATION_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/integration/*.cpp)
+  if(INTEGRATION_TEST_SOURCES)
+    add_executable(follow_service_integration_tests ${INTEGRATION_TEST_SOURCES})
+    target_link_libraries(follow_service_integration_tests PRIVATE sonet_follow_service_lib GTest::gtest GTest::gtest_main)
+    add_test(NAME FollowServiceIntegrationTests COMMAND follow_service_integration_tests)
+  endif()
+endif()
 
 # ========== BENCHMARKING ==========
-
 # Performance benchmarks
-add_executable(follow_service_benchmarks
-    benchmarks/bench_follow_operations.cpp
-    benchmarks/bench_social_graph.cpp
-    benchmarks/bench_recommendations.cpp
-)
-
-target_link_libraries(follow_service_benchmarks
-    PRIVATE
-        sonet_follow_service_lib
-        benchmark::benchmark
-        benchmark::benchmark_main
-)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks)
+  file(GLOB BENCH_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/*.cpp)
+  if(BENCH_SOURCES)
+    add_executable(follow_service_benchmarks ${BENCH_SOURCES})
+    target_link_libraries(follow_service_benchmarks PRIVATE sonet_follow_service_lib benchmark::benchmark benchmark::benchmark_main)
+  endif()
+endif()
 
 # ========== INSTALLATION ==========
 
 # Install targets
+if(BUILD_FOLLOW_EXECUTABLE)
 install(TARGETS sonet_follow_service
     RUNTIME DESTINATION bin
     COMPONENT Runtime
 )
+endif()
 
 install(TARGETS sonet_follow_service_lib
     LIBRARY DESTINATION lib

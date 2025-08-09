@@ -47,6 +47,11 @@ FollowService::FollowService(
                 max_following_limit_, cache_ttl_seconds_);
 }
 
+// Add two-arg overload for follow_user to delegate to extended version
+json FollowService::follow_user(const std::string& follower_id, const std::string& following_id) {
+    return follow_user(follower_id, following_id, "standard", "api");
+}
+
 // ========== CORE FOLLOW OPERATIONS ==========
 
 json FollowService::follow_user(const std::string& follower_id, const std::string& following_id, 
@@ -69,11 +74,11 @@ json FollowService::follow_user(const std::string& follower_id, const std::strin
         // Check if already following
         auto existing_follow = repository_->get_follow(follower_id, following_id).get();
         if (existing_follow) {
-            return create_success_response("ALREADY_FOLLOWING", {
-                {"already_following", true},
-                {"follow_date", existing_follow->created_at},
-                {"follow_type", existing_follow->follow_type}
-            });
+                    json data = json::object();
+        data["already_following"] = true;
+        data["follow_date"] = std::chrono::duration_cast<std::chrono::milliseconds>(existing_follow->created_at.time_since_epoch()).count();
+        data["follow_type"] = existing_follow->follow_type;
+        return create_success_response("ALREADY_FOLLOWING", data);
         }
         
         // Check following limit
@@ -108,14 +113,14 @@ json FollowService::follow_user(const std::string& follower_id, const std::strin
         
         spdlog::info("✅ Follow successful: {} -> {} in {}μs", follower_id, following_id, duration);
         
-        return create_success_response("FOLLOW_SUCCESS", {
-            {"follower_id", follower_id},
-            {"following_id", following_id},
-            {"follow_type", follow_type},
-            {"follow_date", follow.created_at},
-            {"source", source},
-            {"processing_time_us", duration}
-        });
+        json data = json::object();
+        data["follower_id"] = follower_id;
+        data["following_id"] = following_id;
+        data["follow_type"] = follow_type;
+        data["follow_date"] = std::chrono::duration_cast<std::chrono::milliseconds>(follow.created_at.time_since_epoch()).count();
+        data["source"] = source;
+        data["processing_time_us"] = duration;
+        return create_success_response("FOLLOW_SUCCESS", data);
         
     } catch (const std::exception& e) {
         auto end = high_resolution_clock::now();
@@ -230,20 +235,19 @@ json FollowService::get_relationship(const std::string& user1_id, const std::str
         
         track_operation_performance("get_relationship", duration);
         
-        json result = {
-            {"user1_id", user1_id},
-            {"user2_id", user2_id},
-            {"user1_follows_user2", relationship.user1_follows_user2},
-            {"user2_follows_user1", relationship.user2_follows_user1},
-            {"are_mutual_friends", relationship.are_mutual_friends()},
-            {"user1_blocked_user2", relationship.user1_blocked_user2},
-            {"user2_blocked_user1", relationship.user2_blocked_user1},
-            {"user1_muted_user2", relationship.user1_muted_user2},
-            {"user2_muted_user1", relationship.user2_muted_user1},
-            {"relationship_strength", relationship.calculate_strength()},
-            {"last_interaction", relationship.last_interaction_at},
-            {"processing_time_us", duration}
-        };
+        json result = json::object();
+        result["user1_id"] = user1_id;
+        result["user2_id"] = user2_id;
+        result["user1_follows_user2"] = relationship.user1_follows_user2;
+        result["user2_follows_user1"] = relationship.user2_follows_user1;
+        result["are_mutual_friends"] = relationship.are_mutual_friends();
+        result["user1_blocked_user2"] = relationship.user1_blocked_user2;
+        result["user2_blocked_user1"] = relationship.user2_blocked_user1;
+        result["user1_muted_user2"] = relationship.user1_muted_user2;
+        result["user2_muted_user1"] = relationship.user2_muted_user1;
+        result["relationship_strength"] = relationship.calculate_strength();
+        result["last_interaction"] = std::chrono::duration_cast<std::chrono::milliseconds>(relationship.last_interaction_at.time_since_epoch()).count();
+        result["processing_time_us"] = duration;
         
         spdlog::debug("✅ Relationship retrieved: {} <-> {} in {}μs", user1_id, user2_id, duration);
         
@@ -505,54 +509,36 @@ json FollowService::bulk_unfollow(const std::string& follower_id,
 
 json FollowService::block_user(const std::string& blocker_id, const std::string& blocked_id) {
     auto start = high_resolution_clock::now();
-    
     try {
         spdlog::debug("🚫 Processing block: {} -> {}", blocker_id, blocked_id);
-        
-        // Validation
         if (blocker_id == blocked_id) {
             return create_error_response("SELF_BLOCK", "Cannot block yourself");
         }
-        
-        // Block user in repository
         bool success = repository_->block_user(blocker_id, blocked_id).get();
-        
         if (success) {
-            // Remove any existing follow relationships
-            repository_->remove_follow(blocker_id, blocked_id);
-            repository_->remove_follow(blocked_id, blocker_id);
-            
-            // Update social graph
+            // Remove any existing follow relationships and await
+            (void)repository_->remove_follow(blocker_id, blocked_id).get();
+            (void)repository_->remove_follow(blocked_id, blocker_id).get();
             social_graph_->remove_follow_relationship(blocker_id, blocked_id);
             social_graph_->remove_follow_relationship(blocked_id, blocker_id);
-            
-            // Invalidate caches
             invalidate_user_caches(blocker_id);
             invalidate_user_caches(blocked_id);
         }
-        
         auto end = high_resolution_clock::now();
         auto duration = duration_cast<microseconds>(end - start).count();
-        
         track_operation_performance("block_user", duration);
-        
         spdlog::info("✅ Block {}: {} -> {} in {}μs", 
                     success ? "successful" : "failed", blocker_id, blocked_id, duration);
-        
         return create_success_response(success ? "BLOCK_SUCCESS" : "BLOCK_FAILED", {
             {"blocker_id", blocker_id},
             {"blocked_id", blocked_id},
             {"success", success},
             {"processing_time_us", duration}
         });
-        
     } catch (const std::exception& e) {
         auto end = high_resolution_clock::now();
         auto duration = duration_cast<microseconds>(end - start).count();
-        
-        spdlog::error("❌ Block failed: {} -> {} - {} ({}μs)", 
-                     blocker_id, blocked_id, e.what(), duration);
-        
+        spdlog::error("❌ Block failed: {} -> {} - {} ({}μs)", blocker_id, blocked_id, e.what(), duration);
         return create_error_response("BLOCK_FAILED", e.what());
     }
 }
@@ -773,7 +759,7 @@ void FollowService::invalidate_user_caches(const std::string& user_id) {
 }
 
 void FollowService::record_follow_event(const std::string& follower_id, const std::string& following_id,
-                                       const std::string& event_type, const std::string& source) {
+                                       const std::string& event_type, const std::string& /*source*/) {
     try {
         repository_->record_interaction(follower_id, following_id, event_type);
     } catch (const std::exception& e) {

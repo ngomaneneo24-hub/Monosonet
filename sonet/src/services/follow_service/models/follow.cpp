@@ -19,42 +19,42 @@ using json = nlohmann::json;
 // ========== CONSTRUCTORS ==========
 
 Follow::Follow()
-    : follower_id(""),
-      following_id(""),
-      follow_type("standard"),
-      created_at(system_clock::now()),
-      updated_at(system_clock::now()),
-      is_active(true),
-      interaction_count(0),
-      last_interaction_at(system_clock::now()),
-      follow_source("api"),
-      engagement_score(0.0),
-      privacy_level("public"),
-      is_muted(false),
-      show_retweets(true),
-      show_replies(true),
-      is_close_friend(false),
-      notification_level("all") {
+    : follower_id("")
+    , following_id("")
+    , follow_type("standard")
+    , is_active(true)
+    , created_at(system_clock::now())
+    , updated_at(system_clock::now())
+    , last_interaction_at(system_clock::now())
+    , interaction_count(0)
+    , engagement_score(0.0)
+    , privacy_level("public")
+    , is_muted(false)
+    , show_retweets(true)
+    , show_replies(true)
+    , is_close_friend(false)
+    , notification_level("all")
+    , follow_source("api") {
 }
 
 Follow::Follow(const std::string& follower_id, const std::string& following_id, 
                const std::string& follow_type)
-    : follower_id(follower_id),
-      following_id(following_id),
-      follow_type(follow_type),
-      created_at(system_clock::now()),
-      updated_at(system_clock::now()),
-      is_active(true),
-      interaction_count(0),
-      last_interaction_at(system_clock::now()),
-      follow_source("api"),
-      engagement_score(0.0),
-      privacy_level("public"),
-      is_muted(false),
-      show_retweets(true),
-      show_replies(true),
-      is_close_friend(false),
-      notification_level("all") {
+    : follower_id(follower_id)
+    , following_id(following_id)
+    , follow_type(follow_type)
+    , is_active(true)
+    , created_at(system_clock::now())
+    , updated_at(system_clock::now())
+    , last_interaction_at(system_clock::now())
+    , interaction_count(0)
+    , engagement_score(0.0)
+    , privacy_level("public")
+    , is_muted(false)
+    , show_retweets(true)
+    , show_replies(true)
+    , is_close_friend(false)
+    , notification_level("all")
+    , follow_source("api") {
     
     spdlog::debug("📝 Creating Follow: {} -> {} (type: {})", follower_id, following_id, follow_type);
 }
