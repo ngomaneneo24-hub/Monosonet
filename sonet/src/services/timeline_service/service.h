@@ -397,7 +397,7 @@ private:
     std::unordered_map<std::string, Bucket> rate_buckets_;
     std::mutex rate_mutex_;
     int rate_rpm_ = 600; // default
-    bool RateAllow(const std::string& key);
+    bool RateAllow(const std::string& key, int override_rpm = -1);
     
     // Fanout worker for new notes
     std::queue<::sonet::note::Note> fanout_queue_;

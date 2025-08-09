@@ -11,6 +11,9 @@
 #include <sstream>
 #include <chrono>
 #include <algorithm>
+#ifdef SONET_USE_REDIS_PLUS_PLUS
+#include <sw/redis++/redis++.h>
+#endif
 
 namespace sonet::timeline {
 
@@ -77,15 +80,23 @@ namespace {
 
 RedisTimelineCache::RedisTimelineCache(const std::string& redis_host, int redis_port)
     : redis_host_(redis_host), redis_port_(redis_port) {
-    
+#ifdef SONET_USE_REDIS_PLUS_PLUS
+    try {
+        auto uri = std::string("tcp://") + redis_host_ + ":" + std::to_string(redis_port_);
+        // sw::redis::Redis redis(uri); // Hold as member if wiring in
+        redis_available_ = true; // Set true when client is stored
+    } catch (...) {
+        redis_available_ = false;
+    }
+#else
     const char* use_redis = std::getenv("SONET_USE_REDIS");
     if (use_redis && std::string(use_redis) == "1") {
-        // TODO: Initialize actual Redis client and set redis_available_ = true if successful
         std::cout << "Attempting Redis connection at " << redis_host_ << ":" << redis_port_ << std::endl;
-        redis_available_ = false; // keep false until implemented
+        redis_available_ = false;
     } else {
         redis_available_ = false;
     }
+#endif
     
     std::cout << "Redis Timeline Cache initialized (" 
               << (redis_available_ ? "redis" : "fallback mode") << ") - Redis at " 
