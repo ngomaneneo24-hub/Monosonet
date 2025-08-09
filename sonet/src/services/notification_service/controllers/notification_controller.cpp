@@ -667,19 +667,15 @@ NotificationController::NotificationController(
 NotificationController::~NotificationController() = default;
 
 void NotificationController::start() {
-    if (pimpl_->config.enable_websocket) {
-        initialize_websocket_server();
-    }
-    
+    // WebSocket server is provided by channels::WebSocketChannel; do not start another here
     pimpl_->start_background_processors();
 }
 
 void NotificationController::stop() {
     pimpl_->stop_background_processors();
     
-    if (pimpl_->ws_server) {
-        pimpl_->ws_server->stop();
-    }
+    // No local ws_server to stop; rely on external WebSocket channel
+    (void)0;
 }
 
 bool NotificationController::is_running() const {
@@ -1012,7 +1008,9 @@ bool NotificationController::authenticate_request(const std::string& token, std:
     try {
         auto decoded_token = jwt::decode(token);
         auto verifier = jwt::verify()
-            .allow_algorithm(jwt::algorithm::hs256{pimpl_->config.jwt_secret});
+            .allow_algorithm(jwt::algorithm::hs256{pimpl_->config.jwt_secret})
+            .with_issuer("sonet")
+            .leeway(5);
         
         verifier.verify(decoded_token);
         
@@ -1103,41 +1101,7 @@ void NotificationController::invalidate_user_cache(const std::string& user_id) {
 }
 
 void NotificationController::initialize_websocket_server() {
-    pimpl_->ws_server = std::make_shared<WebSocketConnectionManager::server>();
-    pimpl_->ws_manager->set_server(pimpl_->ws_server);
-    
-    pimpl_->ws_server->set_access_channels(websocketpp::log::alevel::all);
-    pimpl_->ws_server->clear_access_channels(websocketpp::log::alevel::frame_payload);
-    pimpl_->ws_server->init_asio();
-    
-    // Set handlers
-    pimpl_->ws_server->set_open_handler([this](WebSocketConnectionManager::connection_hdl hdl) {
-        pimpl_->ws_manager->on_open(hdl);
-    });
-    
-    pimpl_->ws_server->set_close_handler([this](WebSocketConnectionManager::connection_hdl hdl) {
-        pimpl_->ws_manager->on_close(hdl);
-        handle_websocket_disconnect(hdl);
-    });
-    
-    pimpl_->ws_server->set_message_handler([this](WebSocketConnectionManager::connection_hdl hdl, 
-                                                 WebSocketConnectionManager::message_ptr msg) {
-        pimpl_->ws_manager->on_message(hdl, msg);
-    });
-    
-    pimpl_->ws_server->set_pong_handler([this](WebSocketConnectionManager::connection_hdl hdl, 
-                                              std::string payload) {
-        pimpl_->ws_manager->on_pong(hdl, payload);
-    });
-    
-    // Start listening
-    pimpl_->ws_server->listen(pimpl_->config.websocket_port);
-    pimpl_->ws_server->start_accept();
-    
-    // Run in separate thread
-    std::thread([this]() {
-        pimpl_->ws_server->run();
-    }).detach();
+    // WebSocket server is managed by channels::WebSocketChannel; no-op here.
 }
 
 // Factory Implementation

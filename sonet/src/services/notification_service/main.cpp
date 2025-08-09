@@ -319,7 +319,13 @@ int main(int argc, char* argv[]) {
         NotificationServiceConfig config = load_configuration(argc, argv);
         
         // Setup logging
-        setup_logging("production");
+        setup_logging(environment);
+
+        // Enforce JWT secret in non-development environments
+        if (environment != "development" && config.jwt_secret.empty()) {
+            std::cerr << "JWT secret is required outside development" << std::endl;
+            return 1;
+        }
         
         // Validate configuration
         if (!validate_configuration(config)) {
