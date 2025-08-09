@@ -12,6 +12,7 @@
 #include <sstream>
 #include <regex>
 #include <iostream>
+#include <numeric>
 
 namespace sonet::timeline {
 
@@ -82,9 +83,6 @@ namespace {
 
 MLRankingEngine::MLRankingEngine() {
     std::cout << "ML Ranking Engine initialized" << std::endl;
-    
-    // Initialize default parameters
-    banned_keywords_.insert({"spam", "scam", "fake", "bot"});
     
     // TODO: Load ML model weights from file or training data
     // For now, using heuristic-based scoring
