@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
         // Simulate some user engagement for ML training
         std::vector<sonet::timeline::EngagementEvent> sample_events = {
             {"user123", "alice_dev", "note_1", "like", 1.0, std::chrono::system_clock::now()},
-            {"user123", "bob_designer", "note_2", "repost", 2.5, std::chrono::system_clock::now()},
+            {"user123", "bob_designer", "note_2", "renote", 2.5, std::chrono::system_clock::now()},
             {"user123", "alice_dev", "note_3", "reply", 10.0, std::chrono::system_clock::now()},
             {"user456", "charlie_pm", "note_4", "like", 0.5, std::chrono::system_clock::now()},
             {"user456", "diana_data", "note_5", "follow", 0.0, std::chrono::system_clock::now()}

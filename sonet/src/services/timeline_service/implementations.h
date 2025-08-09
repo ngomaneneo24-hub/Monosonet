@@ -159,6 +159,7 @@ private:
     
     // In-memory fallback cache for when Redis is unavailable
     std::unordered_map<std::string, std::vector<RankedTimelineItem>> memory_timeline_cache_;
+    std::unordered_map<std::string, std::chrono::system_clock::time_point> memory_timeline_expiry_;
     std::unordered_map<std::string, UserEngagementProfile> memory_profile_cache_;
     std::unordered_map<std::string, std::chrono::system_clock::time_point> memory_lastread_cache_;
     mutable std::mutex memory_cache_mutex_;

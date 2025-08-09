@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <regex>
 #include <iostream>
+#include <cctype>
 
 namespace sonet::timeline {
 
@@ -72,7 +73,7 @@ namespace {
         
         int caps_count = 0;
         for (char c : text) {
-            if (std::isupper(c)) caps_count++;
+            if (std::isupper(static_cast<unsigned char>(c))) caps_count++;
         }
         
         double caps_ratio = static_cast<double>(caps_count) / text.length();
