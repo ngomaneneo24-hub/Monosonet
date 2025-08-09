@@ -216,16 +216,21 @@ std::string SecurityUtils::create_device_fingerprint(const std::string& user_age
 }
 
 bool SecurityUtils::is_private_ip(const std::string& ip_address) {
-    // Check for private IP ranges
-    return ip_address.starts_with("192.168.") ||
-           ip_address.starts_with("10.") ||
-           ip_address.starts_with("172.16.") ||
-           ip_address.starts_with("172.17.") ||
-           ip_address.starts_with("172.18.") ||
-           ip_address.starts_with("172.19.") ||
-           ip_address.starts_with("172.2") ||
-           ip_address.starts_with("172.30.") ||
-           ip_address.starts_with("172.31.");
+    // Robust check for IPv4 private ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+    // Fallback to simple checks if parsing fails
+    int a = -1, b = -1, c = -1, d = -1;
+    char dot;
+    std::stringstream ss(ip_address);
+    if ((ss >> a >> dot >> b >> dot >> c >> dot >> d) && dot == '.') {
+        if (a == 10) return true;
+        if (a == 192 && b == 168) return true;
+        if (a == 172 && b >= 16 && b <= 31) return true;
+        return false;
+    }
+    
+    // Non-IPv4 simple fallbacks (keep minimal behavior)
+    return ip_address.rfind("fc", 0) == 0 ||  // IPv6 unique local (fc00::/7)
+           ip_address.rfind("fd", 0) == 0;    // IPv6 unique local (fd00::/8 subset)
 }
 
 bool SecurityUtils::is_loopback_ip(const std::string& ip_address) {
@@ -306,9 +311,8 @@ std::string SecurityUtils::to_base64_impl(const std::string& input, bool url_saf
     BIO* bio = BIO_new(BIO_s_mem());
     BIO* b64 = BIO_new(BIO_f_base64());
     
-    if (!url_safe) {
-        BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-    }
+    // Always avoid newlines to keep tokens compact and interoperable
+    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
     
     bio = BIO_push(b64, bio);
     BIO_write(bio, input.c_str(), static_cast<int>(input.length()));
@@ -350,9 +354,8 @@ std::string SecurityUtils::from_base64_impl(const std::string& input, bool url_s
     BIO* bio = BIO_new_mem_buf(padded_input.c_str(), static_cast<int>(padded_input.length()));
     BIO* b64 = BIO_new(BIO_f_base64());
     
-    if (!url_safe) {
-        BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-    }
+    // Always avoid newlines to keep decoding consistent
+    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
     
     bio = BIO_push(b64, bio);
     

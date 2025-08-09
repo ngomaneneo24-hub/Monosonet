@@ -7,20 +7,26 @@
  */
 
 #include "note_grpc_service.h"
-#include "../service.h"
 #include <spdlog/spdlog.h>
 
 namespace sonet::note::grpc {
 
-NoteGrpcService::NoteGrpcService(std::shared_ptr<NoteService> note_service)
-    : note_service_(note_service) {
+NoteGrpcService::NoteGrpcService(
+    std::shared_ptr<services::NoteService> note_service,
+    std::shared_ptr<services::TimelineService> /*timeline_service*/,
+    std::shared_ptr<services::AnalyticsService> /*analytics_service*/,
+    std::shared_ptr<repositories::NoteRepository> /*note_repository*/,
+    std::shared_ptr<core::cache::RedisClient> /*redis_client*/,
+    std::shared_ptr<core::security::AuthService> /*auth_service*/,
+    std::shared_ptr<core::logging::MetricsCollector> /*metrics_collector*/)
+    : note_service_(std::move(note_service)) {
     spdlog::info("NoteGrpcService initialized");
 }
 
 ::grpc::Status NoteGrpcService::CreateNote(
     ::grpc::ServerContext* context,
-    const ::sonet::note::CreateNoteRequest* request,
-    ::sonet::note::CreateNoteResponse* response) {
+    const ::sonet::note::grpc::CreateNoteRequest* request,
+    ::sonet::note::grpc::CreateNoteResponse* response) {
     
     try {
         auto start_time = std::chrono::high_resolution_clock::now();
@@ -44,32 +50,27 @@ NoteGrpcService::NoteGrpcService(std::shared_ptr<NoteService> note_service)
         }
         
         // Create note through service
-        auto result = note_service_->create_note(note_data, request->author_id());
+        auto created = note_service_->create_note(request->author_id(), note_data);
         
         // Measure performance
         auto end_time = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
         
-        if (result.contains("note")) {
-            // Success response
-            auto note = result["note"];
+        if (created) {
             response->set_success(true);
-            response->set_note_id(note["note_id"]);
-            response->set_created_at(note["created_at"]);
+            response->set_note_id(created->note_id);
+            response->set_created_at(created->created_at);
             response->set_processing_time_us(duration.count());
             
-            // Performance logging
             if (duration.count() > 10000) { // > 10ms
-                spdlog::warn("Slow note creation: {}μs for note {}", duration.count(), note["note_id"]);
+                spdlog::warn("Slow note creation: {}μs for note {}", duration.count(), created->note_id);
             }
-            
             return ::grpc::Status::OK;
         } else {
-            // Error response
             response->set_success(false);
-            response->set_error_code(result["error"]["code"]);
-            response->set_error_message(result["error"]["message"]);
-            return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, result["error"]["message"]);
+            response->set_error_code("VALIDATION_ERROR");
+            response->set_error_message("Failed to create note");
+            return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "Failed to create note");
         }
         
     } catch (const std::exception& e) {
@@ -83,33 +84,29 @@ NoteGrpcService::NoteGrpcService(std::shared_ptr<NoteService> note_service)
 
 ::grpc::Status NoteGrpcService::GetNote(
     ::grpc::ServerContext* context,
-    const ::sonet::note::GetNoteRequest* request,
-    ::sonet::note::GetNoteResponse* response) {
+    const ::sonet::note::grpc::GetNoteRequest* request,
+    ::sonet::note::grpc::GetNoteResponse* response) {
     
     try {
         auto start_time = std::chrono::high_resolution_clock::now();
         
         // Get note through service
-        auto result = note_service_->get_note(request->note_id(), request->requesting_user_id());
+        auto found = note_service_->get_note(request->note_id(), request->requesting_user_id());
         
         auto end_time = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
         
-        if (result.contains("note")) {
-            auto note = result["note"];
-            
-            // Fill response
+        if (found) {
             response->set_success(true);
-            response->set_note_id(note["note_id"]);
-            response->set_author_id(note["author_id"]);
-            response->set_content(note["content"]);
-            response->set_created_at(note["created_at"]);
-            response->set_like_count(note["like_count"]);
-            response->set_renote_count(note["renote_count"]);
-            response->set_reply_count(note["reply_count"]);
+            response->set_note_id(found->note_id);
+            response->set_author_id(found->author_id);
+            response->set_content(found->content);
+            response->set_created_at(found->created_at);
+            response->set_like_count(found->like_count);
+            response->set_renote_count(found->renote_count);
+            response->set_reply_count(found->reply_count);
             response->set_processing_time_us(duration.count());
             
-            // Target < 5ms for note retrieval
             if (duration.count() > 5000) {
                 spdlog::warn("Slow note retrieval: {}μs for note {}", duration.count(), request->note_id());
             }
@@ -133,8 +130,8 @@ NoteGrpcService::NoteGrpcService(std::shared_ptr<NoteService> note_service)
 
 ::grpc::Status NoteGrpcService::LikeNote(
     ::grpc::ServerContext* context,
-    const ::sonet::note::LikeNoteRequest* request,
-    ::sonet::note::LikeNoteResponse* response) {
+    const ::sonet::note::grpc::LikeNoteRequest* request,
+    ::sonet::note::grpc::LikeNoteResponse* response) {
     
     try {
         auto start_time = std::chrono::high_resolution_clock::now();
@@ -145,22 +142,22 @@ NoteGrpcService::NoteGrpcService(std::shared_ptr<NoteService> note_service)
         auto end_time = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
         
-        if (result["success"].get<bool>()) {
+        if (result.contains("success") && result["success"].get<bool>()) {
             response->set_success(true);
-            response->set_new_like_count(result["new_like_count"]);
+            response->set_new_like_count(result.value("new_like_count", 0));
             response->set_processing_time_us(duration.count());
             
-            // Target < 3ms for likes
             if (duration.count() > 3000) {
                 spdlog::warn("Slow like operation: {}μs for note {}", duration.count(), request->note_id());
             }
-            
             return ::grpc::Status::OK;
         } else {
+            const std::string err_code = result.contains("error") && result["error"].contains("code") ? result["error"]["code"].get<std::string>() : "INVALID_ARGUMENT";
+            const std::string err_msg = result.contains("error") && result["error"].contains("message") ? result["error"]["message"].get<std::string>() : "Invalid like operation";
             response->set_success(false);
-            response->set_error_code(result["error"]["code"]);
-            response->set_error_message(result["error"]["message"]);
-            return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, result["error"]["message"]);
+            response->set_error_code(err_code);
+            response->set_error_message(err_msg);
+            return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_msg);
         }
         
     } catch (const std::exception& e) {
@@ -350,8 +347,8 @@ NoteGrpcService::NoteGrpcService(std::shared_ptr<NoteService> note_service)
 // Batch operations for high throughput
 ::grpc::Status NoteGrpcService::BatchCreateNotes(
     ::grpc::ServerContext* context,
-    const ::sonet::note::BatchCreateNotesRequest* request,
-    ::sonet::note::BatchCreateNotesResponse* response) {
+    const ::sonet::note::grpc::BatchCreateNotesRequest* request,
+    ::sonet::note::grpc::BatchCreateNotesResponse* response) {
     
     try {
         auto start_time = std::chrono::high_resolution_clock::now();
@@ -366,17 +363,17 @@ NoteGrpcService::NoteGrpcService(std::shared_ptr<NoteService> note_service)
             note_data["content"] = note_request.content();
             note_data["visibility"] = note_request.visibility();
             
-            auto result = note_service_->create_note(note_data, note_request.author_id());
+            auto created = note_service_->create_note(note_request.author_id(), note_data);
             
             auto* note_result = response->add_results();
-            if (result.contains("note")) {
+            if (created) {
                 note_result->set_success(true);
-                note_result->set_note_id(result["note"]["note_id"]);
+                note_result->set_note_id(created->note_id);
                 successful_creates++;
             } else {
                 note_result->set_success(false);
-                note_result->set_error_code(result["error"]["code"]);
-                note_result->set_error_message(result["error"]["message"]);
+                note_result->set_error_code("VALIDATION_ERROR");
+                note_result->set_error_message("Failed to create note");
                 failed_creates++;
             }
         }

@@ -24,12 +24,12 @@ namespace sonet::note::controllers {
 // Constructor with comprehensive dependency injection
 NoteController::NoteController(
     std::shared_ptr<NoteRepository> repository,
-    std::shared_ptr<services::NoteService> note_service,
+    std::shared_ptr<sonet::note::NoteService> note_service,
     std::shared_ptr<services::TimelineService> timeline_service,
     std::shared_ptr<services::NotificationService> notification_service,
     std::shared_ptr<services::AnalyticsService> analytics_service,
-    std::shared_ptr<core::cache::RedisClient> redis_client,
-    std::shared_ptr<core::security::RateLimiter> rate_limiter
+    std::shared_ptr<sonet::core::cache::RedisClient> redis_client,
+    std::shared_ptr<sonet::core::security::RateLimiter> rate_limiter
 ) : note_repository_(repository),
     note_service_(note_service),
     timeline_service_(timeline_service),
@@ -250,7 +250,7 @@ core::network::HttpResponse NoteController::get_note(const core::network::HttpRe
         }
 
         // Get note from service
-        auto note = note_service_->get_note(note_id);
+        auto note = note_service_->get_note(note_id, viewer_id);
         if (!note) {
             return create_error_response(404, "NOTE_NOT_FOUND", "Note not found");
         }
@@ -297,7 +297,7 @@ core::network::HttpResponse NoteController::update_note(const core::network::Htt
         }
 
         // Check if note exists and user owns it
-        auto note = note_service_->get_note(note_id);
+        auto note = note_service_->get_note(note_id, user_id);
         if (!note) {
             return create_error_response(404, "NOTE_NOT_FOUND", "Note not found");
         }
@@ -423,7 +423,7 @@ core::network::HttpResponse NoteController::renote(const core::network::HttpRequ
         }
 
         // Check if note exists and can be renoted
-        auto original_note = note_service_->get_note(note_id);
+        auto original_note = note_service_->get_note(note_id, user_id);
         if (!original_note) {
             return create_error_response(404, "NOTE_NOT_FOUND", "Note not found");
         }

@@ -7,12 +7,14 @@
  */
 
 #include "password_manager.h"
+#include "security_utils.h"
 #include <argon2.h>
 #include <openssl/rand.h>
 #include <openssl/sha.h>
 #include <algorithm>
 #include <regex>
 #include <set>
+#include <random>
 #include <spdlog/spdlog.h>
 
 namespace sonet::user {
@@ -54,8 +56,8 @@ std::string PasswordManager::hash_password(const std::string& password) {
     }
     
     // Format: salt + hash (both base64 encoded)
-    std::string encoded_salt = encode_base64(salt);
-    std::string encoded_hash = encode_base64(std::string(hash.begin(), hash.end()));
+    std::string encoded_salt = SecurityUtils::base64_encode(salt);
+    std::string encoded_hash = SecurityUtils::base64_encode(std::string(hash.begin(), hash.end()));
     
     return encoded_salt + "$" + encoded_hash;
 }
@@ -72,8 +74,8 @@ bool PasswordManager::verify_password(const std::string& password, const std::st
     std::string encoded_hash = stored_hash.substr(delimiter + 1);
     
     // Decode the stored components
-    std::string salt = decode_base64(encoded_salt);
-    std::string expected_hash = decode_base64(encoded_hash);
+    std::string salt = SecurityUtils::base64_decode(encoded_salt);
+    std::string expected_hash = SecurityUtils::base64_decode(encoded_hash);
     
     // Hash the provided password with the same salt
     std::vector<uint8_t> computed_hash(argon2_config_.hash_length);
@@ -97,7 +99,7 @@ bool PasswordManager::verify_password(const std::string& password, const std::st
     
     // Constant-time comparison to prevent timing attacks
     std::string computed_hash_str(computed_hash.begin(), computed_hash.end());
-    return secure_compare(computed_hash_str, expected_hash);
+    return SecurityUtils::secure_compare(computed_hash_str, expected_hash);
 }
 
 bool PasswordManager::is_password_strong(const std::string& password) const {
@@ -169,7 +171,11 @@ std::string PasswordManager::generate_secure_password(size_t length) const {
     }
     
     // Shuffle to avoid predictable patterns
-    std::random_shuffle(password.begin(), password.end());
+    {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::shuffle(password.begin(), password.end(), gen);
+    }
     
     return password;
 }

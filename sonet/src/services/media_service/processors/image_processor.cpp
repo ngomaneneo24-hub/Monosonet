@@ -24,7 +24,8 @@ public:
 		path_out = path_in;
 		// Create thumbnail 256px wide, preserve aspect
 		auto tpath = fs::path(path_in).parent_path() / (fs::path(path_in).filename().string() + ".thumb.jpg");
-		std::string cmd = "convert '" + path_in + "' -auto-orient -resize 256x256 '" + tpath.string() + "'";
+		auto ShellQuote = [](const std::string& s){ std::string r; r.reserve(s.size()+2); r.push_back('\''); for(char c: s){ if(c=='\'') r += "'\"'\"'"; else r.push_back(c);} r.push_back('\''); return r; };
+		std::string cmd = "convert " + ShellQuote(path_in) + " -auto-orient -resize 256x256 " + ShellQuote(tpath.string());
 		int rc = std::system(cmd.c_str());
 		if (rc != 0) {
 			// Best effort: no thumbnail
@@ -34,11 +35,12 @@ public:
 		}
 		// Probe dimensions via ImageMagick identify
 		{
-			std::string dim_cmd = "identify -format '%w %h' '" + path_in + "' 2>/dev/null > '" + (tpath.string() + ".dim") + "'";
+			std::string dim_tmp = tpath.string() + ".dim";
+			std::string dim_cmd = "identify -format '%w %h' " + ShellQuote(path_in) + " 2>/dev/null > " + ShellQuote(dim_tmp);
 			int drc = std::system(dim_cmd.c_str()); (void)drc;
-			std::ifstream ifs(tpath.string() + ".dim");
+			std::ifstream ifs(dim_tmp);
 			if (ifs) { ifs >> width >> height; }
-			fs::remove(tpath.string() + ".dim");
+			fs::remove(dim_tmp);
 		}
 		return true;
 	}

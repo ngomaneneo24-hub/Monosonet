@@ -115,8 +115,6 @@ endforeach()
 # Source files for models
 set(MODEL_SOURCES
     models/notification.cpp
-    models/notification_template.cpp
-    models/delivery_status.cpp
 )
 
 # Source files for repositories  
@@ -135,6 +133,9 @@ set(CHANNEL_SOURCES
     channels/push_channel.cpp
     channels/websocket_channel.cpp
 )
+
+# Ensure httplib include path if bundled
+include_directories(${HTTPLIB_INCLUDE_DIR})
 
 # Source files for controllers
 set(CONTROLLER_SOURCES
