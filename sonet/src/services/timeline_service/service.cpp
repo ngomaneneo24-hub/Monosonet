@@ -63,12 +63,14 @@ TimelineServiceImpl::TimelineServiceImpl(
     std::shared_ptr<RankingEngine> ranking_engine,
     std::shared_ptr<ContentFilter> content_filter,
     std::shared_ptr<RealtimeNotifier> realtime_notifier,
-    std::unordered_map<::sonet::timeline::ContentSource, std::shared_ptr<ContentSourceAdapter>> content_sources
+    std::unordered_map<::sonet::timeline::ContentSource, std::shared_ptr<ContentSourceAdapter>> content_sources,
+    std::shared_ptr<::sonet::follow::FollowService::Stub> follow_service
 ) : cache_(std::move(cache)),
     ranking_engine_(std::move(ranking_engine)),
     content_filter_(std::move(content_filter)),
     realtime_notifier_(std::move(realtime_notifier)),
-    content_sources_(std::move(content_sources)) {
+    content_sources_(std::move(content_sources)),
+    follow_service_(std::move(follow_service)) {
     
     // Initialize default configuration
     default_config_.algorithm = ::sonet::timeline::TIMELINE_ALGORITHM_HYBRID;

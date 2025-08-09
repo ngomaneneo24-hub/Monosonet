@@ -249,7 +249,8 @@ public:
         std::shared_ptr<RankingEngine> ranking_engine,
         std::shared_ptr<ContentFilter> content_filter,
         std::shared_ptr<RealtimeNotifier> realtime_notifier,
-        std::unordered_map<::sonet::timeline::ContentSource, std::shared_ptr<ContentSourceAdapter>> content_sources
+        std::unordered_map<::sonet::timeline::ContentSource, std::shared_ptr<ContentSourceAdapter>> content_sources,
+        std::shared_ptr<::sonet::follow::FollowService::Stub> follow_service
     );
     
     // gRPC service methods
@@ -395,6 +396,7 @@ private:
     std::shared_ptr<ContentFilter> content_filter_;
     std::shared_ptr<RealtimeNotifier> realtime_notifier_;
     std::unordered_map<::sonet::timeline::ContentSource, std::shared_ptr<ContentSourceAdapter>> content_sources_;
+    std::shared_ptr<::sonet::follow::FollowService::Stub> follow_service_;
     
     // Configuration
     TimelineConfig default_config_;
