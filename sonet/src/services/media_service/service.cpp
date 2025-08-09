@@ -29,6 +29,7 @@ namespace sonet::media_service {
 class InMemoryRepo final : public MediaRepository {
 public:
 	bool Save(const MediaRecord& rec) override {
+		std::lock_guard<std::mutex> lock(mu_);
 		MediaRecord copy = rec;
 		if (copy.created_at.empty()) {
 			auto now = std::chrono::system_clock::now();
@@ -43,17 +44,35 @@ public:
 			std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &tm);
 			copy.created_at = buf;
 		}
+		// If updating an existing record, fix owner index if owner changed
+		auto existing = store_.find(copy.id);
+		if (existing != store_.end()) {
+			const std::string& old_owner = existing->second.owner_user_id;
+			if (old_owner != copy.owner_user_id) {
+				auto it = by_owner_.find(old_owner);
+				if (it != by_owner_.end()) {
+					auto& vec = it->second;
+					vec.erase(std::remove(vec.begin(), vec.end(), copy.id), vec.end());
+				}
+			}
+		}
 		store_[copy.id] = copy;
-		by_owner_[rec.owner_user_id].push_back(rec.id);
+		// Add to new owner's index if not already present
+		auto& vec = by_owner_[copy.owner_user_id];
+		if (std::find(vec.begin(), vec.end(), copy.id) == vec.end()) {
+			vec.push_back(copy.id);
+		}
 		return true;
 	}
 	bool Get(const std::string& id, MediaRecord& out) override {
+		std::lock_guard<std::mutex> lock(mu_);
 		auto it = store_.find(id);
 		if (it == store_.end()) return false;
 		out = it->second;
 		return true;
 	}
 	bool Delete(const std::string& id) override {
+		std::lock_guard<std::mutex> lock(mu_);
 		auto it = store_.find(id);
 		if (it == store_.end()) return false;
 		auto owner = it->second.owner_user_id;
@@ -63,6 +82,7 @@ public:
 		return true;
 	}
 	std::vector<MediaRecord> ListByOwner(const std::string& owner, uint32_t page, uint32_t page_size, uint32_t& total_pages) override {
+		std::lock_guard<std::mutex> lock(mu_);
 		std::vector<MediaRecord> res;
 		auto it = by_owner_.find(owner);
 		if (it == by_owner_.end()) { total_pages = 0; return res; }
@@ -72,13 +92,14 @@ public:
 		if (page == 0) page = 1;
 		uint32_t start = (page - 1) * page_size;
 		for (uint32_t i = start; i < ids.size() && res.size() < page_size; ++i) {
-			MediaRecord r{}; if (Get(ids[i], r)) res.push_back(r);
+			MediaRecord r{}; auto sit = store_.find(ids[i]); if (sit != store_.end()) res.push_back(sit->second);
 		}
 		return res;
 	}
 private:
 	std::unordered_map<std::string, MediaRecord> store_;
 	std::unordered_map<std::string, std::vector<std::string>> by_owner_;
+	std::mutex mu_;
 };
 
 std::unique_ptr<MediaRepository> CreateInMemoryRepo() { return std::make_unique<InMemoryRepo>(); }
@@ -146,14 +167,15 @@ std::unique_ptr<StorageBackend> CreateLocalStorage(const std::string& base_dir, 
 class BasicGifProcessor final : public GifProcessor {
 public:
     bool Process(const std::string& path_in, std::string& path_out, std::string& thumb_out, double& duration, uint32_t& width, uint32_t& height) override {
+        auto ShellQuote = [](const std::string& s){ std::string r; r.reserve(s.size()+2); r.push_back('\''); for(char c: s){ if(c=='\'') r += "'\"'\"'"; else r.push_back(c);} r.push_back('\''); return r; };
         path_out = path_in; thumb_out = path_in; duration = 0.0; width = 0; height = 0;
         std::string dim_file = path_in + ".gifdim";
-        std::string dim_cmd = "identify -format '%w %h' '" + path_in + "'[0]' 2>/dev/null > '" + dim_file + "'";
+        std::string dim_cmd = "identify -format '%w %h' " + ShellQuote(path_in + "[0]") + " 2>/dev/null > " + ShellQuote(dim_file);
         int drc = std::system(dim_cmd.c_str()); (void)drc;
         { std::ifstream ifs(dim_file); if (ifs) { ifs >> width >> height; } }
         std::error_code ec; fs::remove(dim_file, ec);
         std::string delay_file = path_in + ".gifdelay";
-        std::string delay_cmd = "identify -format '%T ' '" + path_in + "' 2>/dev/null > '" + delay_file + "'";
+        std::string delay_cmd = "identify -format '%T ' " + ShellQuote(path_in) + " 2>/dev/null > " + ShellQuote(delay_file);
         int rdc = std::system(delay_cmd.c_str()); (void)rdc;
         { std::ifstream ifs(delay_file); unsigned long centi=0; while (ifs >> centi) duration += static_cast<double>(centi)/100.0; }
         fs::remove(delay_file, ec);
@@ -260,6 +282,8 @@ static RateLimiter g_upload_rate_limiter;
             if (init.owner_user_id().empty()) return {::grpc::StatusCode::INVALID_ARGUMENT, "owner_user_id required"};
             if (init.type()==MEDIA_TYPE_UNKNOWN) return {::grpc::StatusCode::INVALID_ARGUMENT, "media type required"};
             if (!g_upload_rate_limiter.Allow(init.owner_user_id())) return {::grpc::StatusCode::RESOURCE_EXHAUSTED, "rate limit"};
+			// Allow env override for max upload bytes
+			if (const char* e = std::getenv("SONET_MEDIA_MAX_UPLOAD")) { try { uint64_t v = std::stoull(e); if (v > 0) max_upload_bytes_ = v; } catch(...) {} }
 			LOG_INFO("upload_init", (std::unordered_map<std::string,std::string>{{"owner", init.owner_user_id()},{"type", std::to_string(init.type())}}));
             continue;
         }
@@ -287,13 +311,13 @@ static RateLimiter g_upload_rate_limiter;
 	if (!storage_->Put(processed, object_key, url)) { fs::remove(processed); LOG_ERROR("storage_put_failed", (std::unordered_map<std::string,std::string>{{"key", object_key}})); return {::grpc::StatusCode::INTERNAL, "storage failed"}; }
     uploaded_keys.push_back(object_key);
     std::string thumb_url = url; if (thumb != processed) { std::string tkey = object_key + ".thumb.jpg"; if (storage_->Put(thumb, tkey, thumb_url)) uploaded_keys.push_back(tkey); else { failure=true; failure_reason="thumbnail upload failed"; }}
-    std::string webp_url; if (!failure && init.type()==MEDIA_TYPE_IMAGE) { fs::path wpath = fs::path(processed).parent_path() / (fs::path(processed).filename().string() + ".webp"); std::string cmd = "convert '"+processed+"' -quality 85 '"+wpath.string()+"' >/dev/null 2>&1"; int rc = std::system(cmd.c_str()); (void)rc; if (fs::exists(wpath)) { if (storage_->Put(wpath.string(), object_key+".webp", webp_url)) uploaded_keys.push_back(object_key+".webp"); }}
-    std::string mp4_url; if (!failure && init.type()==MEDIA_TYPE_GIF) { fs::path mpath = fs::path(processed).parent_path()/(fs::path(processed).filename().string()+".mp4"); std::string cmd = "ffmpeg -y -i '"+processed+"' -movflags +faststart -pix_fmt yuv420p -vf 'scale=trunc(iw/2)*2:trunc(ih/2)*2' '"+mpath.string()+"' >/dev/null 2>&1"; int rc= std::system(cmd.c_str()); (void)rc; if (fs::exists(mpath)) { if (storage_->Put(mpath.string(), object_key+".mp4", mp4_url)) uploaded_keys.push_back(object_key+".mp4"); }}
-    if (!failure && init.type()==MEDIA_TYPE_VIDEO) { fs::path hls_tmp = fs::temp_directory_path()/("hls-"+GenId()); fs::create_directories(hls_tmp); struct Rendition{const char* name; int w; int h; const char* vb; const char* ab;}; Rendition variants[]={{"360p",640,360,"800k","96k"},{"480p",854,480,"1400k","128k"},{"720p",1280,720,"2800k","128k"}}; for (auto& v: variants){ fs::path outdir = hls_tmp / v.name; fs::create_directories(outdir); std::string seg=(outdir/"seg_%03d.ts").string(); std::string m3u8=(outdir/"index.m3u8").string(); std::string cmd="ffmpeg -y -i '"+processed+"' -vf 'scale=w="+std::to_string(v.w)+":h="+std::to_string(v.h)+":force_original_aspect_ratio=decrease' -c:v h264 -profile:v main -crf 20 -g 48 -keyint_min 48 -sc_threshold 0 -b:v "+v.vb+" -maxrate "+v.vb+" -bufsize "+v.vb+" -c:a aac -ar 48000 -b:a "+v.ab+" -hls_time 4 -hls_playlist_type vod -hls_segment_filename '"+seg+"' '"+m3u8+"' >/dev/null 2>&1"; std::system(cmd.c_str()); }
+    std::string webp_url; if (!failure && init.type()==MEDIA_TYPE_IMAGE) { fs::path wpath = fs::path(processed).parent_path() / (fs::path(processed).filename().string() + ".webp"); auto ShellQuote = [](const std::string& s){ std::string r; r.reserve(s.size()+2); r.push_back('\''); for(char c: s){ if(c=='\'') r += "'\"'\"'"; else r.push_back(c);} r.push_back('\''); return r; }; std::string cmd = "convert "+ShellQuote(processed)+" -quality 85 "+ShellQuote(wpath.string())+" >/dev/null 2>&1"; int rc = std::system(cmd.c_str()); (void)rc; if (fs::exists(wpath)) { if (storage_->Put(wpath.string(), object_key+".webp", webp_url)) uploaded_keys.push_back(object_key+".webp"); }}
+    std::string mp4_url; if (!failure && init.type()==MEDIA_TYPE_GIF) { fs::path mpath = fs::path(processed).parent_path()/(fs::path(processed).filename().string()+".mp4"); auto ShellQuote = [](const std::string& s){ std::string r; r.reserve(s.size()+2); r.push_back('\''); for(char c: s){ if(c=='\'') r += "'\"'\"'"; else r.push_back(c);} r.push_back('\''); return r; }; std::string cmd = "ffmpeg -y -i "+ShellQuote(processed)+" -movflags +faststart -pix_fmt yuv420p -vf 'scale=trunc(iw/2)*2:trunc(ih/2)*2' "+ShellQuote(mpath.string())+" >/dev/null 2>&1"; int rc= std::system(cmd.c_str()); (void)rc; if (fs::exists(mpath)) { if (storage_->Put(mpath.string(), object_key+".mp4", mp4_url)) uploaded_keys.push_back(object_key+".mp4"); }}
+    if (!failure && init.type()==MEDIA_TYPE_VIDEO) { fs::path hls_tmp = fs::temp_directory_path()/("hls-"+GenId()); std::error_code dir_ec; fs::create_directories(hls_tmp, dir_ec); if (!dir_ec) { struct Rendition{const char* name; int w; int h; const char* vb; const char* ab;}; Rendition variants[]={{"360p",640,360,"800k","96k"},{"480p",854,480,"1400k","128k"},{"720p",1280,720,"2800k","128k"}}; for (auto& v: variants){ fs::path outdir = hls_tmp / v.name; fs::create_directories(outdir, dir_ec); if (dir_ec) break; std::string seg=(outdir/"seg_%03d.ts").string(); std::string m3u8=(outdir/"index.m3u8").string(); auto ShellQuote = [](const std::string& s){ std::string r; r.reserve(s.size()+2); r.push_back('\''); for(char c: s){ if(c=='\'') r += "'\"'\"'"; else r.push_back(c);} r.push_back('\''); return r; }; std::string cmd="ffmpeg -y -i "+ShellQuote(processed)+" -vf 'scale=w="+std::to_string(v.w)+":h="+std::to_string(v.h)+":force_original_aspect_ratio=decrease' -c:v h264 -profile:v main -crf 20 -g 48 -keyint_min 48 -sc_threshold 0 -b:v "+v.vb+" -maxrate "+v.vb+" -bufsize "+v.vb+" -c:a aac -ar 48000 -b:a "+v.ab+" -hls_time 4 -hls_playlist_type vod -hls_segment_filename "+ShellQuote(seg)+" "+ShellQuote(m3u8)+" >/dev/null 2>&1"; std::system(cmd.c_str()); }
         { std::ofstream mf(hls_tmp/"master.m3u8"); mf << "#EXTM3U\n#EXT-X-VERSION:3\n"; mf << "#EXT-X-STREAM-INF:BANDWIDTH=900000,RESOLUTION=640x360\n360p/index.m3u8\n"; mf << "#EXT-X-STREAM-INF:BANDWIDTH=1600000,RESOLUTION=854x480\n480p/index.m3u8\n"; mf << "#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1280x720\n720p/index.m3u8\n"; }
         std::string base_hls_url; if (storage_->PutDir(hls_tmp.string(), object_key+"/hls", base_hls_url)) { hls_url = base_hls_url + "/master.m3u8"; }
         std::error_code ec; fs::remove_all(hls_tmp, ec);
-    }
+    } }
 	if (failure) { for (const auto& k : uploaded_keys) { storage_->Delete(k); } LOG_ERROR("upload_rollback", (std::unordered_map<std::string,std::string>{{"owner", init.owner_user_id()},{"reason", failure_reason}})); return {::grpc::StatusCode::INTERNAL, failure_reason}; }
     MediaRecord rec{}; rec.id=id; rec.owner_user_id=init.owner_user_id(); rec.type=init.type(); rec.mime_type=init.mime_type(); rec.size_bytes=total; rec.width=width; rec.height=height; rec.duration_seconds=duration; rec.original_url=url; rec.thumbnail_url=thumb_url; rec.hls_url=hls_url; rec.webp_url=webp_url; rec.mp4_url=mp4_url;
     repo_->Save(rec);
@@ -307,6 +331,7 @@ static RateLimiter g_upload_rate_limiter;
 ::grpc::Status MediaServiceImpl::GetMedia(::grpc::ServerContext* context,
 										  const ::sonet::media::GetMediaRequest* request,
 										  ::sonet::media::GetMediaResponse* response) {
+	LOG_INFO("get_media", (std::unordered_map<std::string,std::string>{{"media_id", request->media_id()}}));
 	MediaRecord rec{};
 	if (!repo_->Get(request->media_id(), rec)) return {::grpc::StatusCode::NOT_FOUND, "not found"};
 	std::string caller = GetMetadataValue(context, "x-user-id");
@@ -329,13 +354,13 @@ static RateLimiter g_upload_rate_limiter;
 	m->set_webp_url(storage_->SignUrl(rec.webp_url, 3600));
 	m->set_mp4_url(storage_->SignUrl(rec.mp4_url, 3600));
 	m->set_created_at(rec.created_at);
-	// created_at omitted in placeholder
 	return ::grpc::Status::OK;
 }
 
 ::grpc::Status MediaServiceImpl::DeleteMedia(::grpc::ServerContext* context,
 											 const ::sonet::media::DeleteMediaRequest* request,
 											 ::sonet::media::DeleteMediaResponse* response) {
+	LOG_INFO("delete_media", (std::unordered_map<std::string,std::string>{{"media_id", request->media_id()}}));
 	// We delete from storage best-effort, then repo
 	MediaRecord rec{};
 	bool ok = repo_->Get(request->media_id(), rec);
@@ -344,13 +369,8 @@ static RateLimiter g_upload_rate_limiter;
 		if (!caller.empty() && caller != rec.owner_user_id && !IsAdmin(context)) {
 			return {::grpc::StatusCode::PERMISSION_DENIED, "forbidden"};
 		}
-		// Derive object key from URL in our local storage scheme
-		// Natural: assume URL ends with object key
-		auto pos = rec.original_url.find_last_of('/');
-		if (pos != std::string::npos) {
-			auto key = rec.original_url.substr(pos + 1);
-			storage_->Delete(rec.owner_user_id + "/" + key);
-		}
+		// Remove all variants and HLS under owner/id prefix
+		storage_->DeletePrefix(rec.owner_user_id + "/" + rec.id);
 	}
 	response->set_deleted(repo_->Delete(request->media_id()));
 	return ::grpc::Status::OK;
@@ -366,6 +386,7 @@ static RateLimiter g_upload_rate_limiter;
 	}
 	uint32_t total_pages = 0;
 	auto items = repo_->ListByOwner(request->owner_user_id(), request->page(), request->page_size(), total_pages);
+	LOG_INFO("list_user_media", (std::unordered_map<std::string,std::string>{{"owner", request->owner_user_id()},{"count", std::to_string(items.size())},{"page", std::to_string(request->page())}}));
 	response->set_page(request->page());
 	response->set_page_size(request->page_size());
 	response->set_total_pages(total_pages);
