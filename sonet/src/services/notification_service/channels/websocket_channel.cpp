@@ -476,10 +476,8 @@ struct WebSocketPPChannel::Impl {
     bool validate_jwt_token(const std::string& token, std::string& user_id) {
         try {
             if (config.jwt_secret.empty()) {
-                // For testing, extract user_id from token directly
-                auto decoded = jwt::decode(token);
-                user_id = decoded.get_payload_claim("user_id").as_string();
-                return !user_id.empty();
+                // Reject unauthenticated connections when secret is not set
+                return false;
             }
             
             auto verifier = jwt::verify()
