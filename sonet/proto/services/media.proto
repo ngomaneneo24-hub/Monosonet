@@ -84,11 +84,16 @@ message ListUserMediaResponse {
 	uint32 total_pages = 4;
 }
 
+// Simple health check
+message HealthCheckRequest {}
+message HealthCheckResponse { string status = 1; }
+
 service MediaService {
 	// Client streaming upload
 	rpc Upload(stream UploadRequest) returns (UploadResponse);
 	rpc GetMedia(GetMediaRequest) returns (GetMediaResponse);
 	rpc DeleteMedia(DeleteMediaRequest) returns (DeleteMediaResponse);
 	rpc ListUserMedia(ListUserMediaRequest) returns (ListUserMediaResponse);
+	rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
 }
 

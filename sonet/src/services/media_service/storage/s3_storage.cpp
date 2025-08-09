@@ -45,14 +45,22 @@ public:
 		client_ = std::make_shared<Aws::S3::S3Client>(cfg);
 	}
 	bool Put(const std::string& local_path, const std::string& object_key, std::string& out_url) override {
-		std::ifstream ifs(local_path, std::ios::binary);
-		if (!ifs) return false;
-		Aws::S3::Model::PutObjectRequest req; req.SetBucket(bucket_.c_str()); req.SetKey(object_key.c_str());
-		auto stream = Aws::MakeShared<Aws::StringStream>("putobj");
-		(*stream) << ifs.rdbuf();
-		req.SetBody(stream);
-		auto outcome = client_->PutObject(req);
-		if (!outcome.IsSuccess()) return false;
+		// Decide between simple put and multipart (threshold 50MB)
+		constexpr size_t THRESHOLD = 50ULL * 1024ULL * 1024ULL;
+		std::error_code ec; auto sz = fs::file_size(local_path, ec);
+		if (ec) return false;
+		if (sz <= THRESHOLD) {
+			std::ifstream ifs(local_path, std::ios::binary);
+			if (!ifs) return false;
+			Aws::S3::Model::PutObjectRequest req; req.SetBucket(bucket_.c_str()); req.SetKey(object_key.c_str());
+			auto stream = Aws::MakeShared<Aws::StringStream>("putobj");
+			(*stream) << ifs.rdbuf();
+			req.SetBody(stream);
+			auto outcome = client_->PutObject(req);
+			if (!outcome.IsSuccess()) return false;
+		} else {
+			if (!MultipartUpload(local_path, object_key, sz)) return false;
+		}
 		out_url = base_url_.empty() ? ("https://" + bucket_ + "/" + object_key) : (base_url_ + "/" + object_key);
 		return true;
 	}
@@ -90,6 +98,44 @@ private:
 	std::string bucket_;
 	std::string base_url_;
 	std::shared_ptr<Aws::S3::S3Client> client_;
+	bool MultipartUpload(const std::string& path, const std::string& key, size_t size) {
+		Aws::S3::Model::CreateMultipartUploadRequest createReq; createReq.SetBucket(bucket_.c_str()); createReq.SetKey(key.c_str());
+		auto createOut = client_->CreateMultipartUpload(createReq);
+		if (!createOut.IsSuccess()) return false;
+		auto uploadId = createOut.GetResult().GetUploadId();
+		static const size_t PART_SIZE = 8ULL * 1024ULL * 1024ULL; // 8MB
+		std::ifstream ifs(path, std::ios::binary);
+		if (!ifs) return false;
+		std::vector<Aws::S3::Model::CompletedPart> completed;
+		int partNumber = 1;
+		while (ifs && ifs.tellg() < static_cast<std::streampos>(size)) {
+			std::vector<char> buf(PART_SIZE);
+			ifs.read(buf.data(), buf.size());
+			std::streamsize got = ifs.gcount();
+			Aws::S3::Model::UploadPartRequest upr;
+			upr.SetBucket(bucket_.c_str()); upr.SetKey(key.c_str()); upr.SetPartNumber(partNumber); upr.SetUploadId(uploadId);
+			auto stream = Aws::MakeShared<Aws::StringStream>("mpupart");
+			stream->write(buf.data(), got);
+			stream->seekg(0);
+			upr.SetBody(stream);
+			upr.SetContentLength(got);
+			auto upOut = client_->UploadPart(upr);
+			if (!upOut.IsSuccess()) { AbortMultipart(key, uploadId); return false; }
+			Aws::S3::Model::CompletedPart cp; cp.SetPartNumber(partNumber); cp.SetETag(upOut.GetResult().GetETag()); completed.push_back(cp);
+			++partNumber;
+		}
+		Aws::S3::Model::CompletedMultipartUpload comp;
+		for (auto& p : completed) comp.AddParts(p);
+		Aws::S3::Model::CompleteMultipartUploadRequest compReq; compReq.SetBucket(bucket_.c_str()); compReq.SetKey(key.c_str()); compReq.SetUploadId(uploadId);
+		compReq.SetMultipartUpload(comp);
+		auto compOut = client_->CompleteMultipartUpload(compReq);
+		if (!compOut.IsSuccess()) { AbortMultipart(key, uploadId); return false; }
+		return true;
+	}
+	void AbortMultipart(const std::string& key, const Aws::String& uploadId) {
+		Aws::S3::Model::AbortMultipartUploadRequest req; req.SetBucket(bucket_.c_str()); req.SetKey(key.c_str()); req.SetUploadId(uploadId);
+		client_->AbortMultipartUpload(req);
+	}
 };
 #else
 class AwsCliS3Storage final : public S3StorageBase {

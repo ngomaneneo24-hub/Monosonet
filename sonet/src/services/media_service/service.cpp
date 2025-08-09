@@ -495,5 +495,12 @@ static bool IsAdmin(grpc::ServerContext* ctx) {
 	return ::grpc::Status::OK;
 }
 
+::grpc::Status MediaServiceImpl::HealthCheck(::grpc::ServerContext* /*context*/,
+										 const ::sonet::media::HealthCheckRequest* /*request*/,
+										 ::sonet::media::HealthCheckResponse* response) {
+	response->set_status("ok");
+	return ::grpc::Status::OK;
+}
+
 } // namespace sonet::media_service
 
