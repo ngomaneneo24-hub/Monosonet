@@ -92,7 +92,8 @@ struct TimelineConfig {
     // Content mix ratios
     double following_content_ratio = 0.7;
     double recommended_content_ratio = 0.2;
-    double trending_content_ratio = 0.1;
+    double trending_content_ratio = 0.08;
+    double lists_content_ratio = 0.02;
 };
 
 // Engagement event for ML training
@@ -284,6 +285,12 @@ public:
         grpc::ServerContext* context,
         const ::sonet::timeline::HealthCheckRequest* request,
         ::sonet::timeline::HealthCheckResponse* response
+    ) override;
+
+    grpc::Status RecordEngagement(
+        grpc::ServerContext* context,
+        const ::sonet::timeline::RecordEngagementRequest* request,
+        ::sonet::timeline::RecordEngagementResponse* response
     ) override;
     
     // Public methods for external services

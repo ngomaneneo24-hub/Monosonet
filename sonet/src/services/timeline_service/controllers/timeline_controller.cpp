@@ -107,6 +107,19 @@ std::optional<::sonet::timeline::TimelinePreferences> TimelineController::get_pr
     return resp.preferences_;
 }
 
+bool TimelineController::record_engagement(const std::string& user_id, const std::string& note_id, const std::string& action, double duration_seconds) {
+    ::sonet::timeline::RecordEngagementRequest req;
+    req.user_id_ = user_id;
+    req.note_id_ = note_id;
+    req.action_ = action;
+    req.duration_seconds_ = duration_seconds;
+
+    ::sonet::timeline::RecordEngagementResponse resp;
+    grpc::ServerContext ctx;
+    auto status = service_->RecordEngagement(&ctx, &req, &resp);
+    return status.ok();
+}
+
 } // namespace controllers
 } // namespace timeline
 } // namespace sonet

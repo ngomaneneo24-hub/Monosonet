@@ -467,6 +467,56 @@ std::vector<::sonet::note::Note> TrendingContentAdapter::GetAuthorTrends(int32_t
     return notes;
 }
 
+// ============= LISTS CONTENT ADAPTER IMPLEMENTATION =============
+
+class ListsContentAdapter : public ContentSourceAdapter {
+public:
+    explicit ListsContentAdapter(std::shared_ptr<::sonet::note::NoteService::Stub> note_service)
+        : note_service_(std::move(note_service)) {
+        std::cout << "Lists Content Adapter initialized" << std::endl;
+    }
+
+    std::vector<::sonet::note::Note> GetContent(
+        const std::string& user_id,
+        const TimelineConfig& /*config*/,
+        std::chrono::system_clock::time_point since,
+        int32_t limit
+    ) override {
+        // Stub implementation: generate sample notes from a few list authors
+        std::vector<::sonet::note::Note> notes;
+        std::vector<std::string> list_authors = {"list_author_a", "list_author_b", "list_author_c"};
+        std::vector<std::string> contents = {
+            "Curated pick: Top engineering reads #tech",
+            "Curated pick: Product insights #product",
+            "Curated pick: Design inspirations #design"
+        };
+        std::random_device rd; std::mt19937 gen(rd());
+        std::uniform_int_distribution<> author_dis(0, static_cast<int>(list_authors.size()) - 1);
+        std::uniform_int_distribution<> content_dis(0, static_cast<int>(contents.size()) - 1);
+        std::uniform_int_distribution<> time_dis(1, 72);
+        for (int i = 0; i < limit; ++i) {
+            auto created_time = std::chrono::system_clock::now() - std::chrono::hours(time_dis(gen));
+            if (created_time < since) created_time = since;
+            ::sonet::note::Note note;
+            note.set_id("list_note_" + std::to_string(i + 1));
+            note.set_author_id(list_authors[author_dis(gen)]);
+            note.set_content(contents[content_dis(gen)] + " (for " + user_id + ")");
+            note.set_visibility(::sonet::note::VISIBILITY_PUBLIC);
+            *note.mutable_created_at() = ToProtoTimestamp(created_time);
+            *note.mutable_updated_at() = ToProtoTimestamp(created_time);
+            auto* metrics = note.mutable_metrics();
+            metrics->set_views(50 + i * 3);
+            metrics->set_likes(5 + (i % 7));
+            metrics->set_reposts(1 + (i % 4));
+            notes.push_back(note);
+        }
+        return notes;
+    }
+
+private:
+    std::shared_ptr<::sonet::note::NoteService::Stub> note_service_;
+};
+
 // ============= FACTORY FUNCTION =============
 
 std::shared_ptr<TimelineServiceImpl> CreateTimelineService(
@@ -492,6 +542,9 @@ std::shared_ptr<TimelineServiceImpl> CreateTimelineService(
     
     content_sources[::sonet::timeline::CONTENT_SOURCE_TRENDING] = 
         std::make_shared<TrendingContentAdapter>(note_service);
+
+    content_sources[::sonet::timeline::CONTENT_SOURCE_LISTS] =
+        std::make_shared<ListsContentAdapter>(note_service);
     
     // Start real-time notifier
     realtime_notifier->Start();
