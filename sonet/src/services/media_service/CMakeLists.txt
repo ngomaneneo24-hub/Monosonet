@@ -23,7 +23,7 @@ endif()
 
 find_package(Threads REQUIRED)
 
-file(GLOB MEDIA_SERVICE_SOURCES
+file(GLOB MEDIA_SERVICE_ALL_SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/controllers/*.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/repositories/*.cpp
@@ -31,10 +31,15 @@ file(GLOB MEDIA_SERVICE_SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/storage/*.cpp
 )
 
-add_executable(media_service
-	${MEDIA_SERVICE_SOURCES}
-)
+# Separate main for executable
+set(MEDIA_SERVICE_MAIN ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
+list(REMOVE_ITEM MEDIA_SERVICE_ALL_SOURCES ${MEDIA_SERVICE_MAIN})
 
+add_library(media_service_core STATIC ${MEDIA_SERVICE_ALL_SOURCES})
+add_executable(media_service ${MEDIA_SERVICE_MAIN})
+target_link_libraries(media_service PRIVATE media_service_core)
+
+target_include_directories(media_service_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(media_service PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Generate gRPC/Protobuf sources for media service only
@@ -65,19 +70,21 @@ if(PROTOC AND GRPC_CPP_PLUGIN)
 		DEPENDS ${MEDIA_PROTO}
 		COMMENT "Generating gRPC sources for media.proto"
 	)
-	target_sources(media_service PRIVATE ${GEN_SRCS})
-	target_include_directories(media_service PRIVATE ${GEN_DIR} ${PROTO_DIR})
+	target_sources(media_service_core PRIVATE ${GEN_SRCS})
+	target_include_directories(media_service_core PUBLIC ${GEN_DIR} ${PROTO_DIR})
 else()
 	message(WARNING "protoc or grpc_cpp_plugin not found; expecting pre-generated sources in include path.")
 	target_include_directories(media_service PRIVATE ${PROTO_DIR})
 endif()
 
 # Link against proto lib and common libs
+target_link_libraries(media_service_core PUBLIC sonet_proto)
 target_link_libraries(media_service PRIVATE sonet_proto)
 
 # Link protobuf/grpc
 find_package(Protobuf)
 if(Protobuf_FOUND)
+	target_link_libraries(media_service_core PUBLIC protobuf::libprotobuf)
 	target_link_libraries(media_service PRIVATE protobuf::libprotobuf)
 endif()
 find_library(GRPCPP_LIB grpc++)
@@ -86,31 +93,19 @@ find_library(GPR_LIB gpr)
 find_library(ABSL_SYNCHRONIZATION_LIB absl_synchronization)
 find_library(ABSL_STRINGS_LIB absl_strings)
 find_library(ABSL_STATUS_LIB absl_status)
-if(GRPCPP_LIB)
-	target_link_libraries(media_service PRIVATE ${GRPCPP_LIB})
-endif()
-if(GRPCPP_REFLECTION_LIB)
-	target_link_libraries(media_service PRIVATE ${GRPCPP_REFLECTION_LIB})
-endif()
-if(GPR_LIB)
-	target_link_libraries(media_service PRIVATE ${GPR_LIB})
-endif()
-if(ABSL_SYNCHRONIZATION_LIB)
-	target_link_libraries(media_service PRIVATE ${ABSL_SYNCHRONIZATION_LIB})
-endif()
-if(ABSL_STRINGS_LIB)
-	target_link_libraries(media_service PRIVATE ${ABSL_STRINGS_LIB})
-endif()
-if(ABSL_STATUS_LIB)
-	target_link_libraries(media_service PRIVATE ${ABSL_STATUS_LIB})
-endif()
+foreach(lib IN ITEMS GRPCPP_LIB GRPCPP_REFLECTION_LIB GPR_LIB ABSL_SYNCHRONIZATION_LIB ABSL_STRINGS_LIB ABSL_STATUS_LIB)
+	if(${lib})
+		target_link_libraries(media_service_core PUBLIC ${${lib}})
+		target_link_libraries(media_service PRIVATE ${${lib}})
+	endif()
+endforeach()
 
 # libpqxx (optional)
 find_package(PkgConfig)
 pkg_check_modules(PQXX libpqxx)
 if(PQXX_FOUND)
-	target_include_directories(media_service PRIVATE ${PQXX_INCLUDE_DIRS})
-	target_link_libraries(media_service PRIVATE ${PQXX_LIBRARIES})
+	target_include_directories(media_service_core PUBLIC ${PQXX_INCLUDE_DIRS})
+	target_link_libraries(media_service_core PUBLIC ${PQXX_LIBRARIES})
 endif()
 
 # Optional AWS SDK for S3 (SDK migration)
@@ -124,10 +119,11 @@ else()
 endif()
 
 # Threads
+target_link_libraries(media_service_core PUBLIC Threads::Threads)
 target_link_libraries(media_service PRIVATE Threads::Threads)
 
 if(OpenSSL_FOUND)
-	target_link_libraries(media_service PRIVATE OpenSSL::Crypto OpenSSL::SSL)
+	target_link_libraries(media_service_core PUBLIC OpenSSL::Crypto OpenSSL::SSL)
 endif()
 
 install(TARGETS media_service RUNTIME DESTINATION bin)
@@ -137,7 +133,7 @@ if(BUILD_TESTS)
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/media_service_unit_tests.cpp
 	)
 	target_include_directories(media_service_unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-	target_link_libraries(media_service_unit_tests PRIVATE media_service)
+	target_link_libraries(media_service_unit_tests PRIVATE media_service_core)
 	if(ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 		target_compile_options(media_service_unit_tests PRIVATE --coverage -O0 -g)
 		target_link_options(media_service_unit_tests PRIVATE --coverage)

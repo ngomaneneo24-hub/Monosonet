@@ -27,8 +27,12 @@ target_link_libraries(test_main
 )
 
 # Add test subdirectories
-add_subdirectory(unit)
-add_subdirectory(integration)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/unit/CMakeLists.txt)
+    add_subdirectory(unit)
+endif()
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/integration/CMakeLists.txt)
+    add_subdirectory(integration)
+endif()
 
 # Register tests with CTest
 add_test(NAME unit_tests COMMAND test_main)
