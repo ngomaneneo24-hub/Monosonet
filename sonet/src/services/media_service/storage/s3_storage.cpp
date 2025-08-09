@@ -160,30 +160,38 @@ public:
 		: bucket_(std::move(bucket)), base_url_(std::move(base_url)), endpoint_(std::move(endpoint)) {}
 	// ... existing CLI implementation moved unchanged ...
 	bool Put(const std::string& local_path, const std::string& object_key, std::string& out_url) override {
+		auto SQ = [](const std::string& s){ std::string r; r.reserve(s.size()+2); r.push_back('\''); for(char c: s){ if(c=='\'') r += "'\"'\"'"; else r.push_back(c);} r.push_back('\''); return r; };
 		std::string extra = endpoint_.empty() ? "" : (" --endpoint-url '" + endpoint_ + "'");
-		std::string cmd = "aws s3 cp '" + local_path + "' 's3://" + bucket_ + "/" + object_key + "'" + extra + " >/dev/null 2>&1";
+		std::string s3url = "s3://" + bucket_ + "/" + object_key;
+		std::string cmd = "aws s3 cp " + SQ(local_path) + " " + SQ(s3url) + extra + " >/dev/null 2>&1";
 		int rc = std::system(cmd.c_str());
 		if (rc != 0) return false;
 		out_url = base_url_.empty() ? ("s3://" + bucket_ + "/" + object_key) : (base_url_ + "/" + object_key);
 		return true;
 	}
 	bool PutDir(const std::string& local_dir, const std::string& object_prefix, std::string& out_base_url) override {
+		auto SQ = [](const std::string& s){ std::string r; r.reserve(s.size()+2); r.push_back('\''); for(char c: s){ if(c=='\'') r += "'\"'\"'"; else r.push_back(c);} r.push_back('\''); return r; };
 		std::string extra = endpoint_.empty() ? "" : (" --endpoint-url '" + endpoint_ + "'");
-		std::string cmd = "aws s3 sync '" + local_dir + "' 's3://" + bucket_ + "/" + object_prefix + "'" + extra + " --delete >/dev/null 2>&1";
+		std::string s3url = "s3://" + bucket_ + "/" + object_prefix;
+		std::string cmd = "aws s3 sync " + SQ(local_dir) + " " + SQ(s3url) + extra + " --delete >/dev/null 2>&1";
 		int rc = std::system(cmd.c_str());
 		if (rc != 0) return false;
 		out_base_url = base_url_.empty() ? ("s3://" + bucket_ + "/" + object_prefix) : (base_url_ + "/" + object_prefix);
 		return true;
 	}
 	bool Delete(const std::string& object_key) override {
+		auto SQ = [](const std::string& s){ std::string r; r.reserve(s.size()+2); r.push_back('\''); for(char c: s){ if(c=='\'') r += "'\"'\"'"; else r.push_back(c);} r.push_back('\''); return r; };
 		std::string extra = endpoint_.empty() ? "" : (" --endpoint-url '" + endpoint_ + "'");
-		std::string cmd = "aws s3 rm 's3://" + bucket_ + "/" + object_key + "'" + extra + " >/dev/null 2>&1";
+		std::string s3url = "s3://" + bucket_ + "/" + object_key;
+		std::string cmd = "aws s3 rm " + SQ(s3url) + extra + " >/dev/null 2>&1";
 		int rc = std::system(cmd.c_str());
 		return rc == 0;
 	}
 	bool DeletePrefix(const std::string& object_prefix) override {
+		auto SQ = [](const std::string& s){ std::string r; r.reserve(s.size()+2); r.push_back('\''); for(char c: s){ if(c=='\'') r += "'\"'\"'"; else r.push_back(c);} r.push_back('\''); return r; };
 		std::string extra = endpoint_.empty() ? "" : (" --endpoint-url '" + endpoint_ + "'");
-		std::string cmd = "aws s3 rm 's3://" + bucket_ + "/" + object_prefix + "' --recursive" + extra + " >/dev/null 2>&1";
+		std::string s3url = "s3://" + bucket_ + "/" + object_prefix;
+		std::string cmd = "aws s3 rm " + SQ(s3url) + " --recursive" + extra + " >/dev/null 2>&1";
 		int rc = std::system(cmd.c_str()); return rc == 0;
 	}
 	std::string Sign(const std::string& object_key, int ttl_seconds) override {
@@ -191,8 +199,10 @@ public:
 		int fd = mkstemp(tmpl);
 		if (fd != -1) close(fd);
 		std::string tmpfile = tmpl;
+		auto SQ = [](const std::string& s){ std::string r; r.reserve(s.size()+2); r.push_back('\''); for(char c: s){ if(c=='\'') r += "'\"'\"'"; else r.push_back(c);} r.push_back('\''); return r; };
 		std::string extra = endpoint_.empty() ? "" : (" --endpoint-url '" + endpoint_ + "'");
-		std::string cmd = "aws s3 presign 's3://" + bucket_ + "/" + object_key + "' --expires-in " + std::to_string(ttl_seconds) + extra + " > '" + tmpfile + "' 2>/dev/null";
+		std::string s3url = "s3://" + bucket_ + "/" + object_key;
+		std::string cmd = "aws s3 presign " + SQ(s3url) + " --expires-in " + std::to_string(ttl_seconds) + extra + " > " + SQ(tmpfile) + " 2>/dev/null";
 		int rc = std::system(cmd.c_str());
 		if (rc == 0) { std::ifstream ifs(tmpfile); std::string url; std::getline(ifs,url); fs::remove(tmpfile); if (!url.empty()) return url; }
 		fs::remove(tmpfile);
