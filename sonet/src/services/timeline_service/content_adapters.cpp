@@ -558,7 +558,8 @@ std::shared_ptr<TimelineServiceImpl> CreateTimelineService(
     realtime_notifier->Start();
     
     auto timeline_service = std::make_shared<TimelineServiceImpl>(
-        cache, ranking_engine, content_filter, realtime_notifier, content_sources);
+        cache, ranking_engine, content_filter, realtime_notifier, content_sources,
+        note_service ? std::make_shared<::sonet::follow::FollowService::Stub>() : nullptr);
     
     std::cout << "Timeline service created with all components initialized" << std::endl;
     
