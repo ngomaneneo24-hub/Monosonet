@@ -169,8 +169,14 @@ grpc::Status TimelineServiceImpl::GetTimeline(
         }
 
         // Set metadata
-        auto* metadata = response->mutable_metadata();
-        *metadata = BuildTimelineMetadata(timeline_items, request->user_id(), config);
+            auto* metadata = response->mutable_metadata();
+    *metadata = BuildTimelineMetadata(timeline_items, request->user_id(), config);
+    auto* params = metadata->mutable_algorithm_params();
+    (*params)["recency_weight"] = config.recency_weight;
+    (*params)["engagement_weight"] = config.engagement_weight;
+    (*params)["author_affinity_weight"] = config.author_affinity_weight;
+    (*params)["content_quality_weight"] = config.content_quality_weight;
+    (*params)["diversity_weight"] = config.diversity_weight;
 
         // Set pagination info
         auto* page_info = response->mutable_pagination();
