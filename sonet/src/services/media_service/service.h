@@ -33,6 +33,9 @@ struct MediaRecord {
 	std::string original_url;
 	std::string thumbnail_url;
 	std::string hls_url; // optional for videos
+	std::string webp_url; // optional image optimization
+	std::string mp4_url;  // optional GIF->MP4 optimization
+	std::string created_at; // RFC3339 timestamp
 };
 
 class MediaRepository {
@@ -52,6 +55,10 @@ public:
 	// Store a directory recursively (e.g., HLS assets). Returns base URL (object_prefix/) where index file lives.
 	virtual bool PutDir(const std::string& local_dir, const std::string& object_prefix, std::string& out_base_url) = 0;
 	virtual bool Delete(const std::string& object_key) = 0;
+	// Optionally produce a signed URL (default just returns provided URL if signing unsupported)
+	virtual std::string Sign(const std::string& object_key, int /*ttl_seconds*/) { return object_key; }
+	// Optionally produce a signed URL from an existing public URL; default returns the input url unchanged.
+	virtual std::string SignUrl(const std::string& url, int /*ttl_seconds*/) { return url; }
 };
 
 class ImageProcessor { public: virtual ~ImageProcessor() = default; virtual bool Process(const std::string& path_in, std::string& path_out, std::string& thumb_out, uint32_t& width, uint32_t& height) = 0; };

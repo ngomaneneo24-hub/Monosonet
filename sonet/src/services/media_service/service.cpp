@@ -23,7 +23,21 @@ namespace sonet::media_service {
 class InMemoryRepo final : public MediaRepository {
 public:
 	bool Save(const MediaRecord& rec) override {
-		store_[rec.id] = rec;
+		MediaRecord copy = rec;
+		if (copy.created_at.empty()) {
+			auto now = std::chrono::system_clock::now();
+			auto t = std::chrono::system_clock::to_time_t(now);
+			std::tm tm{};
+#if defined(_WIN32)
+			gmtime_s(&tm, &t);
+#else
+			gmtime_r(&t, &tm);
+#endif
+			char buf[32];
+			std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &tm);
+			copy.created_at = buf;
+		}
+		store_[copy.id] = copy;
 		by_owner_[rec.owner_user_id].push_back(rec.id);
 		return true;
 	}
@@ -106,6 +120,10 @@ public:
 		std::error_code ec;
 		fs::remove(fs::path(base_dir_) / object_key, ec);
 		return !ec;
+	}
+	std::string Sign(const std::string& object_key, int /*ttl_seconds*/) override {
+		// For local storage, return resolved URL path
+		return base_url_ + "/" + object_key;
 	}
 private:
 	std::string base_dir_;
@@ -221,7 +239,34 @@ static std::string GenId() {
 	std::string object_key = init.owner_user_id() + "/" + id;
 	std::string url;
 	if (!storage_->Put(processed, object_key, url)) { fs::remove(processed); return {::grpc::StatusCode::INTERNAL, "storage failed"}; }
-	std::string thumb_url = url; // Placeholder. In real impl store thumb separately.
+	// Store thumbnail if different
+	std::string thumb_url = url;
+	if (thumb != processed) {
+		std::string tkey = object_key + ".thumb.jpg";
+		if (storage_->Put(thumb, tkey, thumb_url)) {
+			// ok
+		}
+	}
+	// Optional variants
+	std::string webp_url;
+	if (init.type() == MEDIA_TYPE_IMAGE) {
+		// Try a simple WebP conversion
+		fs::path wpath = fs::path(processed).parent_path() / (fs::path(processed).filename().string() + ".webp");
+		std::string cmd = "convert '" + processed + "' -quality 85 '" + wpath.string() + "' >/dev/null 2>&1";
+		int rc = std::system(cmd.c_str()); (void)rc;
+		if (fs::exists(wpath)) {
+			storage_->Put(wpath.string(), object_key + ".webp", webp_url);
+		}
+	}
+	std::string mp4_url;
+	if (init.type() == MEDIA_TYPE_GIF) {
+		fs::path mpath = fs::path(processed).parent_path() / (fs::path(processed).filename().string() + ".mp4");
+		std::string cmd = "ffmpeg -y -i '" + processed + "' -movflags +faststart -pix_fmt yuv420p -vf 'scale=trunc(iw/2)*2:trunc(ih/2)*2' '" + mpath.string() + "' >/dev/null 2>&1";
+		int rc = std::system(cmd.c_str()); (void)rc;
+		if (fs::exists(mpath)) {
+			storage_->Put(mpath.string(), object_key + ".mp4", mp4_url);
+		}
+	}
 	std::string hls_url;
 	if (init.type() == MEDIA_TYPE_VIDEO) {
 		// Generate simple HLS renditions (360p/480p/720p) using ffmpeg
@@ -270,7 +315,8 @@ static std::string GenId() {
 	rec.mime_type = init.mime_type();
 	rec.size_bytes = total;
 	rec.width = width; rec.height = height; rec.duration_seconds = duration;
-	rec.original_url = url; rec.thumbnail_url = thumb_url; rec.hls_url = hls_url;
+	rec.original_url = url; rec.thumbnail_url = thumb_url; rec.hls_url = hls_url; rec.webp_url = webp_url; rec.mp4_url = mp4_url;
+	// created_at filled by repo if empty (in-memory) or DB default
 	repo_->Save(rec);
 
 	response->set_media_id(id);
@@ -278,6 +324,8 @@ static std::string GenId() {
 	response->set_url(url);
 	response->set_thumbnail_url(thumb_url);
 	if (!hls_url.empty()) response->set_hls_url(hls_url);
+	if (!webp_url.empty()) response->set_webp_url(webp_url);
+	if (!mp4_url.empty()) response->set_mp4_url(mp4_url);
 	return ::grpc::Status::OK;
 }
 
@@ -295,9 +343,13 @@ static std::string GenId() {
 	m->set_width(rec.width);
 	m->set_height(rec.height);
 	m->set_duration_seconds(rec.duration_seconds);
-	m->set_original_url(rec.original_url);
-	m->set_thumbnail_url(rec.thumbnail_url);
-	m->set_hls_url(rec.hls_url);
+	// Optionally sign URLs (best-effort)
+	m->set_original_url(storage_->SignUrl(rec.original_url, 3600));
+	m->set_thumbnail_url(storage_->SignUrl(rec.thumbnail_url, 3600));
+	m->set_hls_url(storage_->SignUrl(rec.hls_url, 3600));
+	m->set_webp_url(storage_->SignUrl(rec.webp_url, 3600));
+	m->set_mp4_url(storage_->SignUrl(rec.mp4_url, 3600));
+	m->set_created_at(rec.created_at);
 	// created_at omitted in placeholder
 	return ::grpc::Status::OK;
 }
@@ -339,9 +391,12 @@ static std::string GenId() {
 		m->set_width(r.width);
 		m->set_height(r.height);
 		m->set_duration_seconds(r.duration_seconds);
-		m->set_original_url(r.original_url);
-		m->set_thumbnail_url(r.thumbnail_url);
-		m->set_hls_url(r.hls_url);
+		m->set_original_url(storage_->SignUrl(r.original_url, 3600));
+		m->set_thumbnail_url(storage_->SignUrl(r.thumbnail_url, 3600));
+		m->set_hls_url(storage_->SignUrl(r.hls_url, 3600));
+		m->set_webp_url(storage_->SignUrl(r.webp_url, 3600));
+		m->set_mp4_url(storage_->SignUrl(r.mp4_url, 3600));
+		m->set_created_at(r.created_at);
 	}
 	return ::grpc::Status::OK;
 }

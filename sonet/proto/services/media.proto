@@ -32,6 +32,8 @@ message Media {
 	string thumbnail_url = 10;   // for images/videos
 	string hls_url = 11;         // video HLS master playlist (optional)
 	string created_at = 12;      // RFC3339 timestamp
+	string webp_url = 13;        // optional optimized image variant
+	string mp4_url = 14;         // optional GIF->MP4 optimized variant
 }
 
 // Upload streaming: client sends chunks
@@ -59,6 +61,8 @@ message UploadResponse {
 	string url = 3;
 	string thumbnail_url = 4;
 	string hls_url = 5;
+	string webp_url = 6;
+	string mp4_url = 7;
 }
 
 message GetMediaRequest { string media_id = 1; }

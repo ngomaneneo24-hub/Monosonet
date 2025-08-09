@@ -11,6 +11,8 @@
 #include "../service.h"
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
+#include <unistd.h>
 
 namespace fs = std::filesystem;
 namespace sonet::media_service {
@@ -41,6 +43,37 @@ public:
 		std::string cmd = "aws s3 rm 's3://" + bucket_ + "/" + object_key + "'" + extra + " >/dev/null 2>&1";
 		int rc = std::system(cmd.c_str());
 		return rc == 0;
+	}
+
+	std::string Sign(const std::string& object_key, int ttl_seconds) override {
+		// Attempt presign; if it fails, return public URL
+		char tmpl[] = "/tmp/presignXXXXXX";
+		int fd = mkstemp(tmpl);
+		if (fd != -1) close(fd);
+		std::string tmpfile = tmpl;
+		std::string extra = endpoint_.empty() ? "" : (" --endpoint-url '" + endpoint_ + "'");
+		std::string cmd = "aws s3 presign 's3://" + bucket_ + "/" + object_key + "' --expires-in " + std::to_string(ttl_seconds) + extra + " > '" + tmpfile + "' 2>/dev/null";
+		int rc = std::system(cmd.c_str());
+		if (rc == 0) {
+			std::ifstream ifs(tmpfile);
+			std::string url; std::getline(ifs, url);
+			fs::remove(tmpfile);
+			if (!url.empty()) return url;
+		}
+		fs::remove(tmpfile);
+		return base_url_.empty() ? ("s3://" + bucket_ + "/" + object_key) : (base_url_ + "/" + object_key);
+	}
+
+	std::string SignUrl(const std::string& url, int ttl_seconds) override {
+		// If url already includes bucket path; attempt to derive object key after base_url_
+		if (!base_url_.empty()) {
+			if (url.rfind(base_url_, 0) == 0) {
+				std::string key = url.substr(base_url_.size() + 1); // skip '/'
+				return Sign(key, ttl_seconds);
+			}
+		}
+		// Fallback: return original
+		return url;
 	}
 
 private:
