@@ -91,6 +91,15 @@ TimelineServiceImpl::TimelineServiceImpl(
     default_config_.trending_content_ratio = 0.1;
     
     std::cout << "Timeline service initialized with " << content_sources_.size() << " content sources" << std::endl;
+    // Start fanout worker
+    fanout_running_.store(true);
+    fanout_thread_ = std::thread([this]() { FanoutLoop(); });
+}
+
+TimelineServiceImpl::~TimelineServiceImpl() {
+    fanout_running_.store(false);
+    fanout_cv_.notify_all();
+    if (fanout_thread_.joinable()) fanout_thread_.join();
 }
 
 grpc::Status TimelineServiceImpl::GetTimeline(
@@ -99,6 +108,10 @@ grpc::Status TimelineServiceImpl::GetTimeline(
     ::sonet::timeline::GetTimelineResponse* response
 ) {
     try {
+        // Per-user rate limit
+        if (!RateAllow("tl:" + request->user_id())) {
+            return grpc::Status(grpc::StatusCode::RESOURCE_EXHAUSTED, "rate limit");
+        }
         if (!IsAuthorized(context, request->user_id())) {
             return grpc::Status(grpc::StatusCode::PERMISSION_DENIED, "Unauthorized access");
         }
@@ -743,6 +756,20 @@ void TimelineServiceImpl::ApplyABOverridesFromMetadata(grpc::ServerContext* cont
 
 // ============= EVENT HANDLERS =============
 
+bool TimelineServiceImpl::RateAllow(const std::string& key) {
+    std::lock_guard<std::mutex> lock(rate_mutex_);
+    auto& b = rate_buckets_[key];
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - b.last_refill).count();
+    if (elapsed > 0) {
+        double tokens_to_add = (static_cast<double>(rate_rpm_) / 60000.0) * elapsed;
+        b.tokens = std::min(1.0 * rate_rpm_, b.tokens + tokens_to_add);
+        b.last_refill = now;
+    }
+    if (b.tokens >= 1.0) { b.tokens -= 1.0; return true; }
+    return false;
+}
+
 void TimelineServiceImpl::OnNewNote(const ::sonet::note::Note& note) {
     std::cout << "Processing new note event: " << note.id() << " by " << note.author_id() << std::endl;
     
@@ -755,6 +782,13 @@ void TimelineServiceImpl::OnNewNote(const ::sonet::note::Note& note) {
     // Notify streaming subscribers for the author followers (best-effort)
     ::sonet::timeline::TimelineUpdate upd;
     PushUpdateToSubscribers(note.author_id(), upd);
+
+    // Enqueue to fanout worker
+    {
+        std::lock_guard<std::mutex> ql(fanout_mutex_);
+        fanout_queue_.push(note);
+    }
+    fanout_cv_.notify_one();
 }
 
 void TimelineServiceImpl::OnNoteDeleted(const std::string& note_id, const std::string& author_id) {
@@ -1011,6 +1045,29 @@ grpc::Status TimelineServiceImpl::SubscribeTimelineUpdates(
     }
 
     return grpc::Status::OK;
+}
+
+void TimelineServiceImpl::FanoutLoop() {
+    while (fanout_running_.load()) {
+        ::sonet::note::Note note;
+        {
+            std::unique_lock<std::mutex> ul(fanout_mutex_);
+            if (fanout_queue_.empty()) {
+                fanout_cv_.wait_for(ul, std::chrono::milliseconds(500));
+            }
+            if (!fanout_queue_.empty()) { note = fanout_queue_.front(); fanout_queue_.pop(); }
+            else { continue; }
+        }
+        // Compute affected users via follow service
+        if (follow_service_) {
+            ::sonet::follow::GetFollowersRequest req; req.user_id_ = note.author_id();
+            auto followers = follow_service_->GetFollowers(req).user_ids();
+            for (const auto& uid : followers) {
+                cache_->InvalidateTimeline(uid);
+                ::sonet::timeline::TimelineUpdate upd; PushUpdateToSubscribers(uid, upd);
+            }
+        }
+    }
 }
 
 } // namespace sonet::timeline

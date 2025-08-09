@@ -252,6 +252,7 @@ public:
         std::unordered_map<::sonet::timeline::ContentSource, std::shared_ptr<ContentSourceAdapter>> content_sources,
         std::shared_ptr<::sonet::follow::FollowService::Stub> follow_service
     );
+    ~TimelineServiceImpl();
     
     // gRPC service methods
     grpc::Status GetTimeline(
@@ -390,6 +391,21 @@ private:
     void PushUpdateToSubscribers(const std::string& user_id, const ::sonet::timeline::TimelineUpdate& update);
     std::unordered_map<std::string, std::vector<std::weak_ptr<StreamSession>>> stream_sessions_;
     std::mutex stream_mutex_;
+    
+    // Simple per-user token bucket rate limiter
+    struct Bucket { double tokens = 0.0; std::chrono::steady_clock::time_point last_refill = std::chrono::steady_clock::now(); };
+    std::unordered_map<std::string, Bucket> rate_buckets_;
+    std::mutex rate_mutex_;
+    int rate_rpm_ = 600; // default
+    bool RateAllow(const std::string& key);
+    
+    // Fanout worker for new notes
+    std::queue<::sonet::note::Note> fanout_queue_;
+    std::mutex fanout_mutex_;
+    std::condition_variable fanout_cv_;
+    std::atomic<bool> fanout_running_{false};
+    std::thread fanout_thread_;
+    void FanoutLoop();
     
     // Components
     std::shared_ptr<TimelineCache> cache_;
