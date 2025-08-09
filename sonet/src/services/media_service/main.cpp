@@ -21,6 +21,7 @@ int main(int argc, char** argv) {
 	std::string local_store_dir = "/tmp/sonet-media";
 	std::string local_base_url = "file:///tmp/sonet-media"; // placeholder URL scheme
 	uint64_t max_upload = 200ULL * 1024ULL * 1024ULL; // 200MB
+	if (const char* e = std::getenv("SONET_MEDIA_MAX_UPLOAD")) { try { uint64_t v = std::stoull(e); if (v>0) max_upload = v; } catch(...) {} }
 
 	// Optional Postgres repository via env SONET_MEDIA_PG
 	const char* pg = std::getenv("SONET_MEDIA_PG");

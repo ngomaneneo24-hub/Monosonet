@@ -175,7 +175,7 @@ std::optional<Note> CassandraNoteRepository::get_by_id(const std::string& note_i
     }
 }
 
-bool CassandraNotereRepository::update(const Note& note) {
+bool CassandraNoteRepository::update(const Note& note) {
     if (!ensure_connected()) {
         return false;
     }
@@ -204,7 +204,7 @@ bool CassandraNotereRepository::update(const Note& note) {
     }
 }
 
-bool CassandraNotereRepository::delete_note(const std::string& note_id) {
+bool CassandraNoteRepository::delete_note(const std::string& note_id) {
     if (!ensure_connected()) {
         return false;
     }

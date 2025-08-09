@@ -96,7 +96,7 @@ json CreateNoteHandler::handle_create_reply(const json& request_data, const std:
         }
         
         // Get original note for context
-        auto original_note = note_repository_->find_by_id(reply_to_id);
+        auto original_note = note_repository_->get_by_id(reply_to_id);
         if (!original_note) {
             return create_error_response("NOTE_NOT_FOUND", "Original note not found");
         }
@@ -132,7 +132,7 @@ json CreateNoteHandler::handle_create_renote(const json& request_data, const std
         }
         
         // Get original note
-        auto original_note = note_repository_->find_by_id(renote_of_id);
+        auto original_note = note_repository_->get_by_id(renote_of_id);
         if (!original_note) {
             return create_error_response("NOTE_NOT_FOUND", "Original note not found");
         }

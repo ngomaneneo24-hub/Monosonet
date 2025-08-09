@@ -17,6 +17,7 @@
 #include "controllers/notification_controller.h"
 #include <thread>
 #include <chrono>
+#include <httplib.h>
 
 namespace sonet {
 namespace notification_service {
@@ -26,14 +27,14 @@ struct NotificationService::Impl {
     Config config;
     
     // Core components
-    std::unique_ptr<repositories::NotificationRepository> repository;
+    std::shared_ptr<repositories::NotificationRepository> repository;
     std::unique_ptr<processors::NotificationProcessor> processor;
     std::unique_ptr<controllers::NotificationController> controller;
     
     // Delivery channels
-    std::unique_ptr<channels::EmailChannel> email_channel;
-    std::unique_ptr<channels::PushChannel> push_channel;
-    std::unique_ptr<channels::WebSocketChannel> websocket_channel;
+    std::shared_ptr<channels::EmailChannel> email_channel;
+    std::shared_ptr<channels::PushChannel> push_channel;
+    std::shared_ptr<channels::WebSocketChannel> websocket_channel;
     
     // gRPC and HTTP servers
     std::unique_ptr<grpc::Server> grpc_server;
@@ -68,40 +69,43 @@ struct NotificationService::Impl {
             repo_config.cache_ttl = std::chrono::hours{1};
             repo_config.enable_caching = config.enable_caching;
             
-            repository = std::make_unique<repositories::NotificationRepository>(repo_config);
+            repository = std::shared_ptr<repositories::NotificationRepository>{
+                repositories::NotificationRepositoryFactory::create_postgresql({
+                    .connection_string = config.database_url,
+                    .max_connections = config.database_pool_size,
+                    .enable_redis_cache = config.enable_caching,
+                    .redis_host = "localhost",
+                    .redis_port = 6379
+                })
+            };
             
             // Initialize email channel
-            channels::EmailChannel::Config email_config;
-            email_config.smtp_host = config.smtp_host;
-            email_config.smtp_port = config.smtp_port;
-            email_config.smtp_username = config.smtp_username;
-            email_config.smtp_password = config.smtp_password;
-            email_config.smtp_use_tls = config.smtp_use_tls;
-            email_config.from_name = config.email_from_name;
-            email_config.from_email = config.email_from_address;
-            email_config.rate_limit_per_minute = config.email_rate_limit_per_minute;
-            email_config.rate_limit_per_hour = config.email_rate_limit_per_hour;
-            
-            email_channel = channels::EmailChannelFactory::create(
-                channels::EmailChannelFactory::ChannelType::SMTP, 
-                nlohmann::json::object()
-            );
+            channels::SMTPEmailChannel::Config smtp_cfg;
+            smtp_cfg.smtp_host = config.smtp_host;
+            smtp_cfg.smtp_port = config.smtp_port;
+            smtp_cfg.username = config.smtp_username;
+            smtp_cfg.password = config.smtp_password;
+            smtp_cfg.use_tls = config.smtp_use_tls;
+            smtp_cfg.sender_name = config.email_from_name;
+            smtp_cfg.sender_email = config.email_from_address;
+            smtp_cfg.max_emails_per_minute = config.email_rate_limit_per_minute;
+            smtp_cfg.max_emails_per_hour = config.email_rate_limit_per_hour;
+
+            email_channel = channels::EmailChannelFactory::create_smtp(smtp_cfg);
+            processor->register_email_channel(email_channel);
             
             // Initialize push channel
-            channels::PushChannel::Config push_config;
-            push_config.fcm_server_key = config.fcm_server_key;
-            push_config.fcm_project_id = config.fcm_project_id;
-            push_config.apns_key_id = config.apns_key_id;
-            push_config.apns_team_id = config.apns_team_id;
-            push_config.apns_bundle_id = config.apns_bundle_id;
-            push_config.apns_private_key = config.apns_private_key;
-            push_config.rate_limit_per_minute = config.push_rate_limit_per_minute;
-            push_config.rate_limit_per_hour = config.push_rate_limit_per_hour;
-            
-            push_channel = channels::PushChannelFactory::create(
-                channels::PushChannelFactory::ChannelType::FCM,
-                nlohmann::json::object()
-            );
+            channels::FCMPushChannel::Config fcm_cfg;
+            fcm_cfg.project_id = config.fcm_project_id;
+            fcm_cfg.server_key = config.fcm_server_key;
+            fcm_cfg.apns_key_id = config.apns_key_id;
+            fcm_cfg.apns_team_id = config.apns_team_id;
+            fcm_cfg.apns_key_path = config.apns_private_key;
+            fcm_cfg.max_requests_per_minute = config.push_rate_limit_per_minute;
+            fcm_cfg.max_requests_per_hour = config.push_rate_limit_per_hour;
+
+            push_channel = channels::PushChannelFactory::create_fcm(fcm_cfg);
+            processor->register_push_channel(push_channel);
             
             // Initialize WebSocket channel
             channels::WebSocketPPChannel::Config ws_config;
@@ -114,36 +118,31 @@ struct NotificationService::Impl {
             ws_config.max_message_size = 64 * 1024; // 64KB
             
             websocket_channel = channels::WebSocketChannelFactory::create_websocketpp(ws_config);
+            processor->register_websocket_channel(websocket_channel);
             
             // Initialize processor
             processors::NotificationProcessor::Config processor_config;
             processor_config.worker_thread_count = config.processor_worker_threads;
-            processor_config.batch_size = config.processor_batch_size;
-            processor_config.batch_timeout = std::chrono::seconds{config.processor_batch_timeout_seconds};
             processor_config.enable_rate_limiting = config.enable_rate_limiting;
             processor_config.enable_deduplication = config.enable_deduplication;
             processor_config.enable_batching = config.enable_batching;
             
             processor = std::make_unique<processors::NotificationProcessor>(
-                processor_config, 
-                repository.get(),
-                email_channel.get(),
-                push_channel.get(),
-                websocket_channel.get()
+                repository,
+                processor_config
             );
             
             // Initialize controller
             controllers::NotificationController::Config controller_config;
-            controller_config.enable_authentication = config.enable_authentication;
+            controller_config.require_authentication = config.enable_authentication;
             controller_config.jwt_secret = config.jwt_secret;
-            controller_config.rate_limit_per_user_per_minute = config.api_rate_limit_per_user_per_minute;
-            controller_config.max_notifications_per_request = config.max_notifications_per_request;
-            
+            controller_config.rate_limits.requests_per_minute = config.api_rate_limit_per_user_per_minute;
+            controller_config.max_request_size_mb = 10;
+            controller_config.enable_websocket = false; // WebSocket served by channels::WebSocketChannel
+
             controller = std::make_unique<controllers::NotificationController>(
-                controller_config,
-                repository.get(),
-                processor.get(),
-                websocket_channel.get()
+                repository,
+                controller_config
             );
             
             return true;
@@ -157,12 +156,15 @@ struct NotificationService::Impl {
     bool start_servers() {
         try {
             // Start WebSocket server
-            auto ws_future = websocket_channel->start_server(config.websocket_port, config.websocket_host);
-            if (!ws_future.get()) {
-                return false;
-            }
-            
-            // Start gRPC server
+                         auto ws_future = websocket_channel->start_server(config.websocket_port, config.websocket_host);
+             if (!ws_future.get()) {
+                 return false;
+             }
+             
+             // Controller owns no WebSocket server; reuse channel implementation
+             controller->start();
+             
+             // Start gRPC server
             if (config.enable_grpc) {
                 grpc_server_thread = std::thread([this]() {
                     start_grpc_server();
@@ -206,8 +208,7 @@ struct NotificationService::Impl {
         try {
             http_server = std::make_unique<httplib::Server>();
             
-            // Setup HTTP routes through controller
-            controller->setup_http_routes(*http_server);
+            // TODO: Expose HTTP endpoints via controller when routes are implemented
             
             // Health check endpoint
             http_server->Get("/health", [this](const httplib::Request& req, httplib::Response& res) {
@@ -422,6 +423,11 @@ struct NotificationService::Impl {
         
         // Stop health monitoring
         stop_health_monitoring();
+        
+        // Stop controller
+        if (controller) {
+            controller->stop();
+        }
         
         // Stop processor
         if (processor) {

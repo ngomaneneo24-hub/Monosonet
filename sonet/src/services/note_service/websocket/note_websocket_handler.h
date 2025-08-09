@@ -31,9 +31,9 @@
 #include "../../core/security/rate_limiter.h"
 
 #include "../models/note.h"
-#include "../services/note_service.h"
-#include "../services/timeline_service.h"
-#include "../services/notification_service.h"
+#include "../service.h"
+// #include "../services/timeline_service.h"
+// #include "../services/notification_service.h"
 
 using json = nlohmann::json;
 
@@ -56,12 +56,12 @@ class NoteWebSocketHandler {
 public:
     // Constructor
     explicit NoteWebSocketHandler(
-        std::shared_ptr<services::NoteService> note_service,
-        std::shared_ptr<services::TimelineService> timeline_service,
-        std::shared_ptr<services::NotificationService> notification_service,
-        std::shared_ptr<core::cache::RedisClient> redis_client,
-        std::shared_ptr<core::security::AuthService> auth_service,
-        std::shared_ptr<core::security::RateLimiter> rate_limiter
+        std::shared_ptr<sonet::note::NoteService> note_service,
+        std::shared_ptr<sonet::note::services::TimelineService> timeline_service,
+        std::shared_ptr<sonet::note::services::NotificationService> notification_service,
+        std::shared_ptr<sonet::core::cache::RedisClient> redis_client,
+        std::shared_ptr<sonet::core::security::AuthService> auth_service,
+        std::shared_ptr<sonet::core::security::RateLimiter> rate_limiter
     );
 
     // Destructor
@@ -78,7 +78,7 @@ public:
      * - Connection health monitoring
      * - User session management
      */
-    void handle_connection(std::shared_ptr<core::network::WebSocketConnection> connection);
+    void handle_connection(std::shared_ptr<sonet::core::network::WebSocketConnection> connection);
 
     /**
      * @brief Handle WebSocket disconnection
@@ -88,7 +88,7 @@ public:
      * - Update online status
      * - Log connection metrics
      */
-    void handle_disconnection(std::shared_ptr<core::network::WebSocketConnection> connection);
+    void handle_disconnection(std::shared_ptr<sonet::core::network::WebSocketConnection> connection);
 
     /**
      * @brief Handle incoming WebSocket message
@@ -100,7 +100,7 @@ public:
      * - ping: Connection health check
      * - unsubscribe: Remove subscriptions
      */
-    void handle_message(std::shared_ptr<core::network::WebSocketConnection> connection, 
+    void handle_message(std::shared_ptr<sonet::core::network::WebSocketConnection> connection, 
                        const std::string& message);
 
     // ========== SUBSCRIPTION MANAGEMENT ==========
@@ -115,7 +115,7 @@ public:
      * - hashtag:{tag}: Hashtag-specific updates
      * - trending: Trending content updates
      */
-    void subscribe_to_timeline(std::shared_ptr<core::network::WebSocketConnection> connection,
+    void subscribe_to_timeline(std::shared_ptr<sonet::core::network::WebSocketConnection> connection,
                               const std::string& timeline_type,
                               const std::string& filter_params = "");
 
@@ -128,7 +128,7 @@ public:
      * - replies: New reply notifications
      * - views: Live view count updates
      */
-    void subscribe_to_engagement(std::shared_ptr<core::network::WebSocketConnection> connection,
+    void subscribe_to_engagement(std::shared_ptr<sonet::core::network::WebSocketConnection> connection,
                                 const std::string& note_id,
                                 const std::vector<std::string>& engagement_types);
 
@@ -142,20 +142,20 @@ public:
      * - follows: New followers
      * - renotes: Renotes of user's content
      */
-    void subscribe_to_notifications(std::shared_ptr<core::network::WebSocketConnection> connection,
+    void subscribe_to_notifications(std::shared_ptr<sonet::core::network::WebSocketConnection> connection,
                                    const std::vector<std::string>& notification_types);
 
     /**
      * @brief Unsubscribe from updates
      */
-    void unsubscribe(std::shared_ptr<core::network::WebSocketConnection> connection,
+    void unsubscribe(std::shared_ptr<sonet::core::network::WebSocketConnection> connection,
                     const std::string& subscription_type,
                     const std::string& identifier = "");
 
     /**
      * @brief Unsubscribe from all updates for connection
      */
-    void unsubscribe_all(std::shared_ptr<core::network::WebSocketConnection> connection);
+    void unsubscribe_all(std::shared_ptr<sonet::core::network::WebSocketConnection> connection);
 
     // ========== REAL-TIME BROADCASTING ==========
     
@@ -275,18 +275,18 @@ public:
 
 private:
     // ========== SERVICE DEPENDENCIES ==========
-    std::shared_ptr<services::NoteService> note_service_;
-    std::shared_ptr<services::TimelineService> timeline_service_;
-    std::shared_ptr<services::NotificationService> notification_service_;
-    std::shared_ptr<core::cache::RedisClient> redis_client_;
-    std::shared_ptr<core::security::AuthService> auth_service_;
-    std::shared_ptr<core::security::RateLimiter> rate_limiter_;
+    std::shared_ptr<sonet::note::NoteService> note_service_;
+    std::shared_ptr<sonet::note::services::TimelineService> timeline_service_;
+    std::shared_ptr<sonet::note::services::NotificationService> notification_service_;
+    std::shared_ptr<sonet::core::cache::RedisClient> redis_client_;
+    std::shared_ptr<sonet::core::security::AuthService> auth_service_;
+    std::shared_ptr<sonet::core::security::RateLimiter> rate_limiter_;
 
     // ========== CONNECTION TRACKING ==========
     mutable std::mutex connections_mutex_;
     
     // Map: user_id -> list of connections
-    std::unordered_map<std::string, std::vector<std::shared_ptr<core::network::WebSocketConnection>>> user_connections_;
+    std::unordered_map<std::string, std::vector<std::shared_ptr<sonet::core::network::WebSocketConnection>>> user_connections_;
     
     // Map: connection_id -> user_id
     std::unordered_map<std::string, std::string> connection_to_user_;
@@ -298,13 +298,13 @@ private:
     mutable std::mutex subscriptions_mutex_;
     
     // Timeline subscriptions: timeline_type -> list of connections
-    std::unordered_map<std::string, std::vector<std::shared_ptr<core::network::WebSocketConnection>>> timeline_subscriptions_;
+    std::unordered_map<std::string, std::vector<std::shared_ptr<sonet::core::network::WebSocketConnection>>> timeline_subscriptions_;
     
     // Engagement subscriptions: note_id -> list of connections
-    std::unordered_map<std::string, std::vector<std::shared_ptr<core::network::WebSocketConnection>>> engagement_subscriptions_;
+    std::unordered_map<std::string, std::vector<std::shared_ptr<sonet::core::network::WebSocketConnection>>> engagement_subscriptions_;
     
     // Notification subscriptions: user_id -> list of connections
-    std::unordered_map<std::string, std::vector<std::shared_ptr<core::network::WebSocketConnection>>> notification_subscriptions_;
+    std::unordered_map<std::string, std::vector<std::shared_ptr<sonet::core::network::WebSocketConnection>>> notification_subscriptions_;
     
     // Connection subscriptions: connection_id -> set of subscription identifiers
     std::unordered_map<std::string, std::unordered_set<std::string>> connection_subscriptions_;
@@ -351,36 +351,36 @@ private:
     // ========== HELPER METHODS ==========
     
     // Authentication and authorization
-    std::string authenticate_connection(std::shared_ptr<core::network::WebSocketConnection> connection);
+    std::string authenticate_connection(std::shared_ptr<sonet::core::network::WebSocketConnection> connection);
     bool validate_subscription_permissions(const std::string& user_id, const std::string& subscription_type);
     bool check_rate_limit(const std::string& user_id, const std::string& action);
 
     // Message handling
     json parse_message(const std::string& message);
-    void handle_subscribe_message(std::shared_ptr<core::network::WebSocketConnection> connection, const json& data);
-    void handle_unsubscribe_message(std::shared_ptr<core::network::WebSocketConnection> connection, const json& data);
-    void handle_typing_message(std::shared_ptr<core::network::WebSocketConnection> connection, const json& data);
-    void handle_ping_message(std::shared_ptr<core::network::WebSocketConnection> connection, const json& data);
+    void handle_subscribe_message(std::shared_ptr<sonet::core::network::WebSocketConnection> connection, const json& data);
+    void handle_unsubscribe_message(std::shared_ptr<sonet::core::network::WebSocketConnection> connection, const json& data);
+    void handle_typing_message(std::shared_ptr<sonet::core::network::WebSocketConnection> connection, const json& data);
+    void handle_ping_message(std::shared_ptr<sonet::core::network::WebSocketConnection> connection, const json& data);
 
     // Connection management
-    std::string generate_connection_id(std::shared_ptr<core::network::WebSocketConnection> connection);
-    void register_connection(std::shared_ptr<core::network::WebSocketConnection> connection, const std::string& user_id);
-    void unregister_connection(std::shared_ptr<core::network::WebSocketConnection> connection);
+    std::string generate_connection_id(std::shared_ptr<sonet::core::network::WebSocketConnection> connection);
+    void register_connection(std::shared_ptr<sonet::core::network::WebSocketConnection> connection, const std::string& user_id);
+    void unregister_connection(std::shared_ptr<sonet::core::network::WebSocketConnection> connection);
     void cleanup_dead_connections();
-    bool is_connection_alive(std::shared_ptr<core::network::WebSocketConnection> connection);
+    bool is_connection_alive(std::shared_ptr<sonet::core::network::WebSocketConnection> connection);
 
     // Subscription management
-    void add_subscription(std::shared_ptr<core::network::WebSocketConnection> connection,
+    void add_subscription(std::shared_ptr<sonet::core::network::WebSocketConnection> connection,
                          const std::string& subscription_type,
                          const std::string& identifier);
-    void remove_subscription(std::shared_ptr<core::network::WebSocketConnection> connection,
+    void remove_subscription(std::shared_ptr<sonet::core::network::WebSocketConnection> connection,
                             const std::string& subscription_type,
                             const std::string& identifier);
-    std::vector<std::shared_ptr<core::network::WebSocketConnection>> get_subscribers(
+    std::vector<std::shared_ptr<sonet::core::network::WebSocketConnection>> get_subscribers(
         const std::string& subscription_type, const std::string& identifier);
 
     // Broadcasting helpers
-    void send_message_to_connection(std::shared_ptr<core::network::WebSocketConnection> connection, const json& message);
+    void send_message_to_connection(std::shared_ptr<sonet::core::network::WebSocketConnection> connection, const json& message);
     void send_message_to_user(const std::string& user_id, const json& message);
     void send_message_to_subscribers(const std::string& subscription_type, const std::string& identifier, const json& message);
     void broadcast_to_all_connections(const json& message, const std::string& exclude_user_id = "");
@@ -411,7 +411,7 @@ private:
     void publish_to_redis(const std::string& channel, const json& message);
 
     // Error handling
-    void handle_connection_error(std::shared_ptr<core::network::WebSocketConnection> connection, const std::string& error);
+    void handle_connection_error(std::shared_ptr<sonet::core::network::WebSocketConnection> connection, const std::string& error);
     void log_performance_warning(const std::string& operation, int64_t duration_ms);
     void track_message_metrics(const std::string& message_type, bool success);
 

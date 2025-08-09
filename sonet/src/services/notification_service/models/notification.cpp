@@ -262,7 +262,7 @@ void Notification::from_json(const nlohmann::json& json) {
     if (json.contains("title")) title = json["title"];
     if (json.contains("message")) message = json["message"];
     if (json.contains("action_url")) action_url = json["action_url"];
-    if (json.contains("post_id")) post_id = json["post_id"];
+    if (json.contains("note_id")) note_id = json["note_id"];
     if (json.contains("comment_id")) comment_id = json["comment_id"];
     if (json.contains("conversation_id")) conversation_id = json["conversation_id"];
     if (json.contains("delivery_channels")) delivery_channels = json["delivery_channels"];
