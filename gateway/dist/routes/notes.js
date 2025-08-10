@@ -44,6 +44,14 @@ export function registerNoteRoutes(router, clients) {
             return res.json({ ok: resp?.success ?? true, like_count: resp?.like_count, user_has_liked: resp?.user_has_liked });
         });
     });
+    router.delete('/v1/notes/:id/like', verifyJwt, (req, res) => {
+        const request = { note_id: req.params.id, user_id: req.userId || '', like: false };
+        clients.note.LikeNote(request, (err, resp) => {
+            if (err)
+                return res.status(400).json({ ok: false, message: err.message });
+            return res.json({ ok: resp?.success ?? true, like_count: resp?.like_count, user_has_liked: resp?.user_has_liked });
+        });
+    });
     router.post('/v1/notes/:id/renote', verifyJwt, (req, res) => {
         const request = { note_id: req.params.id, user_id: req.userId || '', renote: req.body?.renote !== false };
         clients.note.RenoteNote(request, (err, resp) => {
@@ -52,9 +60,17 @@ export function registerNoteRoutes(router, clients) {
             return res.json({ ok: resp?.success ?? true, renote_count: resp?.renote_count, renote: resp?.renote });
         });
     });
+    router.post('/v1/notes/:id/share', verifyJwt, (req, res) => {
+        // Alias for renote
+        const request = { note_id: req.params.id, user_id: req.userId || '', renote: req.body?.share !== false };
+        clients.note.RenoteNote(request, (err, resp) => {
+            if (err)
+                return res.status(400).json({ ok: false, message: err.message });
+            return res.json({ ok: resp?.success ?? true, renote_count: resp?.renote_count, renote: resp?.renote });
+        });
+    });
     router.post('/v1/notes/:id/bookmark', verifyJwt, (req, res) => {
         const request = { note_id: req.params.id, user_id: req.userId || '', bookmark: req.body?.bookmark !== false };
-        // BookmarkNote exists in note_service.proto (high-perf API). Will work if implemented server-side.
         if (typeof clients.note.BookmarkNote !== 'function') {
             return res.status(501).json({ ok: false, message: 'Bookmark not supported' });
         }
