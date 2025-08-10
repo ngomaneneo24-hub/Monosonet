@@ -21,6 +21,7 @@
 #include "grpc_stub.h"
 #include "stub_protos.h"
 #include "service.h"
+#include "clients/grpc_clients.h"
 
 namespace sonet::timeline {
 
@@ -157,8 +158,13 @@ private:
     std::string redis_host_;
     int redis_port_;
     
+#ifdef SONET_USE_REDIS_PLUS_PLUS
+    std::unique_ptr<sw::redis::Redis> redis_;
+#endif
+    
     // In-memory fallback cache for when Redis is unavailable
     std::unordered_map<std::string, std::vector<RankedTimelineItem>> memory_timeline_cache_;
+    std::unordered_map<std::string, std::chrono::system_clock::time_point> memory_timeline_expiry_;
     std::unordered_map<std::string, UserEngagementProfile> memory_profile_cache_;
     std::unordered_map<std::string, std::chrono::system_clock::time_point> memory_lastread_cache_;
     mutable std::mutex memory_cache_mutex_;
@@ -315,6 +321,55 @@ private:
     std::shared_ptr<MLRankingEngine> ranking_engine_;
 };
 
+// Separation-of-concerns: generic interface for trending providers
+class ITrendingProvider {
+public:
+    virtual ~ITrendingProvider() = default;
+    virtual void MaybeRefresh() = 0;
+    virtual std::vector<::sonet::note::Note> Get(int32_t limit,
+        std::chrono::system_clock::time_point since) = 0;
+};
+
+class TrendingHashtagsProvider : public ITrendingProvider {
+public:
+    TrendingHashtagsProvider();
+    void MaybeRefresh() override;
+    std::vector<::sonet::note::Note> Get(int32_t limit,
+        std::chrono::system_clock::time_point since) override;
+private:
+    void UpdateTrendingHashtags();
+    std::vector<std::string> trending_hashtags_;
+    std::chrono::system_clock::time_point last_update_{};
+    mutable std::mutex mutex_;
+};
+
+class TrendingTopicsProvider : public ITrendingProvider {
+public:
+    TrendingTopicsProvider();
+    void MaybeRefresh() override;
+    std::vector<::sonet::note::Note> Get(int32_t limit,
+        std::chrono::system_clock::time_point since) override;
+private:
+    void UpdateTrendingTopics();
+    std::vector<std::string> trending_topics_;
+    std::chrono::system_clock::time_point last_update_{};
+    mutable std::mutex mutex_;
+};
+
+class TrendingVideosProvider : public ITrendingProvider {
+public:
+    explicit TrendingVideosProvider(std::shared_ptr<::sonet::note::NoteService::Stub> note_service);
+    void MaybeRefresh() override;
+    std::vector<::sonet::note::Note> Get(int32_t limit,
+        std::chrono::system_clock::time_point since) override;
+private:
+    void UpdateTrendingVideos();
+    std::vector<std::string> trending_video_urls_;
+    std::chrono::system_clock::time_point last_update_{};
+    std::shared_ptr<::sonet::note::NoteService::Stub> note_service_;
+    mutable std::mutex mutex_;
+};
+
 class TrendingContentAdapter : public ContentSourceAdapter {
 public:
     explicit TrendingContentAdapter(std::shared_ptr<::sonet::note::NoteService::Stub> note_service);
@@ -328,18 +383,53 @@ public:
     ) override;
 
 private:
-    void UpdateTrendingHashtags();
-    void UpdateTrendingAuthors();
-    std::vector<::sonet::note::Note> GetHashtagTrends(int32_t limit);
-    std::vector<::sonet::note::Note> GetAuthorTrends(int32_t limit);
-    
+    // Providers for different trend modalities
+    std::unique_ptr<TrendingHashtagsProvider> hashtags_provider_;
+    std::unique_ptr<TrendingTopicsProvider> topics_provider_;
+    std::unique_ptr<TrendingVideosProvider> videos_provider_;
     std::shared_ptr<::sonet::note::NoteService::Stub> note_service_;
-    
-    // Trending data
-    std::vector<std::string> trending_hashtags_;
-    std::vector<std::string> trending_authors_;
-    std::chrono::system_clock::time_point last_trends_update_;
-    mutable std::mutex trends_mutex_;
+};
+
+class RealFollowingContentAdapter : public ContentSourceAdapter {
+public:
+    RealFollowingContentAdapter(std::shared_ptr<clients::NoteClient> note_client,
+                                std::shared_ptr<clients::FollowClient> follow_client)
+        : note_client_(std::move(note_client)), follow_client_(std::move(follow_client)) {}
+
+    std::vector<::sonet::note::Note> GetContent(
+        const std::string& user_id,
+        const TimelineConfig& /*config*/,
+        std::chrono::system_clock::time_point since,
+        int32_t limit
+    ) override {
+        if (!follow_client_ || !note_client_) return {};
+        auto following = follow_client_->GetFollowing(user_id);
+        if (following.empty()) return {};
+        return note_client_->ListRecentNotesByAuthors(following, since, limit);
+    }
+private:
+    std::shared_ptr<clients::NoteClient> note_client_;
+    std::shared_ptr<clients::FollowClient> follow_client_;
+};
+
+class RealListsContentAdapter : public ContentSourceAdapter {
+public:
+    RealListsContentAdapter(std::shared_ptr<clients::NoteClient> note_client)
+        : note_client_(std::move(note_client)) {}
+
+    std::vector<::sonet::note::Note> GetContent(
+        const std::string& user_id,
+        const TimelineConfig& /*config*/,
+        std::chrono::system_clock::time_point since,
+        int32_t limit
+    ) override {
+        // Placeholder: in real system, fetch list memberships
+        std::vector<std::string> list_authors = {"list_author_a","list_author_b"};
+        (void)user_id;
+        return note_client_->ListRecentNotesByAuthors(list_authors, since, limit);
+    }
+private:
+    std::shared_ptr<clients::NoteClient> note_client_;
 };
 
 // ============= FACTORY FUNCTIONS =============

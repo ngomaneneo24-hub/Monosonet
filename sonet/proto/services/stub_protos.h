@@ -47,7 +47,7 @@ namespace note {
     struct NoteMetrics {
         int32_t views_ = 0;
         int32_t likes_ = 0;
-        int32_t reposts_ = 0;
+        int32_t reposts_ = 0; // renotes in product terminology
         int32_t replies_ = 0;
         int32_t quotes_ = 0;
         
@@ -109,7 +109,35 @@ namespace note {
     // Stub service
     struct NoteService {
         struct Stub {
-            // Stub implementation
+            // List recent notes by authors since a timestamp
+            struct ListRecentNotesByAuthorsRequest {
+                std::vector<std::string> author_ids;
+                sonet::common::Timestamp since;
+                int32_t limit = 50;
+            };
+            struct ListRecentNotesByAuthorsResponse {
+                std::vector<Note> notes;
+            };
+            ListRecentNotesByAuthorsResponse ListRecentNotesByAuthors(const ListRecentNotesByAuthorsRequest& req) {
+                // Generate synthetic notes deterministically for testing
+                ListRecentNotesByAuthorsResponse resp;
+                int idx = 1;
+                for (const auto& aid : req.author_ids) {
+                    for (int i = 0; i < 3 && static_cast<int>(resp.notes.size()) < req.limit; ++i) {
+                        Note n;
+                        n.set_id("auth_" + aid + "_" + std::to_string(idx++));
+                        n.set_author_id(aid);
+                        n.set_content("Recent note #" + std::to_string(i+1) + " by " + aid);
+                        n.set_visibility(VISIBILITY_PUBLIC);
+                        auto now = std::chrono::system_clock::now();
+                        auto secs = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+                        n.mutable_created_at()->set_seconds(secs);
+                        n.mutable_updated_at()->set_seconds(secs);
+                        resp.notes.push_back(n);
+                    }
+                }
+                return resp;
+            }
         };
     };
 }
@@ -118,7 +146,8 @@ namespace timeline {
     enum ContentSource {
         CONTENT_SOURCE_FOLLOWING = 0,
         CONTENT_SOURCE_RECOMMENDED = 1,
-        CONTENT_SOURCE_TRENDING = 2
+        CONTENT_SOURCE_TRENDING = 2,
+        CONTENT_SOURCE_LISTS = 3
     };
     
     enum TimelineAlgorithm {
@@ -160,6 +189,7 @@ namespace timeline {
         sonet::common::Timestamp last_updated;
         sonet::common::Timestamp last_user_read;
         int32_t new_items_since_last_fetch = 0;
+        std::map<std::string, double> algorithm_params_;
         
         void set_total_items(int32_t t) { total_items = t; }
         void set_algorithm_used(TimelineAlgorithm a) { algorithm_used = a; }
@@ -168,6 +198,33 @@ namespace timeline {
         
         sonet::common::Timestamp* mutable_last_updated() { return &last_updated; }
         sonet::common::Timestamp* mutable_last_user_read() { return &last_user_read; }
+        std::map<std::string, double>* mutable_algorithm_params() { return &algorithm_params_; }
+    };
+
+    struct TimelinePreferences {
+        TimelineAlgorithm preferred_algorithm_ = TIMELINE_ALGORITHM_UNKNOWN;
+        bool show_replies_ = true;
+        bool show_reposts_ = true; // renotes shown
+        bool show_recommended_content_ = true;
+        bool show_trending_content_ = true;
+        bool sensitive_content_warning_ = true;
+        int32_t timeline_refresh_minutes_ = 5;
+
+        TimelineAlgorithm algorithm() const { return preferred_algorithm_; }
+        bool show_recommended_content() const { return show_recommended_content_; }
+        bool show_trending_content() const { return show_trending_content_; }
+        // Convenience for compatibility with service config builder
+        int32_t max_items() const { return 0; }
+        int32_t max_age_hours() const { return 0; }
+        double min_score_threshold() const { return 0.0; }
+        double recency_weight() const { return 0.0; }
+        double engagement_weight() const { return 0.0; }
+        double author_affinity_weight() const { return 0.0; }
+        double content_quality_weight() const { return 0.0; }
+        double diversity_weight() const { return 0.0; }
+        double following_content_ratio() const { return 0.0; }
+        double recommended_content_ratio() const { return 0.0; }
+        double trending_content_ratio() const { return 0.0; }
     };
     
     // Stub gRPC service requests/responses
@@ -265,14 +322,110 @@ namespace timeline {
     };
     
     // Additional stub requests for completeness
-    struct GetUserTimelineRequest { std::string user_id() const { return ""; } };
-    struct GetUserTimelineResponse { void set_success(bool) {} };
-    struct UpdateTimelinePreferencesRequest { std::string user_id() const { return ""; } };
-    struct UpdateTimelinePreferencesResponse { void set_success(bool) {} };
-    struct GetTimelinePreferencesRequest { std::string user_id() const { return ""; } };
-    struct GetTimelinePreferencesResponse { void set_success(bool) {} };
-    struct SubscribeTimelineUpdatesRequest { std::string user_id() const { return ""; } };
+    struct GetUserTimelineRequest {
+        std::string target_user_id_;
+        std::string requesting_user_id_;
+        sonet::common::Pagination pagination_;
+        bool include_replies_ = false;
+        bool include_reposts_ = true;
+        
+        std::string target_user_id() const { return target_user_id_; }
+        std::string requesting_user_id() const { return requesting_user_id_; }
+        const sonet::common::Pagination& pagination() const { return pagination_; }
+        bool include_replies() const { return include_replies_; }
+        bool include_reposts() const { return include_reposts_; }
+    };
     
+    struct GetUserTimelineResponse {
+        std::vector<TimelineItem> items_;
+        sonet::common::Pagination pagination_;
+        bool success_ = false;
+        std::string error_message_;
+        
+        TimelineItem* add_items() { items_.emplace_back(); return &items_.back(); }
+        sonet::common::Pagination* mutable_pagination() { return &pagination_; }
+        void set_success(bool s) { success_ = s; }
+        void set_error_message(const std::string& e) { error_message_ = e; }
+    };
+
+    struct UpdateTimelinePreferencesRequest {
+        std::string user_id_;
+        TimelinePreferences preferences_;
+        std::string user_id() const { return user_id_; }
+        const TimelinePreferences& preferences() const { return preferences_; }
+    };
+
+    struct UpdateTimelinePreferencesResponse { void set_success(bool) {} void set_error_message(const std::string&) {} };
+
+    struct GetTimelinePreferencesRequest { std::string user_id_ ; std::string user_id() const { return user_id_; } };
+
+    struct GetTimelinePreferencesResponse { TimelinePreferences preferences_; void set_success(bool) {} void set_error_message(const std::string&) {} };
+    
+    struct SubscribeTimelineUpdatesRequest { std::string user_id() const { return ""; } };
+
+    struct RecordEngagementRequest {
+        std::string user_id_;
+        std::string note_id_;
+        std::string action_;
+        double duration_seconds_ = 0.0;
+        
+        std::string user_id() const { return user_id_; }
+        std::string note_id() const { return note_id_; }
+        std::string action() const { return action_; }
+        double duration_seconds() const { return duration_seconds_; }
+    };
+
+    struct RecordEngagementResponse {
+        bool success_ = false;
+        std::string error_message_;
+        void set_success(bool s) { success_ = s; }
+        void set_error_message(const std::string& e) { error_message_ = e; }
+    };
+    
+    struct GetForYouTimelineRequest {
+        std::string user_id_;
+        sonet::common::Pagination pagination_;
+        bool include_ranking_signals_ = false;
+        std::string user_id() const { return user_id_; }
+        const sonet::common::Pagination& pagination() const { return pagination_; }
+        bool include_ranking_signals() const { return include_ranking_signals_; }
+    };
+
+    struct GetForYouTimelineResponse {
+        std::vector<TimelineItem> items_;
+        TimelineMetadata metadata_;
+        sonet::common::Pagination pagination_;
+        bool success_ = false;
+        std::string error_message_;
+        TimelineItem* add_items() { items_.emplace_back(); return &items_.back(); }
+        TimelineMetadata* mutable_metadata() { return &metadata_; }
+        sonet::common::Pagination* mutable_pagination() { return &pagination_; }
+        void set_success(bool s) { success_ = s; }
+        void set_error_message(const std::string& e) { error_message_ = e; }
+    };
+
+    struct GetFollowingTimelineRequest {
+        std::string user_id_;
+        sonet::common::Pagination pagination_;
+        bool include_ranking_signals_ = false;
+        std::string user_id() const { return user_id_; }
+        const sonet::common::Pagination& pagination() const { return pagination_; }
+        bool include_ranking_signals() const { return include_ranking_signals_; }
+    };
+
+    struct GetFollowingTimelineResponse {
+        std::vector<TimelineItem> items_;
+        TimelineMetadata metadata_;
+        sonet::common::Pagination pagination_;
+        bool success_ = false;
+        std::string error_message_;
+        TimelineItem* add_items() { items_.emplace_back(); return &items_.back(); }
+        TimelineMetadata* mutable_metadata() { return &metadata_; }
+        sonet::common::Pagination* mutable_pagination() { return &pagination_; }
+        void set_success(bool s) { success_ = s; }
+        void set_error_message(const std::string& e) { error_message_ = e; }
+    };
+
     // Timeline service base class
     struct TimelineService {
         struct Service {
@@ -317,6 +470,55 @@ namespace timeline {
                 ::grpc::ServerContext* context,
                 const SubscribeTimelineUpdatesRequest* request,
                 ::grpc::ServerWriter<TimelineUpdate>* writer) = 0;
+
+            virtual ::grpc::Status RecordEngagement(
+                ::grpc::ServerContext* context,
+                const RecordEngagementRequest* request,
+                RecordEngagementResponse* response) = 0;
+
+            virtual ::grpc::Status GetForYouTimeline(
+                ::grpc::ServerContext* context,
+                const GetForYouTimelineRequest* request,
+                GetForYouTimelineResponse* response) = 0;
+
+            virtual ::grpc::Status GetFollowingTimeline(
+                ::grpc::ServerContext* context,
+                const GetFollowingTimelineRequest* request,
+                GetFollowingTimelineResponse* response) = 0;
+        };
+    };
+}
+
+namespace follow {
+    struct GetFollowingRequest { std::string user_id_; std::string user_id() const { return user_id_; } };
+    struct GetFollowingResponse { std::vector<std::string> user_ids_; const std::vector<std::string>& user_ids() const { return user_ids_; } };
+    struct GetFollowersRequest { std::string user_id_; std::string user_id() const { return user_id_; } };
+    struct GetFollowersResponse { std::vector<std::string> user_ids_; const std::vector<std::string>& user_ids() const { return user_ids_; } };
+    
+    struct FollowService {
+        struct Stub {
+            GetFollowingResponse GetFollowing(const GetFollowingRequest& req) {
+                // Deterministic sample following list per user id hash
+                GetFollowingResponse resp;
+                std::hash<std::string> h;
+                size_t base = h(req.user_id()) % 5;
+                std::vector<std::string> candidates = {"alice_dev","bob_designer","charlie_pm","diana_data","eve_security","frank_frontend"};
+                for (size_t i = 0; i < candidates.size(); ++i) {
+                    if ((i + base) % 2 == 0) resp.user_ids_.push_back(candidates[i]);
+                }
+                return resp;
+            }
+            GetFollowersResponse GetFollowers(const GetFollowersRequest& req) {
+                // Deterministic sample followers list per user id
+                GetFollowersResponse resp;
+                std::hash<std::string> h;
+                size_t base = h(req.user_id()) % 7;
+                std::vector<std::string> crowd = {"user123","user456","user789","userABC","userDEF","userGHI","userJKL"};
+                for (size_t i = 0; i < crowd.size(); ++i) {
+                    if ((i + base) % 3 != 0) resp.user_ids_.push_back(crowd[i]);
+                }
+                return resp;
+            }
         };
     };
 }

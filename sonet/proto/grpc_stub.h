@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <functional>
+#include <cstring>
 
 namespace grpc {
     enum StatusCode {
@@ -30,12 +31,12 @@ namespace grpc {
     
     class Status {
     public:
-        Status() : code_(OK) {}
+        Status() : code_(grpc::StatusCode::OK) {}
         Status(StatusCode code, const std::string& message) : code_(code), message_(message) {}
         
         StatusCode error_code() const { return code_; }
         std::string error_message() const { return message_; }
-        bool ok() const { return code_ == OK; }
+        bool ok() const { return code_ == grpc::StatusCode::OK; }
         
         static Status OK;
         
@@ -54,6 +55,15 @@ namespace grpc {
         const char* data_;
         size_t length_;
     };
+
+    // Provide ordering for string_ref for use in associative containers
+    inline bool operator<(const string_ref& a, const string_ref& b) {
+        size_t min_len = a.length() < b.length() ? a.length() : b.length();
+        int cmp = std::memcmp(a.data(), b.data(), min_len);
+        if (cmp < 0) return true;
+        if (cmp > 0) return false;
+        return a.length() < b.length();
+    }
     
     class ServerContext {
     public:
@@ -74,6 +84,8 @@ namespace grpc {
     class ServerCredentials {};
     std::shared_ptr<ServerCredentials> InsecureServerCredentials();
     
+    class Server; // forward declaration
+
     class ServerBuilder {
     public:
         ServerBuilder& AddListeningPort(const std::string& addr, std::shared_ptr<ServerCredentials> creds) {
