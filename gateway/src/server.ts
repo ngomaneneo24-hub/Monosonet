@@ -7,11 +7,12 @@ import { registerAuthRoutes } from './routes/auth.js';
 import { registerUserRoutes } from './routes/users.js';
 import { registerNoteRoutes } from './routes/notes.js';
 import { registerTimelineRoutes } from './routes/timeline.js';
+import { registerMediaRoutes } from './routes/media.js';
 
 const app = express();
 app.use(helmet());
 app.use(cors());
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '10mb' }));
 app.use(morgan('combined'));
 
 const router = express.Router();
@@ -21,6 +22,7 @@ registerAuthRoutes(router, clients);
 registerUserRoutes(router, clients);
 registerNoteRoutes(router, clients);
 registerTimelineRoutes(router, clients);
+registerMediaRoutes(router);
 
 app.use('/api', router);
 
