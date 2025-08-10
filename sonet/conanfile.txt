@@ -23,7 +23,7 @@ hiredis/1.2.0
 nlohmann_json/3.11.3
 
 # Logging
-spdlog/1.12.0
+spdlog/1.10.0
 
 # Testing
 gtest/1.14.0
@@ -44,6 +44,8 @@ CMakeToolchain
 grpc/*:shared=False
 boost/*:shared=False
 openssl/*:shared=False
+fmt/*:header_only=True
+spdlog/*:header_only=True
 
 [tool_requires]
 cmake/3.27.7
