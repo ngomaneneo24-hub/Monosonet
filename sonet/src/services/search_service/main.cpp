@@ -19,6 +19,7 @@
 #include <thread>
 #include <future>
 #include <getopt.h>
+#include "../../core/logging/logger.h"
 
 using namespace sonet::search_service;
 
@@ -309,6 +310,11 @@ void print_startup_status(SearchService* service) {
 int main(int argc, char* argv[]) {
     // Setup signal handlers
     setup_signal_handlers();
+
+    // Initialize JSON logger
+    (void)sonet::logging::init_json_stdout_logger();
+    spdlog::info(R"({"event":"startup","message":"Starting Sonet Search Service"})");
+    spdlog::info(R"({"event":"banner","service":"search","message":"Sonet Search Service starting"})");
     
     // Parse command line arguments
     std::string config_file;
