@@ -109,7 +109,35 @@ namespace note {
     // Stub service
     struct NoteService {
         struct Stub {
-            // Stub implementation
+            // List recent notes by authors since a timestamp
+            struct ListRecentNotesByAuthorsRequest {
+                std::vector<std::string> author_ids;
+                sonet::common::Timestamp since;
+                int32_t limit = 50;
+            };
+            struct ListRecentNotesByAuthorsResponse {
+                std::vector<Note> notes;
+            };
+            ListRecentNotesByAuthorsResponse ListRecentNotesByAuthors(const ListRecentNotesByAuthorsRequest& req) {
+                // Generate synthetic notes deterministically for testing
+                ListRecentNotesByAuthorsResponse resp;
+                int idx = 1;
+                for (const auto& aid : req.author_ids) {
+                    for (int i = 0; i < 3 && static_cast<int>(resp.notes.size()) < req.limit; ++i) {
+                        Note n;
+                        n.set_id("auth_" + aid + "_" + std::to_string(idx++));
+                        n.set_author_id(aid);
+                        n.set_content("Recent note #" + std::to_string(i+1) + " by " + aid);
+                        n.set_visibility(VISIBILITY_PUBLIC);
+                        auto now = std::chrono::system_clock::now();
+                        auto secs = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+                        n.mutable_created_at()->set_seconds(secs);
+                        n.mutable_updated_at()->set_seconds(secs);
+                        resp.notes.push_back(n);
+                    }
+                }
+                return resp;
+            }
         };
     };
 }
@@ -118,7 +146,8 @@ namespace timeline {
     enum ContentSource {
         CONTENT_SOURCE_FOLLOWING = 0,
         CONTENT_SOURCE_RECOMMENDED = 1,
-        CONTENT_SOURCE_TRENDING = 2
+        CONTENT_SOURCE_TRENDING = 2,
+        CONTENT_SOURCE_LISTS = 3
     };
     
     enum TimelineAlgorithm {
@@ -160,6 +189,7 @@ namespace timeline {
         sonet::common::Timestamp last_updated;
         sonet::common::Timestamp last_user_read;
         int32_t new_items_since_last_fetch = 0;
+        std::map<std::string, double> algorithm_params_;
         
         void set_total_items(int32_t t) { total_items = t; }
         void set_algorithm_used(TimelineAlgorithm a) { algorithm_used = a; }
@@ -168,6 +198,7 @@ namespace timeline {
         
         sonet::common::Timestamp* mutable_last_updated() { return &last_updated; }
         sonet::common::Timestamp* mutable_last_user_read() { return &last_user_read; }
+        std::map<std::string, double>* mutable_algorithm_params() { return &algorithm_params_; }
     };
 
     struct TimelinePreferences {
@@ -331,7 +362,70 @@ namespace timeline {
     struct GetTimelinePreferencesResponse { TimelinePreferences preferences_; void set_success(bool) {} void set_error_message(const std::string&) {} };
     
     struct SubscribeTimelineUpdatesRequest { std::string user_id() const { return ""; } };
+
+    struct RecordEngagementRequest {
+        std::string user_id_;
+        std::string note_id_;
+        std::string action_;
+        double duration_seconds_ = 0.0;
+        
+        std::string user_id() const { return user_id_; }
+        std::string note_id() const { return note_id_; }
+        std::string action() const { return action_; }
+        double duration_seconds() const { return duration_seconds_; }
+    };
+
+    struct RecordEngagementResponse {
+        bool success_ = false;
+        std::string error_message_;
+        void set_success(bool s) { success_ = s; }
+        void set_error_message(const std::string& e) { error_message_ = e; }
+    };
     
+    struct GetForYouTimelineRequest {
+        std::string user_id_;
+        sonet::common::Pagination pagination_;
+        bool include_ranking_signals_ = false;
+        std::string user_id() const { return user_id_; }
+        const sonet::common::Pagination& pagination() const { return pagination_; }
+        bool include_ranking_signals() const { return include_ranking_signals_; }
+    };
+
+    struct GetForYouTimelineResponse {
+        std::vector<TimelineItem> items_;
+        TimelineMetadata metadata_;
+        sonet::common::Pagination pagination_;
+        bool success_ = false;
+        std::string error_message_;
+        TimelineItem* add_items() { items_.emplace_back(); return &items_.back(); }
+        TimelineMetadata* mutable_metadata() { return &metadata_; }
+        sonet::common::Pagination* mutable_pagination() { return &pagination_; }
+        void set_success(bool s) { success_ = s; }
+        void set_error_message(const std::string& e) { error_message_ = e; }
+    };
+
+    struct GetFollowingTimelineRequest {
+        std::string user_id_;
+        sonet::common::Pagination pagination_;
+        bool include_ranking_signals_ = false;
+        std::string user_id() const { return user_id_; }
+        const sonet::common::Pagination& pagination() const { return pagination_; }
+        bool include_ranking_signals() const { return include_ranking_signals_; }
+    };
+
+    struct GetFollowingTimelineResponse {
+        std::vector<TimelineItem> items_;
+        TimelineMetadata metadata_;
+        sonet::common::Pagination pagination_;
+        bool success_ = false;
+        std::string error_message_;
+        TimelineItem* add_items() { items_.emplace_back(); return &items_.back(); }
+        TimelineMetadata* mutable_metadata() { return &metadata_; }
+        sonet::common::Pagination* mutable_pagination() { return &pagination_; }
+        void set_success(bool s) { success_ = s; }
+        void set_error_message(const std::string& e) { error_message_ = e; }
+    };
+
     // Timeline service base class
     struct TimelineService {
         struct Service {
@@ -376,6 +470,55 @@ namespace timeline {
                 ::grpc::ServerContext* context,
                 const SubscribeTimelineUpdatesRequest* request,
                 ::grpc::ServerWriter<TimelineUpdate>* writer) = 0;
+
+            virtual ::grpc::Status RecordEngagement(
+                ::grpc::ServerContext* context,
+                const RecordEngagementRequest* request,
+                RecordEngagementResponse* response) = 0;
+
+            virtual ::grpc::Status GetForYouTimeline(
+                ::grpc::ServerContext* context,
+                const GetForYouTimelineRequest* request,
+                GetForYouTimelineResponse* response) = 0;
+
+            virtual ::grpc::Status GetFollowingTimeline(
+                ::grpc::ServerContext* context,
+                const GetFollowingTimelineRequest* request,
+                GetFollowingTimelineResponse* response) = 0;
+        };
+    };
+}
+
+namespace follow {
+    struct GetFollowingRequest { std::string user_id_; std::string user_id() const { return user_id_; } };
+    struct GetFollowingResponse { std::vector<std::string> user_ids_; const std::vector<std::string>& user_ids() const { return user_ids_; } };
+    struct GetFollowersRequest { std::string user_id_; std::string user_id() const { return user_id_; } };
+    struct GetFollowersResponse { std::vector<std::string> user_ids_; const std::vector<std::string>& user_ids() const { return user_ids_; } };
+    
+    struct FollowService {
+        struct Stub {
+            GetFollowingResponse GetFollowing(const GetFollowingRequest& req) {
+                // Deterministic sample following list per user id hash
+                GetFollowingResponse resp;
+                std::hash<std::string> h;
+                size_t base = h(req.user_id()) % 5;
+                std::vector<std::string> candidates = {"alice_dev","bob_designer","charlie_pm","diana_data","eve_security","frank_frontend"};
+                for (size_t i = 0; i < candidates.size(); ++i) {
+                    if ((i + base) % 2 == 0) resp.user_ids_.push_back(candidates[i]);
+                }
+                return resp;
+            }
+            GetFollowersResponse GetFollowers(const GetFollowersRequest& req) {
+                // Deterministic sample followers list per user id
+                GetFollowersResponse resp;
+                std::hash<std::string> h;
+                size_t base = h(req.user_id()) % 7;
+                std::vector<std::string> crowd = {"user123","user456","user789","userABC","userDEF","userGHI","userJKL"};
+                for (size_t i = 0; i < crowd.size(); ++i) {
+                    if ((i + base) % 3 != 0) resp.user_ids_.push_back(crowd[i]);
+                }
+                return resp;
+            }
         };
     };
 }
