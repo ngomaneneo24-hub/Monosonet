@@ -110,6 +110,7 @@ endif()
 # Temporarily disable proto generation due to plugin issues
 # add_subdirectory(proto)
 add_subdirectory(src/services)
+add_subdirectory(src/gateway)
 option(BUILD_EXTERNAL "Build external helper libs" OFF)
 if(BUILD_EXTERNAL)
     add_subdirectory(external)
