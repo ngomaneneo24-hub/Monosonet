@@ -81,7 +81,7 @@ namespace {
     }
 
     // Check for content warnings
-    bool RequiresContentWarning(const ::sonet::timeline::Note& note) {
+    bool RequiresContentWarning(const ::sonet::note::Note& note) {
         // For stub implementation, assume no content warnings
         return false;
     }
@@ -105,12 +105,12 @@ AdvancedContentFilter::AdvancedContentFilter() {
     });
 }
 
-std::vector<::sonet::timeline::Note> AdvancedContentFilter::FilterNotes(
-    const std::vector<::sonet::timeline::Note>& notes,
+std::vector<::sonet::note::Note> AdvancedContentFilter::FilterNotes(
+    const std::vector<::sonet::note::Note>& notes,
     const std::string& user_id,
     const UserEngagementProfile& profile
 ) {
-    std::vector<::sonet::timeline::Note> filtered_notes;
+    std::vector<::sonet::note::Note> filtered_notes;
     filtered_notes.reserve(notes.size());
     
     int blocked_muted = 0, blocked_keywords = 0, blocked_policy = 0, blocked_spam = 0;
@@ -120,7 +120,7 @@ std::vector<::sonet::timeline::Note> AdvancedContentFilter::FilterNotes(
         std::string filter_reason;
         
         // Check if author is muted
-        if (IsUserMuted(user_id, note.author_id)) {
+        if (IsUserMuted(user_id, note.author_id())) {
             should_include = false;
             filter_reason = "muted_user";
             blocked_muted++;
@@ -182,7 +182,7 @@ bool AdvancedContentFilter::IsUserMuted(const std::string& user_id, const std::s
     return false;
 }
 
-bool AdvancedContentFilter::ContainsMutedKeywords(const std::string& user_id, const ::sonet::timeline::Note& note) {
+bool AdvancedContentFilter::ContainsMutedKeywords(const std::string& user_id, const ::sonet::note::Note& note) {
     std::lock_guard<std::mutex> lock(filter_mutex_);
     
     auto it = muted_keywords_.find(user_id);
@@ -190,7 +190,7 @@ bool AdvancedContentFilter::ContainsMutedKeywords(const std::string& user_id, co
         return false;
     }
     
-    std::string lower_content = note.content;
+    std::string lower_content = note.content();
     std::transform(lower_content.begin(), lower_content.end(), lower_content.begin(), ::tolower);
     
     for (const auto& keyword : it->second) {
@@ -216,8 +216,8 @@ bool AdvancedContentFilter::ContainsMutedKeywords(const std::string& user_id, co
     return false;
 }
 
-bool AdvancedContentFilter::ViolatesContentPolicy(const ::sonet::timeline::Note& note) {
-    std::string lower_content = note.content;
+bool AdvancedContentFilter::ViolatesContentPolicy(const ::sonet::note::Note& note) {
+    std::string lower_content = note.content();
     std::transform(lower_content.begin(), lower_content.end(), lower_content.begin(), ::tolower);
     
     // Check for banned keywords
@@ -230,29 +230,29 @@ bool AdvancedContentFilter::ViolatesContentPolicy(const ::sonet::timeline::Note&
     // Check visibility settings vs content
     // For stub implementation, assume all content is acceptable
     return false;
-        }
-    }
-    
-    return false;
 }
 
-bool AdvancedContentFilter::PassesSpamDetection(const ::sonet::timeline::Note& note) {
+bool AdvancedContentFilter::PassesSpamDetection(const ::sonet::note::Note& note) {
     // Check for spam patterns in content
-    if (MatchesSpamPattern(note.content)) {
+    if (MatchesSpamPattern(note.content())) {
         return false;
     }
     
     // Check for excessive capitalization
-    if (HasExcessiveCaps(note.content)) {
+    if (HasExcessiveCaps(note.content())) {
         return false;
     }
     
     // Check metrics for spam indicators (very high engagement ratios might indicate fake engagement)
-    auto likes = note.metrics.likes();
-    auto views = note.metrics.views();
+    auto likes = note.metrics().likes();
+    auto views = note.metrics().views();
+    
+    // For stub implementation, assume no spam
+    return true;
+}
 
 bool AdvancedContentFilter::MeetsEngagementThreshold(
-    const ::sonet::timeline::Note& note, 
+    const ::sonet::note::Note& note, 
     const UserEngagementProfile& profile
 ) {
     // For new users or high-engagement users, show more content
@@ -261,20 +261,19 @@ bool AdvancedContentFilter::MeetsEngagementThreshold(
     }
     
     // For active users, filter out very low-engagement content
-    const auto& metrics = note.metrics;
+    const auto& metrics = note.metrics();
     double total_engagements = metrics.likes() + metrics.renotes() + metrics.comments();
     
     // Very basic threshold - in production this would be more sophisticated
     if (total_engagements == 0 && metrics.views() > 100) {
         return false; // High views but no engagement - potential spam
     }
-    }
     
     return true;
 }
 
 bool AdvancedContentFilter::IsAppropriateForUserAge(
-    const ::sonet::timeline::Note& note, 
+    const ::sonet::note::Note& note, 
     const UserEngagementProfile& profile
 ) {
     // For this implementation, assume all content is appropriate

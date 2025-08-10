@@ -17,18 +17,30 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Conan setup
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR})
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR})
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # Make Boost optional in this environment
 find_package(Boost COMPONENTS system filesystem thread)
 # Use protobuf; we'll locate gRPC plugin via find_program
 find_package(OpenSSL)
 
+# Proper gRPC and Protobuf configuration
+# These are now required for production mode
+find_package(Protobuf REQUIRED)
+find_package(gRPC REQUIRED)
+
+# Check if we have the required libraries
+if(NOT Protobuf_FOUND OR NOT gRPC_FOUND)
+    message(FATAL_ERROR "Protobuf and gRPC are required for production mode. Install: libprotobuf-dev protobuf-compiler libgrpc++-dev libgrpc-dev")
+endif()
+
+set(USE_STUB_IMPLEMENTATIONS OFF)
+message(STATUS "Found Protobuf: ${Protobuf_VERSION}")
+message(STATUS "Found gRPC: ${gRPC_VERSION}")
+
 option(BUILD_GLOBAL_PROTO "Generate all protos at top-level" OFF)
 find_program(PROTOC protoc)
 find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin)
-find_library(PROTOBUF_LIB protobuf)
-find_library(GRPCPP_LIB grpc++)
-find_library(GRPCPP_REFLECTION_LIB grpc++_reflection)
 
 # Compiler flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
@@ -45,6 +57,11 @@ if(OpenSSL_FOUND)
     include_directories(${OPENSSL_INCLUDE_DIR})
 endif()
 
+# Add gRPC and Protobuf include directories
+include_directories(${Protobuf_INCLUDE_DIRS})
+include_directories(${gRPC_INCLUDE_DIRS})
+
+# Remove stub mode logic
 if(BUILD_GLOBAL_PROTO)
     if(NOT PROTOC)
         message(FATAL_ERROR "protoc not found but BUILD_GLOBAL_PROTO=ON")
@@ -70,7 +87,7 @@ if(BUILD_GLOBAL_PROTO)
             DEPENDS "${proto_file}"
             COMMENT "Generating protocol buffer files for ${proto_file}"
         )
-        set(PROTO_SRCS ${PROTO_SRCS} ${proto_srcs} ${grpc_srcs} PARENT_SCOPE)
+        set(PROTO_SRCS ${PROTO_SRCS} ${proto_srcs} ${grpc_hdrs} PARENT_SCOPE)
         set(PROTO_HDRS ${PROTO_HDRS} ${proto_hdrs} ${grpc_hdrs} PARENT_SCOPE)
     endfunction()
 
@@ -80,13 +97,11 @@ if(BUILD_GLOBAL_PROTO)
     endforeach()
 
     add_library(sonet_proto ${PROTO_SRCS})
-    if(GRPCPP_LIB)
-        target_link_libraries(sonet_proto ${GRPCPP_LIB})
-    endif()
-    if(GRPCPP_REFLECTION_LIB)
-        target_link_libraries(sonet_proto ${GRPCPP_REFLECTION_LIB})
-    endif()
-    target_link_libraries(sonet_proto ${PROTOBUF_LIB})
+    target_link_libraries(sonet_proto 
+        gRPC::grpc++ 
+        gRPC::grpc++_reflection
+        protobuf::libprotobuf
+    )
     if(OpenSSL_FOUND)
         target_link_libraries(sonet_proto OpenSSL::Crypto OpenSSL::SSL)
     endif()
@@ -95,26 +110,27 @@ else()
     # If not generating protos, assume include path is the source proto dir for service-local includes
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/proto)
     add_library(sonet_proto INTERFACE)
-    if(GRPCPP_LIB)
-        target_link_libraries(sonet_proto INTERFACE ${GRPCPP_LIB})
-    endif()
-    if(GRPCPP_REFLECTION_LIB)
-        target_link_libraries(sonet_proto INTERFACE ${GRPCPP_REFLECTION_LIB})
-    endif()
-    if(PROTOBUF_LIB)
-        target_link_libraries(sonet_proto INTERFACE ${PROTOBUF_LIB})
-    endif()
+    
+    target_link_libraries(sonet_proto INTERFACE 
+        gRPC::grpc++ 
+        gRPC::grpc++_reflection
+        protobuf::libprotobuf
+    )
 endif()
 
 # Add subdirectories
-# Temporarily disable proto generation due to plugin issues
-# add_subdirectory(proto)
+# Enable proto generation for real mode
+add_subdirectory(proto)
 add_subdirectory(src/services)
 add_subdirectory(src/gateway)
 option(BUILD_EXTERNAL "Build external helper libs" OFF)
 if(BUILD_EXTERNAL)
     add_subdirectory(external)
 endif()
+
+# Ensure all targets have access to real headers
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/proto)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external)
 
 # Tests
 option(BUILD_TESTS "Build test targets" OFF)

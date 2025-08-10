@@ -26,6 +26,8 @@ set(TEST_SOURCES
     test_password_manager.cpp
     test_jwt_manager.cpp
     test_security_utils.cpp
+    test_user_repository_libpq.cpp
+    test_user_repository_integration.cpp
 )
 
 # Create test executable
@@ -51,6 +53,7 @@ target_sources(user_service_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/password_manager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/jwt_manager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/security_utils.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../repository/user_repository_libpq.cpp
 )
 
 # Enable testing
@@ -60,6 +63,8 @@ enable_testing()
 add_test(NAME PasswordManagerTests COMMAND user_service_tests --gtest_filter="PasswordManagerTest.*")
 add_test(NAME JWTManagerTests COMMAND user_service_tests --gtest_filter="JWTManagerTest.*")
 add_test(NAME SecurityUtilsTests COMMAND user_service_tests --gtest_filter="SecurityUtilsTest.*")
+add_test(NAME UserRepositoryLibpqTests COMMAND user_service_tests --gtest_filter="UserRepositoryLibpqTest.*")
+add_test(NAME UserRepositoryIntegrationTests COMMAND user_service_tests --gtest_filter="UserRepositoryIntegrationTest.*")
 
 # Compiler options for tests
 target_compile_options(user_service_tests PRIVATE 

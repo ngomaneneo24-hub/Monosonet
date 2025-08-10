@@ -1,4 +1,4 @@
-#include <grpcpp/grpcpp.h>
+#include "../../../proto/grpc_stub.h"
 #include "search.grpc.pb.h"
 
 class MinimalSearchService final : public sonet::search::SearchService::Service {

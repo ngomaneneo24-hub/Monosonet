@@ -117,7 +117,7 @@ UserTimelineResult TimelineController::get_user_timeline(
     req.pagination_.offset = offset;
     req.pagination_.limit = limit;
     req.include_replies_ = include_replies;
-    req.include_reposts_ = include_reposts;
+    req.include_renotes_ = include_reposts;
 
     ::sonet::timeline::GetUserTimelineResponse resp;
     grpc::ServerContext ctx;

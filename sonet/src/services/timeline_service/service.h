@@ -55,27 +55,7 @@ struct RankedTimelineItem {
     }
 };
 
-// User engagement profile for personalization
-struct UserEngagementProfile {
-    std::string user_id;
-
-    // Relationships and mutes
-    std::unordered_set<std::string> following_ids;
-    std::unordered_set<std::string> muted_users;
-    std::unordered_set<std::string> muted_keywords;
-
-    // Interests and affinities
-    std::unordered_map<std::string, double> author_affinity;      // author_id -> affinity score
-    std::unordered_map<std::string, double> hashtag_interests;    // hashtag -> interest score
-    std::unordered_map<std::string, double> topic_interests;      // topic -> interest score
-
-    // Engagement statistics
-    std::chrono::system_clock::time_point last_updated{};
-    double avg_session_length_minutes = 0.0;
-    double daily_engagement_score = 0.0;
-    int32_t posts_per_day = 0;
-    int32_t interactions_per_day = 0;
-};
+// User engagement profile for personalization - defined in stub_protos.h
 
 // Timeline generation configuration
 struct TimelineConfig {

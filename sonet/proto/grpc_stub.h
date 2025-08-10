@@ -7,6 +7,7 @@
 #include <memory>
 #include <functional>
 #include <cstring>
+#include <chrono>
 
 namespace grpc {
     enum StatusCode {
@@ -80,6 +81,12 @@ namespace grpc {
     public:
         bool Write(const T& item) { return true; }
     };
+
+    template<typename T>
+    class ServerReader {
+    public:
+        bool Read(T* item) { return false; }
+    };
     
     class ServerCredentials {};
     std::shared_ptr<ServerCredentials> InsecureServerCredentials();
@@ -106,6 +113,38 @@ namespace grpc {
         void Shutdown() {}
         void Wait() {}
     };
+    
+    // Client-side gRPC definitions
+    class ChannelCredentials {};
+    std::shared_ptr<ChannelCredentials> InsecureChannelCredentials();
+    
+    class Channel {
+    public:
+        Channel() = default;
+        virtual ~Channel() = default;
+    };
+    
+    std::shared_ptr<Channel> CreateChannel(const std::string& target, std::shared_ptr<ChannelCredentials> creds);
+    
+    template<typename T>
+    class StubInterface {
+    public:
+        virtual ~StubInterface() = default;
+    };
+    
+    template<typename T>
+    std::unique_ptr<T> NewStub(std::shared_ptr<Channel> channel) {
+        return std::make_unique<T>();
+    }
+    
+    class ClientContext {
+    public:
+        ClientContext() = default;
+        ~ClientContext() = default;
+        
+        void AddMetadata(const std::string& key, const std::string& value) {}
+        void SetDeadline(const std::chrono::system_clock::time_point& deadline) {}
+    };
 } // namespace grpc
 
 // Additional gRPC stub implementations
@@ -118,3 +157,12 @@ inline std::unique_ptr<grpc::Server> grpc::ServerBuilder::BuildAndStart() {
 }
 
 inline grpc::Status grpc::Status::OK;
+
+// Client-side gRPC stub implementations
+inline std::shared_ptr<grpc::ChannelCredentials> grpc::InsecureChannelCredentials() {
+    return std::shared_ptr<grpc::ChannelCredentials>();
+}
+
+inline std::shared_ptr<grpc::Channel> grpc::CreateChannel(const std::string& target, std::shared_ptr<grpc::ChannelCredentials> creds) {
+    return std::shared_ptr<grpc::Channel>();
+}
