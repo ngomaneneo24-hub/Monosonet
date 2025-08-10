@@ -25,31 +25,18 @@ find_package(Boost COMPONENTS system filesystem thread)
 find_package(OpenSSL)
 
 # Proper gRPC and Protobuf configuration
-# Try to find protobuf and gRPC, but don't fail if they're not available
-find_package(Protobuf QUIET)
-find_package(gRPC QUIET)
+# These are now required for production mode
+find_package(Protobuf REQUIRED)
+find_package(gRPC REQUIRED)
 
 # Check if we have the required libraries
 if(NOT Protobuf_FOUND OR NOT gRPC_FOUND)
-    message(WARNING "Protobuf or gRPC not found. Building with stub implementations only.")
-    message(WARNING "For full gRPC functionality, install: libprotobuf-dev protobuf-compiler libgrpc++-dev libgrpc-dev")
-    
-    # Set a flag to indicate we're using stubs
-    set(USE_STUB_IMPLEMENTATIONS ON)
-    
-    # Create dummy targets for stubs
-    add_library(protobuf::libprotobuf INTERFACE IMPORTED)
-    add_library(gRPC::grpc++ INTERFACE IMPORTED)
-    add_library(gRPC::grpc++_reflection INTERFACE IMPORTED)
-    
-    # Set include directories for stub headers
-    set(Protobuf_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/proto)
-    set(gRPC_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/proto)
-else()
-    set(USE_STUB_IMPLEMENTATIONS OFF)
-    message(STATUS "Found Protobuf: ${Protobuf_VERSION}")
-    message(STATUS "Found gRPC: ${gRPC_VERSION}")
+    message(FATAL_ERROR "Protobuf and gRPC are required for production mode. Install: libprotobuf-dev protobuf-compiler libgrpc++-dev libgrpc-dev")
 endif()
+
+set(USE_STUB_IMPLEMENTATIONS OFF)
+message(STATUS "Found Protobuf: ${Protobuf_VERSION}")
+message(STATUS "Found gRPC: ${gRPC_VERSION}")
 
 option(BUILD_GLOBAL_PROTO "Generate all protos at top-level" OFF)
 find_program(PROTOC protoc)
@@ -71,16 +58,10 @@ if(OpenSSL_FOUND)
 endif()
 
 # Add gRPC and Protobuf include directories
-if(Protobuf_FOUND AND gRPC_FOUND)
-    include_directories(${Protobuf_INCLUDE_DIRS})
-    include_directories(${gRPC_INCLUDE_DIRS})
-else()
-    # In stub mode, use our stub headers
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/proto)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/nlohmann)
-    message(STATUS "Using stub implementations - include paths set to proto and nlohmann directories")
-endif()
+include_directories(${Protobuf_INCLUDE_DIRS})
+include_directories(${gRPC_INCLUDE_DIRS})
 
+# Remove stub mode logic
 if(BUILD_GLOBAL_PROTO)
     if(NOT PROTOC)
         message(FATAL_ERROR "protoc not found but BUILD_GLOBAL_PROTO=ON")
@@ -106,7 +87,7 @@ if(BUILD_GLOBAL_PROTO)
             DEPENDS "${proto_file}"
             COMMENT "Generating protocol buffer files for ${proto_file}"
         )
-        set(PROTO_SRCS ${PROTO_SRCS} ${proto_srcs} ${grpc_srcs} PARENT_SCOPE)
+        set(PROTO_SRCS ${PROTO_SRCS} ${proto_srcs} ${grpc_hdrs} PARENT_SCOPE)
         set(PROTO_HDRS ${PROTO_HDRS} ${proto_hdrs} ${grpc_hdrs} PARENT_SCOPE)
     endfunction()
 
@@ -116,15 +97,11 @@ if(BUILD_GLOBAL_PROTO)
     endforeach()
 
     add_library(sonet_proto ${PROTO_SRCS})
-    if(Protobuf_FOUND AND gRPC_FOUND)
-        target_link_libraries(sonet_proto 
-            gRPC::grpc++ 
-            gRPC::grpc++_reflection
-            protobuf::libprotobuf
-        )
-    else()
-        message(WARNING "Proto generation enabled but gRPC/Protobuf not found. Linking may fail.")
-    endif()
+    target_link_libraries(sonet_proto 
+        gRPC::grpc++ 
+        gRPC::grpc++_reflection
+        protobuf::libprotobuf
+    )
     if(OpenSSL_FOUND)
         target_link_libraries(sonet_proto OpenSSL::Crypto OpenSSL::SSL)
     endif()
@@ -134,25 +111,16 @@ else()
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/proto)
     add_library(sonet_proto INTERFACE)
     
-    if(Protobuf_FOUND AND gRPC_FOUND)
-        target_link_libraries(sonet_proto INTERFACE 
-            gRPC::grpc++ 
-            gRPC::grpc++_reflection
-            protobuf::libprotobuf
-        )
-    else()
-        # In stub mode, just set include directories
-        target_include_directories(sonet_proto INTERFACE 
-            ${CMAKE_CURRENT_SOURCE_DIR}/proto
-            ${CMAKE_CURRENT_SOURCE_DIR}/nlohmann
-        )
-        message(STATUS "sonet_proto target configured for stub mode")
-    endif()
+    target_link_libraries(sonet_proto INTERFACE 
+        gRPC::grpc++ 
+        gRPC::grpc++_reflection
+        protobuf::libprotobuf
+    )
 endif()
 
 # Add subdirectories
-# Temporarily disable proto generation due to plugin issues
-# add_subdirectory(proto)
+# Enable proto generation for real mode
+add_subdirectory(proto)
 add_subdirectory(src/services)
 add_subdirectory(src/gateway)
 option(BUILD_EXTERNAL "Build external helper libs" OFF)
@@ -160,14 +128,9 @@ if(BUILD_EXTERNAL)
     add_subdirectory(external)
 endif()
 
-# Ensure all targets in stub mode have access to stub headers
-if(USE_STUB_IMPLEMENTATIONS)
-    # Set global include directories for all targets
-    add_compile_options(-I${CMAKE_CURRENT_SOURCE_DIR}/proto -I${CMAKE_CURRENT_SOURCE_DIR}/nlohmann)
-    
-    # Also set them as system include directories to avoid warnings
-    include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/proto ${CMAKE_CURRENT_SOURCE_DIR}/nlohmann)
-endif()
+# Ensure all targets have access to real headers
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/proto)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external)
 
 # Tests
 option(BUILD_TESTS "Build test targets" OFF)
