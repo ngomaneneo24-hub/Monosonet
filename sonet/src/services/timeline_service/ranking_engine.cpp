@@ -12,6 +12,7 @@
 #include <sstream>
 #include <regex>
 #include <iostream>
+#include <numeric>
 
 namespace sonet::timeline {
 
@@ -83,9 +84,6 @@ namespace {
 MLRankingEngine::MLRankingEngine() {
     std::cout << "ML Ranking Engine initialized" << std::endl;
     
-    // Initialize default parameters
-    banned_keywords_.insert({"spam", "scam", "fake", "bot"});
-    
     // TODO: Load ML model weights from file or training data
     // For now, using heuristic-based scoring
 }
@@ -149,6 +147,25 @@ std::vector<RankedTimelineItem> MLRankingEngine::ScoreNotes(
 
     // Apply diversity boosts to prevent too much similar content
     ApplyDiversityBoosts(ranked_items, config.diversity_weight);
+
+    // Hybrid-specific tweaks: freshness micro-boost and source diversity
+    if (config.algorithm == ::sonet::timeline::TIMELINE_ALGORITHM_HYBRID) {
+        auto now = std::chrono::system_clock::now();
+        for (auto& item : ranked_items) {
+            // Micro-boost for very recent items (< 30 minutes)
+            auto created_time = FromProtoTimestamp(item.note.created_at());
+            auto age_minutes = std::chrono::duration_cast<std::chrono::minutes>(now - created_time).count();
+            if (age_minutes >= 0 && age_minutes <= 30) {
+                item.final_score += 0.02;
+            }
+            // Prefer some proportion of non-following content to improve discovery
+            if (item.source == ::sonet::timeline::CONTENT_SOURCE_RECOMMENDED ||
+                item.source == ::sonet::timeline::CONTENT_SOURCE_TRENDING ||
+                item.source == ::sonet::timeline::CONTENT_SOURCE_LISTS) {
+                item.final_score += 0.01;
+            }
+        }
+    }
 
     std::cout << "Scoring complete. Average score: " 
               << (ranked_items.empty() ? 0.0 : 
