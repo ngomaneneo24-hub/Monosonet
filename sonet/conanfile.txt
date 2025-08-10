@@ -33,7 +33,7 @@ cpr/1.10.5
 cpp-httplib/0.15.3
 
 # Caching and utilities
-fmt/10.2.1
+fmt/9.1.0
 cli11/2.4.1
 
 [generators]
