@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(sonet_follow_service
     VERSION 1.0.0
-    DESCRIPTION "Twitter-Scale Follow Service for Sonet Social Network"
+    DESCRIPTION "Twitter-Scale Follow Service for Sonet Network"
     LANGUAGES CXX
 )
 
