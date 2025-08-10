@@ -28,8 +28,8 @@ export function createGrpcClients() {
     const mediaTarget = process.env.MEDIA_GRPC_ADDR || 'media-service:9090';
     const followTarget = process.env.FOLLOW_GRPC_ADDR || 'follow-service:9090';
     const messagingTarget = process.env.MESSAGING_GRPC_ADDR || 'messaging-service:9090';
-    const searchTarget = process.env.SEARCH_GRPC_ADDR || 'search-service:9090';
-    const notificationTarget = process.env.NOTIFICATION_GRPC_ADDR || 'notification-service:9090';
+    const searchTarget = process.env.SEARCH_GRPC_ADDR || 'search-service:9096';
+    const notificationTarget = process.env.NOTIFICATION_GRPC_ADDR || 'notification-service:9097';
     const userPackage = userPkgDef['sonet.user'];
     const notePackage = notePkgDef['sonet.note.grpc'];
     const timelinePackage = timelinePkgDef['sonet.timeline'];

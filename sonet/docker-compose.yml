@@ -61,8 +61,8 @@ services:
       - PROTO_DIR=/app/proto
       - JWT_SECRET=dev_jwt_secret_key_change_in_production
       - FOLLOW_GRPC_ADDR=follow-service:9090
-      - SEARCH_GRPC_ADDR=search-service:9090
-      - NOTIFICATION_GRPC_ADDR=notification-service:9090
+      - SEARCH_GRPC_ADDR=search-service:9096
+      - NOTIFICATION_GRPC_ADDR=notification-service:9097
     depends_on:
       postgres:
         condition: service_healthy
@@ -351,6 +351,30 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    networks:
+      - sonet-network
+
+  # Minimal Search Service (temporary)
+  minimal-search-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    command: ["./bin/minimal_search_server"]
+    ports:
+      - "9096:9096"
+    networks:
+      - sonet-network
+
+  # Minimal Notification Service (temporary)
+  minimal-notification-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    command: ["./bin/minimal_notification_server"]
+    ports:
+      - "9097:9097"
     networks:
       - sonet-network
 
