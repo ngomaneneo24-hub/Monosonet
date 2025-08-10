@@ -7,7 +7,7 @@
 //
 
 #include "implementations.h"
-#include <grpcpp/grpcpp.h>
+#include "../../../proto/grpc_stub.h"
 #include <iostream>
 #include <memory>
 #include <string>

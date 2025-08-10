@@ -89,24 +89,9 @@ endif()
 target_link_libraries(media_service_core PUBLIC sonet_proto)
 target_link_libraries(media_service PRIVATE sonet_proto)
 
-# Link protobuf/grpc
-find_package(Protobuf)
-if(Protobuf_FOUND)
-	target_link_libraries(media_service_core PUBLIC protobuf::libprotobuf)
-	target_link_libraries(media_service PRIVATE protobuf::libprotobuf)
-endif()
-find_library(GRPCPP_LIB grpc++)
-find_library(GRPCPP_REFLECTION_LIB grpc++_reflection)
-find_library(GPR_LIB gpr)
-find_library(ABSL_SYNCHRONIZATION_LIB absl_synchronization)
-find_library(ABSL_STRINGS_LIB absl_strings)
-find_library(ABSL_STATUS_LIB absl_status)
-foreach(lib IN ITEMS GRPCPP_LIB GRPCPP_REFLECTION_LIB GPR_LIB ABSL_SYNCHRONIZATION_LIB ABSL_STRINGS_LIB ABSL_STATUS_LIB)
-	if(${lib})
-		target_link_libraries(media_service_core PUBLIC ${${lib}})
-		target_link_libraries(media_service PRIVATE ${${lib}})
-	endif()
-endforeach()
+# Link protobuf/grpc - use the targets from main CMakeLists.txt
+# The sonet_proto target already includes all necessary gRPC and protobuf libraries
+# No need to find and link them manually here
 
 # libpqxx (optional)
 find_package(PkgConfig)

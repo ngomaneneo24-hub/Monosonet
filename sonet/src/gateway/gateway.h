@@ -9,12 +9,14 @@
 #include <thread>
 #include <unordered_map>
 #include <string>
-#include <nlohmann/json.hpp>
-#include <httplib.h>
+#include "../../../nlohmann/json.hpp"
+#include "../../../nlohmann/httplib.h"
 #include "rate_limiting/rate_limiter.h"
 #include "responses.h"
 
 using json = nlohmann::json;
+
+namespace sonet::gateway {
 
 struct GatewayRateLimitConfig {
 	int global_per_minute{60};
@@ -40,5 +42,7 @@ private:
 	std::unique_ptr<httplib::Server> server_;
 	std::atomic<bool> running_{false};
 	std::thread server_thread_;
-	std::unordered_map<std::string, std::shared_ptr<RateLimiter>> limiters_;
+	std::unordered_map<std::string, std::shared_ptr<sonet::gateway::rate_limiting::RateLimiter>> limiters_;
 };
+
+} // namespace sonet::gateway

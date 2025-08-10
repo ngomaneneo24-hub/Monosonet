@@ -3,9 +3,11 @@
 #include <iostream>
 #include <memory>
 #include <fstream>
-#include <nlohmann/json.hpp>
+#include <iterator>
+#include "../../../nlohmann/json.hpp"
 
 using sonet::gateway::RestGateway;
+using sonet::gateway::GatewayRateLimitConfig;
 
 static std::unique_ptr<RestGateway> g_gateway;
 
@@ -26,18 +28,18 @@ int main(int argc, char* argv[]) {
 	}
 	// Load config if present
 	GatewayRateLimitConfig rl_cfg;
-	try {
-		std::ifstream in(config_path);
-		if (in.good()) {
-			auto j = nlohmann::json::parse(in);
+			try {
+			std::ifstream in(config_path);
+			if (in.good()) {
+				std::string content((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+				auto j = nlohmann::json::parse(content);
 			port = j.value("port", port);
 			if (j.contains("rate_limits")) {
 				auto rl = j["rate_limits"];
-				rl_cfg.global_per_min = rl.value("global_per_min", rl_cfg.global_per_min);
-				rl_cfg.login_per_min = rl.value("login_per_min", rl_cfg.login_per_min);
-				rl_cfg.register_per_min = rl.value("register_per_min", rl_cfg.register_per_min);
-				rl_cfg.timeline_per_min = rl.value("timeline_per_min", rl_cfg.timeline_per_min);
-				rl_cfg.notes_create_per_min = rl.value("notes_create_per_min", rl_cfg.notes_create_per_min);
+				rl_cfg.global_per_minute = rl.value("global_per_minute", rl_cfg.global_per_minute);
+				rl_cfg.auth_login_per_minute = rl.value("auth_login_per_minute", rl_cfg.auth_login_per_minute);
+				rl_cfg.auth_register_per_minute = rl.value("auth_register_per_minute", rl_cfg.auth_register_per_minute);
+				rl_cfg.timeline_home_per_minute = rl.value("timeline_home_per_minute", rl_cfg.timeline_home_per_minute);
 			}
 		}
 	} catch(const std::exception& e) {
