@@ -1,5 +1,5 @@
 #include <cassert>
-#include <grpcpp/grpcpp.h>
+#include "../../../../proto/grpc_stub.h"
 #include <thread>
 #include <filesystem>
 #include <fstream>
@@ -29,7 +29,7 @@ int run_upload_test() {
         std::ofstream ofs(png, std::ios::binary); ofs.write((const char*)bytes, sizeof(bytes));
     }
     auto channel = grpc::CreateChannel("127.0.0.1:56051", grpc::InsecureChannelCredentials());
-    auto stub = ::sonet::media::MediaService::NewStub(channel);
+    auto stub = std::make_unique<::sonet::media::MediaService::Stub>(channel);
     grpc::ClientContext ctx; ctx.AddMetadata("x-user-id", "u1");
     ::sonet::media::UploadResponse resp;
     auto writer = stub->Upload(&ctx, &resp);

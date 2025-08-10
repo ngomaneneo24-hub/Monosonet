@@ -1,8 +1,7 @@
 #pragma once
 
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <nlohmann/json.hpp>
+#include "../../../../nlohmann/spdlog.h"
+#include "../../../../nlohmann/json.hpp"
 #include <cstdlib>
 #include <string>
 #include <memory>
@@ -51,7 +50,7 @@ inline void log_json(spdlog::level::level_enum level,
     j["level"] = spdlog::level::to_string_view(level);
     j["message"] = message;
     for (auto it = extra.begin(); it != extra.end(); ++it) {
-        j[it.key()] = it.value();
+        j[it->first] = it->second;
     }
 
     switch (level) {

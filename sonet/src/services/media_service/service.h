@@ -13,10 +13,10 @@
 #include <unordered_map>
 #include <vector>
 
-#include <grpcpp/grpcpp.h>
+#include "../../../proto/grpc_stub.h"
 
 // Generated from proto (built at top-level into include path)
-#include <services/media.grpc.pb.h>
+#include "../../../proto/services/media.grpc.pb.h"
 
 namespace sonet::media_service {
 

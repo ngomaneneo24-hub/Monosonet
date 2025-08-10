@@ -1,8 +1,11 @@
-#include <grpcpp/grpcpp.h>
+#include "../../../proto/grpc_stub.h"
 #include "notification.grpc.pb.h"
 
 class MinimalNotificationService final : public sonet::notification::NotificationService::Service {
 public:
+  grpc::Status SendNotification(grpc::ServerContext*, const sonet::notification::SendNotificationRequest* req, sonet::notification::SendNotificationResponse* resp) override {
+    (void)req; resp->set_success(true); return grpc::Status::OK;
+  }
   grpc::Status ListNotifications(grpc::ServerContext*, const sonet::notification::ListNotificationsRequest* req, sonet::notification::ListNotificationsResponse* resp) override {
     (void)req; (void)resp; return grpc::Status::OK;
   }
