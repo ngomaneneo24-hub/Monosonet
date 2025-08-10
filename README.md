@@ -25,7 +25,7 @@ Sonet is a distributed social media platform designed to handle Twitter-scale tr
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Web Client    │    │  Mobile Client  │    │ Bluesky Client  │
+│   Web Client    │    │  Mobile Client  │    │ Sonet Client  │
 └─────────┬───────┘    └─────────┬───────┘    └─────────┬───────┘
           │                      │                      │
           └──────────────────────┼──────────────────────┘

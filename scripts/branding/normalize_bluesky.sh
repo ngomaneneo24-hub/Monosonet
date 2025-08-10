@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Normalize branding terms: convert variations of bluesky/bsky to 'Bluesky' in user-facing text.
+# Normalize branding terms: convert variations of Sonet/Sonet to 'Sonet' in user-facing text.
 # Safeguards: skips protocol/module namespaces like app.bsky.*, domains like bsky.app, t.gifs.bsky.app, etc.
 # Default mode is dry-run (no file modifications). Set APPLY=1 to write changes.
 # Usage: scripts/branding/normalize_bluesky.sh [path (default=repo root)]
@@ -25,15 +25,15 @@ while IFS= read -r -d '' file; do
   if grep -Iq . "$file" 2>/dev/null; then
     original_content=$(cat "$file")
     new_content=$(printf '%s' "$original_content" | perl -0777 -pe '
-      # Replace standalone bluesky (any case) with capitalized form
-      s/\bbluesky\b/Bluesky/gi;
-      # Replace standalone bsky (any case) with Bluesky when NOT followed by a dot (avoids app.bsky.*, bsky.app, etc.)
-      s/\b[bB]sky\b(?!\.)/Bluesky/g;
+      # Replace standalone Sonet (any case) with capitalized form
+      s/\bbluesky\b/Sonet/gi;
+      # Replace standalone Sonet (any case) with Sonet when NOT followed by a dot (avoids app.bsky.*, bsky.app, etc.)
+      s/\b[bB]sky\b(?!\.)/Sonet/g;
     ')
     if [[ "$new_content" != "$original_content" ]]; then
       changes=$(diff -U0 <(printf '%s' "$original_content") <(printf '%s' "$new_content") | grep -E '^[+-]' | grep -Ev '^(\+\+\+|---)' || true)
-      # Count replacements (lines starting with + that contain Bluesky and had lower-case before)
-      this_repls=$(printf '%s' "$changes" | grep -c '+.*Bluesky' || true)
+      # Count replacements (lines starting with + that contain Sonet and had lower-case before)
+      this_repls=$(printf '%s' "$changes" | grep -c '+.*Sonet' || true)
       replacement_count=$((replacement_count + this_repls))
       changed_files+=("$file:$this_repls")
       modified_count=$((modified_count + 1))
