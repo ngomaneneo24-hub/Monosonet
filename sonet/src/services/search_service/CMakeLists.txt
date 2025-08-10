@@ -13,7 +13,7 @@ project(sonet_search_service
 )
 
 # Options to reduce dependency footprint for local builds
-option(ENABLE_GRPC "Enable gRPC and protobuf components" OFF)
+option(ENABLE_GRPC "Enable gRPC and protobuf components" ON)
 option(BUILD_TESTS "Build unit tests" OFF)
 option(BUILD_BENCHMARKS "Build performance benchmarks" OFF)
 
