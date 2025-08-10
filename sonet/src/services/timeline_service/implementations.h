@@ -316,6 +316,55 @@ private:
     std::shared_ptr<MLRankingEngine> ranking_engine_;
 };
 
+// Separation-of-concerns: generic interface for trending providers
+class ITrendingProvider {
+public:
+    virtual ~ITrendingProvider() = default;
+    virtual void MaybeRefresh() = 0;
+    virtual std::vector<::sonet::note::Note> Get(int32_t limit,
+        std::chrono::system_clock::time_point since) = 0;
+};
+
+class TrendingHashtagsProvider : public ITrendingProvider {
+public:
+    TrendingHashtagsProvider();
+    void MaybeRefresh() override;
+    std::vector<::sonet::note::Note> Get(int32_t limit,
+        std::chrono::system_clock::time_point since) override;
+private:
+    void UpdateTrendingHashtags();
+    std::vector<std::string> trending_hashtags_;
+    std::chrono::system_clock::time_point last_update_{};
+    mutable std::mutex mutex_;
+};
+
+class TrendingTopicsProvider : public ITrendingProvider {
+public:
+    TrendingTopicsProvider();
+    void MaybeRefresh() override;
+    std::vector<::sonet::note::Note> Get(int32_t limit,
+        std::chrono::system_clock::time_point since) override;
+private:
+    void UpdateTrendingTopics();
+    std::vector<std::string> trending_topics_;
+    std::chrono::system_clock::time_point last_update_{};
+    mutable std::mutex mutex_;
+};
+
+class TrendingVideosProvider : public ITrendingProvider {
+public:
+    explicit TrendingVideosProvider(std::shared_ptr<::sonet::note::NoteService::Stub> note_service);
+    void MaybeRefresh() override;
+    std::vector<::sonet::note::Note> Get(int32_t limit,
+        std::chrono::system_clock::time_point since) override;
+private:
+    void UpdateTrendingVideos();
+    std::vector<std::string> trending_video_urls_;
+    std::chrono::system_clock::time_point last_update_{};
+    std::shared_ptr<::sonet::note::NoteService::Stub> note_service_;
+    mutable std::mutex mutex_;
+};
+
 class TrendingContentAdapter : public ContentSourceAdapter {
 public:
     explicit TrendingContentAdapter(std::shared_ptr<::sonet::note::NoteService::Stub> note_service);
@@ -329,18 +378,11 @@ public:
     ) override;
 
 private:
-    void UpdateTrendingHashtags();
-    void UpdateTrendingAuthors();
-    std::vector<::sonet::note::Note> GetHashtagTrends(int32_t limit);
-    std::vector<::sonet::note::Note> GetAuthorTrends(int32_t limit);
-    
+    // Providers for different trend modalities
+    std::unique_ptr<TrendingHashtagsProvider> hashtags_provider_;
+    std::unique_ptr<TrendingTopicsProvider> topics_provider_;
+    std::unique_ptr<TrendingVideosProvider> videos_provider_;
     std::shared_ptr<::sonet::note::NoteService::Stub> note_service_;
-    
-    // Trending data
-    std::vector<std::string> trending_hashtags_;
-    std::vector<std::string> trending_authors_;
-    std::chrono::system_clock::time_point last_trends_update_;
-    mutable std::mutex trends_mutex_;
 };
 
 // ============= FACTORY FUNCTIONS =============
