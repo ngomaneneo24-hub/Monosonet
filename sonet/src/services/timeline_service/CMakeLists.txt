@@ -25,10 +25,11 @@ target_include_directories(timeline_service PUBLIC
     ${CMAKE_SOURCE_DIR}/proto/common
 )
 
-# Link required libraries (simplified for testing)
+# Link required libraries including sonet_proto for gRPC support
 find_package(Threads REQUIRED)
 target_link_libraries(timeline_service PUBLIC
     Threads::Threads
+    sonet_proto  # This provides gRPC and protobuf support
 )
 
 # Set C++ standard
@@ -45,6 +46,7 @@ add_executable(timeline_service_main
 target_link_libraries(timeline_service_main
     timeline_service
     Threads::Threads
+    sonet_proto  # Ensure executable also has gRPC support
 )
 
 # Set properties for the executable

@@ -17,10 +17,10 @@
 #include <atomic>
 #include <mutex>
 #include <random>
-// Stub includes for compilation testing
-#include "grpc_stub.h"
-#include "stub_protos.h"
+// Include service.h first to get grpc_stub.h and define the grpc namespace
 #include "service.h"
+// Now include stub_protos.h after the grpc namespace is defined
+#include "../../../proto/services/stub_protos.h"
 #include "clients/grpc_clients.h"
 
 namespace sonet::timeline {
@@ -180,8 +180,8 @@ public:
     AdvancedContentFilter();
     ~AdvancedContentFilter() override = default;
 
-    std::vector<::sonet::timeline::Note> FilterNotes(
-        const std::vector<::sonet::timeline::Note>& notes,
+    std::vector<::sonet::note::Note> FilterNotes(
+        const std::vector<::sonet::note::Note>& notes,
         const std::string& user_id,
         const UserEngagementProfile& profile
     ) override;
@@ -200,11 +200,11 @@ public:
 private:
     // Filter implementations
     bool IsUserMuted(const std::string& user_id, const std::string& author_id);
-    bool ContainsMutedKeywords(const std::string& user_id, const ::sonet::timeline::Note& note);
-    bool ViolatesContentPolicy(const ::sonet::timeline::Note& note);
-    bool MeetsEngagementThreshold(const ::sonet::timeline::Note& note, const UserEngagementProfile& profile);
-    bool IsAppropriateForUserAge(const ::sonet::timeline::Note& note, const UserEngagementProfile& profile);
-    bool PassesSpamDetection(const ::sonet::timeline::Note& note);
+    bool ContainsMutedKeywords(const std::string& user_id, const ::sonet::note::Note& note);
+    bool ViolatesContentPolicy(const ::sonet::note::Note& note);
+    bool MeetsEngagementThreshold(const ::sonet::note::Note& note, const UserEngagementProfile& profile);
+    bool IsAppropriateForUserAge(const ::sonet::note::Note& note, const UserEngagementProfile& profile);
+    bool PassesSpamDetection(const ::sonet::note::Note& note);
 
     // User mute lists
     std::unordered_map<std::string, std::unordered_set<std::string>> muted_users_;

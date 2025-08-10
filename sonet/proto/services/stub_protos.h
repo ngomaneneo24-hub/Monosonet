@@ -7,6 +7,9 @@
 #include <vector>
 #include <memory>
 #include <map>
+#include <unordered_set>
+#include <unordered_map>
+#include <chrono>
 
 namespace sonet {
 namespace common {
@@ -50,18 +53,21 @@ namespace note {
         int32_t renotes_ = 0; // formerly reposts_
         int32_t replies_ = 0;
         int32_t quotes_ = 0;
+        int32_t comments_ = 0; // Add comments field
 
         int32_t views() const { return views_; }
         int32_t likes() const { return likes_; }
         int32_t renotes() const { return renotes_; }
         int32_t replies() const { return replies_; }
         int32_t quotes() const { return quotes_; }
+        int32_t comments() const { return comments_; } // Add comments getter
 
         void set_views(int32_t v) { views_ = v; }
         void set_likes(int32_t l) { likes_ = l; }
         void set_renotes(int32_t r) { renotes_ = r; }
         void set_replies(int32_t r) { replies_ = r; }
         void set_quotes(int32_t q) { quotes_ = q; }
+        void set_comments(int32_t c) { comments_ = c; } // Add comments setter
 
         // Deprecated aliases for transition
         [[deprecated("Use renotes() instead")]] int32_t reposts() const { return renotes_; }
@@ -143,6 +149,31 @@ namespace note {
                 return resp;
             }
         };
+    };
+}
+
+namespace timeline {
+    // User engagement profile for personalization
+    struct UserEngagementProfile {
+        std::string user_id;
+
+        // Relationships and mutes
+        std::unordered_set<std::string> following_ids;
+        std::unordered_set<std::string> muted_users;
+        std::unordered_set<std::string> muted_keywords;
+
+        // Interests and affinities
+        std::unordered_map<std::string, double> author_affinity;      // author_id -> affinity score
+        std::unordered_map<std::string, double> hashtag_interests;    // hashtag -> interest score
+        std::unordered_map<std::string, double> topic_interests;      // topic -> interest score
+
+        // Engagement statistics
+        std::chrono::system_clock::time_point last_updated{};
+        double avg_session_length_minutes = 0.0;
+        double daily_engagement_score = 0.0;
+        double engagement_score = 0.0; // Add engagement_score field
+        int32_t posts_per_day = 0;
+        int32_t interactions_per_day = 0;
     };
 }
 
