@@ -1,18 +1,17 @@
 #pragma once
-#include <crow.h>
+#include <httplib.h>
 #include <chrono>
+#include <iostream>
 
 namespace sonet::gateway::middleware {
 
-struct LoggingMiddleware {
-	struct context { std::chrono::steady_clock::time_point start; };
-	void before_handle(crow::request& req, crow::response& /*res*/, context& ctx) {
-		ctx.start = std::chrono::steady_clock::now();
+// Placeholder logging utilities for potential future integration.
+struct LoggingHelper {
+	static void log_request(const httplib::Request& req) {
+		std::cout << req.method << " " << req.path << std::endl;
 	}
-	void after_handle(crow::request& req, crow::response& res, context& ctx) {
-		using namespace std::chrono;
-		auto dur = duration_cast<milliseconds>(steady_clock::now() - ctx.start).count();
-		std::cout << req.method_name() << " " << req.url << " -> " << res.code << " (" << dur << "ms)" << std::endl;
+	static void log_response(const httplib::Request& req, const httplib::Response& res, long ms) {
+		std::cout << req.method << " " << req.path << " -> " << res.status << " (" << ms << "ms)" << std::endl;
 	}
 };
 
