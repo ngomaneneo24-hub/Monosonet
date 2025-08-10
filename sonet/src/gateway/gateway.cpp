@@ -1,7 +1,7 @@
-﻿#include "gateway.h"
+#include "gateway.h"
 #include <iostream>
 #include <nlohmann/json.hpp>
-#include "middleware/logging_middleware.h"
+#include "middleware/logging_middleware.h" // retained for future use
 #include "middleware/cors_middleware.h"
 #include "middleware/auth_middleware.h"
 #include "auth/jwt_handler.h"
@@ -12,7 +12,9 @@ using nlohmann::json;
 
 namespace sonet::gateway {
 
-RestGateway::RestGateway(int port) : port_(port), app_(std::make_unique<crow::SimpleApp>()) {}
+RestGateway::RestGateway(int port, GatewayRateLimitConfig rl) : port_(port), rl_cfg_(rl), server_(std::make_unique<httplib::Server>()) {
+	init_limiters();
+}
 
 RestGateway::~RestGateway() {
 	stop();
@@ -20,84 +22,53 @@ RestGateway::~RestGateway() {
 
 void RestGateway::register_routes() {
 	// Health
-	CROW_ROUTE((*app_), "/health").methods(crow::HTTPMethod::GET)([this]() {
-		return crow::response{responses::ok({{"service", "gateway"}}).dump()};
+	server_->Get("/health", [this](const httplib::Request&, httplib::Response& res){
+		res.set_content(responses::ok({{"service", "gateway"}}).dump(), "application/json");
 	});
 
-	// Basic rate limiter (global)
-	static sonet::gateway::rate_limiting::RateLimiter limiter({60, 60, 60}); // 60 req/min
-	CROW_ROUTE((*app_), "/api/v1/ping").methods(crow::HTTPMethod::GET)([](){
-		if (!limiter.allow("global")) {
+	server_->Get("/api/v1/ping", [this](const httplib::Request&, httplib::Response& res){
+		if (!rate_allow("global")) {
 			auto err = responses::error("RATE_LIMITED", "Too many requests", 429);
-			return crow::response{429, err.dump()};
-		}
-		return crow::response{responses::ok({{"pong", true}}).dump()};
+			res.status = 429; res.set_content(err.dump(), "application/json"); return; }
+		res.set_content(responses::ok({{"pong", true}}).dump(), "application/json");
 	});
 
 	// OPTIONS preflight for any path
-	CROW_ROUTE((*app_), "/<path>").methods(crow::HTTPMethod::OPTIONS)([](const crow::request&, crow::response& res){
-		res.code = 204;
-		res.end();
-	});
+	server_->Options(R"(/.*)", [](const httplib::Request&, httplib::Response& res){ res.status = 204; });
 
 	// Placeholder Note endpoints
-	CROW_ROUTE((*app_), "/api/v1/notes").methods(crow::HTTPMethod::POST)([](const crow::request& req){
-		try {
-			auto body = json::parse(req.body);
+	server_->Post("/api/v1/notes", [this](const httplib::Request& req, httplib::Response& res){
+		try { auto body = json::parse(req.body);
 			auto resp = responses::ok({{"id", "note_123"}, {"text", body.value("text", "")}});
-			return crow::response{201, resp.dump()};
-		} catch(const std::exception& e) {
-			auto err = responses::error("BAD_REQUEST", e.what(), 400);
-			return crow::response{400, err.dump()};
-		}
+			res.status = 201; res.set_content(resp.dump(), "application/json"); }
+		catch(const std::exception& e){ auto err = responses::error("BAD_REQUEST", e.what(), 400); res.status=400; res.set_content(err.dump(), "application/json"); }
 	});
 
-	CROW_ROUTE((*app_), "/api/v1/notes/<string>").methods(crow::HTTPMethod::GET)([](const std::string& id){
-		auto resp = responses::ok({{"id", id}, {"text", "Sample note"}});
-		return crow::response{resp.dump()};
+	server_->Get(R"(/api/v1/notes/(.+))", [](const httplib::Request& req, httplib::Response& res){
+		auto id = req.matches[1];
+		auto resp = responses::ok({{"id", id.str()}, {"text", "Sample note"}});
+		res.set_content(resp.dump(), "application/json");
 	});
 
 	// Auth endpoints (stubs) ---------------------------------
-	CROW_ROUTE((*app_), "/api/v1/auth/login").methods(crow::HTTPMethod::POST)([](const crow::request& req){
-		if (!limiter.allow("auth_login")) {
-			return crow::response{429, responses::error("RATE_LIMITED", "Too many login attempts", 429).dump()};
-		}
-		try {
-			auto body = json::parse(req.body);
-			std::string username = body.value("username", "user");
-			// Placeholder token format (NOT secure)
-			json token{{"sub", username}, {"scope", "read:profile write:note"}, {"sid", "sess123"}, {"exp", 9999999999}};
-			return crow::response{responses::ok({{"access_token", token.dump()}, {"token_type", "bearer"}, {"expires_in", 3600}}).dump()};
-		} catch(const std::exception& e) {
-			return crow::response{400, responses::error("BAD_REQUEST", e.what(), 400).dump()};
-		}
+	server_->Post("/api/v1/auth/login", [this](const httplib::Request& req, httplib::Response& res){
+		if (!rate_allow("auth_login")) { res.status=429; res.set_content(responses::error("RATE_LIMITED","Too many login attempts",429).dump(),"application/json"); return; }
+		try { auto body = json::parse(req.body); std::string username = body.value("username","user"); json token{{"sub",username},{"scope","read:profile write:note"},{"sid","sess123"},{"exp",9999999999}}; res.set_content(responses::ok({{"access_token",token.dump()},{"token_type","bearer"},{"expires_in",3600}}).dump(),"application/json"); }
+		catch(const std::exception& e){ res.status=400; res.set_content(responses::error("BAD_REQUEST",e.what(),400).dump(),"application/json"); }
 	});
 
-	CROW_ROUTE((*app_), "/api/v1/auth/register").methods(crow::HTTPMethod::POST)([](const crow::request& req){
-		if (!limiter.allow("auth_register")) {
-			return crow::response{429, responses::error("RATE_LIMITED", "Too many registrations", 429).dump()};
-		}
-		try {
-			auto body = json::parse(req.body);
-			std::string username = body.value("username", "newuser");
-			auto resp = responses::ok({{"user", { {"username", username}, {"id", "user_123"} }}});
-			return crow::response{201, resp.dump()};
-		} catch(const std::exception& e) {
-			return crow::response{400, responses::error("BAD_REQUEST", e.what(), 400).dump()};
-		}
+	server_->Post("/api/v1/auth/register", [this](const httplib::Request& req, httplib::Response& res){
+		if (!rate_allow("auth_register")) { res.status=429; res.set_content(responses::error("RATE_LIMITED","Too many registrations",429).dump(),"application/json"); return; }
+		try { auto body = json::parse(req.body); std::string username = body.value("username","newuser"); auto resp = responses::ok({{"user", {{"username",username},{"id","user_123"}}}}); res.status=201; res.set_content(resp.dump(),"application/json"); }
+		catch(const std::exception& e){ res.status=400; res.set_content(responses::error("BAD_REQUEST",e.what(),400).dump(),"application/json"); }
 	});
 
 	// Timeline endpoint (stub)
-	CROW_ROUTE((*app_), "/api/v1/timeline/home").methods(crow::HTTPMethod::GET)([](const crow::request& req){
-		if (!limiter.allow("timeline_home")) {
-			return crow::response{429, responses::error("RATE_LIMITED", "Too many timeline requests", 429).dump()};
-		}
-		json items = json::array();
-		for (int i=0;i<5;i++) {
-			items.push_back({{"id", "note_"+std::to_string(i)}, {"text", "Home timeline sample note #"+std::to_string(i)}, {"metrics", {{"likes", i*3},{"renotes", i}}}});
-		}
+	server_->Get("/api/v1/timeline/home", [this](const httplib::Request&, httplib::Response& res){
+		if (!rate_allow("timeline_home")) { res.status=429; res.set_content(responses::error("RATE_LIMITED","Too many timeline requests",429).dump(),"application/json"); return; }
+		json items = json::array(); for(int i=0;i<5;i++){ items.push_back({{"id","note_"+std::to_string(i)},{"text","Home timeline sample note #"+std::to_string(i)},{"metrics",{{"likes",i*3},{"renotes",i}}}}); }
 		auto resp = responses::ok({{"items", items}, {"next_cursor", nullptr}});
-		return crow::response{resp.dump()};
+		res.set_content(resp.dump(), "application/json");
 	});
 }
 
@@ -106,12 +77,8 @@ bool RestGateway::start() {
 	register_routes();
 	running_.store(true);
 	server_thread_ = std::thread([this]{
-		try {
-			std::cout << "REST Gateway listening on :" << port_ << std::endl;
-			app_->port(port_).multithreaded().run();
-		} catch(const std::exception& e) {
-			std::cerr << "Gateway error: " << e.what() << std::endl;
-		}
+		std::cout << "REST Gateway listening on :" << port_ << std::endl;
+		server_->listen("0.0.0.0", port_);
 	});
 	return true;
 }
@@ -119,8 +86,24 @@ bool RestGateway::start() {
 void RestGateway::stop() {
 	if (!running_.load()) return;
 	running_.store(false);
-	app_->stop();
+	if (server_) server_->stop();
 	if (server_thread_.joinable()) server_thread_.join();
+}
+
+void RestGateway::init_limiters() {
+	using RL = sonet::gateway::rate_limiting::RateLimiter;
+	auto make = [](int per_min) { return std::make_unique<RL>(RL::Limits{per_min, per_min, 60}); };
+	limiters_["global"] = make(rl_cfg_.global_per_min);
+	limiters_["auth_login"] = make(rl_cfg_.login_per_min);
+	limiters_["auth_register"] = make(rl_cfg_.register_per_min);
+	limiters_["timeline_home"] = make(rl_cfg_.timeline_per_min);
+	limiters_["notes_create"] = make(rl_cfg_.notes_create_per_min);
+}
+
+bool RestGateway::rate_allow(const std::string& key) {
+	auto it = limiters_.find(key);
+	if (it == limiters_.end()) return true; // no limiter configured
+	return it->second->allow(key);
 }
 
 } // namespace sonet::gateway

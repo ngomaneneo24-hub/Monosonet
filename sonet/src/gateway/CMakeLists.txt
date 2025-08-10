@@ -7,13 +7,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(nlohmann_json QUIET)
 find_package(Boost COMPONENTS system filesystem thread QUIET)
+find_package(spdlog QUIET)
 
 add_library(sonet_gateway_lib
 	gateway.cpp
 	controllers/api_controller.cpp
-	middleware/auth_middleware.cpp
-	middleware/cors_middleware.cpp
-	middleware/logging_middleware.cpp
+	# Middleware cpp files removed (crow-based); future httplib middleware can be added here
 	auth/jwt_handler.cpp
 	rate_limiting/rate_limiter.cpp
 	rate_limiting/token_bucket.cpp
@@ -26,6 +25,9 @@ if (nlohmann_json_FOUND)
 endif()
 if (Boost_FOUND)
 	target_link_libraries(sonet_gateway_lib PUBLIC Boost::system Boost::filesystem Boost::thread)
+endif()
+if (spdlog_FOUND)
+	target_link_libraries(sonet_gateway_lib PUBLIC spdlog::spdlog_header_only)
 endif()
 
 add_executable(sonet_gateway main.cpp)

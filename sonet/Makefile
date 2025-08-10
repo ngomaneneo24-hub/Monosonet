@@ -1,3 +1,12 @@
+# Gateway specific shortcuts
+.PHONY: gateway
+gateway:
+	cmake -S . -B build -DBUILD_OTHER_SERVICES=ON
+	cmake --build build --target sonet_gateway -j $$(nproc)
+
+.PHONY: gateway-run
+gateway-run: gateway
+	./build/src/gateway/sonet_gateway
 #
 # Copyright (c) 2025 Neo Qiss
 # All rights reserved.

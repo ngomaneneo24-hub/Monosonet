@@ -30,7 +30,7 @@ gtest/1.14.0
 
 # HTTP client/server
 cpr/1.10.5
-crow/1.0+20230821
+cpp-httplib/0.15.3
 
 # Caching and utilities
 fmt/10.2.1

@@ -25,16 +25,25 @@ int main(int argc, char* argv[]) {
 		config_path = argv[1];
 	}
 	// Load config if present
+	GatewayRateLimitConfig rl_cfg;
 	try {
 		std::ifstream in(config_path);
 		if (in.good()) {
 			auto j = nlohmann::json::parse(in);
 			port = j.value("port", port);
+			if (j.contains("rate_limits")) {
+				auto rl = j["rate_limits"];
+				rl_cfg.global_per_min = rl.value("global_per_min", rl_cfg.global_per_min);
+				rl_cfg.login_per_min = rl.value("login_per_min", rl_cfg.login_per_min);
+				rl_cfg.register_per_min = rl.value("register_per_min", rl_cfg.register_per_min);
+				rl_cfg.timeline_per_min = rl.value("timeline_per_min", rl_cfg.timeline_per_min);
+				rl_cfg.notes_create_per_min = rl.value("notes_create_per_min", rl_cfg.notes_create_per_min);
+			}
 		}
 	} catch(const std::exception& e) {
 		std::cerr << "Gateway config load failed: " << e.what() << std::endl;
 	}
-	g_gateway = std::make_unique<RestGateway>(port);
+	g_gateway = std::make_unique<RestGateway>(port, rl_cfg);
 	std::signal(SIGINT, signal_handler);
 	std::signal(SIGTERM, signal_handler);
 	g_gateway->start();
