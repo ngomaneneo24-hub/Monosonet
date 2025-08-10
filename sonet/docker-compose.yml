@@ -49,26 +49,27 @@ services:
   # API Gateway
   gateway:
     build:
-      context: .
+      context: ../gateway
       dockerfile: Dockerfile
-      target: runtime
     ports:
       - "8080:8080"
-      - "9090:9090"
     environment:
-      - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/sonet_dev
-      - REDIS_URL=redis://redis:6379
-      - LOG_LEVEL=debug
-      - ENVIRONMENT=development
+      - USER_GRPC_ADDR=user-service:9090
+      - NOTE_GRPC_ADDR=note-service:9090
+      - PROTO_DIR=/app/proto
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      user-service:
+        condition: service_started
+      note-service:
+        condition: service_started
     networks:
       - sonet-network
     volumes:
-      - ./config/development:/app/config
+      - ./proto:/app/proto:ro
 
   # User Service
   user-service:
@@ -107,6 +108,20 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sonet-network
+
+  timeline-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    environment:
+      - LOG_LEVEL=debug
+      - SERVICE_NAME=timeline-service
+    depends_on:
       redis:
         condition: service_healthy
     networks:
