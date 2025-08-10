@@ -60,6 +60,9 @@ services:
       - MEDIA_GRPC_ADDR=media-service:9090
       - PROTO_DIR=/app/proto
       - JWT_SECRET=dev_jwt_secret_key_change_in_production
+      - FOLLOW_GRPC_ADDR=follow-service:9090
+      - SEARCH_GRPC_ADDR=search-service:9090
+      - NOTIFICATION_GRPC_ADDR=notification-service:9090
     depends_on:
       postgres:
         condition: service_healthy
@@ -187,8 +190,10 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runtime
+    command: ["./bin/sonet-notification-service"]
     ports:
       - "8085:8080"
+      - "9090:9090"
     environment:
       - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/notification_service
       - REDIS_URL=redis://redis:6379
@@ -328,6 +333,24 @@ services:
     depends_on:
       - elasticsearch
       - kibana
+    networks:
+      - sonet-network
+
+  search-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    command: ["./bin/sonet-search-service"]
+    ports:
+      - "8087:8080"
+      - "9090:9090"
+    environment:
+      - LOG_LEVEL=debug
+      - SERVICE_NAME=search-service
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - sonet-network
 
