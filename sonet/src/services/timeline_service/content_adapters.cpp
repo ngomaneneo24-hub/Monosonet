@@ -536,11 +536,12 @@ std::shared_ptr<TimelineServiceImpl> CreateTimelineService(
     
     // Prefer real adapters when available services are provided
     if (note_service) {
-        auto follow_service = std::make_shared<::sonet::follow::FollowService::Stub>();
+        auto note_client = std::make_shared<clients::StubBackedNoteClient>(note_service);
+        auto follow_client = std::make_shared<clients::StubBackedFollowClient>();
         content_sources[::sonet::timeline::CONTENT_SOURCE_FOLLOWING] = 
-            std::make_shared<RealFollowingContentAdapter>(note_service, follow_service);
+            std::make_shared<RealFollowingContentAdapter>(note_client, follow_client);
         content_sources[::sonet::timeline::CONTENT_SOURCE_LISTS] =
-            std::make_shared<RealListsContentAdapter>(note_service);
+            std::make_shared<RealListsContentAdapter>(note_client);
     } else {
         content_sources[::sonet::timeline::CONTENT_SOURCE_FOLLOWING] = 
             std::make_shared<FollowingContentAdapter>(note_service);
