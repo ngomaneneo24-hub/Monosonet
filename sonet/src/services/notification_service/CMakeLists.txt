@@ -25,30 +25,72 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g -DNDEBUG")
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 
-# Find PostgreSQL
-find_package(PostgreSQL REQUIRED)
+# Make external deps optional for minimal builds
+set(ENABLE_DB ON)
+set(ENABLE_REDIS ON)
+set(ENABLE_HTTP ON)
+set(ENABLE_TLS ON)
+set(ENABLE_UUID ON)
+set(ENABLE_JWT ON)
 
-# Find Redis (hiredis)
-pkg_check_modules(HIREDIS REQUIRED hiredis)
+# Find PostgreSQL (optional)
+find_package(PostgreSQL QUIET)
+if(NOT PostgreSQL_FOUND)
+    set(ENABLE_DB OFF)
+    message(STATUS "PostgreSQL not found; building without DB support")
+endif()
 
-# Find libcurl for HTTP clients
-find_package(CURL REQUIRED)
+# Find Redis (hiredis) (optional)
+pkg_check_modules(HIREDIS QUIET hiredis)
+if(NOT HIREDIS_FOUND)
+    set(ENABLE_REDIS OFF)
+    message(STATUS "hiredis not found; building without Redis support")
+endif()
 
-# Find OpenSSL for cryptography
-find_package(OpenSSL REQUIRED)
+# Find libcurl for HTTP clients (optional)
+find_package(CURL QUIET)
+if(NOT CURL_FOUND)
+    set(ENABLE_HTTP OFF)
+    message(STATUS "libcurl not found; building without HTTP client support")
+endif()
 
-# Find UUID library
-pkg_check_modules(UUID REQUIRED uuid)
+# Find OpenSSL for cryptography (optional)
+find_package(OpenSSL QUIET)
+if(NOT OpenSSL_FOUND)
+    set(ENABLE_TLS OFF)
+    message(STATUS "OpenSSL not found; building without TLS support")
+endif()
+
+# Find UUID library (optional)
+pkg_check_modules(UUID QUIET uuid)
+if(NOT UUID_FOUND)
+    set(ENABLE_UUID OFF)
+    message(STATUS "libuuid not found; building without UUID support")
+endif()
 
 # Find gRPC and Protobuf
 find_package(Protobuf REQUIRED)
 find_package(gRPC REQUIRED)
 
 # Find nlohmann/json
-find_package(nlohmann_json REQUIRED)
+find_package(nlohmann_json QUIET)
+if(NOT nlohmann_json_FOUND)
+    message(STATUS "nlohmann_json not found, fetching via FetchContent")
+    include(FetchContent)
+    FetchContent_Declare(
+        nlohmann_json
+        GIT_REPOSITORY https://github.com/nlohmann/json.git
+        GIT_TAG v3.11.3
+    )
+    FetchContent_MakeAvailable(nlohmann_json)
+endif()
 
-# Find jwt-cpp
-find_package(jwt-cpp REQUIRED)
+# Find jwt-cpp (optional)
+find_package(jwt-cpp QUIET)
+if(NOT jwt-cpp_FOUND)
+    set(ENABLE_JWT OFF)
+    message(STATUS "jwt-cpp not found; building without JWT features")
+endif()
 
 # Find httplib (if not found, we'll use a fallback)
 find_path(HTTPLIB_INCLUDE_DIR httplib.h)
@@ -71,16 +113,22 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/../../external
     ${HTTPLIB_INCLUDE_DIR}
     ${WEBSOCKETPP_INCLUDE_DIR}
-    ${PostgreSQL_INCLUDE_DIRS}
-    ${HIREDIS_INCLUDE_DIRS}
-    ${UUID_INCLUDE_DIRS}
 )
+if(ENABLE_DB)
+    include_directories(${PostgreSQL_INCLUDE_DIRS})
+endif()
+if(ENABLE_REDIS)
+    include_directories(${HIREDIS_INCLUDE_DIRS})
+endif()
+if(ENABLE_UUID)
+    include_directories(${UUID_INCLUDE_DIRS})
+endif()
 
 # Protocol buffer files
 set(PROTO_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../proto/services/notification.proto
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../proto/common/common.proto
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../../proto/common/timestamp.proto
+    ${CMAKE_SOURCE_DIR}/proto/services/notification.proto
+    ${CMAKE_SOURCE_DIR}/proto/common/common.proto
+    ${CMAKE_SOURCE_DIR}/proto/common/timestamp.proto
 )
 
 # Generate protobuf and gRPC files
@@ -102,7 +150,7 @@ foreach(PROTO_FILE ${PROTO_FILES})
         ARGS --grpc_out ${PROTO_SRC_DIR}
              --cpp_out ${PROTO_SRC_DIR}
              --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
-             -I ${PROTO_DIR}
+             -I ${CMAKE_SOURCE_DIR}/proto
              ${PROTO_FILE}
         DEPENDS ${PROTO_FILE}
         COMMENT "Generating protobuf and gRPC files for ${PROTO_NAME}"
@@ -169,33 +217,34 @@ set_target_properties(sonet_notification_service PROPERTIES
 )
 
 # Link libraries
-target_link_libraries(sonet_notification_service
-    # Standard libraries
+# Core
+target_link_libraries(sonet_notification_service PRIVATE
     Threads::Threads
-    
-    # Database libraries
-    ${PostgreSQL_LIBRARIES}
-    ${HIREDIS_LIBRARIES}
-    
-    # HTTP and networking
-    CURL::libcurl
-    OpenSSL::SSL
-    OpenSSL::Crypto
-    
-    # System libraries
-    ${UUID_LIBRARIES}
-    
-    # gRPC and Protobuf
     gRPC::grpc++
     gRPC::grpc++_reflection
     protobuf::libprotobuf
-    
-    # JSON library
     nlohmann_json::nlohmann_json
-    
-    # JWT library
-    jwt-cpp::jwt-cpp
 )
+
+# Optional libs
+if(ENABLE_HTTP)
+    target_link_libraries(sonet_notification_service PRIVATE CURL::libcurl)
+endif()
+if(ENABLE_TLS)
+    target_link_libraries(sonet_notification_service PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+endif()
+if(ENABLE_DB)
+    target_link_libraries(sonet_notification_service PRIVATE ${PostgreSQL_LIBRARIES})
+endif()
+if(ENABLE_REDIS)
+    target_link_libraries(sonet_notification_service PRIVATE ${HIREDIS_LIBRARIES})
+endif()
+if(ENABLE_UUID)
+    target_link_libraries(sonet_notification_service PRIVATE ${UUID_LIBRARIES})
+endif()
+if(ENABLE_JWT)
+    target_link_libraries(sonet_notification_service PRIVATE jwt-cpp::jwt-cpp)
+endif()
 
 # Compiler definitions
 target_compile_definitions(sonet_notification_service PRIVATE
@@ -210,9 +259,9 @@ target_include_directories(sonet_notification_service PRIVATE ${PROTO_SRC_DIR})
 
 # Platform-specific libraries
 if(WIN32)
-    target_link_libraries(sonet_notification_service ws2_32 wsock32)
+    target_link_libraries(sonet_notification_service PRIVATE ws2_32 wsock32)
 elseif(UNIX AND NOT APPLE)
-    target_link_libraries(sonet_notification_service dl rt)
+    target_link_libraries(sonet_notification_service PRIVATE dl rt)
 endif()
 
 # Installation rules
@@ -275,18 +324,7 @@ if(ENABLE_STATIC_ANALYSIS)
     endif()
 endif()
 
-# Docker support
-add_custom_target(docker-build
-    COMMAND docker build -t sonet/notification-service:${PROJECT_VERSION} .
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMENT "Building Docker image for notification service"
-)
-
-add_custom_target(docker-run
-    COMMAND docker run --rm -p 8080:8080 -p 8081:8081 -p 50051:50051 sonet/notification-service:${PROJECT_VERSION}
-    DEPENDS docker-build
-    COMMENT "Running notification service in Docker container"
-)
+# Docker targets omitted in minimal build
 
 # Package configuration
 set(CPACK_PACKAGE_NAME "sonet-notification-service")
@@ -317,17 +355,10 @@ message(STATUS "  Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSIO
 message(STATUS "  Install Prefix: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "")
 message(STATUS "Features:")
-message(STATUS "  Sanitizers: ${ENABLE_SANITIZERS}")
-message(STATUS "  Profiling: ${ENABLE_PROFILING}")
-message(STATUS "  Static Analysis: ${ENABLE_STATIC_ANALYSIS}")
-message(STATUS "")
-message(STATUS "Dependencies:")
-message(STATUS "  PostgreSQL: ${PostgreSQL_VERSION_STRING}")
-message(STATUS "  Redis (hiredis): Found")
-message(STATUS "  gRPC: Found")
-message(STATUS "  Protobuf: ${Protobuf_VERSION}")
-message(STATUS "  nlohmann/json: Found")
-message(STATUS "  jwt-cpp: Found")
-message(STATUS "  httplib: ${HTTPLIB_INCLUDE_DIR}")
-message(STATUS "  WebSocketPP: ${WEBSOCKETPP_INCLUDE_DIR}")
+message(STATUS "  DB: ${ENABLE_DB}")
+message(STATUS "  Redis: ${ENABLE_REDIS}")
+message(STATUS "  HTTP: ${ENABLE_HTTP}")
+message(STATUS "  TLS: ${ENABLE_TLS}")
+message(STATUS "  UUID: ${ENABLE_UUID}")
+message(STATUS "  JWT: ${ENABLE_JWT}")
 message(STATUS "")

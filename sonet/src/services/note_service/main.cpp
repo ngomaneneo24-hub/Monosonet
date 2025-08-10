@@ -10,6 +10,7 @@
 #include <iostream>
 #include <csignal>
 #include <memory>
+#include "../../core/logging/logger.h"
 
 /**
  * @brief Main entry point for the Twitter-Scale Note Service
@@ -134,6 +135,8 @@ void print_service_info() {
 }
 
 int main(int argc, char* argv[]) {
+    (void)sonet::logging::init_json_stdout_logger();
+    spdlog::info(R"({"event":"banner","service":"note","message":"Sonet Note Service starting"})");
     try {
         // Print startup banner
         print_startup_banner();

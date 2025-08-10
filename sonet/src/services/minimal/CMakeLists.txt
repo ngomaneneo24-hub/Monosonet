@@ -1,0 +1,83 @@
+cmake_minimum_required(VERSION 3.20)
+project(sonet_minimal_services LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(Protobuf REQUIRED)
+find_package(gRPC REQUIRED)
+
+set(PROTO_ROOT ${CMAKE_SOURCE_DIR}/proto)
+set(PROTO_OUT ${CMAKE_CURRENT_BINARY_DIR}/gen)
+file(MAKE_DIRECTORY ${PROTO_OUT})
+
+set(MINIMAL_PROTOS
+  ${PROTO_ROOT}/services/search.proto
+  ${PROTO_ROOT}/services/notification.proto
+  ${PROTO_ROOT}/common/pagination.proto
+  ${PROTO_ROOT}/common/timestamp.proto
+  ${PROTO_ROOT}/common/common.proto
+)
+
+set(MINIMAL_GEN_SRCS
+  ${PROTO_OUT}/common/common.pb.cc
+  ${PROTO_OUT}/common/common.grpc.pb.cc
+  ${PROTO_OUT}/common/timestamp.pb.cc
+  ${PROTO_OUT}/common/timestamp.grpc.pb.cc
+  ${PROTO_OUT}/common/pagination.pb.cc
+  ${PROTO_OUT}/common/pagination.grpc.pb.cc
+  ${PROTO_OUT}/services/search.pb.cc
+  ${PROTO_OUT}/services/search.grpc.pb.cc
+  ${PROTO_OUT}/services/notification.pb.cc
+  ${PROTO_OUT}/services/notification.grpc.pb.cc
+)
+set(MINIMAL_GEN_HDRS
+  ${PROTO_OUT}/common/common.pb.h
+  ${PROTO_OUT}/common/common.grpc.pb.h
+  ${PROTO_OUT}/common/timestamp.pb.h
+  ${PROTO_OUT}/common/timestamp.grpc.pb.h
+  ${PROTO_OUT}/common/pagination.pb.h
+  ${PROTO_OUT}/common/pagination.grpc.pb.h
+  ${PROTO_OUT}/services/search.pb.h
+  ${PROTO_OUT}/services/search.grpc.pb.h
+  ${PROTO_OUT}/services/notification.pb.h
+  ${PROTO_OUT}/services/notification.grpc.pb.h
+)
+
+# Generation rules
+foreach(PF ${MINIMAL_PROTOS})
+  get_filename_component(PN ${PF} NAME_WE)
+  get_filename_component(PDIR ${PF} DIRECTORY)
+  file(RELATIVE_PATH RELDIR ${PROTO_ROOT} ${PDIR})
+  file(MAKE_DIRECTORY ${PROTO_OUT}/${RELDIR})
+  add_custom_command(
+    OUTPUT ${PROTO_OUT}/${RELDIR}/${PN}.pb.cc ${PROTO_OUT}/${RELDIR}/${PN}.pb.h ${PROTO_OUT}/${RELDIR}/${PN}.grpc.pb.cc ${PROTO_OUT}/${RELDIR}/${PN}.grpc.pb.h
+    COMMAND protobuf::protoc
+    ARGS --grpc_out ${PROTO_OUT}
+         --cpp_out ${PROTO_OUT}
+         -I ${PROTO_ROOT}
+         --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
+         ${PF}
+    DEPENDS ${PF}
+    COMMENT "Generating gRPC/proto for ${RELDIR}/${PN}"
+  )
+endforeach()
+add_custom_target(minimal_protos_gen DEPENDS ${MINIMAL_GEN_SRCS} ${MINIMAL_GEN_HDRS})
+
+add_library(minimal_protos ${MINIMAL_GEN_SRCS})
+add_dependencies(minimal_protos minimal_protos_gen)
+target_include_directories(minimal_protos PUBLIC ${PROTO_OUT})
+target_link_libraries(minimal_protos PUBLIC gRPC::grpc++ protobuf::libprotobuf)
+
+add_executable(minimal_search_server search_server.cpp)
+add_dependencies(minimal_search_server minimal_protos)
+target_include_directories(minimal_search_server PRIVATE ${PROTO_OUT}/services ${PROTO_OUT}/common)
+target_link_libraries(minimal_search_server PRIVATE minimal_protos gRPC::grpc++ protobuf::libprotobuf)
+
+add_executable(minimal_notification_server notification_server.cpp)
+add_dependencies(minimal_notification_server minimal_protos)
+target_include_directories(minimal_notification_server PRIVATE ${PROTO_OUT}/services ${PROTO_OUT}/common)
+target_link_libraries(minimal_notification_server PRIVATE minimal_protos gRPC::grpc++ protobuf::libprotobuf)
+
+set_target_properties(minimal_search_server PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set_target_properties(minimal_notification_server PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")

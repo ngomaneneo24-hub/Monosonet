@@ -13,6 +13,7 @@
 #include <string>
 #include <thread>
 #include <csignal>
+#include "../../core/logging/logger.h"
 
 namespace {
     std::unique_ptr<grpc::Server> server;
@@ -27,12 +28,16 @@ namespace {
 }
 
 int main(int argc, char** argv) {
+    // Initialize JSON logger for ELK ingestion
+    (void)sonet::logging::init_json_stdout_logger();
+    spdlog::info(R"({"event":"startup","message":"Starting Sonet Timeline Service"})");
     // Set up signal handlers
     std::signal(SIGINT, SignalHandler);
     std::signal(SIGTERM, SignalHandler);
 
-    std::cout << "=== Sonet Timeline Service ===" << std::endl;
-    std::cout << "Starting advanced timeline service with Twitter-scale engineering..." << std::endl;
+    // std::cout banners replaced with structured logs for ELK
+    spdlog::info(R"({"event":"banner","service":"timeline","message":"Sonet Timeline Service starting"})");
+    spdlog::info(R"({"event":"info","service":"timeline","message":"Starting advanced timeline service with Twitter-scale engineering"})");
 
     // Parse command line arguments
     std::string server_address = "0.0.0.0:50051";

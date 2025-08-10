@@ -88,25 +88,25 @@ public:
         const std::unordered_map<std::string, models::NotificationPreferences>& user_preferences) = 0;
     
     // Template management
-    virtual bool register_template(models::NotificationType type, const EmailTemplate& template) = 0;
-    virtual bool update_template(models::NotificationType type, const EmailTemplate& template) = 0;
+    virtual bool register_template(models::NotificationType type, const EmailTemplate& tmpl) = 0;
+    virtual bool update_template(models::NotificationType type, const EmailTemplate& tmpl) = 0;
     virtual bool remove_template(models::NotificationType type) = 0;
     virtual std::optional<EmailTemplate> get_template(models::NotificationType type) const = 0;
     
     // Rendering and preview
     virtual std::string render_email_html(const models::Notification& notification,
-                                         const EmailTemplate& template) const = 0;
+                                         const EmailTemplate& tmpl) const = 0;
     virtual std::string render_email_text(const models::Notification& notification,
-                                         const EmailTemplate& template) const = 0;
+                                         const EmailTemplate& tmpl) const = 0;
     virtual std::string render_subject(const models::Notification& notification,
-                                     const EmailTemplate& template) const = 0;
+                                     const EmailTemplate& tmpl) const = 0;
     
     // Testing and validation
     virtual std::future<bool> send_test_email(const std::string& recipient,
                                              const std::string& subject,
                                              const std::string& content) = 0;
     virtual bool validate_email_address(const std::string& email) const = 0;
-    virtual bool validate_template(const EmailTemplate& template) const = 0;
+    virtual bool validate_template(const EmailTemplate& tmpl) const = 0;
     
     // Analytics and monitoring
     virtual nlohmann::json get_delivery_stats() const = 0;
@@ -170,23 +170,23 @@ public:
         const std::vector<models::Notification>& notifications,
         const std::unordered_map<std::string, models::NotificationPreferences>& user_preferences) override;
     
-    bool register_template(models::NotificationType type, const EmailTemplate& template) override;
-    bool update_template(models::NotificationType type, const EmailTemplate& template) override;
+    bool register_template(models::NotificationType type, const EmailTemplate& tmpl) override;
+    bool update_template(models::NotificationType type, const EmailTemplate& tmpl) override;
     bool remove_template(models::NotificationType type) override;
     std::optional<EmailTemplate> get_template(models::NotificationType type) const override;
     
     std::string render_email_html(const models::Notification& notification,
-                                 const EmailTemplate& template) const override;
+                                 const EmailTemplate& tmpl) const override;
     std::string render_email_text(const models::Notification& notification,
-                                 const EmailTemplate& template) const override;
+                                 const EmailTemplate& tmpl) const override;
     std::string render_subject(const models::Notification& notification,
-                              const EmailTemplate& template) const override;
+                              const EmailTemplate& tmpl) const override;
     
     std::future<bool> send_test_email(const std::string& recipient,
                                      const std::string& subject,
                                      const std::string& content) override;
     bool validate_email_address(const std::string& email) const override;
-    bool validate_template(const EmailTemplate& template) const override;
+    bool validate_template(const EmailTemplate& tmpl) const override;
     
     nlohmann::json get_delivery_stats() const override;
     nlohmann::json get_health_status() const override;
@@ -206,9 +206,9 @@ private:
     
     // Internal helper methods
     std::string build_email_message(const models::Notification& notification,
-                                   const EmailTemplate& template,
+                                   const EmailTemplate& tmpl,
                                    const models::NotificationPreferences& preferences) const;
-    std::string replace_template_variables(const std::string& template,
+    std::string replace_template_variables(const std::string& tmpl,
                                          const std::unordered_map<std::string, std::string>& variables) const;
     std::unordered_map<std::string, std::string> extract_template_variables(
         const models::Notification& notification) const;
