@@ -1,5 +1,5 @@
 #pragma once
-#include "../../../nlohmann/httplib.h"
+#include <httplib.h>
 
 namespace sonet::gateway::middleware {
 
