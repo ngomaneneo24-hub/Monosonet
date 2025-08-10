@@ -47,21 +47,25 @@ namespace note {
     struct NoteMetrics {
         int32_t views_ = 0;
         int32_t likes_ = 0;
-        int32_t reposts_ = 0; // renotes in product terminology
+        int32_t renotes_ = 0; // formerly reposts_
         int32_t replies_ = 0;
         int32_t quotes_ = 0;
-        
+
         int32_t views() const { return views_; }
         int32_t likes() const { return likes_; }
-        int32_t reposts() const { return reposts_; }
+        int32_t renotes() const { return renotes_; }
         int32_t replies() const { return replies_; }
         int32_t quotes() const { return quotes_; }
-        
+
         void set_views(int32_t v) { views_ = v; }
         void set_likes(int32_t l) { likes_ = l; }
-        void set_reposts(int32_t r) { reposts_ = r; }
+        void set_renotes(int32_t r) { renotes_ = r; }
         void set_replies(int32_t r) { replies_ = r; }
         void set_quotes(int32_t q) { quotes_ = q; }
+
+        // Deprecated aliases for transition
+        [[deprecated("Use renotes() instead")]] int32_t reposts() const { return renotes_; }
+        [[deprecated("Use set_renotes() instead")]] void set_reposts(int32_t r) { renotes_ = r; }
     };
     
     struct MediaItem {
@@ -204,7 +208,7 @@ namespace timeline {
     struct TimelinePreferences {
         TimelineAlgorithm preferred_algorithm_ = TIMELINE_ALGORITHM_UNKNOWN;
         bool show_replies_ = true;
-        bool show_reposts_ = true; // renotes shown
+        bool show_renotes_ = true; // formerly show_reposts_
         bool show_recommended_content_ = true;
         bool show_trending_content_ = true;
         bool sensitive_content_warning_ = true;
@@ -327,13 +331,14 @@ namespace timeline {
         std::string requesting_user_id_;
         sonet::common::Pagination pagination_;
         bool include_replies_ = false;
-        bool include_reposts_ = true;
+        bool include_renotes_ = true; // formerly include_reposts_
         
         std::string target_user_id() const { return target_user_id_; }
         std::string requesting_user_id() const { return requesting_user_id_; }
         const sonet::common::Pagination& pagination() const { return pagination_; }
         bool include_replies() const { return include_replies_; }
-        bool include_reposts() const { return include_reposts_; }
+        bool include_renotes() const { return include_renotes_; }
+        [[deprecated("Use include_renotes() instead")]] bool include_reposts() const { return include_renotes_; }
     };
     
     struct GetUserTimelineResponse {

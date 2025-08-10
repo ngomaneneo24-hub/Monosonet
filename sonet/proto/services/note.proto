@@ -75,12 +75,12 @@ message GeoLocation {
 // Engagement metrics
 message NoteMetrics {
   int64 like_count = 1;
-  int64 repost_count = 2;
+  int64 renote_count = 2;                // formerly repost_count
   int64 reply_count = 3;
-  int64 quote_count = 4;    // Quotes with commentary
+  int64 quote_count = 4;                 // Quote renotes with commentary
   int64 bookmark_count = 5;
   int64 view_count = 6;
-  double engagement_rate = 7;  // Calculated engagement score
+  double engagement_rate = 7;            // Calculated engagement score
 }
 
 // Core Note model
@@ -103,10 +103,10 @@ message Note {
   string reply_to_user_id = 10;          // User being replied to
   string thread_root_id = 11;            // Root note of thread
   
-  // Repost context
-  string reposted_note_id = 12;          // If this is a repost
-  string reposted_user_id = 13;          // Original author
-  bool is_quote_repost = 14;             // Has additional commentary
+  // Renote context (share)
+  string renoted_note_id = 12;           // If this is a renote
+  string renoted_user_id = 13;           // Original author
+  bool is_quote_renote = 14;             // Has additional commentary
   
   // Metadata
   sonet.common.Timestamp created_at = 15;
@@ -126,7 +126,7 @@ message UserNoteInteraction {
   string user_id = 1;
   string note_id = 2;
   bool has_liked = 3;
-  bool has_reposted = 4;
+  bool has_renoted = 4;
   bool has_bookmarked = 5;
   bool has_reported = 6;
   sonet.common.Timestamp last_viewed_at = 7;
@@ -143,15 +143,13 @@ message CreateNoteRequest {
   ContentWarning content_warning = 4;
   repeated string media_ids = 5;
   GeoLocation location = 6;
-  
   // Reply context
   string reply_to_note_id = 7;
-  
-  // Repost context  
-  string reposted_note_id = 8;
-  bool is_quote_repost = 9;
-  
+  // Renote context
+  string renoted_note_id = 8;
+  bool is_quote_renote = 9;
   string client_name = 10;
+  string idempotency_key = 11; // For retries
 }
 
 message CreateNoteResponse {
@@ -199,16 +197,16 @@ message LikeNoteResponse {
   string error_message = 3;
 }
 
-// Repost note
-message RepostNoteRequest {
+// Renote (share) note
+message RenoteNoteRequest {
   string note_id = 1;
   string user_id = 2;
-  bool is_quote_repost = 3;
-  string quote_text = 4;      // If quote repost
+  bool is_quote_renote = 3;
+  string quote_text = 4;      // If quote renote
 }
 
-message RepostNoteResponse {
-  Note repost_note = 1;  // The new repost note created
+message RenoteNoteResponse {
+  Note renote_note = 1;  // The new renote created
   bool success = 2;
   string error_message = 3;
 }
@@ -219,7 +217,7 @@ message GetUserNotesRequest {
   string requesting_user_id = 2;
   sonet.common.PaginationRequest pagination = 3;
   bool include_replies = 4;
-  bool include_reposts = 5;
+  bool include_renotes = 5;
 }
 
 message GetUserNotesResponse {
@@ -283,7 +281,7 @@ service NoteService {
   
   // Interactions
   rpc LikeNote(LikeNoteRequest) returns (LikeNoteResponse);
-  rpc RepostNote(RepostNoteRequest) returns (RepostNoteResponse);
+  rpc RenoteNote(RenoteNoteRequest) returns (RenoteNoteResponse);
   
   // Queries
   rpc GetUserNotes(GetUserNotesRequest) returns (GetUserNotesResponse);

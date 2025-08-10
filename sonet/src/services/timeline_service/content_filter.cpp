@@ -262,7 +262,7 @@ bool AdvancedContentFilter::MeetsEngagementThreshold(
     
     // For active users, filter out very low-engagement content
     const auto& metrics = note.metrics;
-    double total_engagements = metrics.likes() + metrics.reposts() + metrics.comments();
+    double total_engagements = metrics.likes() + metrics.renotes() + metrics.comments();
     
     // Very basic threshold - in production this would be more sophisticated
     if (total_engagements == 0 && metrics.views() > 100) {

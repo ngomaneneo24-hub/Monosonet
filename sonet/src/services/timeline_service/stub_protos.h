@@ -24,20 +24,24 @@ namespace timeline {
 
     struct NoteMetrics {
         int32_t likes() const { return likes_; }
-        int32_t reposts() const { return reposts_; }
+        int32_t renotes() const { return renotes_; }
         int32_t comments() const { return comments_; }
         int32_t views() const { return views_; }
-        
+
         void set_likes(int32_t value) { likes_ = value; }
-        void set_reposts(int32_t value) { reposts_ = value; }
+        void set_renotes(int32_t value) { renotes_ = value; }
         void set_comments(int32_t value) { comments_ = value; }
         void set_views(int32_t value) { views_ = value; }
-        
-        private:
-            int32_t likes_ = 0;
-            int32_t reposts_ = 0;
-            int32_t comments_ = 0;
-            int32_t views_ = 0;
+
+        // Deprecated aliases
+        [[deprecated("Use renotes() instead")]] int32_t reposts() const { return renotes_; }
+        [[deprecated("Use set_renotes() instead")]] void set_reposts(int32_t value) { renotes_ = value; }
+
+    private:
+        int32_t likes_ = 0;
+        int32_t renotes_ = 0; // formerly reposts_
+        int32_t comments_ = 0;
+        int32_t views_ = 0;
     };
 
     struct Note {
@@ -49,7 +53,7 @@ namespace timeline {
         NoteMetrics metrics;
         std::vector<std::string> mentions;
         std::vector<std::string> hashtags;
-        bool is_repost = false;
+    bool is_renote = false; // formerly is_repost
         std::string original_note_id;
         UserProfile author_profile;
     };
@@ -123,7 +127,7 @@ namespace timeline {
     struct EngagementEvent {
         std::string user_id;
         std::string note_id;
-        std::string event_type; // "like", "repost", "comment", "view"
+        std::string event_type; // "like", "renote", "comment", "view" (formerly repost)
         ::sonet::common::Timestamp timestamp;
         double engagement_score = 1.0;
     };

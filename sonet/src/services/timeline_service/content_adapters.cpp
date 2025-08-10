@@ -49,7 +49,7 @@ namespace {
         
         metrics->set_views(dis(gen) + 10);
         metrics->set_likes(dis(gen) / 5);
-        metrics->set_reposts(dis(gen) / 10);
+    metrics->set_renotes(dis(gen) / 10);
         metrics->set_replies(dis(gen) / 8);
         metrics->set_quotes(dis(gen) / 15);
         
@@ -330,7 +330,7 @@ std::vector<::sonet::note::Note> TrendingHashtagsProvider::Get(int32_t limit,
         auto* m = note.mutable_metrics();
         m->set_views(m->views() * 5);
         m->set_likes(m->likes() * 3);
-        m->set_reposts(m->reposts() * 4);
+    m->set_renotes(m->renotes() * 4);
         m->set_replies(m->replies() * 2);
         notes.push_back(note);
     }
@@ -378,7 +378,7 @@ std::vector<::sonet::note::Note> TrendingTopicsProvider::Get(int32_t limit,
         auto* m = note.mutable_metrics();
         m->set_views(m->views() * 4);
         m->set_likes(m->likes() * 2);
-        m->set_reposts(m->reposts() * 3);
+    m->set_renotes(m->renotes() * 3);
         m->set_replies(m->replies() * 2);
         notes.push_back(note);
     }
@@ -430,7 +430,7 @@ std::vector<::sonet::note::Note> TrendingVideosProvider::Get(int32_t limit,
         auto* m = note.mutable_metrics();
         m->set_views(m->views() * 12);
         m->set_likes(m->likes() * 6);
-        m->set_reposts(m->reposts() * 5);
+    m->set_renotes(m->renotes() * 5);
         m->set_replies(m->replies() * 3);
         notes.push_back(note);
     }
@@ -476,11 +476,11 @@ std::vector<::sonet::note::Note> TrendingContentAdapter::GetContent(
     notes.insert(notes.end(), topic_notes.begin(), topic_notes.end());
     notes.insert(notes.end(), video_notes.begin(), video_notes.end());
 
-    // Sort by a simple engagement score (likes + reposts + replies)
+    // Sort by a simple engagement score (likes + renotes + replies)
     std::sort(notes.begin(), notes.end(),
         [](const ::sonet::note::Note& a, const ::sonet::note::Note& b) {
-            auto a_score = a.metrics().likes() + a.metrics().reposts() + a.metrics().replies();
-            auto b_score = b.metrics().likes() + b.metrics().reposts() + b.metrics().replies();
+            auto a_score = a.metrics().likes() + a.metrics().renotes() + a.metrics().replies();
+            auto b_score = b.metrics().likes() + b.metrics().renotes() + b.metrics().replies();
             return a_score > b_score;
         });
 
@@ -529,7 +529,7 @@ public:
             auto* metrics = note.mutable_metrics();
             metrics->set_views(50 + i * 3);
             metrics->set_likes(5 + (i % 7));
-            metrics->set_reposts(1 + (i % 4));
+            metrics->set_renotes(1 + (i % 4));
             notes.push_back(note);
         }
         return notes;
