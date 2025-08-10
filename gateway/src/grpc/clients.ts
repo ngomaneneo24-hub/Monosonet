@@ -22,6 +22,8 @@ const timelinePkgDef = loadProto('services/timeline.proto');
 const mediaPkgDef = loadProto('services/media.proto');
 const followPkgDef = loadProto('src/services/follow_service/proto/follow_service.proto');
 const messagingPkgDef = loadProto('services/messaging.proto');
+const searchPkgDef = loadProto('services/search.proto');
+const notificationPkgDef = loadProto('services/notification.proto');
 
 export type GrpcClients = {
   user: any;
@@ -30,6 +32,8 @@ export type GrpcClients = {
   media: any;
   follow: any;
   messaging: any;
+  search: any;
+  notification: any;
 };
 
 export function createGrpcClients(): GrpcClients {
@@ -39,6 +43,8 @@ export function createGrpcClients(): GrpcClients {
   const mediaTarget = process.env.MEDIA_GRPC_ADDR || 'media-service:9090';
   const followTarget = process.env.FOLLOW_GRPC_ADDR || 'follow-service:9090';
   const messagingTarget = process.env.MESSAGING_GRPC_ADDR || 'messaging-service:9090';
+  const searchTarget = process.env.SEARCH_GRPC_ADDR || 'search-service:9090';
+  const notificationTarget = process.env.NOTIFICATION_GRPC_ADDR || 'notification-service:9090';
 
   const userPackage: any = userPkgDef['sonet.user'];
   const notePackage: any = notePkgDef['sonet.note.grpc'];
@@ -46,6 +52,8 @@ export function createGrpcClients(): GrpcClients {
   const mediaPackage: any = mediaPkgDef['sonet.media'];
   const followPackage: any = followPkgDef['sonet.follow.v1'];
   const messagingPackage: any = messagingPkgDef['sonet.messaging'];
+  const searchPackage: any = searchPkgDef['sonet.search'];
+  const notificationPackage: any = notificationPkgDef['sonet.notification'];
 
   const user: Client = new userPackage.UserService(userTarget, credentials.createInsecure());
   const note: Client = new notePackage.NoteService(noteTarget, credentials.createInsecure());
@@ -53,6 +61,8 @@ export function createGrpcClients(): GrpcClients {
   const media: Client = new mediaPackage.MediaService(mediaTarget, credentials.createInsecure());
   const follow: Client = new followPackage.FollowService(followTarget, credentials.createInsecure());
   const messaging: Client = new messagingPackage.MessagingService(messagingTarget, credentials.createInsecure());
+  const search: Client = new searchPackage.SearchService(searchTarget, credentials.createInsecure());
+  const notification: Client = new notificationPackage.NotificationService(notificationTarget, credentials.createInsecure());
 
-  return { user, note, timeline, media, follow, messaging };
+  return { user, note, timeline, media, follow, messaging, search, notification };
 }

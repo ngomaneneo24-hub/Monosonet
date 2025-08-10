@@ -7,9 +7,15 @@ export function registerSearchRoutes(router: Router, clients: GrpcClients) {
     const type = String(req.query.type || 'notes');
     const limit = Number(req.query.limit || 20);
     const cursor = String(req.query.cursor || '');
-    if (type === 'users') {
-      return res.status(501).json({ ok: false, message: 'User search not implemented yet' });
+
+    if (type === 'users' && clients.search) {
+      (clients.search as any).SearchUsers({ query: q, pagination: { limit, cursor } }, (err: any, resp: any) => {
+        if (err) return res.status(400).json({ ok: false, message: err.message });
+        return res.json({ ok: true, results: resp?.users, pagination: resp?.pagination });
+      });
+      return;
     }
+
     clients.note.SearchNotes({ query: q, user_id: '', pagination: { limit, cursor }, sort_order: 0 }, (err: any, resp: any) => {
       if (err) return res.status(400).json({ ok: false, message: err.message });
       return res.json({ ok: resp?.success ?? true, results: resp?.notes, pagination: resp?.pagination });
