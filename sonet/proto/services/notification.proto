@@ -35,13 +35,13 @@ message Notification {
 
 message ListNotificationsRequest {
   string user_id = 1;
-  sonet.common.PaginationRequest pagination = 2;
+  sonet.common.Pagination pagination = 2;
   bool unread_only = 3;
 }
 
 message ListNotificationsResponse {
   repeated Notification notifications = 1;
-  sonet.common.PaginationResponse pagination = 2;
+  sonet.common.Pagination pagination = 2;
 }
 
 message MarkNotificationReadRequest {

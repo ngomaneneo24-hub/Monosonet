@@ -238,15 +238,15 @@ public:
     virtual std::future<int> cleanup_invalid_tokens() = 0;
     
     // Template management
-    virtual bool register_template(models::NotificationType type, const PushTemplate& template) = 0;
-    virtual bool update_template(models::NotificationType type, const PushTemplate& template) = 0;
+    virtual bool register_template(models::NotificationType type, const PushTemplate& tmpl) = 0;
+    virtual bool update_template(models::NotificationType type, const PushTemplate& tmpl) = 0;
     virtual bool remove_template(models::NotificationType type) = 0;
     virtual std::optional<PushTemplate> get_template(models::NotificationType type) const = 0;
     
     // Rendering
     virtual PushNotification render_push_notification(
         const models::Notification& notification,
-        const PushTemplate& template,
+        const PushTemplate& tmpl,
         const DeviceRegistration& device) const = 0;
     
     // Testing and validation
@@ -346,14 +346,14 @@ public:
     std::future<int> cleanup_expired_tokens() override;
     std::future<int> cleanup_invalid_tokens() override;
     
-    bool register_template(models::NotificationType type, const PushTemplate& template) override;
-    bool update_template(models::NotificationType type, const PushTemplate& template) override;
+    bool register_template(models::NotificationType type, const PushTemplate& tmpl) override;
+    bool update_template(models::NotificationType type, const PushTemplate& tmpl) override;
     bool remove_template(models::NotificationType type) override;
     std::optional<PushTemplate> get_template(models::NotificationType type) const override;
     
     PushNotification render_push_notification(
         const models::Notification& notification,
-        const PushTemplate& template,
+        const PushTemplate& tmpl,
         const DeviceRegistration& device) const override;
     
     std::future<bool> send_test_push(const std::string& device_id,

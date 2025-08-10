@@ -277,14 +277,13 @@ endif()
 # gRPC/Protobuf code generation (optional)
 if(ENABLE_GRPC)
     set(PROTO_FILES
-        ../../proto/services/search.proto
-        ../../proto/common/common.proto
-        ../../proto/common/pagination.proto
+        ${CMAKE_SOURCE_DIR}/proto/services/search.proto
+        ${CMAKE_SOURCE_DIR}/proto/common/common.proto
+        ${CMAKE_SOURCE_DIR}/proto/common/pagination.proto
     )
 
     foreach(PROTO_FILE ${PROTO_FILES})
         get_filename_component(PROTO_NAME ${PROTO_FILE} NAME_WE)
-        get_filename_component(PROTO_DIR ${PROTO_FILE} DIRECTORY)
         
         set(PROTO_SRCS "${CMAKE_CURRENT_BINARY_DIR}/${PROTO_NAME}.pb.cc")
         set(PROTO_HDRS "${CMAKE_CURRENT_BINARY_DIR}/${PROTO_NAME}.pb.h")
@@ -296,9 +295,9 @@ if(ENABLE_GRPC)
             COMMAND protobuf::protoc
             ARGS --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
                  --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
-                 -I "${CMAKE_CURRENT_SOURCE_DIR}/${PROTO_DIR}"
+                 -I "${CMAKE_SOURCE_DIR}/proto"
                  --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
-                 "${CMAKE_CURRENT_SOURCE_DIR}/${PROTO_FILE}"
+                 "${PROTO_FILE}"
             DEPENDS ${PROTO_FILE}
             COMMENT "Generating protocol buffer files for ${PROTO_NAME}"
         )
