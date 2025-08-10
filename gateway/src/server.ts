@@ -8,6 +8,10 @@ import { registerUserRoutes } from './routes/users.js';
 import { registerNoteRoutes } from './routes/notes.js';
 import { registerTimelineRoutes } from './routes/timeline.js';
 import { registerMediaRoutes } from './routes/media.js';
+import { registerFollowRoutes } from './routes/follow.js';
+import { registerSearchRoutes } from './routes/search.js';
+import { registerMessagingRoutes } from './routes/messaging.js';
+import { registerNotificationRoutes } from './routes/notifications.js';
 
 const app = express();
 app.use(helmet());
@@ -23,6 +27,10 @@ registerUserRoutes(router, clients);
 registerNoteRoutes(router, clients);
 registerTimelineRoutes(router, clients);
 registerMediaRoutes(router);
+registerFollowRoutes(router, clients);
+registerSearchRoutes(router, clients);
+registerMessagingRoutes(router, clients);
+registerNotificationRoutes(router);
 
 app.use('/api', router);
 
