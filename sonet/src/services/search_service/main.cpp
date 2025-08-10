@@ -20,6 +20,11 @@
 #include <future>
 #include <getopt.h>
 #include "../../core/logging/logger.h"
+#ifdef HAVE_GRPC
+#include <grpcpp/grpcpp.h>
+#include "search.grpc.pb.h"
+extern class SearchGrpcService; // defined in service.cpp include chain
+#endif
 
 using namespace sonet::search_service;
 

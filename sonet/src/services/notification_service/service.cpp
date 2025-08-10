@@ -18,6 +18,8 @@
 #include <thread>
 #include <chrono>
 #include <httplib.h>
+#include <grpcpp/grpcpp.h>
+#include "notification.grpc.pb.h"
 
 namespace sonet {
 namespace notification_service {
@@ -41,6 +43,7 @@ struct NotificationService::Impl {
     std::unique_ptr<httplib::Server> http_server;
     std::thread grpc_server_thread;
     std::thread http_server_thread;
+    std::unique_ptr<::sonet::notification::NotificationService::Service> owned_grpc_service;
     
     // Service state
     std::atomic<bool> is_running{false};
@@ -191,9 +194,12 @@ struct NotificationService::Impl {
             
             grpc::ServerBuilder builder;
             builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-            builder.RegisterService(controller.get());
+            auto grpc_svc = std::make_unique<NotificationGrpcService>(controller);
+            builder.RegisterService(grpc_svc.get());
             
             grpc_server = builder.BuildAndStart();
+            // Keep service object alive while server runs
+            owned_grpc_service = std::move(grpc_svc);
             if (grpc_server) {
                 // Log server started
                 grpc_server->Wait();
@@ -458,6 +464,50 @@ struct NotificationService::Impl {
             http_server_thread.join();
         }
     }
+};
+
+class NotificationGrpcService final : public sonet::notification::NotificationService::Service {
+public:
+    NotificationGrpcService(std::shared_ptr<sonet::notification_service::controllers::NotificationController> controller)
+        : controller_(std::move(controller)) {}
+
+    grpc::Status ListNotifications(grpc::ServerContext* context,
+                                   const sonet::notification::ListNotificationsRequest* request,
+                                   sonet::notification::ListNotificationsResponse* response) override {
+        try {
+            auto json = controller_->get_user_notifications(request->user_id(), /*limit*/ request->pagination().limit(), /*offset*/ 0);
+            if (!json.value("success", true)) {
+                return grpc::Status(grpc::StatusCode::INTERNAL, "List failed");
+            }
+            for (const auto& n : json["notifications"]) {
+                auto* out = response->add_notifications();
+                out->set_notification_id(n.value("id", ""));
+                out->set_user_id(n.value("user_id", ""));
+                out->set_type(sonet::notification::NOTIFICATION_TYPE_UNKNOWN);
+                out->set_actor_user_id(n.value("actor_user_id", ""));
+                out->set_note_id(n.value("note_id", ""));
+                out->set_is_read(n.value("is_read", false));
+            }
+            return grpc::Status::OK;
+        } catch (...) {
+            return grpc::Status(grpc::StatusCode::INTERNAL, "Unhandled error");
+        }
+    }
+
+    grpc::Status MarkNotificationRead(grpc::ServerContext* context,
+                                      const sonet::notification::MarkNotificationReadRequest* request,
+                                      sonet::notification::MarkNotificationReadResponse* response) override {
+        try {
+            auto json = controller_->mark_as_read(request->notification_id(), request->user_id());
+            response->set_success(json.value("marked_as_read", false));
+            return grpc::Status::OK;
+        } catch (...) {
+            return grpc::Status(grpc::StatusCode::INTERNAL, "Unhandled error");
+        }
+    }
+
+private:
+    std::shared_ptr<sonet::notification_service::controllers::NotificationController> controller_;
 };
 
 NotificationService::NotificationService(const Config& config)
