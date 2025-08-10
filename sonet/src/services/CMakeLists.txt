@@ -17,6 +17,7 @@ option(BUILD_USER_SERVICE "Build user service" OFF)
 option(BUILD_MESSAGING_SERVICE "Build messaging service" OFF)
 option(BUILD_SEARCH_SERVICE "Build search service" OFF)
 option(BUILD_NOTIFICATION_SERVICE "Build notification service" OFF)
+option(BUILD_MINIMAL_SERVICES "Build minimal gRPC-only services (search, notification)" ON)
 
 # Media service
 if(BUILD_MEDIA_SERVICE)
@@ -44,6 +45,10 @@ endif()
 
 if(BUILD_NOTIFICATION_SERVICE)
 add_subdirectory(notification_service)
+endif()
+
+if(BUILD_MINIMAL_SERVICES)
+add_subdirectory(minimal)
 endif()
 
 # Add other services as they're implemented
