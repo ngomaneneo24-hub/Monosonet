@@ -49,26 +49,33 @@ services:
   # API Gateway
   gateway:
     build:
-      context: .
+      context: ../gateway
       dockerfile: Dockerfile
-      target: runtime
     ports:
       - "8080:8080"
-      - "9090:9090"
     environment:
-      - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/sonet_dev
-      - REDIS_URL=redis://redis:6379
-      - LOG_LEVEL=debug
-      - ENVIRONMENT=development
+      - USER_GRPC_ADDR=user-service:9090
+      - NOTE_GRPC_ADDR=note-service:9090
+      - TIMELINE_GRPC_ADDR=timeline-service:50051
+      - MEDIA_GRPC_ADDR=media-service:9090
+      - PROTO_DIR=/app/proto
+      - JWT_SECRET=dev_jwt_secret_key_change_in_production
+      - FOLLOW_GRPC_ADDR=follow-service:9090
+      - SEARCH_GRPC_ADDR=search-service:9096
+      - NOTIFICATION_GRPC_ADDR=notification-service:9097
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      user-service:
+        condition: service_started
+      note-service:
+        condition: service_started
     networks:
       - sonet-network
     volumes:
-      - ./config/development:/app/config
+      - ./proto:/app/proto:ro
 
   # User Service
   user-service:
@@ -76,8 +83,10 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runtime
+    command: ["./bin/user_service"]
     ports:
       - "8081:8080"
+      - "9090:9090"
     environment:
       - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/user_service
       - REDIS_URL=redis://redis:6379
@@ -97,8 +106,10 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runtime
+    command: ["./bin/note_service"]
     ports:
       - "8082:8080"
+      - "9090:9090"
     environment:
       - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/note_service
       - REDIS_URL=redis://redis:6379
@@ -107,6 +118,23 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sonet-network
+
+  timeline-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    command: ["./bin/timeline_service"]
+    environment:
+      - LOG_LEVEL=debug
+      - SERVICE_NAME=timeline-service
+    ports:
+      - "50051:50051"
+    depends_on:
       redis:
         condition: service_healthy
     networks:
@@ -139,8 +167,10 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runtime
+    command: ["./bin/media_service"]
     ports:
       - "8084:8080"
+      - "9090:9090"
     environment:
       - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/media_service
       - REDIS_URL=redis://redis:6379
@@ -160,8 +190,10 @@ services:
       context: .
       dockerfile: Dockerfile
       target: runtime
+    command: ["./bin/sonet-notification-service"]
     ports:
       - "8085:8080"
+      - "9090:9090"
     environment:
       - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/notification_service
       - REDIS_URL=redis://redis:6379
@@ -301,6 +333,48 @@ services:
     depends_on:
       - elasticsearch
       - kibana
+    networks:
+      - sonet-network
+
+  search-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    command: ["./bin/sonet-search-service"]
+    ports:
+      - "8087:8080"
+      - "9090:9090"
+    environment:
+      - LOG_LEVEL=debug
+      - SERVICE_NAME=search-service
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - sonet-network
+
+  # Minimal Search Service (temporary)
+  minimal-search-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    command: ["./bin/minimal_search_server"]
+    ports:
+      - "9096:9096"
+    networks:
+      - sonet-network
+
+  # Minimal Notification Service (temporary)
+  minimal-notification-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    command: ["./bin/minimal_notification_server"]
+    ports:
+      - "9097:9097"
     networks:
       - sonet-network
 
