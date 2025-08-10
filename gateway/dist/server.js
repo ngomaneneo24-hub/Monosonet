@@ -27,7 +27,7 @@ registerMediaRoutes(router);
 registerFollowRoutes(router, clients);
 registerSearchRoutes(router, clients);
 registerMessagingRoutes(router, clients);
-registerNotificationRoutes(router);
+registerNotificationRoutes(router, clients);
 app.use('/api', router);
 const port = Number(process.env.PORT || 8080);
 app.listen(port, () => {

@@ -30,7 +30,7 @@ registerMediaRoutes(router);
 registerFollowRoutes(router, clients);
 registerSearchRoutes(router, clients);
 registerMessagingRoutes(router, clients);
-registerNotificationRoutes(router);
+registerNotificationRoutes(router, clients);
 
 app.use('/api', router);
 
