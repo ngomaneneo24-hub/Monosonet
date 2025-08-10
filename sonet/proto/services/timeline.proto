@@ -70,7 +70,7 @@ message TimelineMetadata {
 message TimelinePreferences {
   TimelineAlgorithm preferred_algorithm = 1;
   bool show_replies = 2;
-  bool show_reposts = 3;
+  bool show_renotes = 3; // formerly show_reposts
   bool show_recommended_content = 4;
   bool show_trending_content = 5;
   bool sensitive_content_warning = 6;
@@ -123,7 +123,7 @@ message GetUserTimelineRequest {
   string requesting_user_id = 2;
   sonet.common.PaginationRequest pagination = 3;
   bool include_replies = 4;
-  bool include_reposts = 5;
+  bool include_renotes = 5; // formerly include_reposts
 }
 
 message GetUserTimelineResponse {

@@ -72,7 +72,7 @@ namespace {
         if (!note.has_metrics()) return 0.0;
         
         const auto& metrics = note.metrics();
-        double total_engagements = metrics.likes() + metrics.reposts() + metrics.replies() + metrics.quotes();
+    double total_engagements = metrics.likes() + metrics.renotes() + metrics.replies() + metrics.quotes();
         double views = std::max(1.0, static_cast<double>(metrics.views()));
         
         return total_engagements / views;
@@ -272,7 +272,7 @@ double MLRankingEngine::CalculateEngagementVelocity(const ::sonet::note::Note& n
     if (age_hours <= 0) return 0.0;
     
     const auto& metrics = note.metrics();
-    double total_engagements = metrics.likes() + metrics.reposts() + metrics.replies() + metrics.quotes();
+    double total_engagements = metrics.likes() + metrics.renotes() + metrics.replies() + metrics.quotes();
     
     // Engagements per hour
     double velocity = total_engagements / age_hours;

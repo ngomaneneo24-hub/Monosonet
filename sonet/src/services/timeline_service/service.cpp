@@ -880,7 +880,7 @@ grpc::Status TimelineServiceImpl::GetUserTimeline(
             auto* metrics = note.mutable_metrics();
             metrics->set_views(100 + i * 7);
             metrics->set_likes(10 + (i % 13));
-            metrics->set_reposts(2 + (i % 5));
+            metrics->set_renotes(2 + (i % 5));
             metrics->set_replies(3 + (i % 7));
             metrics->set_quotes(1 + (i % 3));
 
