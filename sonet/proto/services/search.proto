@@ -13,7 +13,7 @@ import "common/pagination.proto";
 
 message SearchUserRequest {
   string query = 1;
-  sonet.common.PaginationRequest pagination = 2;
+  sonet.common.Pagination pagination = 2;
 }
 
 message UserResult {
@@ -26,12 +26,12 @@ message UserResult {
 
 message SearchUserResponse {
   repeated UserResult users = 1;
-  sonet.common.PaginationResponse pagination = 2;
+  sonet.common.Pagination pagination = 2;
 }
 
 message SearchNoteRequest {
   string query = 1;
-  sonet.common.PaginationRequest pagination = 2;
+  sonet.common.Pagination pagination = 2;
 }
 
 message NoteResult {
@@ -42,7 +42,7 @@ message NoteResult {
 
 message SearchNoteResponse {
   repeated NoteResult notes = 1;
-  sonet.common.PaginationResponse pagination = 2;
+  sonet.common.Pagination pagination = 2;
 }
 
 service SearchService {
