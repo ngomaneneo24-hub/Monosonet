@@ -17,6 +17,60 @@
 #include <fstream>
 #include <iomanip>
 #include <thread>
+#ifdef HAVE_GRPC
+#include <grpcpp/grpcpp.h>
+#include "search.grpc.pb.h"
+
+class SearchGrpcService final : public sonet::search::SearchService::Service {
+public:
+    explicit SearchGrpcService(std::shared_ptr<sonet::search_service::controllers::SearchController> controller)
+        : controller_(std::move(controller)) {}
+
+    grpc::Status SearchUsers(grpc::ServerContext* context,
+                             const sonet::search::SearchUserRequest* request,
+                             sonet::search::SearchUserResponse* response) override {
+        sonet::search_service::controllers::SearchRequestContext ctx;
+        ctx.user_id = ""; // TODO: extract from metadata
+        auto q = sonet::search_service::models::SearchQuery{request->query()};
+        auto result = controller_->search_users(q, ctx);
+        if (!result.success) {
+            return grpc::Status(grpc::StatusCode::INTERNAL, result.message);
+        }
+        // Map to proto
+        for (const auto& item : result.search_result->users) {
+            auto* u = response->add_users();
+            u->set_user_id(item.user_id);
+            u->set_username(item.username);
+            u->set_display_name(item.display_name);
+            u->set_avatar_url(item.avatar_url);
+            u->set_is_verified(item.is_verified);
+        }
+        return grpc::Status::OK;
+    }
+
+    grpc::Status SearchNotes(grpc::ServerContext* context,
+                             const sonet::search::SearchNoteRequest* request,
+                             sonet::search::SearchNoteResponse* response) override {
+        sonet::search_service::controllers::SearchRequestContext ctx;
+        ctx.user_id = ""; // TODO: extract from metadata
+        auto q = sonet::search_service::models::SearchQuery{request->query()};
+        auto result = controller_->search_notes(q, ctx);
+        if (!result.success) {
+            return grpc::Status(grpc::StatusCode::INTERNAL, result.message);
+        }
+        for (const auto& note : result.search_result->notes) {
+            auto* n = response->add_notes();
+            n->set_note_id(note.id);
+            n->set_author_id(note.author_id);
+            n->set_content(note.content);
+        }
+        return grpc::Status::OK;
+    }
+
+private:
+    std::shared_ptr<sonet::search_service::controllers::SearchController> controller_;
+};
+#endif
 
 namespace sonet {
 namespace search_service {
