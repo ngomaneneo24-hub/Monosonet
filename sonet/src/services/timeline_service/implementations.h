@@ -21,6 +21,7 @@
 #include "../../../proto/grpc_stub.h"
 #include "../../../proto/services/stub_protos.h"
 #include "service.h"
+#include "clients/grpc_clients.h"
 
 namespace sonet::timeline {
 
@@ -156,6 +157,10 @@ private:
     // Redis connection parameters
     std::string redis_host_;
     int redis_port_;
+    
+#ifdef SONET_USE_REDIS_PLUS_PLUS
+    std::unique_ptr<sw::redis::Redis> redis_;
+#endif
     
     // In-memory fallback cache for when Redis is unavailable
     std::unordered_map<std::string, std::vector<RankedTimelineItem>> memory_timeline_cache_;
@@ -383,6 +388,48 @@ private:
     std::unique_ptr<TrendingTopicsProvider> topics_provider_;
     std::unique_ptr<TrendingVideosProvider> videos_provider_;
     std::shared_ptr<::sonet::note::NoteService::Stub> note_service_;
+};
+
+class RealFollowingContentAdapter : public ContentSourceAdapter {
+public:
+    RealFollowingContentAdapter(std::shared_ptr<clients::NoteClient> note_client,
+                                std::shared_ptr<clients::FollowClient> follow_client)
+        : note_client_(std::move(note_client)), follow_client_(std::move(follow_client)) {}
+
+    std::vector<::sonet::note::Note> GetContent(
+        const std::string& user_id,
+        const TimelineConfig& /*config*/,
+        std::chrono::system_clock::time_point since,
+        int32_t limit
+    ) override {
+        if (!follow_client_ || !note_client_) return {};
+        auto following = follow_client_->GetFollowing(user_id);
+        if (following.empty()) return {};
+        return note_client_->ListRecentNotesByAuthors(following, since, limit);
+    }
+private:
+    std::shared_ptr<clients::NoteClient> note_client_;
+    std::shared_ptr<clients::FollowClient> follow_client_;
+};
+
+class RealListsContentAdapter : public ContentSourceAdapter {
+public:
+    RealListsContentAdapter(std::shared_ptr<clients::NoteClient> note_client)
+        : note_client_(std::move(note_client)) {}
+
+    std::vector<::sonet::note::Note> GetContent(
+        const std::string& user_id,
+        const TimelineConfig& /*config*/,
+        std::chrono::system_clock::time_point since,
+        int32_t limit
+    ) override {
+        // Placeholder: in real system, fetch list memberships
+        std::vector<std::string> list_authors = {"list_author_a","list_author_b"};
+        (void)user_id;
+        return note_client_->ListRecentNotesByAuthors(list_authors, since, limit);
+    }
+private:
+    std::shared_ptr<clients::NoteClient> note_client_;
 };
 
 // ============= FACTORY FUNCTIONS =============
