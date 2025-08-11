@@ -128,6 +128,9 @@ import {TimesLarge_Stroke2_Corner0_Rounded as X} from '#/components/icons/Times'
 import {LazyQuoteEmbed} from '#/components/Post/Embed/LazyQuoteEmbed'
 import * as Prompt from '#/components/Prompt'
 import {Text as NewText} from '#/components/Typography'
+import {DraftsButton} from '#/components/DraftsButton'
+import {DraftsDialog} from '#/components/DraftsDialog'
+import {SaveDraftDialog} from '#/components/SaveDraftDialog'
 import {BottomSheetPortalProvider} from '../../../../modules/bottom-sheet'
 import {
   type ComposerAction,
@@ -186,6 +189,8 @@ export const ComposePost = ({
   const [isPublishing, setIsPublishing] = useState(false)
   const [publishingStage, setPublishingStage] = useState('')
   const [error, setError] = useState('')
+  const [showDraftsDialog, setShowDraftsDialog] = useState(false)
+  const saveDraftControl = Prompt.usePromptControl()
 
   const [composerState, composerDispatch] = useReducer(
     composerReducer,
@@ -277,6 +282,31 @@ export const ComposePost = ({
     clearThumbnailCache(queryClient)
   }, [closeComposer, queryClient])
 
+  const handleDraftsPress = useCallback(() => {
+    setShowDraftsDialog(true)
+  }, [])
+
+  const handleDraftSelect = useCallback((draft: any) => {
+    // Load draft content into composer
+    // This would need to be implemented based on the draft structure
+    console.log('Loading draft:', draft)
+  }, [])
+
+  const handleSaveDraft = useCallback(() => {
+    // Save current content as draft
+    console.log('Saving draft')
+    closeComposer()
+  }, [closeComposer])
+
+  const handleDiscardDraft = useCallback(() => {
+    // Discard without saving
+    closeComposer()
+  }, [closeComposer])
+
+  const handleCancelSave = useCallback(() => {
+    saveDraftControl.close()
+  }, [saveDraftControl])
+
   const insets = useSafeAreaInsets()
   const viewStyles = useMemo(
     () => ({
@@ -305,11 +335,11 @@ export const ComposePost = ({
     ) {
       closeAllDialogs()
       Keyboard.dismiss()
-      discardPromptControl.open()
+      saveDraftControl.open()
     } else {
       onClose()
     }
-  }, [thread, closeAllDialogs, discardPromptControl, onClose])
+  }, [thread, closeAllDialogs, saveDraftControl, onClose])
 
   useImperativeHandle(cancelRef, () => ({onPressCancel}))
 
@@ -668,7 +698,13 @@ export const ComposePost = ({
             publishingStage={publishingStage}
             topBarAnimatedStyle={topBarAnimatedStyle}
             onCancel={onPressCancel}
-            onPublish={onPressPublish}>
+            onPublish={onPressPublish}
+            onDraftsPress={handleDraftsPress}
+            hasContent={thread.posts.some(post => 
+              post.shortenedGraphemeLength > 0 || 
+              post.embed.media || 
+              post.embed.link
+            )}>
             {missingAltError && <AltTextReminder error={missingAltError} />}
             <ErrorBanner
               error={error}
@@ -719,14 +755,19 @@ export const ComposePost = ({
           {!isWebFooterSticky && footer}
         </View>
 
-        <Prompt.Basic
-          control={discardPromptControl}
-          title={_(msg`Discard draft?`)}
-          description={_(msg`Are you sure you'd like to discard this draft?`)}
-          onConfirm={onClose}
-          confirmButtonCta={_(msg`Discard`)}
-          confirmButtonColor="negative"
+        <SaveDraftDialog
+          control={saveDraftControl}
+          onSave={handleSaveDraft}
+          onDiscard={handleDiscardDraft}
+          onCancel={handleCancelSave}
         />
+        
+        {showDraftsDialog && (
+          <DraftsDialog
+            onSelectDraft={handleDraftSelect}
+            onClose={() => setShowDraftsDialog(false)}
+          />
+        )}
       </KeyboardAvoidingView>
     </BottomSheetPortalProvider>
   )
@@ -940,6 +981,8 @@ function ComposerTopBar({
   publishingStage,
   onCancel,
   onPublish,
+  onDraftsPress,
+  hasContent,
   topBarAnimatedStyle,
   children,
 }: {
@@ -951,6 +994,8 @@ function ComposerTopBar({
   isThread: boolean
   onCancel: () => void
   onPublish: () => void
+  onDraftsPress: () => void
+  hasContent: boolean
   topBarAnimatedStyle: StyleProp<ViewStyle>
   children?: React.ReactNode
 }) {
@@ -976,6 +1021,8 @@ function ComposerTopBar({
             <Trans>Cancel</Trans>
           </ButtonText>
         </Button>
+        <View style={a.flex_1} />
+        <DraftsButton onPress={onDraftsPress} hasContent={hasContent} />
         <View style={a.flex_1} />
         {isPublishing ? (
           <>
