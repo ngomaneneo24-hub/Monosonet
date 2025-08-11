@@ -13,6 +13,7 @@ import {
 
 import {STALE} from '#/state/queries'
 import {useAgent} from '#/state/session'
+import {useSonetApi, useSonetSession} from '#/state/session/sonet'
 
 const RQKEY_ROOT = 'actor-search'
 export const RQKEY = (query: string) => [RQKEY_ROOT, query]
@@ -32,10 +33,22 @@ export function useActorSearch({
   enabled?: boolean
 }) {
   const agent = useAgent()
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
   return useQuery<AppBskyActorDefs.ProfileView[]>({
     staleTime: STALE.MINUTES.ONE,
     queryKey: RQKEY(query || ''),
     async queryFn() {
+      if (sonetSession.hasSession) {
+        const res = await sonet.getApi().search(query, 'users', {limit: 25})
+        const users = Array.isArray(res?.results) ? res.results : []
+        return users.map((u: any) => ({
+          did: u.id || u.did || 'sonet:user',
+          handle: u.username,
+          displayName: u.display_name,
+          avatar: u.avatar_url,
+        } as any))
+      }
       const res = await agent.searchActors({
         q: query,
       })
@@ -57,6 +70,8 @@ export function useActorSearchPaginated({
   limit?: number
 }) {
   const agent = useAgent()
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
   return useInfiniteQuery<
     AppBskyActorSearchActors.OutputSchema,
     Error,
@@ -67,6 +82,12 @@ export function useActorSearchPaginated({
     staleTime: STALE.MINUTES.FIVE,
     queryKey: RQKEY_PAGINATED(query, limit),
     queryFn: async ({pageParam}) => {
+      if (sonetSession.hasSession) {
+        const res = await sonet.getApi().search(query, 'users', {limit, cursor: pageParam})
+        return {cursor: res?.pagination?.cursor, actors: (res?.results || []).map((u: any) => ({
+          did: u.id || u.did || 'sonet:user', handle: u.username, displayName: u.display_name, avatar: u.avatar_url,
+        } as any))} as any
+      }
       const res = await agent.searchActors({
         q: query,
         limit,
