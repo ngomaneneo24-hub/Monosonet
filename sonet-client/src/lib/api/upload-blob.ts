@@ -2,6 +2,13 @@ import {copyAsync} from 'expo-file-system'
 import {BskyAgent, ComAtprotoRepoUploadBlob} from '@atproto/api'
 
 import {safeDeleteAsync} from '#/lib/media/manip'
+import {useSonetApi} from '#/state/session/sonet'
+
+let sonetUploadBridge: null | ((file: Blob, filename: string, mime: string) => Promise<{media: any}>) = null
+
+export function __setSonetUploadBridge(fn: typeof sonetUploadBridge) {
+  sonetUploadBridge = fn
+}
 
 /**
  * @param encoding Allows overriding the blob's type
@@ -11,6 +18,18 @@ export async function uploadBlob(
   input: string | Blob,
   encoding?: string,
 ): Promise<ComAtprotoRepoUploadBlob.Response> {
+  // If a Sonet bridge is installed, route uploads through Sonet media API
+  if (sonetUploadBridge) {
+    const {blob, filename, mime} = await normalizeToBlob(input, encoding)
+    const res = await sonetUploadBridge(blob, filename, mime)
+    // Shim to the AT upload response shape for existing call sites
+    return {
+      success: true as any,
+      headers: new Headers(),
+      data: {blob: {ref: res.media?.id || res.media?.url || 'media', mimeType: mime, size: (blob as any).size}},
+    } as any
+  }
+
   if (typeof input === 'string' && input.startsWith('file:')) {
     const blob = await asBlob(input)
     return agent.uploadBlob(blob, {encoding})
@@ -33,14 +52,33 @@ export async function uploadBlob(
   throw new TypeError(`Invalid uploadBlob input: ${typeof input}`)
 }
 
+async function normalizeToBlob(input: string | Blob, encoding?: string): Promise<{blob: Blob; filename: string; mime: string}> {
+  if (typeof input === 'string' && input.startsWith('file:')) {
+    const blob = await asBlob(input)
+    return {blob, filename: inferFilename(input, encoding), mime: encoding || blob.type || 'application/octet-stream'}
+  }
+  if (typeof input === 'string' && input.startsWith('/')) {
+    const blob = await asBlob(`file://${input}`)
+    return {blob, filename: inferFilename(input, encoding), mime: encoding || blob.type || 'application/octet-stream'}
+  }
+  if (typeof input === 'string' && input.startsWith('data:')) {
+    const blob = await fetch(input).then(r => r.blob())
+    return {blob, filename: inferFilename('upload.bin', encoding), mime: encoding || blob.type || 'application/octet-stream'}
+  }
+  if (input instanceof Blob) {
+    return {blob: input, filename: inferFilename('upload.bin', encoding), mime: encoding || input.type || 'application/octet-stream'}
+  }
+  throw new TypeError(`Invalid uploadBlob input: ${typeof input}`)
+}
+
+function inferFilename(source: string, encoding?: string): string {
+  if (encoding === 'text/vtt') return 'captions.vtt'
+  const m = /([^/]+)$/.exec(source)
+  return m?.[1] || 'upload.bin'
+}
+
 async function asBlob(uri: string): Promise<Blob> {
   return withSafeFile(uri, async safeUri => {
-    // Note
-    // Android does not support `fetch()` on `file://` URIs. for this reason, we
-    // use XMLHttpRequest instead of simply calling:
-
-    // return fetch(safeUri.replace('file:///', 'file:/')).then(r => r.blob())
-
     return await new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest()
       xhr.onload = () => resolve(xhr.response)
@@ -62,20 +100,15 @@ async function withSafeFile<T>(
   fn: (path: string) => Promise<T>,
 ): Promise<T> {
   if (uri.endsWith('.jpeg') || uri.endsWith('.jpg')) {
-    // Since we don't "own" the file, we should avoid renaming or modifying it.
-    // Instead, let's copy it to a temporary file and use that (then remove the
-    // temporary file).
     const newPath = uri.replace(/\.jpe?g$/, '.bin')
     try {
       await copyAsync({from: uri, to: newPath})
     } catch {
-      // Failed to copy the file, just use the original
       return await fn(uri)
     }
     try {
       return await fn(newPath)
     } finally {
-      // Remove the temporary file
       await safeDeleteAsync(newPath)
     }
   } else {
