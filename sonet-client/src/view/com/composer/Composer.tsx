@@ -130,6 +130,7 @@ import * as Prompt from '#/components/Prompt'
 import {Text as NewText} from '#/components/Typography'
 import {DraftsButton} from '#/components/DraftsButton'
 import {DraftsDialog} from '#/components/DraftsDialog'
+import {useCreateDraftMutation, useUserDraftsQuery, useAutoSaveDraftMutation} from '#/state/queries/drafts'
 import {SaveDraftDialog} from '#/components/SaveDraftDialog'
 import {BottomSheetPortalProvider} from '../../../../modules/bottom-sheet'
 import {
@@ -191,6 +192,27 @@ export const ComposePost = ({
   const [error, setError] = useState('')
   const [showDraftsDialog, setShowDraftsDialog] = useState(false)
   const saveDraftControl = Prompt.usePromptControl()
+  
+  // Draft hooks
+  const createDraft = useCreateDraftMutation()
+  const autoSaveDraft = useAutoSaveDraftMutation()
+  const {data: userDrafts} = useUserDraftsQuery(20, undefined, false)
+  
+  // Auto-save draft when content changes
+  useEffect(() => {
+    const content = getComposerContent()
+    if (!content || !content.content.trim()) return
+    
+    const timeoutId = setTimeout(async () => {
+      try {
+        await autoSaveDraft.mutateAsync(content)
+      } catch (error) {
+        console.error('Auto-save failed:', error)
+      }
+    }, 2000) // Auto-save after 2 seconds of inactivity
+    
+    return () => clearTimeout(timeoutId)
+  }, [thread.posts, replyTo, initMention, autoSaveDraft, getComposerContent])
 
   const [composerState, composerDispatch] = useReducer(
     composerReducer,
@@ -286,15 +308,80 @@ export const ComposePost = ({
     setShowDraftsDialog(true)
   }, [])
 
+  // Helper function to convert composer state to draft format
+  const getComposerContent = useCallback(() => {
+    const firstPost = thread.posts[0]
+    if (!firstPost) return null
+    
+    const images = firstPost.embed.media?.type === 'images' 
+      ? firstPost.embed.media.images.map(img => ({
+          uri: img.uri,
+          width: img.width,
+          height: img.height,
+          alt_text: img.alt || ''
+        }))
+      : []
+    
+    const video = firstPost.embed.media?.type === 'gif' 
+      ? {
+          uri: firstPost.embed.media.uri,
+          width: firstPost.embed.media.width,
+          height: firstPost.embed.media.height
+        }
+      : undefined
+    
+    return {
+      content: firstPost.richtext.text,
+      reply_to_uri: replyTo?.uri,
+      quote_uri: firstPost.embed.quote?.uri,
+      mention_handle: initMention,
+      images,
+      video,
+      labels: [],
+      threadgate: firstPost.interactionSettings,
+      interaction_settings: firstPost.interactionSettings
+    }
+  }, [thread, replyTo, initMention])
+
   const handleDraftSelect = useCallback((draft: any) => {
     // Load draft content into composer
-    // This would need to be implemented based on the draft structure
-    console.log('Loading draft:', draft)
-  }, [])
+    if (!draft) return
+    
+    // Clear current composer state
+    composerDispatch({
+      type: 'reset_thread',
+      thread: {
+        posts: [{
+          id: 'temp',
+          richtext: {text: draft.content || '', facets: []},
+          embed: {
+            media: draft.images?.length > 0 ? {
+              type: 'images',
+              images: draft.images.map((img: any) => ({
+                uri: img.uri,
+                width: img.width,
+                height: img.height,
+                alt: img.alt_text || ''
+              }))
+            } : draft.video ? {
+              type: 'gif',
+              uri: draft.video.uri,
+              width: draft.video.width,
+              height: draft.video.height,
+              alt: ''
+            } : undefined,
+            quote: draft.quote_uri ? {uri: draft.quote_uri} : undefined,
+            link: undefined
+          },
+          interactionSettings: draft.interaction_settings || draft.threadgate
+        }]
+      }
+    })
+    
+    setShowDraftsDialog(false)
+  }, [composerDispatch])
 
   const handleSaveDraft = useCallback(() => {
-    // Save current content as draft
-    console.log('Saving draft')
     closeComposer()
   }, [closeComposer])
 
@@ -760,6 +847,7 @@ export const ComposePost = ({
           onSave={handleSaveDraft}
           onDiscard={handleDiscardDraft}
           onCancel={handleCancelSave}
+          content={getComposerContent()}
         />
         
         {showDraftsDialog && (

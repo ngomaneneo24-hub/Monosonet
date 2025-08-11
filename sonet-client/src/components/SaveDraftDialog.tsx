@@ -15,6 +15,7 @@ interface SaveDraftDialogProps {
   onSave: () => void
   onDiscard: () => void
   onCancel: () => void
+  content?: any
 }
 
 export function SaveDraftDialog({
@@ -22,15 +23,21 @@ export function SaveDraftDialog({
   onSave,
   onDiscard,
   onCancel,
+  content,
 }: SaveDraftDialogProps) {
   const {_} = useLingui()
   const t = useTheme()
   const createDraft = useCreateDraftMutation()
 
   const handleSave = useCallback(async () => {
+    if (!content) {
+      Toast.show(_(msg`No content to save`), 'xmark')
+      return
+    }
+    
     try {
       await createDraft.mutateAsync({
-        content: '', // This will be populated by the composer
+        ...content,
         is_auto_saved: false,
       })
       Toast.show(_(msg`Draft saved`), 'check')
@@ -38,7 +45,7 @@ export function SaveDraftDialog({
     } catch (error) {
       Toast.show(_(msg`Failed to save draft`), 'xmark')
     }
-  }, [createDraft, onSave, _])
+  }, [createDraft, onSave, _, content])
 
   const handleDiscard = useCallback(() => {
     onDiscard()

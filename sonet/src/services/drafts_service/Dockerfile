@@ -18,7 +18,7 @@ RUN protoc --go_out=. --go_opt=paths=source_relative \
     proto/drafts_service.proto
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o drafts-service ./main
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o drafts-service ./main.go
 
 # Final stage
 FROM alpine:latest
