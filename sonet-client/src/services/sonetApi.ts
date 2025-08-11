@@ -37,7 +37,7 @@ export class SonetApi {
   }
 
   // Core fetch with JSON and auth header
-  private async fetchJson(path: string, init: RequestInit = {}, retryOn401 = true): Promise<any> {
+  async fetchJson(path: string, init: RequestInit = {}, retryOn401 = true): Promise<any> {
     const url = `${this.baseUrl}${path}`
     const headers: Record<string, string> = {
       'content-type': 'application/json',
@@ -68,7 +68,7 @@ export class SonetApi {
   }
 
   // Form/multipart
-  private async fetchForm(path: string, form: FormData): Promise<any> {
+  async fetchForm(path: string, form: FormData): Promise<any> {
     const url = `${this.baseUrl}${path}`
     const headers: Record<string, string> = {}
     if (this.tokens?.accessToken) {
