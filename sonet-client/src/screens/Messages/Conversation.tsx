@@ -1,10 +1,7 @@
 import React, {useCallback, useEffect} from 'react'
 import {View} from 'react-native'
-import {
-  type AppBskyActorDefs,
-  moderateProfile,
-  type ModerationDecision,
-} from '@atproto/api'
+// AT Protocol removed - using Sonet messaging
+import type {ModerationDecision} from '#/state/preferences/moderation-opts'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {
@@ -24,12 +21,9 @@ import {
 } from '#/lib/routes/types'
 import {isWeb} from '#/platform/detection'
 import {type Shadow, useMaybeProfileShadow} from '#/state/cache/profile-shadow'
-import {ConvoProvider, isConvoActive, useConvo} from '#/state/messages/convo'
-import {UnifiedConvoProvider, useUnifiedConvoState, useUnifiedConvoApi, useIsSonetMessaging} from '#/state/messages/hybrid-provider'
-import {ConvoStatus} from '#/state/messages/convo/types'
+import {UnifiedConvoProvider, useUnifiedConvoState, useUnifiedConvoApi} from '#/state/messages/hybrid-provider'
 import {useCurrentConvoId} from '#/state/messages/current-convo-id'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
-import {useProfileQuery} from '#/state/queries/profile'
 import {useSetMinimalShellMode} from '#/state/shell'
 import {MessagesList} from '#/screens/Messages/components/MessagesList'
 import {atoms as a, useBreakpoints, useTheme, web} from '#/alf'
@@ -39,12 +33,13 @@ import {
   EmailDialogScreenID,
   useEmailDialogControl,
 } from '#/components/dialogs/EmailDialog'
-import {MessagesListBlockedFooter} from '#/components/dms/MessagesListBlockedFooter'
-import {MessagesListHeader} from '#/components/dms/MessagesListHeader'
+import {SonetMessagesListBlockedFooter} from '#/components/dms/SonetMessagesListBlockedFooter'
+import {SonetMessagesListHeader} from '#/components/dms/SonetMessagesListHeader'
 import {Error} from '#/components/Error'
 import * as Layout from '#/components/Layout'
 import {Loader} from '#/components/Loader'
-import {MigrationStatus} from '#/components/MigrationStatus'
+import {SonetMigrationStatus} from '#/components/SonetMigrationStatus'
+import {moderateProfile, isProfileActive} from '#/lib/moderation'
 
 type Props = NativeStackScreenProps<
   CommonNavigatorParams,
@@ -100,42 +95,41 @@ export function MessagesConversationScreenInner({route}: Props) {
 
 function Inner() {
   const t = useTheme()
-  const isSonet = useIsSonetMessaging()
   const state = useUnifiedConvoState()
   const api = useUnifiedConvoApi()
-  const convoState = useConvo()
   const {_} = useLingui()
 
   const moderationOpts = useModerationOpts()
-  const {data: recipientUnshadowed} = useProfileQuery({
-    did: convoState.recipients?.[0].did,
-  })
-  const recipient = useMaybeProfileShadow(recipientUnshadowed)
+  
+  // Get recipient from Sonet chat state
+  const recipient = state.chat?.participants?.[0] ? {
+    did: state.chat.participants[0].id,
+    handle: state.chat.participants[0].username,
+    displayName: state.chat.participants[0].displayName,
+    avatar: state.chat.participants[0].avatar,
+  } : null
 
   const moderation = React.useMemo(() => {
     if (!recipient || !moderationOpts) return null
     return moderateProfile(recipient, moderationOpts)
   }, [recipient, moderationOpts])
 
-  // Because we want to give the list a chance to asynchronously scroll to the end before it is visible to the user,
-  // we use `hasScrolled` to determine when to render. With that said however, there is a chance that the chat will be
-  // empty. So, we also check for that possible state as well and render once we can.
+  // Check if the conversation is ready to show
   const [hasScrolled, setHasScrolled] = React.useState(false)
   const readyToShow =
     hasScrolled ||
-    (isConvoActive(convoState) &&
-      !convoState.isFetchingHistory &&
-      convoState.items.length === 0)
+    (state.status === 'ready' &&
+      !state.isLoading &&
+      state.messages.length === 0)
 
-  // Any time that we re-render the `Initializing` state, we have to reset `hasScrolled` to false. After entering this
-  // state, we know that we're resetting the list of messages and need to re-scroll to the bottom when they get added.
+  // Reset hasScrolled when conversation status changes
   React.useEffect(() => {
-    if (convoState.status === ConvoStatus.Initializing) {
+    if (state.status === 'loading') {
       setHasScrolled(false)
     }
-  }, [convoState.status])
+  }, [state.status])
 
-  if (convoState.status === ConvoStatus.Error) {
+  if (state.status === 'error') {
     return (
       <>
         <Layout.Center style={[a.flex_1]}>
@@ -148,7 +142,7 @@ function Inner() {
         <Error
           title={_(msg`Something went wrong`)}
           message={_(msg`We couldn't load this conversation`)}
-          onRetry={() => convoState.error.retry()}
+          onRetry={() => api.refresh()}
           sideBorders={false}
         />
       </>
@@ -157,18 +151,16 @@ function Inner() {
 
   return (
     <Layout.Center style={[a.flex_1]}>
-      {/* Show migration status when using Sonet */}
-      {isSonet && (
-        <View style={[a.p_4, a.w_full]}>
-          <MigrationStatus />
-        </View>
-      )}
-      {!readyToShow &&
-        (moderation ? (
-          <MessagesListHeader moderation={moderation} profile={recipient} />
-        ) : (
-          <MessagesListHeader />
-        ))}
+      {/* Show migration status for Sonet messaging */}
+      <View style={[a.p_4, a.w_full]}>
+        <SonetMigrationStatus />
+      </View>
+              {!readyToShow &&
+          (moderation ? (
+            <SonetMessagesListHeader moderation={moderation} profile={recipient} />
+          ) : (
+            <SonetMessagesListHeader />
+          ))}
       <View style={[a.flex_1]}>
         {moderation && recipient ? (
           <InnerReady
@@ -208,11 +200,11 @@ function InnerReady({
   setHasScrolled,
 }: {
   moderation: ModerationDecision
-  recipient: Shadow<AppBskyActorDefs.ProfileViewDetailed>
+  recipient: any // Simplified type for Sonet
   hasScrolled: boolean
   setHasScrolled: React.Dispatch<React.SetStateAction<boolean>>
 }) {
-  const convoState = useConvo()
+  const state = useUnifiedConvoState()
   const navigation = useNavigation<NavigationProp>()
   const {params} =
     useRoute<RouteProp<CommonNavigatorParams, 'MessagesConversation'>>()
@@ -259,18 +251,18 @@ function InnerReady({
 
   return (
     <>
-      <MessagesListHeader profile={recipient} moderation={moderation} />
-      {isConvoActive(convoState) && (
+      <SonetMessagesListHeader profile={recipient} moderation={moderation} />
+      {state.status === 'ready' && (
         <MessagesList
           hasScrolled={hasScrolled}
           setHasScrolled={setHasScrolled}
           blocked={moderation?.blocked}
           hasAcceptOverride={!!params.accept}
           footer={
-            <MessagesListBlockedFooter
+            <SonetMessagesListBlockedFooter
               recipient={recipient}
-              convoId={convoState.convo.id}
-              hasMessages={convoState.items.length > 0}
+              convoId={state.chat?.id || ''}
+              hasMessages={state.messages.length > 0}
               moderation={moderation}
             />
           }
