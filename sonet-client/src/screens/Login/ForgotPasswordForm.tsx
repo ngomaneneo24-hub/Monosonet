@@ -82,11 +82,7 @@ export const ForgotPasswordForm = ({
         <TextField.LabelText>
           <Trans>Hosting provider</Trans>
         </TextField.LabelText>
-        <HostingProvider
-          serviceUrl={serviceUrl}
-          onSelectServiceUrl={setServiceUrl}
-          onOpenDialog={onPressSelectService}
-        />
+        <HostingProvider serviceUrl={serviceUrl} />
       </View>
       <View>
         <TextField.LabelText>
