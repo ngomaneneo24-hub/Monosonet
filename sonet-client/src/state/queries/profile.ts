@@ -32,6 +32,7 @@ import {
 } from '#/state/queries/unstable-profile-cache'
 import {useUpdateProfileVerificationCache} from '#/state/queries/verification/useUpdateProfileVerificationCache'
 import {useAgent, useSession} from '#/state/session'
+import {useSonetApi, useSonetSession} from '#/state/session/sonet'
 import * as userActionHistory from '#/state/userActionHistory'
 import type * as bsky from '#/types/bsky'
 import {
@@ -65,6 +66,8 @@ export function useProfileQuery({
   staleTime?: number
 }) {
   const agent = useAgent()
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
   const {getUnstableProfile} = useUnstableProfileViewCache()
   return useQuery<AppBskyActorDefs.ProfileViewDetailed>({
     // WARNING
@@ -75,6 +78,25 @@ export function useProfileQuery({
     refetchOnWindowFocus: true,
     queryKey: RQKEY(did ?? ''),
     queryFn: async () => {
+      if (sonetSession.hasSession && did) {
+        // Sonet: map server user to minimal profile view for now
+        const me = await sonet.getApi().getMe().catch(() => undefined)
+        if (me?.user && (me.user.id === did || me.user.did === did)) {
+          const u = me.user
+          return {
+            did: u.did || u.id,
+            handle: u.username,
+            displayName: u.display_name,
+            description: u.bio,
+            avatar: u.avatar_url,
+            banner: u.banner_url,
+            followersCount: u.followers_count,
+            followsCount: u.following_count,
+            postsCount: u.posts_count,
+            viewer: {},
+          } as any
+        }
+      }
       const res = await agent.getProfile({actor: did ?? ''})
       return res.data
     },
