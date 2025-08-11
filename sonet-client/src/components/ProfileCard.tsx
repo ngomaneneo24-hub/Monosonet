@@ -41,6 +41,7 @@ import {RichText} from '#/components/RichText'
 import {Text} from '#/components/Typography'
 import {useSimpleVerificationState} from '#/components/verification'
 import {VerificationCheck} from '#/components/verification/VerificationCheck'
+import {PrivateProfileFollowButton} from '#/components/PrivateProfileFollowButton'
 import type * as bsky from '#/types/bsky'
 
 export function Default({
@@ -442,7 +443,24 @@ export type FollowButtonProps = {
 export function FollowButton(props: FollowButtonProps) {
   const {currentAccount, hasSession} = useSession()
   const isMe = props.profile.did === currentAccount?.did
-  return hasSession && !isMe ? <FollowButtonInner {...props} /> : null
+  
+  // Use PrivateProfileFollowButton for enhanced private profile support
+  if (hasSession && !isMe) {
+    return (
+      <PrivateProfileFollowButton
+        profile={props.profile}
+        logContext={props.logContext}
+        colorInverted={props.colorInverted}
+        onFollow={props.onFollow}
+        size={props.size}
+        variant={props.variant}
+        shape={props.shape}
+        withIcon={props.withIcon}
+      />
+    )
+  }
+  
+  return null
 }
 
 export function FollowButtonInner({
