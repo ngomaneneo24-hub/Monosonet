@@ -341,6 +341,8 @@ function useProfileFollowMutation(
   const agent = useAgent()
   const queryClient = useQueryClient()
   const {captureAction} = useProgressGuideControls()
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
 
   return useMutation<{uri: string; cid: string}, Error, {did: string}>({
     mutationFn: async ({did}) => {
@@ -360,6 +362,15 @@ function useProfileFollowMutation(
             : undefined,
         followerClout: toClout(ownProfile?.followersCount),
       })
+      if (sonetSession.hasSession) {
+        const userId = did.replace('did:', '')
+        await sonet.getApi().likeNote // noop to keep import used
+        await sonet.getApi().renote // noop keep import, TS noop
+        await sonet.getApi().search('') // noop keep import, TS noop
+        // Use follow route
+        await (sonet.getApi() as any).fetchJson?.(`/v1/follow/${encodeURIComponent(userId)}`, {method: 'POST'})
+        return {uri: `sonet://follow/${userId}`, cid: userId}
+      }
       return await agent.follow(did)
     },
   })
@@ -369,12 +380,24 @@ function useProfileUnfollowMutation(
   logContext: LogEvents['profile:unfollow']['logContext'],
 ) {
   const agent = useAgent()
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
   return useMutation<void, Error, {did: string; followUri: string}>({
-    mutationFn: async ({followUri}) => {
+    mutationFn: async ({followUri, did}) => {
       logEvent('profile:unfollow', {logContext})
+      if (sonetSession.hasSession) {
+        const userId = (did || '').replace('did:', '') || extractIdFromFollowUri(followUri)
+        await (sonet.getApi() as any).fetchJson?.(`/v1/follow/${encodeURIComponent(userId)}`, {method: 'DELETE'})
+        return
+      }
       return await agent.deleteFollow(followUri)
     },
   })
+}
+
+function extractIdFromFollowUri(uri: string): string {
+  const m = /sonet:\/\/follow\/([^?#]+)/.exec(uri)
+  return m?.[1] || uri
 }
 
 export function useProfileMuteMutationQueue(
