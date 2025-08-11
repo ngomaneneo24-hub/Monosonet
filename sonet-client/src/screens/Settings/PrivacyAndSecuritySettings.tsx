@@ -15,10 +15,12 @@ import {BellRinging_Stroke2_Corner0_Rounded as BellRingingIcon} from '#/componen
 import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/icons/EyeSlash'
 import {Key_Stroke2_Corner2_Rounded as KeyIcon} from '#/components/icons/Key'
 import {ShieldCheck_Stroke2_Corner0_Rounded as ShieldIcon} from '#/components/icons/Shield'
+import {Lock_Stroke2_Corner0_Rounded as LockIcon} from '#/components/icons/Lock'
 import * as Layout from '#/components/Layout'
 import {InlineLinkText} from '#/components/Link'
 import {Email2FAToggle} from './components/Email2FAToggle'
 import {PwiOptOut} from './components/PwiOptOut'
+import {PrivateProfileToggle} from './components/PrivateProfileToggle'
 import {ItemTextWithSubtitle} from './NotificationSettings/components/ItemTextWithSubtitle'
 
 type Props = NativeStackScreenProps<
@@ -100,6 +102,14 @@ export function PrivacyAndSecuritySettingsScreen({}: Props) {
               showSkeleton={isPending}
             />
           </SettingsList.LinkItem>
+          <SettingsList.Divider />
+          <SettingsList.Group>
+            <SettingsList.ItemIcon icon={LockIcon} />
+            <SettingsList.ItemText>
+              <Trans>Private profile</Trans>
+            </SettingsList.ItemText>
+            <PrivateProfileToggle />
+          </SettingsList.Group>
           <SettingsList.Divider />
           <SettingsList.Group>
             <SettingsList.ItemIcon icon={EyeSlashIcon} />

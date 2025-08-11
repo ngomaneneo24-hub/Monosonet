@@ -128,6 +128,10 @@ import {TimesLarge_Stroke2_Corner0_Rounded as X} from '#/components/icons/Times'
 import {LazyQuoteEmbed} from '#/components/Post/Embed/LazyQuoteEmbed'
 import * as Prompt from '#/components/Prompt'
 import {Text as NewText} from '#/components/Typography'
+import {DraftsButton} from '#/components/DraftsButton'
+import {DraftsDialog} from '#/components/DraftsDialog'
+import {useCreateDraftMutation, useUserDraftsQuery, useAutoSaveDraftMutation} from '#/state/queries/drafts'
+import {SaveDraftDialog} from '#/components/SaveDraftDialog'
 import {BottomSheetPortalProvider} from '../../../../modules/bottom-sheet'
 import {
   type ComposerAction,
@@ -186,6 +190,29 @@ export const ComposePost = ({
   const [isPublishing, setIsPublishing] = useState(false)
   const [publishingStage, setPublishingStage] = useState('')
   const [error, setError] = useState('')
+  const [showDraftsDialog, setShowDraftsDialog] = useState(false)
+  const saveDraftControl = Prompt.usePromptControl()
+  
+  // Draft hooks
+  const createDraft = useCreateDraftMutation()
+  const autoSaveDraft = useAutoSaveDraftMutation()
+  const {data: userDrafts} = useUserDraftsQuery(20, undefined, false)
+  
+  // Auto-save draft when content changes
+  useEffect(() => {
+    const content = getComposerContent()
+    if (!content || !content.content.trim()) return
+    
+    const timeoutId = setTimeout(async () => {
+      try {
+        await autoSaveDraft.mutateAsync(content)
+      } catch (error) {
+        console.error('Auto-save failed:', error)
+      }
+    }, 2000) // Auto-save after 2 seconds of inactivity
+    
+    return () => clearTimeout(timeoutId)
+  }, [thread.posts, replyTo, initMention, autoSaveDraft, getComposerContent])
 
   const [composerState, composerDispatch] = useReducer(
     composerReducer,
@@ -277,6 +304,96 @@ export const ComposePost = ({
     clearThumbnailCache(queryClient)
   }, [closeComposer, queryClient])
 
+  const handleDraftsPress = useCallback(() => {
+    setShowDraftsDialog(true)
+  }, [])
+
+  // Helper function to convert composer state to draft format
+  const getComposerContent = useCallback(() => {
+    const firstPost = thread.posts[0]
+    if (!firstPost) return null
+    
+    const images = firstPost.embed.media?.type === 'images' 
+      ? firstPost.embed.media.images.map(img => ({
+          uri: img.uri,
+          width: img.width,
+          height: img.height,
+          alt_text: img.alt || ''
+        }))
+      : []
+    
+    const video = firstPost.embed.media?.type === 'gif' 
+      ? {
+          uri: firstPost.embed.media.uri,
+          width: firstPost.embed.media.width,
+          height: firstPost.embed.media.height
+        }
+      : undefined
+    
+    return {
+      content: firstPost.richtext.text,
+      reply_to_uri: replyTo?.uri,
+      quote_uri: firstPost.embed.quote?.uri,
+      mention_handle: initMention,
+      images,
+      video,
+      labels: [],
+      threadgate: firstPost.interactionSettings,
+      interaction_settings: firstPost.interactionSettings
+    }
+  }, [thread, replyTo, initMention])
+
+  const handleDraftSelect = useCallback((draft: any) => {
+    // Load draft content into composer
+    if (!draft) return
+    
+    // Clear current composer state
+    composerDispatch({
+      type: 'reset_thread',
+      thread: {
+        posts: [{
+          id: 'temp',
+          richtext: {text: draft.content || '', facets: []},
+          embed: {
+            media: draft.images?.length > 0 ? {
+              type: 'images',
+              images: draft.images.map((img: any) => ({
+                uri: img.uri,
+                width: img.width,
+                height: img.height,
+                alt: img.alt_text || ''
+              }))
+            } : draft.video ? {
+              type: 'gif',
+              uri: draft.video.uri,
+              width: draft.video.width,
+              height: draft.video.height,
+              alt: ''
+            } : undefined,
+            quote: draft.quote_uri ? {uri: draft.quote_uri} : undefined,
+            link: undefined
+          },
+          interactionSettings: draft.interaction_settings || draft.threadgate
+        }]
+      }
+    })
+    
+    setShowDraftsDialog(false)
+  }, [composerDispatch])
+
+  const handleSaveDraft = useCallback(() => {
+    closeComposer()
+  }, [closeComposer])
+
+  const handleDiscardDraft = useCallback(() => {
+    // Discard without saving
+    closeComposer()
+  }, [closeComposer])
+
+  const handleCancelSave = useCallback(() => {
+    saveDraftControl.close()
+  }, [saveDraftControl])
+
   const insets = useSafeAreaInsets()
   const viewStyles = useMemo(
     () => ({
@@ -305,11 +422,11 @@ export const ComposePost = ({
     ) {
       closeAllDialogs()
       Keyboard.dismiss()
-      discardPromptControl.open()
+      saveDraftControl.open()
     } else {
       onClose()
     }
-  }, [thread, closeAllDialogs, discardPromptControl, onClose])
+  }, [thread, closeAllDialogs, saveDraftControl, onClose])
 
   useImperativeHandle(cancelRef, () => ({onPressCancel}))
 
@@ -668,7 +785,13 @@ export const ComposePost = ({
             publishingStage={publishingStage}
             topBarAnimatedStyle={topBarAnimatedStyle}
             onCancel={onPressCancel}
-            onPublish={onPressPublish}>
+            onPublish={onPressPublish}
+            onDraftsPress={handleDraftsPress}
+            hasContent={thread.posts.some(post => 
+              post.shortenedGraphemeLength > 0 || 
+              post.embed.media || 
+              post.embed.link
+            )}>
             {missingAltError && <AltTextReminder error={missingAltError} />}
             <ErrorBanner
               error={error}
@@ -719,14 +842,20 @@ export const ComposePost = ({
           {!isWebFooterSticky && footer}
         </View>
 
-        <Prompt.Basic
-          control={discardPromptControl}
-          title={_(msg`Discard draft?`)}
-          description={_(msg`Are you sure you'd like to discard this draft?`)}
-          onConfirm={onClose}
-          confirmButtonCta={_(msg`Discard`)}
-          confirmButtonColor="negative"
+        <SaveDraftDialog
+          control={saveDraftControl}
+          onSave={handleSaveDraft}
+          onDiscard={handleDiscardDraft}
+          onCancel={handleCancelSave}
+          content={getComposerContent()}
         />
+        
+        {showDraftsDialog && (
+          <DraftsDialog
+            onSelectDraft={handleDraftSelect}
+            onClose={() => setShowDraftsDialog(false)}
+          />
+        )}
       </KeyboardAvoidingView>
     </BottomSheetPortalProvider>
   )
@@ -940,6 +1069,8 @@ function ComposerTopBar({
   publishingStage,
   onCancel,
   onPublish,
+  onDraftsPress,
+  hasContent,
   topBarAnimatedStyle,
   children,
 }: {
@@ -951,6 +1082,8 @@ function ComposerTopBar({
   isThread: boolean
   onCancel: () => void
   onPublish: () => void
+  onDraftsPress: () => void
+  hasContent: boolean
   topBarAnimatedStyle: StyleProp<ViewStyle>
   children?: React.ReactNode
 }) {
@@ -976,6 +1109,8 @@ function ComposerTopBar({
             <Trans>Cancel</Trans>
           </ButtonText>
         </Button>
+        <View style={a.flex_1} />
+        <DraftsButton onPress={onDraftsPress} hasContent={hasContent} />
         <View style={a.flex_1} />
         {isPublishing ? (
           <>
