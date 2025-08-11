@@ -20,6 +20,7 @@ import {createFullHandle} from '#/lib/strings/handles'
 import {logger} from '#/logger'
 import {useSetHasCheckedForStarterPack} from '#/state/preferences/used-starter-packs'
 import {useSessionApi} from '#/state/session'
+import {useSonetApi} from '#/state/session/sonet'
 import {useLoggedOutViewControls} from '#/state/shell/logged-out'
 import {atoms as a, useTheme} from '#/alf'
 import {Button, ButtonIcon, ButtonText} from '#/components/Button'
@@ -72,6 +73,7 @@ export const LoginForm = ({
   const passwordRef = useRef<TextInput>(null)
   const {_} = useLingui()
   const {login} = useSessionApi()
+  const {login: sonetLogin} = useSonetApi()
   const requestNotificationsPermission = useRequestNotificationsPermission()
   const {setShowLoggedOut} = useLoggedOutViewControls()
   const setHasCheckedForStarterPack = useSetHasCheckedForStarterPack()
@@ -103,6 +105,16 @@ export const LoginForm = ({
     setIsProcessing(true)
 
     try {
+      // If user selected the default Bluesky provider, use AT login; otherwise try Sonet when serviceUrl points to our gateway base.
+      const isSonet = serviceUrl.includes('localhost') || serviceUrl.includes('sonet') || serviceUrl.includes('api')
+      if (isSonet) {
+        await sonetLogin({username: identifier, password})
+        onAttemptSuccess()
+        setShowLoggedOut(false)
+        setHasCheckedForStarterPack(true)
+        requestNotificationsPermission('Login')
+        return
+      }
       // try to guess the handle if the user just gave their own username
       let fullIdent = identifier
       if (
