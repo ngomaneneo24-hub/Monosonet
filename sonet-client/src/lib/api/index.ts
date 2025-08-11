@@ -41,6 +41,7 @@ import {
 } from '#/view/com/composer/state/composer'
 import {createGIFDescription} from '../gif-alt-text'
 import {uploadBlob} from './upload-blob'
+import {useSonetApi, useSonetSession} from '#/state/session/sonet'
 
 export {uploadBlob}
 
@@ -56,6 +57,19 @@ export async function post(
   queryClient: QueryClient,
   opts: PostOpts,
 ) {
+  // Sonet path: simple create per top-level post for now (replies omitted for MVP)
+  try {
+    // Access hooks is not possible here, so we check if a Sonet upload bridge was installed by seeing if agent is missing session or through a global. Simpler: detect globalThis.__SONET_ACTIVE flag if we set it when session active.
+    // Fallback to AT path below if anything fails.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const g: any = globalThis as any
+    if (g && g.__SONET_ACTIVE && typeof g.__SONET_CREATE_NOTE === 'function') {
+      const draft = opts.thread.posts[0]
+      const rt = await resolveRT(agent, draft.richtext)
+      const res = await g.__SONET_CREATE_NOTE({text: rt.text})
+      return {uris: Array.isArray(res?.uris) ? res.uris : [res?.uri || `sonet://note/${res?.note?.id || 'new'}`]}
+    }
+  } catch {}
   const thread = opts.thread
   opts.onStateChange?.(t`Processing...`)
 
