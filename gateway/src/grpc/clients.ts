@@ -24,6 +24,8 @@ const followPkgDef = loadProto('src/services/follow_service/proto/follow_service
 const messagingPkgDef = loadProto('services/messaging.proto');
 const searchPkgDef = loadProto('services/search.proto');
 const notificationPkgDef = loadProto('services/notification.proto');
+const listPkgDef = loadProto('src/services/list_service/proto/list_service.proto');
+const starterpackPkgDef = loadProto('src/services/starterpack_service/proto/starterpack_service.proto');
 
 export type GrpcClients = {
   user: any;
@@ -34,6 +36,8 @@ export type GrpcClients = {
   messaging: any;
   search: any;
   notification: any;
+  list: any;
+  starterpack: any;
 };
 
 export function createGrpcClients(): GrpcClients {
@@ -45,6 +49,8 @@ export function createGrpcClients(): GrpcClients {
   const messagingTarget = process.env.MESSAGING_GRPC_ADDR || 'messaging-service:9090';
   const searchTarget = process.env.SEARCH_GRPC_ADDR || 'search-service:9096';
   const notificationTarget = process.env.NOTIFICATION_GRPC_ADDR || 'notification-service:9097';
+  const listTarget = process.env.LIST_GRPC_ADDR || 'list-service:9098';
+  const starterpackTarget = process.env.STARTERPACK_GRPC_ADDR || 'starterpack-service:9099';
 
   const userPackage: any = userPkgDef['sonet.user'];
   const notePackage: any = notePkgDef['sonet.note.grpc'];
@@ -54,6 +60,8 @@ export function createGrpcClients(): GrpcClients {
   const messagingPackage: any = messagingPkgDef['sonet.messaging'];
   const searchPackage: any = searchPkgDef['sonet.search'];
   const notificationPackage: any = notificationPkgDef['sonet.notification'];
+  const listPackage: any = listPkgDef['sonet.list.v1'];
+  const starterpackPackage: any = starterpackPkgDef['sonet.starterpack.v1'];
 
   const user: Client = new userPackage.UserService(userTarget, credentials.createInsecure());
   const note: Client = new notePackage.NoteService(noteTarget, credentials.createInsecure());
@@ -63,6 +71,8 @@ export function createGrpcClients(): GrpcClients {
   const messaging: Client = new messagingPackage.MessagingService(messagingTarget, credentials.createInsecure());
   const search: Client = new searchPackage.SearchService(searchTarget, credentials.createInsecure());
   const notification: Client = new notificationPackage.NotificationService(notificationTarget, credentials.createInsecure());
+  const list: Client = new listPackage.ListService(listTarget, credentials.createInsecure());
+  const starterpack: Client = new starterpackPackage.StarterpackService(starterpackTarget, credentials.createInsecure());
 
-  return { user, note, timeline, media, follow, messaging, search, notification };
+  return { user, note, timeline, media, follow, messaging, search, notification, list, starterpack };
 }
