@@ -1,5 +1,5 @@
-import React, {createContext, useContext, useMemo} from 'react'
-import {USE_SONET_MESSAGING} from '#/env'
+import React, {createContext, useContext, useMemo, useEffect} from 'react'
+import {USE_SONET_MESSAGING, USE_SONET_E2E_ENCRYPTION} from '#/env'
 import {useConvo, useConvoState, useConvoDispatch} from './convo'
 import {useSonetConvo, useSonetConvoState, useSonetConvoDispatch} from './sonet/convo'
 import type {ConvoParams} from './convo/types'
@@ -15,6 +15,8 @@ export interface UnifiedConvoState {
   typingUsers: Set<string>
   unreadCount: number
   chat?: any
+  isEncrypted?: boolean
+  encryptionStatus?: 'enabled' | 'disabled' | 'pending'
 }
 
 export interface UnifiedConvoApi {
@@ -23,6 +25,8 @@ export interface UnifiedConvoApi {
   loadMoreMessages: () => Promise<void>
   markAsRead: (messageId: string) => Promise<void>
   setTyping: (isTyping: boolean) => Promise<void>
+  enableEncryption?: () => Promise<void>
+  getEncryptionStatus?: () => Promise<'enabled' | 'disabled' | 'pending'>
   dispatch: any
 }
 
@@ -30,6 +34,7 @@ interface UnifiedConvoContextValue {
   state: UnifiedConvoState
   api: UnifiedConvoApi
   isSonet: boolean
+  isEncrypted: boolean
 }
 
 const UnifiedConvoContext = createContext<UnifiedConvoContextValue | null>(null)
@@ -41,7 +46,8 @@ interface UnifiedConvoProviderProps {
 }
 
 export function UnifiedConvoProvider({children, convoId, initialChat}: UnifiedConvoProviderProps) {
-  const isSonet = USE_SONET_MESSAGING
+  // Default to Sonet messaging for new installations
+  const isSonet = USE_SONET_MESSAGING !== false // Default to true if not explicitly disabled
 
   if (isSonet) {
     return (
@@ -67,6 +73,17 @@ function UnifiedConvoProviderInner({isSonet}: {isSonet: boolean}) {
   const sonetState = useSonetConvoState()
   const sonetDispatch = useSonetConvoDispatch()
 
+  // Handle encryption status for Sonet
+  useEffect(() => {
+    if (isSonet && sonetState.chat?.isEncrypted) {
+      // Update encryption status when chat encryption is enabled
+      sonetDispatch({
+        type: 'SET_ENCRYPTION_STATUS',
+        payload: { status: 'enabled' }
+      })
+    }
+  }, [isSonet, sonetState.chat?.isEncrypted, sonetDispatch])
+
   const unifiedState: UnifiedConvoState = useMemo(() => {
     if (isSonet) {
       return {
@@ -78,6 +95,8 @@ function UnifiedConvoProviderInner({isSonet}: {isSonet: boolean}) {
         typingUsers: sonetState.typingUsers,
         unreadCount: sonetState.unreadCount,
         chat: sonetState.chat,
+        isEncrypted: sonetState.chat?.isEncrypted || false,
+        encryptionStatus: sonetState.encryptionStatus || 'disabled'
       }
     } else {
       return {
@@ -89,6 +108,8 @@ function UnifiedConvoProviderInner({isSonet}: {isSonet: boolean}) {
         typingUsers: atprotoState.typingUsers,
         unreadCount: atprotoState.unreadCount,
         chat: atprotoState.convo,
+        isEncrypted: false, // AT Protocol doesn't support E2E encryption
+        encryptionStatus: 'disabled'
       }
     }
   }, [isSonet, atprotoState, sonetState])
@@ -101,6 +122,8 @@ function UnifiedConvoProviderInner({isSonet}: {isSonet: boolean}) {
         loadMoreMessages: sonetConvo.loadMoreMessages,
         markAsRead: sonetConvo.markAsRead,
         setTyping: sonetConvo.setTyping,
+        enableEncryption: sonetConvo.enableEncryption,
+        getEncryptionStatus: sonetConvo.getEncryptionStatus,
         dispatch: sonetDispatch,
       }
     } else {
@@ -115,14 +138,15 @@ function UnifiedConvoProviderInner({isSonet}: {isSonet: boolean}) {
     }
   }, [isSonet, atprotoConvo, sonetConvo, atprotoDispatch, sonetDispatch])
 
-  const value: UnifiedConvoContextValue = useMemo(() => ({
+  const contextValue: UnifiedConvoContextValue = useMemo(() => ({
     state: unifiedState,
     api: unifiedApi,
     isSonet,
+    isEncrypted: unifiedState.isEncrypted || false
   }), [unifiedState, unifiedApi, isSonet])
 
   return (
-    <UnifiedConvoContext.Provider value={value}>
+    <UnifiedConvoContext.Provider value={contextValue}>
       {children}
     </UnifiedConvoContext.Provider>
   )
@@ -146,4 +170,8 @@ export function useUnifiedConvoApi(): UnifiedConvoApi {
 
 export function useIsSonetMessaging(): boolean {
   return useUnifiedConvo().isSonet
+}
+
+export function useIsEncrypted(): boolean {
+  return useUnifiedConvo().isEncrypted
 }

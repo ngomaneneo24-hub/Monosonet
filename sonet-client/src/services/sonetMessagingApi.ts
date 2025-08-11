@@ -1,209 +1,478 @@
 import {SONET_API_BASE} from '#/env'
-import {SonetApi} from './sonetApi'
-
-export interface SonetMessage {
-  message_id: string
-  chat_id: string
-  sender_id: string
-  content: string
-  type: 'text' | 'image' | 'video' | 'audio' | 'file' | 'location' | 'system'
-  status: 'sent' | 'delivered' | 'read' | 'failed'
-  encryption: 'none' | 'aes256' | 'e2e'
-  encrypted_content?: string
-  attachments?: string[]
-  reply_to_message_id?: string
-  is_edited: boolean
-  created_at: string
-  updated_at: string
-  delivered_at?: string
-  read_at?: string
-}
+import {sonetCrypto} from './sonetCrypto'
+import {sonetWebSocket} from './sonetWebSocket'
+import {EventEmitter} from 'events'
 
 export interface SonetChat {
-  chat_id: string
+  id: string
   name: string
-  description: string
-  type: 'direct' | 'group' | 'channel'
-  creator_id: string
-  participant_ids: string[]
-  last_message_id?: string
-  last_activity: string
-  is_archived: boolean
-  is_muted: boolean
-  avatar_url?: string
-  settings: Record<string, string>
-  created_at: string
-  updated_at: string
+  type: 'direct' | 'group'
+  participants: SonetUser[]
+  lastMessage?: SonetMessage
+  unreadCount: number
+  createdAt: string
+  updatedAt: string
+  isEncrypted: boolean
+  encryptionKeyId?: string
 }
 
-export interface SonetTypingIndicator {
-  chat_id: string
-  user_id: string
-  is_typing: boolean
+export interface SonetUser {
+  id: string
+  username: string
+  displayName: string
+  avatar?: string
+  isOnline: boolean
+  lastSeen?: string
+  publicKey?: string
+}
+
+export interface SonetMessage {
+  id: string
+  chatId: string
+  senderId: string
+  content: string
+  type: 'text' | 'image' | 'file' | 'system'
   timestamp: string
-}
-
-export interface SonetReadReceipt {
-  message_id: string
-  user_id: string
-  read_at: string
+  isEncrypted: boolean
+  encryptionData?: {
+    keyId: string
+    algorithm: string
+    iv: string
+    authTag: string
+  }
+  attachments?: SonetAttachment[]
+  replyTo?: string
+  reactions: SonetReaction[]
+  readBy: string[]
+  status: 'sending' | 'sent' | 'delivered' | 'read' | 'failed'
 }
 
 export interface SonetAttachment {
-  attachment_id: string
+  id: string
   filename: string
-  content_type: string
+  mimeType: string
   size: number
   url: string
-  thumbnail_url?: string
-  metadata: Record<string, string>
+  thumbnailUrl?: string
+  isEncrypted: boolean
+  encryptionData?: {
+    keyId: string
+    algorithm: string
+    iv: string
+    authTag: string
+  }
 }
 
-export interface SendMessageRequest {
-  chat_id: string
-  content: string
-  type?: 'text' | 'image' | 'video' | 'audio' | 'file' | 'location' | 'system'
-  attachment_ids?: string[]
-  reply_to_message_id?: string
-  encryption?: 'none' | 'aes256' | 'e2e'
-}
-
-export interface GetMessagesRequest {
-  chat_id: string
-  limit?: number
-  cursor?: string
-  before?: string
-  after?: string
-}
-
-export interface GetChatsRequest {
-  user_id: string
-  type?: 'direct' | 'group' | 'channel'
-  limit?: number
-  cursor?: string
+export interface SonetReaction {
+  emoji: string
+  userId: string
+  timestamp: string
 }
 
 export interface CreateChatRequest {
-  name: string
-  description?: string
-  type: 'direct' | 'group' | 'channel'
-  participant_ids: string[]
-  avatar_url?: string
+  type: 'direct' | 'group'
+  participantIds: string[]
+  name?: string
+  isEncrypted?: boolean
 }
 
-export class SonetMessagingApi {
-  private api: SonetApi
+export interface SendMessageRequest {
+  chatId: string
+  content: string
+  type?: 'text' | 'image' | 'file'
+  replyTo?: string
+  attachments?: File[]
+  encrypt?: boolean
+}
 
-  constructor(api: SonetApi) {
-    this.api = api
+export interface ChatUpdateEvent {
+  type: 'message' | 'participant_joined' | 'participant_left' | 'chat_renamed' | 'encryption_enabled'
+  data: any
+  timestamp: string
+}
+
+export class SonetMessagingApi extends EventEmitter {
+  private baseUrl: string
+  private authToken: string | null = null
+  private isConnected = false
+  private chatCache = new Map<string, SonetChat>()
+  private messageCache = new Map<string, SonetMessage[]>()
+  private userCache = new Map<string, SonetUser>()
+
+  constructor() {
+    super()
+    this.baseUrl = SONET_API_BASE
+    this.setupWebSocketListeners()
   }
 
-  // Send a message
-  async sendMessage(request: SendMessageRequest): Promise<SonetMessage> {
-    const response = await this.api.fetchJson('/v1/messages', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    })
-    return response.message
-  }
+  // Authentication
+  async authenticate(token: string): Promise<void> {
+    this.authToken = token
+    
+    // Initialize crypto with user ID from token
+    const userId = this.extractUserIdFromToken(token)
+    if (userId) {
+      await sonetCrypto.getOrCreateKeyPair()
+    }
 
-  // Get messages for a chat
-  async getMessages(request: GetMessagesRequest): Promise<{
-    messages: SonetMessage[]
-    pagination: {cursor?: string; has_more: boolean}
-  }> {
-    const params = new URLSearchParams()
-    if (request.limit) params.append('limit', request.limit.toString())
-    if (request.cursor) params.append('cursor', request.cursor)
-    if (request.before) params.append('before', request.before)
-    if (request.after) params.append('after', request.after)
-
-    const response = await this.api.fetchJson(`/v1/messages/${request.chat_id}?${params}`)
-    return {
-      messages: response.messages || [],
-      pagination: response.pagination || {has_more: false},
+    // Connect WebSocket
+    try {
+      await sonetWebSocket.connect(token)
+      this.isConnected = true
+      this.emit('authenticated')
+    } catch (error) {
+      console.error('Failed to authenticate WebSocket:', error)
+      throw error
     }
   }
 
-  // Get user's chats
-  async getChats(request: GetChatsRequest): Promise<{
-    chats: SonetChat[]
-    pagination: {cursor?: string; has_more: boolean}
-  }> {
-    const params = new URLSearchParams()
-    if (request.type) params.append('type', request.type)
-    if (request.limit) params.append('limit', request.limit.toString())
-    if (request.cursor) params.append('cursor', request.cursor)
-
-    const response = await this.api.fetchJson(`/v1/messages/conversations?${params}`)
-    return {
-      chats: response.conversations || [],
-      pagination: response.pagination || {has_more: false},
+  private extractUserIdFromToken(token: string): string | null {
+    try {
+      // In a real implementation, you'd decode the JWT token
+      // For now, we'll use a simple approach
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      return payload.sub || payload.user_id
+    } catch {
+      return null
     }
   }
 
-  // Create a new chat
+  // Chat Management
   async createChat(request: CreateChatRequest): Promise<SonetChat> {
-    const response = await this.api.fetchJson('/v1/chats', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    })
-    return response.chat
-  }
+    try {
+      const response = await this.apiRequest('/messaging/chats', {
+        method: 'POST',
+        body: JSON.stringify(request)
+      })
 
-  // Upload attachment
-  async uploadAttachment(file: Blob, filename: string, mime: string): Promise<SonetAttachment> {
-    const form = new FormData()
-    form.append('file', file, filename)
-    form.append('content_type', mime)
+      const chat: SonetChat = response.data
+      this.chatCache.set(chat.id, chat)
+      
+      // If encryption is enabled, perform key exchange
+      if (request.isEncrypted) {
+        await this.performKeyExchange(chat.id, request.participantIds)
+      }
 
-    const response = await this.api.fetchForm('/v1/messages/attachments', form)
-    return response.attachment
-  }
-
-  // Set typing indicator
-  async setTyping(chat_id: string, is_typing: boolean): Promise<void> {
-    await this.api.fetchJson('/v1/messages/typing', {
-      method: 'POST',
-      body: JSON.stringify({chat_id, is_typing}),
-    })
-  }
-
-  // Mark message as read
-  async markAsRead(message_id: string): Promise<void> {
-    await this.api.fetchJson(`/v1/messages/${message_id}/read`, {
-      method: 'POST',
-    })
-  }
-
-  // Search messages
-  async searchMessages(query: string, chat_id?: string, limit = 20): Promise<{
-    messages: SonetMessage[]
-    pagination: {cursor?: string; has_more: boolean}
-  }> {
-    const params = new URLSearchParams({q: query, limit: limit.toString()})
-    if (chat_id) params.append('chat_id', chat_id)
-
-    const response = await this.api.fetchJson(`/v1/messages/search?${params}`)
-    return {
-      messages: response.messages || [],
-      pagination: response.pagination || {has_more: false},
+      this.emit('chat_created', chat)
+      return chat
+    } catch (error) {
+      console.error('Failed to create chat:', error)
+      throw error
     }
   }
 
-  // Delete message
-  async deleteMessage(message_id: string): Promise<void> {
-    await this.api.fetchJson(`/v1/messages/${message_id}`, {
-      method: 'DELETE',
+  async getChats(): Promise<SonetChat[]> {
+    try {
+      const response = await this.apiRequest('/messaging/chats')
+      const chats: SonetChat[] = response.data
+      
+      // Update cache
+      chats.forEach(chat => this.chatCache.set(chat.id, chat))
+      
+      return chats
+    } catch (error) {
+      console.error('Failed to get chats:', error)
+      throw error
+    }
+  }
+
+  async getChat(chatId: string): Promise<SonetChat> {
+    // Check cache first
+    if (this.chatCache.has(chatId)) {
+      return this.chatCache.get(chatId)!
+    }
+
+    try {
+      const response = await this.apiRequest(`/messaging/chats/${chatId}`)
+      const chat: SonetChat = response.data
+      this.chatCache.set(chatId, chat)
+      return chat
+    } catch (error) {
+      console.error('Failed to get chat:', error)
+      throw error
+    }
+  }
+
+  // Message Management
+  async sendMessage(request: SendMessageRequest): Promise<SonetMessage> {
+    try {
+      let encryptedContent = request.content
+      let encryptionData = undefined
+
+      // Encrypt message if requested and chat supports encryption
+      if (request.encrypt !== false) {
+        const chat = await this.getChat(request.chatId)
+        if (chat.isEncrypted) {
+          const recipient = chat.participants.find(p => p.id !== this.extractUserIdFromToken(this.authToken!))
+          if (recipient?.publicKey) {
+            const publicKey = await sonetCrypto.importPublicKey(recipient.publicKey)
+            const encrypted = await sonetCrypto.encryptMessage(request.content, request.chatId, publicKey)
+            
+            encryptedContent = encrypted.encryptedContent
+            encryptionData = {
+              keyId: encrypted.keyId,
+              algorithm: encrypted.algorithm,
+              iv: encrypted.iv,
+              authTag: encrypted.authTag
+            }
+          }
+        }
+      }
+
+      const messageData = {
+        chatId: request.chatId,
+        content: encryptedContent,
+        type: request.type || 'text',
+        replyTo: request.replyTo,
+        encrypt: request.encrypt !== false
+      }
+
+      const response = await this.apiRequest('/messaging/messages', {
+        method: 'POST',
+        body: JSON.stringify(messageData)
+      })
+
+      const message: SonetMessage = response.data
+      
+      // Add to cache
+      if (!this.messageCache.has(request.chatId)) {
+        this.messageCache.set(request.chatId, [])
+      }
+      this.messageCache.get(request.chatId)!.push(message)
+
+      // Emit real-time event
+      this.emit('message_sent', message)
+      
+      return message
+    } catch (error) {
+      console.error('Failed to send message:', error)
+      throw error
+    }
+  }
+
+  async getMessages(chatId: string, limit: number = 50, before?: string): Promise<SonetMessage[]> {
+    try {
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+        ...(before && { before })
+      })
+
+      const response = await this.apiRequest(`/messaging/chats/${chatId}/messages?${params}`)
+      const messages: SonetMessage[] = response.data
+
+      // Decrypt messages if needed
+      const decryptedMessages = await Promise.all(
+        messages.map(async (message) => {
+          if (message.isEncrypted && message.encryptionData) {
+            try {
+              const decryptedContent = await sonetCrypto.decryptMessage(
+                {
+                  encryptedContent: message.content,
+                  iv: message.encryptionData.iv,
+                  authTag: message.encryptionData.authTag,
+                  keyId: message.encryptionData.keyId,
+                  algorithm: message.encryptionData.algorithm,
+                  timestamp: message.timestamp
+                },
+                chatId
+              )
+              return { ...message, content: decryptedContent }
+            } catch (error) {
+              console.error('Failed to decrypt message:', error)
+              return { ...message, content: '[Encrypted]' }
+            }
+          }
+          return message
+        })
+      )
+
+      // Update cache
+      if (!this.messageCache.has(chatId)) {
+        this.messageCache.set(chatId, [])
+      }
+      this.messageCache.get(chatId)!.push(...decryptedMessages)
+
+      return decryptedMessages
+    } catch (error) {
+      console.error('Failed to get messages:', error)
+      throw error
+    }
+  }
+
+  // Real-time Features
+  private setupWebSocketListeners(): void {
+    sonetWebSocket.on('message', (messageData) => {
+      this.handleIncomingMessage(messageData)
+    })
+
+    sonetWebSocket.on('typing', (typingData) => {
+      this.emit('typing', typingData)
+    })
+
+    sonetWebSocket.on('read_receipt', (receiptData) => {
+      this.emit('read_receipt', receiptData)
+    })
+
+    sonetWebSocket.on('user_status', (statusData) => {
+      this.emit('user_status', statusData)
+    })
+
+    sonetWebSocket.on('chat_update', (updateData) => {
+      this.emit('chat_update', updateData)
     })
   }
 
-  // Edit message
-  async editMessage(message_id: string, content: string): Promise<SonetMessage> {
-    const response = await this.api.fetchJson(`/v1/messages/${message_id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({content}),
-    })
-    return response.message
+  private async handleIncomingMessage(messageData: any): Promise<void> {
+    try {
+      const message: SonetMessage = messageData
+      
+      // Decrypt if needed
+      if (message.isEncrypted && message.encryptionData) {
+        try {
+          const decryptedContent = await sonetCrypto.decryptMessage(
+            {
+              encryptedContent: message.content,
+              iv: message.encryptionData.iv,
+              authTag: message.encryptionData.authTag,
+              keyId: message.encryptionData.keyId,
+              algorithm: message.encryptionData.algorithm,
+              timestamp: message.timestamp
+            },
+            message.chatId
+          )
+          message.content = decryptedContent
+        } catch (error) {
+          console.error('Failed to decrypt incoming message:', error)
+          message.content = '[Encrypted]'
+        }
+      }
+
+      // Add to cache
+      if (!this.messageCache.has(message.chatId)) {
+        this.messageCache.set(message.chatId, [])
+      }
+      this.messageCache.get(message.chatId)!.push(message)
+
+      // Emit event
+      this.emit('message_received', message)
+    } catch (error) {
+      console.error('Failed to handle incoming message:', error)
+    }
+  }
+
+  // Typing and Read Receipts
+  sendTyping(chatId: string, isTyping: boolean): void {
+    sonetWebSocket.sendTyping(chatId, isTyping)
+  }
+
+  sendReadReceipt(messageId: string): void {
+    sonetWebSocket.sendReadReceipt(messageId)
+  }
+
+  // Key Exchange
+  private async performKeyExchange(chatId: string, participantIds: string[]): Promise<void> {
+    try {
+      const keyExchangeMessage = await sonetCrypto.createKeyExchangeMessage()
+      
+      // Send key exchange message to all participants
+      await this.apiRequest('/messaging/key-exchange', {
+        method: 'POST',
+        body: JSON.stringify({
+          chatId,
+          participantIds,
+          keyExchangeMessage
+        })
+      })
+
+      this.emit('key_exchange_completed', { chatId, participantIds })
+    } catch (error) {
+      console.error('Failed to perform key exchange:', error)
+      throw error
+    }
+  }
+
+  // File Attachments
+  async uploadAttachment(file: File, chatId: string, encrypt: boolean = true): Promise<SonetAttachment> {
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('chatId', chatId)
+      formData.append('encrypt', encrypt.toString())
+
+      const response = await this.apiRequest('/messaging/attachments', {
+        method: 'POST',
+        body: formData
+      })
+
+      return response.data
+    } catch (error) {
+      console.error('Failed to upload attachment:', error)
+      throw error
+    }
+  }
+
+  // Utility Methods
+  private async apiRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
+    if (!this.authToken) {
+      throw new Error('Not authenticated')
+    }
+
+    const url = `${this.baseUrl}${endpoint}`
+    const config: RequestInit = {
+      headers: {
+        'Authorization': `Bearer ${this.authToken}`,
+        'Content-Type': 'application/json',
+        ...options.headers
+      },
+      ...options
+    }
+
+    // Remove Content-Type for FormData
+    if (options.body instanceof FormData) {
+      delete config.headers!['Content-Type']
+    }
+
+    const response = await fetch(url, config)
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || `HTTP ${response.status}`)
+    }
+
+    return response.json()
+  }
+
+  // Cache Management
+  clearCache(): void {
+    this.chatCache.clear()
+    this.messageCache.clear()
+    this.userCache.clear()
+  }
+
+  getCachedChat(chatId: string): SonetChat | undefined {
+    return this.chatCache.get(chatId)
+  }
+
+  getCachedMessages(chatId: string): SonetMessage[] | undefined {
+    return this.messageCache.get(chatId)
+  }
+
+  // Connection Status
+  isWebSocketConnected(): boolean {
+    return sonetWebSocket.isConnected()
+  }
+
+  getConnectionState(): string {
+    return sonetWebSocket.getConnectionState()
+  }
+
+  disconnect(): void {
+    sonetWebSocket.disconnect()
+    this.isConnected = false
+    this.authToken = null
+    this.clearCache()
   }
 }
+
+// Export singleton instance
+export const sonetMessagingApi = new SonetMessagingApi()
