@@ -2,6 +2,9 @@ import {useCallback, useEffect, useMemo, useState} from 'react'
 import {View} from 'react-native'
 import {useAnimatedRef} from 'react-native-reanimated'
 import {type ChatBskyActorDefs, type ChatBskyConvoDefs} from '@atproto/api'
+import type {SonetChat} from '#/services/sonetMessagingApi'
+import {useIsSonetMessaging} from '#/state/messages/hybrid-provider'
+import {convertAtprotoConvoToSonet} from '#/state/messages/adapters/atproto-to-sonet'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useFocusEffect, useIsFocused} from '@react-navigation/native'
@@ -49,7 +52,7 @@ type ListItem =
     }
   | {
       type: 'CONVERSATION'
-      conversation: ChatBskyConvoDefs.ConvoView
+      conversation: ChatBskyConvoDefs.ConvoView | SonetChat
     }
 
 function renderItem({item}: {item: ListItem}) {
@@ -62,7 +65,8 @@ function renderItem({item}: {item: ListItem}) {
 }
 
 function keyExtractor(item: ListItem) {
-  return item.type === 'INBOX' ? 'INBOX' : item.conversation.id
+  return item.type === 'INBOX' ? 'INBOX' : 
+    'chat_id' in item.conversation ? item.conversation.chat_id : item.conversation.id
 }
 
 type Props = NativeStackScreenProps<MessagesTabNavigatorParams, 'Messages'>
@@ -87,6 +91,7 @@ export function MessagesScreenInner({navigation, route}: Props) {
   const newChatControl = useDialogControl()
   const scrollElRef: ListRef = useAnimatedRef()
   const pushToConversation = route.params?.pushToConversation
+  const isSonet = useIsSonetMessaging()
 
   // Whenever we have `pushToConversation` set, it means we pressed a notification for a chat without being on
   // this tab. We should immediately push to the conversation after pressing the notification.
