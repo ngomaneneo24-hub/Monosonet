@@ -17,7 +17,7 @@ import {
   useInfiniteQuery,
 } from '@tanstack/react-query'
 
-import {AuthorFeedAPI} from '#/lib/api/feed/author'
+import {AuthorFeedAPI, SonetAuthorFeedAPI} from '#/lib/api/feed/author'
 import {CustomFeedAPI} from '#/lib/api/feed/custom'
 import {DemoFeedAPI} from '#/lib/api/feed/demo'
 import {FollowingFeedAPI} from '#/lib/api/feed/following'
@@ -498,6 +498,10 @@ function createApi({
     }
   } else if (feedDesc.startsWith('author')) {
     const [_, actor, filter] = feedDesc.split('|')
+    if ((useSonetSession as any) && (useSonetSession as any)().hasSession) {
+      const sonetApi = (useSonetApi as any)().getApi()
+      return new SonetAuthorFeedAPI({sonet: sonetApi, userId: actor.replace('did:', '')})
+    }
     return new AuthorFeedAPI({agent, feedParams: {actor, filter}})
   } else if (feedDesc.startsWith('likes')) {
     const [_, actor] = feedDesc.split('|')

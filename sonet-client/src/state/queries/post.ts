@@ -303,6 +303,8 @@ function usePostRepostMutation(
   logContext: LogEvents['post:repost']['logContext'],
 ) {
   const agent = useAgent()
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
   return useMutation<
     {uri: string}, // responds with the uri of the repost
     Error,
@@ -310,6 +312,10 @@ function usePostRepostMutation(
   >({
     mutationFn: ({uri, cid, via}) => {
       logger.metric('post:repost', {logContext, feedDescriptor})
+      if (sonetSession.hasSession) {
+        const id = extractSonetNoteId(uri)
+        return sonet.getApi().renote(id, true).then(() => ({uri}))
+      }
       return agent.repost(uri, cid, via)
     },
   })
@@ -320,9 +326,15 @@ function usePostUnrepostMutation(
   logContext: LogEvents['post:unrepost']['logContext'],
 ) {
   const agent = useAgent()
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
   return useMutation<void, Error, {postUri: string; repostUri: string}>({
     mutationFn: ({repostUri}) => {
       logger.metric('post:unrepost', {logContext, feedDescriptor})
+      if (sonetSession.hasSession) {
+        const id = extractSonetNoteId(repostUri)
+        return sonet.getApi().renote(id, false).then(() => {})
+      }
       return agent.deleteRepost(repostUri)
     },
   })
