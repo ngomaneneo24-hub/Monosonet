@@ -25,6 +25,7 @@ import {
 import {isWeb} from '#/platform/detection'
 import {type Shadow, useMaybeProfileShadow} from '#/state/cache/profile-shadow'
 import {ConvoProvider, isConvoActive, useConvo} from '#/state/messages/convo'
+import {UnifiedConvoProvider, useUnifiedConvoState, useUnifiedConvoApi, useIsSonetMessaging} from '#/state/messages/hybrid-provider'
 import {ConvoStatus} from '#/state/messages/convo/types'
 import {useCurrentConvoId} from '#/state/messages/current-convo-id'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
@@ -43,6 +44,7 @@ import {MessagesListHeader} from '#/components/dms/MessagesListHeader'
 import {Error} from '#/components/Error'
 import * as Layout from '#/components/Layout'
 import {Loader} from '#/components/Loader'
+import {MigrationStatus} from '#/components/MigrationStatus'
 
 type Props = NativeStackScreenProps<
   CommonNavigatorParams,
@@ -89,15 +91,18 @@ export function MessagesConversationScreenInner({route}: Props) {
 
   return (
     <Layout.Screen testID="convoScreen" style={web([{minHeight: 0}, a.flex_1])}>
-      <ConvoProvider key={convoId} convoId={convoId}>
+      <UnifiedConvoProvider key={convoId} convoId={convoId}>
         <Inner />
-      </ConvoProvider>
+      </UnifiedConvoProvider>
     </Layout.Screen>
   )
 }
 
 function Inner() {
   const t = useTheme()
+  const isSonet = useIsSonetMessaging()
+  const state = useUnifiedConvoState()
+  const api = useUnifiedConvoApi()
   const convoState = useConvo()
   const {_} = useLingui()
 
@@ -152,6 +157,12 @@ function Inner() {
 
   return (
     <Layout.Center style={[a.flex_1]}>
+      {/* Show migration status when using Sonet */}
+      {isSonet && (
+        <View style={[a.p_4, a.w_full]}>
+          <MigrationStatus />
+        </View>
+      )}
       {!readyToShow &&
         (moderation ? (
           <MessagesListHeader moderation={moderation} profile={recipient} />
