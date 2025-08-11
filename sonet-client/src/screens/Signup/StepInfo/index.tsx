@@ -146,48 +146,13 @@ export function StepInfo({
     <ScreenTransition>
       <View style={[a.gap_md, a.pt_lg]}>
         <FormError error={state.error} />
-        <HostingProvider
-          minimal
-          serviceUrl={state.serviceUrl}
-          onSelectServiceUrl={v => dispatch({type: 'setServiceUrl', value: v})}
-        />
+        <HostingProvider serviceUrl={state.serviceUrl} />
         {state.isLoading || isLoadingStarterPack ? (
           <View style={[a.align_center]}>
             <Loader size="xl" />
           </View>
-        ) : state.serviceDescription ? (
+        ) : (
           <>
-            {state.serviceDescription.inviteCodeRequired && (
-              <View>
-                <TextField.LabelText>
-                  <Trans>Invite code</Trans>
-                </TextField.LabelText>
-                <TextField.Root isInvalid={state.errorField === 'invite-code'}>
-                  <TextField.Icon icon={Ticket} />
-                  <TextField.Input
-                    onChangeText={value => {
-                      inviteCodeValueRef.current = value.trim()
-                      if (
-                        state.errorField === 'invite-code' &&
-                        value.trim().length > 0
-                      ) {
-                        dispatch({type: 'clearError'})
-                      }
-                    }}
-                    label={_(msg`Required for this provider`)}
-                    defaultValue={state.inviteCode}
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    keyboardType="email-address"
-                    returnKeyType="next"
-                    submitBehavior={native('submit')}
-                    onSubmitEditing={native(() =>
-                      emailInputRef.current?.focus(),
-                    )}
-                  />
-                </TextField.Root>
-              </View>
-            )}
             <View>
               <TextField.LabelText>
                 <Trans>Email</Trans>
@@ -271,13 +236,9 @@ export function StepInfo({
                 maximumDate={new Date()}
               />
             </View>
-            <Policies
-              serviceDescription={state.serviceDescription}
-              needsGuardian={!is18(state.dateOfBirth)}
-              under13={!is13(state.dateOfBirth)}
-            />
+            <Policies needsGuardian={!is18(state.dateOfBirth)} under13={!is13(state.dateOfBirth)} />
           </>
-        ) : undefined}
+        )}
       </View>
       <BackNextButtons
         hideNext={!is13(state.dateOfBirth)}

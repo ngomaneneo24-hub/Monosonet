@@ -26,6 +26,7 @@ import {atoms as a, useTheme} from '#/alf'
 import {Button, ButtonIcon, ButtonText} from '#/components/Button'
 import {FormError} from '#/components/forms/FormError'
 import {HostingProvider} from '#/components/forms/HostingProvider'
+import {SONET_API_BASE} from '#/env'
 import * as TextField from '#/components/forms/TextField'
 import {At_Stroke2_Corner0_Rounded as At} from '#/components/icons/At'
 import {Lock_Stroke2_Corner0_Rounded as Lock} from '#/components/icons/Lock'
@@ -105,35 +106,21 @@ export const LoginForm = ({
     setIsProcessing(true)
 
     try {
-      // If user selected the default Bluesky provider, use AT login; otherwise try Sonet when serviceUrl points to our gateway base.
-      const isSonet = serviceUrl.includes('localhost') || serviceUrl.includes('sonet') || serviceUrl.includes('api')
-      if (isSonet) {
-        await sonetLogin({username: identifier, password})
-        onAttemptSuccess()
-        setShowLoggedOut(false)
-        setHasCheckedForStarterPack(true)
-        requestNotificationsPermission('Login')
-        return
-      }
+      await sonetLogin({username: identifier, password})
+      onAttemptSuccess()
+      setShowLoggedOut(false)
+      setHasCheckedForStarterPack(true)
+      requestNotificationsPermission('Login')
+      return
       // try to guess the handle if the user just gave their own username
       let fullIdent = identifier
       if (
-        !identifier.includes('@') && // not an email
-        !identifier.includes('.') && // not a domain
-        serviceDescription &&
-        serviceDescription.availableUserDomains.length > 0
+        !identifier.includes('@') &&
+        !identifier.includes('.')
       ) {
         let matched = false
-        for (const domain of serviceDescription.availableUserDomains) {
-          if (fullIdent.endsWith(domain)) {
-            matched = true
-          }
-        }
         if (!matched) {
-          fullIdent = createFullHandle(
-            identifier,
-            serviceDescription.availableUserDomains[0],
-          )
+          fullIdent = identifier
         }
       }
 
@@ -195,11 +182,7 @@ export const LoginForm = ({
         <TextField.LabelText>
           <Trans>Service</Trans>
         </TextField.LabelText>
-        <HostingProvider
-          serviceUrl={serviceUrl}
-          onSelectServiceUrl={setServiceUrl}
-          onOpenDialog={onPressSelectService}
-        />
+        <HostingProvider serviceUrl={serviceUrl} />
       </View>
       <View>
         <TextField.LabelText>
@@ -329,7 +312,7 @@ export const LoginForm = ({
           </ButtonText>
         </Button>
         <View style={a.flex_1} />
-        {!serviceDescription && error ? (
+        {false && error ? (
           <Button
             testID="loginRetryButton"
             label={_(msg`Retry`)}
@@ -342,7 +325,7 @@ export const LoginForm = ({
               <Trans>Retry</Trans>
             </ButtonText>
           </Button>
-        ) : !serviceDescription ? (
+        ) : false ? (
           <>
             <ActivityIndicator />
             <Text style={[t.atoms.text_contrast_high, a.pl_md]}>
