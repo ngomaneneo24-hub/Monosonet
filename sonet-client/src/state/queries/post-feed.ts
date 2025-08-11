@@ -17,7 +17,7 @@ import {
   useInfiniteQuery,
 } from '@tanstack/react-query'
 
-import {AuthorFeedAPI} from '#/lib/api/feed/author'
+import {AuthorFeedAPI, SonetAuthorFeedAPI} from '#/lib/api/feed/author'
 import {CustomFeedAPI} from '#/lib/api/feed/custom'
 import {DemoFeedAPI} from '#/lib/api/feed/demo'
 import {FollowingFeedAPI} from '#/lib/api/feed/following'
@@ -36,6 +36,7 @@ import {useAgeAssuranceContext} from '#/state/ageAssurance'
 import {STALE} from '#/state/queries'
 import {DEFAULT_LOGGED_OUT_PREFERENCES} from '#/state/queries/preferences/const'
 import {useAgent} from '#/state/session'
+import {useSonetApi, useSonetSession} from '#/state/session/sonet'
 import * as userActionHistory from '#/state/userActionHistory'
 import {KnownError} from '#/view/com/posts/PostFeedErrorMessage'
 import {useFeedTuners} from '../preferences/feed-tuners'
@@ -155,6 +156,8 @@ export function usePostFeedQuery(
     ) ?? -1
   const enableFollowingToDiscoverFallback = followingPinnedIndex === 0
   const agent = useAgent()
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
   const lastRun = useRef<{
     data: InfiniteData<FeedPageUnselected>
     args: typeof selectArgs
@@ -195,16 +198,18 @@ export function usePostFeedQuery(
       const {api, cursor} = pageParam
         ? pageParam
         : {
-            api: createApi({
-              feedDesc,
-              feedParams: params || {},
-              feedTuners,
-              agent,
-              // Not in the query key because they don't change:
-              userInterests,
-              // Not in the query key. Reacting to it switching isn't important:
-              enableFollowingToDiscoverFallback,
-            }),
+            api: sonetSession.hasSession && feedDesc === 'following'
+              ? createSonetHomeApi({ sonet: sonet.getApi() })
+              : createApi({
+                feedDesc,
+                feedParams: params || {},
+                feedTuners,
+                agent,
+                // Not in the query key because they don't change:
+                userInterests,
+                // Not in the query key. Reacting to it switching isn't important:
+                enableFollowingToDiscoverFallback,
+              }),
             cursor: undefined,
           }
 
@@ -493,6 +498,10 @@ function createApi({
     }
   } else if (feedDesc.startsWith('author')) {
     const [_, actor, filter] = feedDesc.split('|')
+    if ((useSonetSession as any) && (useSonetSession as any)().hasSession) {
+      const sonetApi = (useSonetApi as any)().getApi()
+      return new SonetAuthorFeedAPI({sonet: sonetApi, userId: actor.replace('did:', '')})
+    }
     return new AuthorFeedAPI({agent, feedParams: {actor, filter}})
   } else if (feedDesc.startsWith('likes')) {
     const [_, actor] = feedDesc.split('|')
@@ -516,6 +525,47 @@ function createApi({
     // shouldnt happen
     return new FollowingFeedAPI({agent})
   }
+}
+
+function createSonetHomeApi({sonet}: {sonet: ReturnType<typeof useSonetApi>['getApi'] extends () => infer T ? T : any}) {
+  const api: FeedAPI = {
+    async peekLatest() {
+      const res = await sonet.getHomeTimeline({limit: 1})
+      const items = Array.isArray(res.notes) ? res.notes : []
+      const first = items[0]
+      return first ? mapSonetNoteToFeedViewPost(first) : {post: {uri: 'sonet://empty', cid: 'empty', author: {did: 'sonet:user', handle: 'user'} as any} as any}
+    },
+    async fetch({cursor, limit}) {
+      const res = await sonet.getHomeTimeline({cursor, limit})
+      const notes = Array.isArray(res.notes) ? res.notes : []
+      return {
+        cursor: res?.pagination?.cursor || undefined,
+        feed: notes.map(mapSonetNoteToFeedViewPost),
+      }
+    },
+  }
+  return api
+}
+
+function mapSonetNoteToFeedViewPost(n: any): AppBskyFeedDefs.FeedViewPost {
+  // Map minimal Sonet note response to a FeedViewPost shape
+  const author = n.author || {}
+  const post: AppBskyFeedDefs.PostView = {
+    uri: `sonet://note/${n.id}`,
+    cid: n.id,
+    author: {
+      did: author.did || author.id || 'sonet:user',
+      handle: author.username || 'user',
+      displayName: author.display_name,
+      avatar: author.avatar_url,
+    } as any,
+    record: {text: n.content || n.text || ''} as any,
+    likeCount: n.like_count || 0,
+    repostCount: n.renote_count || n.repost_count || 0,
+    replyCount: n.reply_count || 0,
+    indexedAt: n.created_at || new Date().toISOString(),
+  }
+  return {post}
 }
 
 export function* findAllPostsInQueryData(

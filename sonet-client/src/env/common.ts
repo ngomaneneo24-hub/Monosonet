@@ -87,3 +87,9 @@ export const GCP_PROJECT_ID: number =
   process.env.EXPO_PUBLIC_GCP_PROJECT_ID === undefined
     ? 0
     : Number(process.env.EXPO_PUBLIC_GCP_PROJECT_ID)
+
+/**
+ * Base URL for Sonet REST gateway (e.g., http://localhost:8080/api)
+ */
+export const SONET_API_BASE: string =
+  process.env.EXPO_PUBLIC_SONET_API_BASE || 'http://localhost:8080/api'

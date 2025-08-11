@@ -53,6 +53,7 @@ import {
   useSession,
   useSessionApi,
 } from '#/state/session'
+import {SonetSessionProvider} from '#/state/session/sonet'
 import {readLastActiveAccount} from '#/state/session/util'
 import {Provider as ShellStateProvider} from '#/state/shell'
 import {Provider as ComposerProvider} from '#/state/shell/composer'
@@ -215,32 +216,34 @@ function App() {
     <GeolocationProvider>
       <A11yProvider>
         <KeyboardControllerProvider>
-          <SessionProvider>
-            <PrefsStateProvider>
-              <I18nProvider>
-                <ShellStateProvider>
-                  <InvitesStateProvider>
-                    <ModalStateProvider>
-                      <DialogStateProvider>
-                        <LightboxStateProvider>
-                          <PortalProvider>
-                            <BottomSheetProvider>
-                              <StarterPackProvider>
-                                <SafeAreaProvider
-                                  initialMetrics={initialWindowMetrics}>
-                                  <InnerApp />
-                                </SafeAreaProvider>
-                              </StarterPackProvider>
-                            </BottomSheetProvider>
-                          </PortalProvider>
-                        </LightboxStateProvider>
-                      </DialogStateProvider>
-                    </ModalStateProvider>
-                  </InvitesStateProvider>
-                </ShellStateProvider>
-              </I18nProvider>
-            </PrefsStateProvider>
-          </SessionProvider>
+          <SonetSessionProvider>
+            <SessionProvider>
+              <PrefsStateProvider>
+                <I18nProvider>
+                  <ShellStateProvider>
+                    <InvitesStateProvider>
+                      <ModalStateProvider>
+                        <DialogStateProvider>
+                          <LightboxStateProvider>
+                            <PortalProvider>
+                              <BottomSheetProvider>
+                                <StarterPackProvider>
+                                  <SafeAreaProvider
+                                    initialMetrics={initialWindowMetrics}>
+                                    <InnerApp />
+                                  </SafeAreaProvider>
+                                </StarterPackProvider>
+                              </BottomSheetProvider>
+                            </PortalProvider>
+                          </LightboxStateProvider>
+                        </DialogStateProvider>
+                      </ModalStateProvider>
+                    </InvitesStateProvider>
+                  </ShellStateProvider>
+                </I18nProvider>
+              </PrefsStateProvider>
+            </SessionProvider>
+          </SonetSessionProvider>
         </KeyboardControllerProvider>
       </A11yProvider>
     </GeolocationProvider>
