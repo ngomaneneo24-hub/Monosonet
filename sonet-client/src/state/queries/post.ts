@@ -8,6 +8,7 @@ import {logger} from '#/logger'
 import {updatePostShadow} from '#/state/cache/post-shadow'
 import {type Shadow} from '#/state/cache/types'
 import {useAgent, useSession} from '#/state/session'
+import {useSonetApi, useSonetSession} from '#/state/session/sonet'
 import * as userActionHistory from '#/state/userActionHistory'
 import {useIsThreadMuted, useSetThreadMute} from '../cache/thread-mutes'
 import {findProfileQueryData} from './profile'
@@ -169,6 +170,8 @@ function usePostLikeMutation(
   const queryClient = useQueryClient()
   const postAuthor = post.author
   const agent = useAgent()
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
   return useMutation<
     {uri: string}, // responds with the uri of the like
     Error,
@@ -196,6 +199,10 @@ function usePostLikeMutation(
             : undefined,
         feedDescriptor: feedDescriptor,
       })
+      if (sonetSession.hasSession) {
+        const id = extractSonetNoteId(uri)
+        return sonet.getApi().likeNote(id, true).then(() => ({uri}))
+      }
       return agent.like(uri, cid, via)
     },
   })
@@ -206,12 +213,28 @@ function usePostUnlikeMutation(
   logContext: LogEvents['post:unlike']['logContext'],
 ) {
   const agent = useAgent()
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
   return useMutation<void, Error, {postUri: string; likeUri: string}>({
     mutationFn: ({likeUri}) => {
       logger.metric('post:unlike', {logContext, feedDescriptor})
+      if (sonetSession.hasSession) {
+        const id = extractSonetNoteId(likeUri) || extractSonetNoteIdFromPostUri(likeUri)
+        return sonet.getApi().likeNote(id, false).then(() => {})
+      }
       return agent.deleteLike(likeUri)
     },
   })
+}
+
+function extractSonetNoteId(uri: string): string {
+  // sonet://note/<id> or direct numeric id
+  const m = /sonet:\/\/note\/([^?#]+)/.exec(uri)
+  return m?.[1] || uri
+}
+function extractSonetNoteIdFromPostUri(uri: string): string {
+  const m = /sonet:\/\/note\/([^?#]+)/.exec(uri)
+  return m?.[1] || uri
 }
 
 export function usePostRepostMutationQueue(
