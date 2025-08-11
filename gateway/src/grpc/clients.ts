@@ -16,7 +16,7 @@ function loadProto(protoRelPath: string) {
   return loadPackageDefinition(packageDefinition);
 }
 
-const userPkgDef = loadProto('services/user.proto');
+const userPkgDef = loadProto('src/services/user_service_go/proto/user_service.proto');
 const notePkgDef = loadProto('services/note_service.proto');
 const timelinePkgDef = loadProto('services/timeline.proto');
 const mediaPkgDef = loadProto('services/media.proto');
@@ -52,7 +52,7 @@ export function createGrpcClients(): GrpcClients {
   const listTarget = process.env.LIST_GRPC_ADDR || 'list-service:9098';
   const starterpackTarget = process.env.STARTERPACK_GRPC_ADDR || 'starterpack-service:9099';
 
-  const userPackage: any = userPkgDef['sonet.user'];
+  const userPackage: any = userPkgDef['sonet.user.v1'];
   const notePackage: any = notePkgDef['sonet.note.grpc'];
   const timelinePackage: any = timelinePkgDef['sonet.timeline'];
   const mediaPackage: any = mediaPkgDef['sonet.media'];
