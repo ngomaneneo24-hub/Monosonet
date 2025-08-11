@@ -3,6 +3,10 @@ import {View} from 'react-native'
 
 import {atoms as a, useTheme} from '#/alf'
 import {Text} from '#/components/Typography'
+import {Warning_Stroke2_Corner0_Rounded as WarningIcon} from '#/components/icons/Warning'
+import {CircleX_Stroke2_Corner0_Rounded as ErrorIcon} from '#/components/icons/CircleX'
+import {CircleCheck_Stroke2_Corner0_Rounded as SuccessIcon} from '#/components/icons/CircleCheck'
+import {CircleInfo_Stroke2_Corner0_Rounded as InfoIcon} from '#/components/icons/CircleInfo'
 
 interface SonetSystemMessageProps {
   content: string
@@ -61,10 +65,10 @@ export function SonetSystemMessage({content, type = 'info', timestamp}: SonetSys
         ]}>
         {/* Icon based on type */}
         <View style={[a.flex_row, a.items_center, a.gap_xs]}>
-          {type === 'warning' && <Text>⚠️</Text>}
-          {type === 'error' && <Text>❌</Text>}
-          {type === 'success' && <Text>✅</Text>}
-          {type === 'info' && <Text>ℹ️</Text>}
+          {type === 'warning' && <WarningIcon size="xs" style={[t.atoms.text_warning]} />}
+          {type === 'error' && <ErrorIcon size="xs" style={[t.atoms.text_negative]} />}
+          {type === 'success' && <SuccessIcon size="xs" style={[t.atoms.text_positive]} />}
+          {type === 'info' && <InfoIcon size="xs" style={[t.atoms.text_contrast_medium]} />}
           
           {/* Message content */}
           <Text

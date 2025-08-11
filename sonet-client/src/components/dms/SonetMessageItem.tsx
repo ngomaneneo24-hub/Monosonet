@@ -25,6 +25,8 @@ import {ActionsWrapper} from '#/components/dms/ActionsWrapper'
 import {InlineLinkText} from '#/components/Link'
 import {RichText} from '#/components/RichText'
 import {Text} from '#/components/Typography'
+import {Shield_Stroke2_Corner0_Rounded as ShieldIcon} from '#/components/icons/Shield'
+import {Warning_Stroke2_Corner0_Rounded as WarningIcon} from '#/components/icons/Warning'
 import {DateDivider} from './DateDivider'
 import {MessageItemEmbed} from './MessageItemEmbed'
 import {localDateString} from './util'
@@ -180,6 +182,21 @@ let MessageItem = ({
           {/* Encryption Status */}
           {message.isEncrypted && (
             <View style={[a.flex_row, a.items_center, a.gap_xs, a.mb_xs]}>
+              {message.encryptionStatus === 'encrypted' ? (
+                <ShieldIcon
+                  size="xs"
+                  style={[t.atoms.text_positive]}
+                />
+              ) : (
+                <WarningIcon
+                  size="xs"
+                  style={[
+                    message.encryptionStatus === 'failed'
+                      ? t.atoms.text_negative
+                      : t.atoms.text_contrast_medium,
+                  ]}
+                />
+              )}
               <Text
                 style={[
                   a.text_xs,
@@ -188,13 +205,6 @@ let MessageItem = ({
                     : message.encryptionStatus === 'failed'
                     ? t.atoms.text_negative
                     : t.atoms.text_contrast_medium,
-                ]}>
-                {message.encryptionStatus === 'encrypted' ? '🔒' : '⚠️'}
-              </Text>
-              <Text
-                style={[
-                  a.text_xs,
-                  t.atoms.text_contrast_medium,
                 ]}>
                 {message.encryptionStatus === 'encrypted'
                   ? 'Encrypted'
@@ -280,13 +290,10 @@ let MessageItemMetadata = ({
       
       {/* Encryption Status */}
       {message.isEncrypted && (
-        <Text
-          style={[
-            a.text_xs,
-            t.atoms.text_contrast_medium,
-          ]}>
-          🔒
-        </Text>
+        <ShieldIcon
+          size="xs"
+          style={[t.atoms.text_contrast_medium]}
+        />
       )}
     </View>
   )

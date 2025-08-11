@@ -3,6 +3,8 @@ import {View} from 'react-native'
 
 import {atoms as a, useTheme} from '#/alf'
 import {Text} from '#/components/Typography'
+import {Message_Stroke2_Corner0_Rounded as MessageIcon} from '#/components/icons/Message'
+import {Shield_Stroke2_Corner0_Rounded as ShieldIcon} from '#/components/icons/Shield'
 
 export function SonetChatEmptyPill() {
   const t = useTheme()
@@ -21,9 +23,10 @@ export function SonetChatEmptyPill() {
           t.atoms.border_contrast_25,
         ]}>
         {/* Empty chat icon */}
-        <Text style={[a.text_2xl, a.mb_sm]}>
-          💬
-        </Text>
+        <MessageIcon
+          size="xl"
+          style={[t.atoms.text_contrast_medium, a.mb_sm]}
+        />
         
         {/* Empty chat message */}
         <Text
@@ -37,7 +40,10 @@ export function SonetChatEmptyPill() {
         
         {/* Encryption info */}
         <View style={[a.flex_row, a.items_center, a.gap_xs, a.mt_sm]}>
-          <Text style={[a.text_xs, t.atoms.text_positive]}>🔒</Text>
+          <ShieldIcon
+            size="xs"
+            style={[t.atoms.text_positive]}
+          />
           <Text
             style={[
               a.text_xs,

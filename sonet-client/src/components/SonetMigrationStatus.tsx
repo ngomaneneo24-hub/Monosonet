@@ -3,6 +3,9 @@ import {View} from 'react-native'
 
 import {atoms as a, useTheme} from '#/alf'
 import {Text} from '#/components/Typography'
+import {Zap_Stroke2_Corner0_Rounded as ZapIcon} from '#/components/icons/Zap'
+import {Shield_Stroke2_Corner0_Rounded as ShieldIcon} from '#/components/icons/Shield'
+import {Message_Stroke2_Corner0_Rounded as MessageIcon} from '#/components/icons/Message'
 
 export function SonetMigrationStatus() {
   const t = useTheme()
@@ -20,9 +23,10 @@ export function SonetMigrationStatus() {
         t.atoms.border_positive,
       ]}>
       {/* Migration icon */}
-      <Text style={[a.text_lg, a.mb_xs]}>
-        🚀
-      </Text>
+      <ZapIcon
+        size="lg"
+        style={[t.atoms.text_positive, a.mb_xs]}
+      />
       
       {/* Migration message */}
       <Text
@@ -48,13 +52,22 @@ export function SonetMigrationStatus() {
       
       {/* Features */}
       <View style={[a.flex_row, a.items_center, a.gap_xs, a.mt_sm]}>
-        <Text style={[a.text_xs, t.atoms.text_positive]}>🔒</Text>
+        <ShieldIcon
+          size="xs"
+          style={[t.atoms.text_positive]}
+        />
         <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>E2E Encryption</Text>
         
-        <Text style={[a.text_xs, t.atoms.text_positive]}>⚡</Text>
+        <ZapIcon
+          size="xs"
+          style={[t.atoms.text_positive]}
+        />
         <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>Real-time</Text>
         
-        <Text style={[a.text_xs, t.atoms.text_positive]}>🛡️</Text>
+        <MessageIcon
+          size="xs"
+          style={[t.atoms.text_positive]}
+        />
         <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>Secure</Text>
       </View>
     </View>
