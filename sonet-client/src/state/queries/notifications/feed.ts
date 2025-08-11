@@ -44,6 +44,7 @@ import {
 import {type FeedPage} from './types'
 import {useUnreadNotificationsApi} from './unread'
 import {fetchPage} from './util'
+import {useSonetApi, useSonetSession} from '#/state/session/sonet'
 
 export type {FeedNotification, FeedPage, NotificationType} from './types'
 
@@ -61,6 +62,8 @@ export function useNotificationFeedQuery(opts: {
   filter: 'all' | 'mentions'
 }) {
   const agent = useAgent()
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
   const queryClient = useQueryClient()
   const moderationOpts = useModerationOpts()
   const unreads = useUnreadNotificationsApi()
@@ -105,16 +108,38 @@ export function useNotificationFeedQuery(opts: {
             'quote',
           ]
         }
-        const {page: fetchedPage} = await fetchPage({
-          agent,
-          limit: PAGE_SIZE,
-          cursor: pageParam,
-          queryClient,
-          moderationOpts,
-          fetchAdditionalData: true,
-          reasons,
-        })
-        page = fetchedPage
+        if (sonetSession.hasSession) {
+          const res = await (sonet.getApi() as any).fetchJson?.(`/v1/notifications${pageParam ? `?cursor=${encodeURIComponent(pageParam)}` : ''}`)
+          const items = Array.isArray(res?.notifications) ? res.notifications : []
+          const mapped: FeedPage = {
+            cursor: res?.pagination?.cursor || undefined,
+            seenAt: new Date(),
+            items: items.map((it: any) => ({
+              type: it.type || 'other',
+              notification: {isRead: !!it.read, indexedAt: it.created_at ? new Date(it.created_at) : new Date()} as any,
+              subjectUri: it.note?.id ? `sonet://note/${it.note.id}` : undefined,
+              subject: it.note ? {
+                uri: `sonet://note/${it.note.id}`,
+                cid: it.note.id,
+                author: {did: it.note.author?.id || 'sonet:user'} as any,
+                record: {text: it.note.content || it.note.text || ''} as any,
+              } as any : undefined,
+            })),
+            priority: false,
+          }
+          page = mapped
+        } else {
+          const {page: fetchedPage} = await fetchPage({
+            agent,
+            limit: PAGE_SIZE,
+            cursor: pageParam,
+            queryClient,
+            moderationOpts,
+            fetchAdditionalData: true,
+            reasons,
+          })
+          page = fetchedPage
+        }
       }
 
       if (filter === 'all' && !pageParam) {
