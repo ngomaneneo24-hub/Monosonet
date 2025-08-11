@@ -14,6 +14,7 @@ import { registerMessagingRoutes } from './routes/messaging.js';
 import { registerNotificationRoutes } from './routes/notifications.js';
 import { registerListRoutes } from './routes/lists.js';
 import { registerStarterpackRoutes } from './routes/starterpacks.js';
+import { registerDraftRoutes } from './routes/drafts.js';
 
 const app = express();
 app.use(helmet());
@@ -35,6 +36,7 @@ registerMessagingRoutes(router, clients);
 registerNotificationRoutes(router, clients);
 registerListRoutes(router, clients);
 registerStarterpackRoutes(router, clients);
+registerDraftRoutes(router, clients);
 
 app.use('/api', router);
 
