@@ -1,11 +1,11 @@
 import React, {createContext, useContext, useMemo, useEffect} from 'react'
 import {USE_SONET_MESSAGING, USE_SONET_E2E_ENCRYPTION} from '#/env'
-import {useConvo, useConvoState, useConvoDispatch} from './convo'
+// AT Protocol removed - using Sonet messaging only
 import {useSonetConvo, useSonetConvoState, useSonetConvoDispatch} from './sonet'
-import type {ConvoParams} from './convo/types'
+// AT Protocol types removed
 import type {SonetSendMessageParams, SonetGetMessagesParams} from './sonet/types'
 
-// Unified interface for both AT Protocol and Sonet messaging
+// Unified interface for Sonet messaging (AT Protocol deprecated)
 export interface UnifiedConvoState {
   status: 'uninitialized' | 'loading' | 'ready' | 'error'
   error?: string
@@ -46,8 +46,8 @@ interface UnifiedConvoProviderProps {
 }
 
 export function UnifiedConvoProvider({children, convoId, initialChat}: UnifiedConvoProviderProps) {
-  // Default to Sonet messaging for new installations
-  const isSonet = USE_SONET_MESSAGING !== false // Default to true if not explicitly disabled
+  // Force Sonet messaging - AT Protocol is deprecated
+  const isSonet = true
 
   if (isSonet) {
     return (
@@ -55,20 +55,11 @@ export function UnifiedConvoProvider({children, convoId, initialChat}: UnifiedCo
         <UnifiedConvoProviderInner isSonet={true} />
       </SonetConvoProvider>
     )
-  } else {
-    return (
-      <ConvoProvider convoId={convoId} placeholderData={initialChat}>
-        <UnifiedConvoProviderInner isSonet={false} />
-      </ConvoProvider>
-    )
-  }
+  // AT Protocol removed - only Sonet messaging supported
 }
 
 function UnifiedConvoProviderInner({isSonet}: {isSonet: boolean}) {
-  const atprotoConvo = useConvo()
-  const atprotoState = useConvoState()
-  const atprotoDispatch = useConvoDispatch()
-  
+  // AT Protocol removed - only Sonet messaging supported
   const sonetConvo = useSonetConvo()
   const sonetState = useSonetConvoState()
   const sonetDispatch = useSonetConvoDispatch()
@@ -85,58 +76,34 @@ function UnifiedConvoProviderInner({isSonet}: {isSonet: boolean}) {
   }, [isSonet, sonetState.chat?.isEncrypted, sonetDispatch])
 
   const unifiedState: UnifiedConvoState = useMemo(() => {
-    if (isSonet) {
-      return {
-        status: sonetState.status,
-        error: sonetState.error,
-        messages: sonetState.messages,
-        hasMore: sonetState.hasMore,
-        isLoadingMore: sonetState.isLoadingMore,
-        typingUsers: sonetState.typingUsers,
-        unreadCount: sonetState.unreadCount,
-        chat: sonetState.chat,
-        isEncrypted: sonetState.chat?.isEncrypted || false,
-        encryptionStatus: sonetState.encryptionStatus || 'disabled'
-      }
-    } else {
-      return {
-        status: atprotoState.status,
-        error: atprotoState.error,
-        messages: atprotoState.items.filter(item => item.type === 'message').map(item => item.message),
-        hasMore: atprotoState.hasMore,
-        isLoadingMore: atprotoState.isLoadingMore,
-        typingUsers: atprotoState.typingUsers,
-        unreadCount: atprotoState.unreadCount,
-        chat: atprotoState.convo,
-        isEncrypted: false, // AT Protocol doesn't support E2E encryption
-        encryptionStatus: 'disabled'
-      }
+    // AT Protocol removed - only Sonet messaging supported
+    return {
+      status: sonetState.status,
+      error: sonetState.error,
+      messages: sonetState.messages,
+      hasMore: sonetState.hasMore,
+      isLoadingMore: sonetState.isLoadingMore,
+      typingUsers: sonetState.typingUsers,
+      unreadCount: sonetState.unreadCount,
+      chat: sonetState.chat,
+      isEncrypted: sonetState.chat?.isEncrypted || false,
+      encryptionStatus: sonetState.encryptionStatus || 'disabled'
     }
-  }, [isSonet, atprotoState, sonetState])
+  }, [sonetState])
 
   const unifiedApi: UnifiedConvoApi = useMemo(() => {
-    if (isSonet) {
-      return {
-        sendMessage: sonetConvo.sendMessage,
-        loadMessages: sonetConvo.loadMessages,
-        loadMoreMessages: sonetConvo.loadMoreMessages,
-        markAsRead: sonetConvo.markAsRead,
-        setTyping: sonetConvo.setTyping,
-        enableEncryption: sonetConvo.enableEncryption,
-        getEncryptionStatus: sonetConvo.getEncryptionStatus,
-        dispatch: sonetDispatch,
-      }
-    } else {
-      return {
-        sendMessage: atprotoConvo.sendMessage,
-        loadMessages: atprotoConvo.loadMessages,
-        loadMoreMessages: atprotoConvo.loadMoreMessages,
-        markAsRead: atprotoConvo.markAsRead,
-        setTyping: atprotoConvo.setTyping,
-        dispatch: atprotoDispatch,
-      }
+    // AT Protocol removed - only Sonet messaging supported
+    return {
+      sendMessage: sonetConvo.sendMessage,
+      loadMessages: sonetConvo.loadMessages,
+      loadMoreMessages: sonetConvo.loadMoreMessages,
+      markAsRead: sonetConvo.markAsRead,
+      setTyping: sonetConvo.setTyping,
+      enableEncryption: sonetConvo.enableEncryption,
+      getEncryptionStatus: sonetConvo.getEncryptionStatus,
+      dispatch: sonetDispatch,
     }
-  }, [isSonet, atprotoConvo, sonetConvo, atprotoDispatch, sonetDispatch])
+  }, [sonetConvo, sonetDispatch])
 
   const contextValue: UnifiedConvoContextValue = useMemo(() => ({
     state: unifiedState,
