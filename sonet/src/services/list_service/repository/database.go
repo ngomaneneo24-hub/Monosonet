@@ -7,6 +7,7 @@ import (
 	"os"
 
 	_ "github.com/lib/pq"
+	"sonet/src/services/list_service/models"
 )
 
 // DatabaseConnection represents a database connection
@@ -69,16 +70,16 @@ func NewDatabaseConnection() (*DatabaseConnection, error) {
 // ListRepository defines the interface for list operations
 type ListRepository interface {
 	// List operations
-	CreateList(req CreateListRequest) (*List, error)
-	GetList(listID, requesterID string) (*List, error)
-	GetUserLists(userID, requesterID string, limit int32, cursor string) ([]*List, string, error)
-	UpdateList(req UpdateListRequest) (*List, error)
+	CreateList(req CreateListRequest) (*models.List, error)
+	GetList(listID, requesterID string) (*models.List, error)
+	GetUserLists(userID, requesterID string, limit int32, cursor string) ([]*models.List, string, error)
+	UpdateList(req UpdateListRequest) (*models.List, error)
 	DeleteList(listID, requesterID string) error
 
 	// Member operations
-	AddListMember(req AddListMemberRequest) (*ListMember, error)
+	AddListMember(req AddListMemberRequest) (*models.ListMember, error)
 	RemoveListMember(listID, userID, removedBy string) error
-	GetListMembers(listID, requesterID string, limit int32, cursor string) ([]*ListMember, string, error)
+	GetListMembers(listID, requesterID string, limit int32, cursor string) ([]*models.ListMember, string, error)
 	IsUserInList(listID, userID string) (bool, error)
 	GetListMemberCount(listID string) (int32, error)
 
