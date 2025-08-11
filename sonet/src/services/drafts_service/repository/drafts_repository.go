@@ -11,7 +11,7 @@ import (
 )
 
 // CreateDraft creates a new draft
-func (r *DraftsRepositoryImpl) CreateDraft(draft *models.Draft) error {
+func (r *DraftsRepositoryImpl) CreateDraft(draft *Draft) error {
 	if draft.DraftID == "" {
 		draft.DraftID = uuid.New().String()
 	}
@@ -78,7 +78,7 @@ func (r *DraftsRepositoryImpl) CreateDraft(draft *models.Draft) error {
 }
 
 // GetUserDrafts retrieves drafts for a user
-func (r *DraftsRepositoryImpl) GetUserDrafts(userID string, limit int32, cursor string, includeAutoSaved bool) ([]*models.Draft, string, error) {
+func (r *DraftsRepositoryImpl) GetUserDrafts(userID string, limit int32, cursor string, includeAutoSaved bool) ([]*Draft, string, error) {
 	query := `
 		SELECT draft_id, user_id, title, content, reply_to_uri, quote_uri, mention_handle,
 		       image_uris, video_uri, labels, threadgate, interaction_settings,
@@ -111,9 +111,9 @@ func (r *DraftsRepositoryImpl) GetUserDrafts(userID string, limit int32, cursor 
 	}
 	defer rows.Close()
 
-	var drafts []*models.Draft
+	var drafts []*Draft
 	for rows.Next() {
-		draft := &models.Draft{}
+		draft := &Draft{}
 		var imagesJSON, videoJSON, labelsJSON []byte
 
 		err := rows.Scan(
@@ -144,7 +144,7 @@ func (r *DraftsRepositoryImpl) GetUserDrafts(userID string, limit int32, cursor 
 
 		// Unmarshal video
 		if len(videoJSON) > 0 {
-			draft.Video = &models.DraftVideo{}
+			draft.Video = &DraftVideo{}
 			if err := json.Unmarshal(videoJSON, draft.Video); err != nil {
 				return nil, "", fmt.Errorf("failed to unmarshal video: %w", err)
 			}
@@ -167,7 +167,7 @@ func (r *DraftsRepositoryImpl) GetUserDrafts(userID string, limit int32, cursor 
 }
 
 // GetDraft retrieves a specific draft
-func (r *DraftsRepositoryImpl) GetDraft(draftID, userID string) (*models.Draft, error) {
+func (r *DraftsRepositoryImpl) GetDraft(draftID, userID string) (*Draft, error) {
 	query := `
 		SELECT draft_id, user_id, title, content, reply_to_uri, quote_uri, mention_handle,
 		       image_uris, video_uri, labels, threadgate, interaction_settings,
@@ -176,7 +176,7 @@ func (r *DraftsRepositoryImpl) GetDraft(draftID, userID string) (*models.Draft, 
 		WHERE draft_id = $1 AND user_id = $2
 	`
 
-	draft := &models.Draft{}
+	draft := &Draft{}
 	var imagesJSON, videoJSON, labelsJSON []byte
 
 	err := r.db.QueryRow(query, draftID, userID).Scan(
@@ -209,13 +209,13 @@ func (r *DraftsRepositoryImpl) GetDraft(draftID, userID string) (*models.Draft, 
 		return nil, fmt.Errorf("failed to unmarshal images: %w", err)
 	}
 
-	// Unmarshal video
-	if len(videoJSON) > 0 {
-		draft.Video = &models.DraftVideo{}
-		if err := json.Unmarshal(videoJSON, draft.Video); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal video: %w", err)
+			// Unmarshal video
+		if len(videoJSON) > 0 {
+			draft.Video = &DraftVideo{}
+			if err := json.Unmarshal(videoJSON, draft.Video); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal video: %w", err)
+			}
 		}
-	}
 
 	// Unmarshal labels
 	if err := json.Unmarshal(labelsJSON, &draft.Labels); err != nil {
@@ -226,7 +226,7 @@ func (r *DraftsRepositoryImpl) GetDraft(draftID, userID string) (*models.Draft, 
 }
 
 // UpdateDraft updates an existing draft
-func (r *DraftsRepositoryImpl) UpdateDraft(draft *models.Draft) error {
+func (r *DraftsRepositoryImpl) UpdateDraft(draft *Draft) error {
 	draft.UpdatedAt = time.Now()
 
 	// Convert images to JSONB
@@ -313,7 +313,7 @@ func (r *DraftsRepositoryImpl) DeleteDraft(draftID, userID string) error {
 }
 
 // AutoSaveDraft creates or updates an auto-saved draft
-func (r *DraftsRepositoryImpl) AutoSaveDraft(userID string, content string, replyToURI, quoteURI, mentionHandle string, images []models.DraftImage, video *models.DraftVideo, labels []string, threadgate, interactionSettings []byte) (*models.Draft, error) {
+func (r *DraftsRepositoryImpl) AutoSaveDraft(userID string, content string, replyToURI, quoteURI, mentionHandle string, images []DraftImage, video *DraftVideo, labels []string, threadgate, interactionSettings []byte) (*Draft, error) {
 	// First, try to find an existing auto-saved draft for this user
 	query := `SELECT draft_id FROM drafts WHERE user_id = $1 AND is_auto_saved = TRUE LIMIT 1`
 	
@@ -322,7 +322,7 @@ func (r *DraftsRepositoryImpl) AutoSaveDraft(userID string, content string, repl
 	
 	if err == sql.ErrNoRows {
 		// Create new auto-saved draft
-		draft := &models.Draft{
+		draft := &Draft{
 			DraftID:              uuid.New().String(),
 			UserID:               userID,
 			Content:              content,
@@ -347,7 +347,7 @@ func (r *DraftsRepositoryImpl) AutoSaveDraft(userID string, content string, repl
 	}
 	
 	// Update existing auto-saved draft
-	draft := &models.Draft{
+	draft := &Draft{
 		DraftID:              existingDraftID,
 		UserID:               userID,
 		Content:              content,

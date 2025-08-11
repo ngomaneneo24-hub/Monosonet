@@ -14,15 +14,15 @@ export function registerDraftRoutes(router: Router, clients: GrpcClients) {
     const request = {
       user_id: req.userId,
       content,
-      reply_to_uri: reply_to_uri || '',
-      quote_uri: quote_uri || '',
-      mention_handle: mention_handle || '',
+      reply_to_uri,
+      quote_uri,
+      mention_handle,
       images: images || [],
-      video: video || null,
+      video,
       labels: labels || [],
-      threadgate: threadgate || null,
-      interaction_settings: interaction_settings || null,
-      is_auto_saved: is_auto_saved !== undefined ? is_auto_saved : false
+      threadgate: threadgate ? Buffer.from(JSON.stringify(threadgate)) : undefined,
+      interaction_settings: interaction_settings ? Buffer.from(JSON.stringify(interaction_settings)) : undefined,
+      is_auto_saved: is_auto_saved || false
     };
 
     clients.drafts.CreateDraft(request, (err: any, resp: any) => {
@@ -30,14 +30,14 @@ export function registerDraftRoutes(router: Router, clients: GrpcClients) {
       if (!resp?.success) {
         return res.status(400).json({ ok: false, message: resp?.error_message || 'Failed to create draft' });
       }
-      return res.status(201).json({ ok: true, draft: resp.draft });
+      return res.json({ ok: true, draft: resp.draft });
     });
   });
 
   // Get user drafts
   router.get('/v1/drafts', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 20;
-    const cursor = req.query.cursor as string || '';
+    const cursor = req.query.cursor as string;
     const includeAutoSaved = req.query.include_auto_saved === 'true';
 
     const request = {
@@ -87,14 +87,14 @@ export function registerDraftRoutes(router: Router, clients: GrpcClients) {
       draft_id: draftId,
       user_id: req.userId,
       content,
-      reply_to_uri: reply_to_uri || '',
-      quote_uri: quote_uri || '',
-      mention_handle: mention_handle || '',
+      reply_to_uri,
+      quote_uri,
+      mention_handle,
       images: images || [],
-      video: video || null,
+      video,
       labels: labels || [],
-      threadgate: threadgate || null,
-      interaction_settings: interaction_settings || null
+      threadgate: threadgate ? Buffer.from(JSON.stringify(threadgate)) : undefined,
+      interaction_settings: interaction_settings ? Buffer.from(JSON.stringify(interaction_settings)) : undefined
     };
 
     clients.drafts.UpdateDraft(request, (err: any, resp: any) => {
@@ -127,18 +127,22 @@ export function registerDraftRoutes(router: Router, clients: GrpcClients) {
   // Auto-save a draft
   router.post('/v1/drafts/auto-save', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
     const { content, reply_to_uri, quote_uri, mention_handle, images, video, labels, threadgate, interaction_settings } = req.body;
+    
+    if (!content) {
+      return res.status(400).json({ ok: false, message: 'Content is required' });
+    }
 
     const request = {
       user_id: req.userId,
-      content: content || '',
-      reply_to_uri: reply_to_uri || '',
-      quote_uri: quote_uri || '',
-      mention_handle: mention_handle || '',
+      content,
+      reply_to_uri,
+      quote_uri,
+      mention_handle,
       images: images || [],
-      video: video || null,
+      video,
       labels: labels || [],
-      threadgate: threadgate || null,
-      interaction_settings: interaction_settings || null
+      threadgate: threadgate ? Buffer.from(JSON.stringify(threadgate)) : undefined,
+      interaction_settings: interaction_settings ? Buffer.from(JSON.stringify(interaction_settings)) : undefined
     };
 
     clients.drafts.AutoSaveDraft(request, (err: any, resp: any) => {

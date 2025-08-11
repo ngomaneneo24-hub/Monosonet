@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	_ "github.com/lib/pq"
-	"sonet/src/services/drafts_service/models"
+	"google.golang.org/protobuf/types/known/timestamppb"
+	pb "sonet/src/services/drafts_service/proto"
 )
 
 // DatabaseConnection represents a database connection
@@ -56,12 +58,86 @@ func NewDatabaseConnection() (*DatabaseConnection, error) {
 
 // DraftsRepository defines the interface for draft data operations
 type DraftsRepository interface {
-	CreateDraft(draft *models.Draft) error
-	GetUserDrafts(userID string, limit int32, cursor string, includeAutoSaved bool) ([]*models.Draft, string, error)
-	GetDraft(draftID, userID string) (*models.Draft, error)
-	UpdateDraft(draft *models.Draft) error
+	CreateDraft(draft *Draft) error
+	GetUserDrafts(userID string, limit int32, cursor string, includeAutoSaved bool) ([]*Draft, string, error)
+	GetDraft(draftID, userID string) (*Draft, error)
+	UpdateDraft(draft *Draft) error
 	DeleteDraft(draftID, userID string) error
-	AutoSaveDraft(userID string, content string, replyToURI, quoteURI, mentionHandle string, images []models.DraftImage, video *models.DraftVideo, labels []string, threadgate, interactionSettings []byte) (*models.Draft, error)
+	AutoSaveDraft(userID string, content string, replyToURI, quoteURI, mentionHandle string, images []DraftImage, video *DraftVideo, labels []string, threadgate, interactionSettings []byte) (*Draft, error)
+}
+
+// Draft represents a post draft
+type Draft struct {
+	DraftID              string    `json:"draft_id"`
+	UserID               string    `json:"user_id"`
+	Title                string    `json:"title"`
+	Content              string    `json:"content"`
+	ReplyToURI           string    `json:"reply_to_uri"`
+	QuoteURI             string    `json:"quote_uri"`
+	MentionHandle        string    `json:"mention_handle"`
+	Images               []DraftImage `json:"images"`
+	Video                *DraftVideo `json:"video"`
+	Labels               []string  `json:"labels"`
+	Threadgate           []byte    `json:"threadgate"`
+	InteractionSettings  []byte    `json:"interaction_settings"`
+	CreatedAt            time.Time `json:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at"`
+	IsAutoSaved          bool      `json:"is_auto_saved"`
+}
+
+// DraftImage represents an image in a draft
+type DraftImage struct {
+	URI     string `json:"uri"`
+	Width   int32  `json:"width"`
+	Height  int32  `json:"height"`
+	AltText string `json:"alt_text"`
+}
+
+// DraftVideo represents a video in a draft
+type DraftVideo struct {
+	URI    string `json:"uri"`
+	Width  int32  `json:"width"`
+	Height int32  `json:"height"`
+}
+
+// ToProto converts Draft to protobuf message
+func (d *Draft) ToProto() *pb.Draft {
+	images := make([]*pb.DraftImage, len(d.Images))
+	for i, img := range d.Images {
+		images[i] = &pb.DraftImage{
+			Uri:     img.URI,
+			Width:   img.Width,
+			Height:  img.Height,
+			AltText: img.AltText,
+		}
+	}
+
+	var video *pb.DraftVideo
+	if d.Video != nil {
+		video = &pb.DraftVideo{
+			Uri:    d.Video.URI,
+			Width:  d.Video.Width,
+			Height: d.Video.Height,
+		}
+	}
+
+	return &pb.Draft{
+		DraftId:             d.DraftID,
+		UserId:              d.UserID,
+		Title:               d.Title,
+		Content:             d.Content,
+		ReplyToUri:          d.ReplyToURI,
+		QuoteUri:            d.QuoteURI,
+		MentionHandle:       d.MentionHandle,
+		Images:              images,
+		Video:               video,
+		Labels:              d.Labels,
+		Threadgate:          d.Threadgate,
+		InteractionSettings: d.InteractionSettings,
+		CreatedAt:           timestamppb.New(d.CreatedAt),
+		UpdatedAt:           timestamppb.New(d.UpdatedAt),
+		IsAutoSaved:         d.IsAutoSaved,
+	}
 }
 
 // DraftsRepositoryImpl implements DraftsRepository

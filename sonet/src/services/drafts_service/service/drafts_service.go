@@ -6,7 +6,6 @@ import (
 
 	pb "sonet/src/services/drafts_service/proto"
 	"sonet/src/services/drafts_service/repository"
-	"sonet/src/services/drafts_service/models"
 )
 
 // DraftsService implements the gRPC DraftsService
@@ -31,10 +30,17 @@ func (s *DraftsService) CreateDraft(ctx context.Context, req *pb.CreateDraftRequ
 		}, nil
 	}
 
+	if req.Content == "" {
+		return &pb.CreateDraftResponse{
+			Success:      false,
+			ErrorMessage: "content is required",
+		}, nil
+	}
+
 	// Convert protobuf images to models
-	images := make([]models.DraftImage, len(req.Images))
+	images := make([]repository.DraftImage, len(req.Images))
 	for i, img := range req.Images {
-		images[i] = models.DraftImage{
+		images[i] = repository.DraftImage{
 			URI:     img.Uri,
 			Width:   img.Width,
 			Height:  img.Height,
@@ -43,27 +49,27 @@ func (s *DraftsService) CreateDraft(ctx context.Context, req *pb.CreateDraftRequ
 	}
 
 	// Convert protobuf video to model
-	var video *models.DraftVideo
+	var video *repository.DraftVideo
 	if req.Video != nil {
-		video = &models.DraftVideo{
+		video = &repository.DraftVideo{
 			URI:    req.Video.Uri,
 			Width:  req.Video.Width,
 			Height: req.Video.Height,
 		}
 	}
 
-	draft := &models.Draft{
-		UserID:               req.UserId,
-		Content:              req.Content,
-		ReplyToURI:           req.ReplyToUri,
-		QuoteURI:             req.QuoteUri,
-		MentionHandle:        req.MentionHandle,
-		Images:               images,
-		Video:                video,
-		Labels:               req.Labels,
-		Threadgate:           req.Threadgate,
-		InteractionSettings:  req.InteractionSettings,
-		IsAutoSaved:          req.IsAutoSaved,
+	draft := &repository.Draft{
+		UserID:              req.UserId,
+		Content:             req.Content,
+		ReplyToURI:          req.ReplyToUri,
+		QuoteURI:            req.QuoteUri,
+		MentionHandle:       req.MentionHandle,
+		Images:              images,
+		Video:               video,
+		Labels:              req.Labels,
+		Threadgate:          req.Threadgate,
+		InteractionSettings: req.InteractionSettings,
+		IsAutoSaved:         req.IsAutoSaved,
 	}
 
 	if err := s.repo.CreateDraft(draft); err != nil {
@@ -91,12 +97,7 @@ func (s *DraftsService) GetUserDrafts(ctx context.Context, req *pb.GetUserDrafts
 		}, nil
 	}
 
-	limit := req.Limit
-	if limit <= 0 {
-		limit = 20
-	}
-
-	drafts, nextCursor, err := s.repo.GetUserDrafts(req.UserId, limit, req.Cursor, req.IncludeAutoSaved)
+	drafts, nextCursor, err := s.repo.GetUserDrafts(req.UserId, req.Limit, req.Cursor, req.IncludeAutoSaved)
 	if err != nil {
 		log.Printf("Failed to get user drafts: %v", err)
 		return &pb.GetUserDraftsResponse{
@@ -105,16 +106,16 @@ func (s *DraftsService) GetUserDrafts(ctx context.Context, req *pb.GetUserDrafts
 		}, nil
 	}
 
-	// Convert to protobuf
+	// Convert models to protobuf
 	pbDrafts := make([]*pb.Draft, len(drafts))
 	for i, draft := range drafts {
 		pbDrafts[i] = draft.ToProto()
 	}
 
 	return &pb.GetUserDraftsResponse{
-		Success:     true,
-		Drafts:      pbDrafts,
-		NextCursor:  nextCursor,
+		Success:    true,
+		Drafts:     pbDrafts,
+		NextCursor: nextCursor,
 	}, nil
 }
 
@@ -169,10 +170,17 @@ func (s *DraftsService) UpdateDraft(ctx context.Context, req *pb.UpdateDraftRequ
 		}, nil
 	}
 
+	if req.Content == "" {
+		return &pb.UpdateDraftResponse{
+			Success:      false,
+			ErrorMessage: "content is required",
+		}, nil
+	}
+
 	// Convert protobuf images to models
-	images := make([]models.DraftImage, len(req.Images))
+	images := make([]repository.DraftImage, len(req.Images))
 	for i, img := range req.Images {
-		images[i] = models.DraftImage{
+		images[i] = repository.DraftImage{
 			URI:     img.Uri,
 			Width:   img.Width,
 			Height:  img.Height,
@@ -181,27 +189,27 @@ func (s *DraftsService) UpdateDraft(ctx context.Context, req *pb.UpdateDraftRequ
 	}
 
 	// Convert protobuf video to model
-	var video *models.DraftVideo
+	var video *repository.DraftVideo
 	if req.Video != nil {
-		video = &models.DraftVideo{
+		video = &repository.DraftVideo{
 			URI:    req.Video.Uri,
 			Width:  req.Video.Width,
 			Height: req.Video.Height,
 		}
 	}
 
-	draft := &models.Draft{
-		DraftID:              req.DraftId,
-		UserID:               req.UserId,
-		Content:              req.Content,
-		ReplyToURI:           req.ReplyToUri,
-		QuoteURI:             req.QuoteUri,
-		MentionHandle:        req.MentionHandle,
-		Images:               images,
-		Video:                video,
-		Labels:               req.Labels,
-		Threadgate:           req.Threadgate,
-		InteractionSettings:  req.InteractionSettings,
+	draft := &repository.Draft{
+		DraftID:             req.DraftId,
+		UserID:              req.UserId,
+		Content:             req.Content,
+		ReplyToURI:          req.ReplyToUri,
+		QuoteURI:            req.QuoteUri,
+		MentionHandle:       req.MentionHandle,
+		Images:              images,
+		Video:               video,
+		Labels:              req.Labels,
+		Threadgate:          req.Threadgate,
+		InteractionSettings: req.InteractionSettings,
 	}
 
 	if err := s.repo.UpdateDraft(draft); err != nil {
@@ -212,19 +220,9 @@ func (s *DraftsService) UpdateDraft(ctx context.Context, req *pb.UpdateDraftRequ
 		}, nil
 	}
 
-	// Get the updated draft
-	updatedDraft, err := s.repo.GetDraft(req.DraftId, req.UserId)
-	if err != nil {
-		log.Printf("Failed to get updated draft: %v", err)
-		return &pb.UpdateDraftResponse{
-			Success:      false,
-			ErrorMessage: err.Error(),
-		}, nil
-	}
-
 	return &pb.UpdateDraftResponse{
 		Success: true,
-		Draft:   updatedDraft.ToProto(),
+		Draft:   draft.ToProto(),
 	}, nil
 }
 
@@ -270,10 +268,17 @@ func (s *DraftsService) AutoSaveDraft(ctx context.Context, req *pb.AutoSaveDraft
 		}, nil
 	}
 
+	if req.Content == "" {
+		return &pb.AutoSaveDraftResponse{
+			Success:      false,
+			ErrorMessage: "content is required",
+		}, nil
+	}
+
 	// Convert protobuf images to models
-	images := make([]models.DraftImage, len(req.Images))
+	images := make([]repository.DraftImage, len(req.Images))
 	for i, img := range req.Images {
-		images[i] = models.DraftImage{
+		images[i] = repository.DraftImage{
 			URI:     img.Uri,
 			Width:   img.Width,
 			Height:  img.Height,
@@ -282,9 +287,9 @@ func (s *DraftsService) AutoSaveDraft(ctx context.Context, req *pb.AutoSaveDraft
 	}
 
 	// Convert protobuf video to model
-	var video *models.DraftVideo
+	var video *repository.DraftVideo
 	if req.Video != nil {
-		video = &models.DraftVideo{
+		video = &repository.DraftVideo{
 			URI:    req.Video.Uri,
 			Width:  req.Video.Width,
 			Height: req.Video.Height,
