@@ -93,3 +93,9 @@ export const GCP_PROJECT_ID: number =
  */
 export const SONET_API_BASE: string =
   process.env.EXPO_PUBLIC_SONET_API_BASE || 'http://localhost:8080/api'
+
+/**
+ * Base URL for Sonet WebSocket gateway (e.g., ws://localhost:8080)
+ */
+export const SONET_WS_BASE: string =
+  process.env.EXPO_PUBLIC_SONET_WS_BASE || 'ws://localhost:8080'
