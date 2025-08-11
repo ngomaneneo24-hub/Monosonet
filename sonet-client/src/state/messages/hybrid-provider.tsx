@@ -1,7 +1,7 @@
 import React, {createContext, useContext, useMemo, useEffect} from 'react'
 import {USE_SONET_MESSAGING, USE_SONET_E2E_ENCRYPTION} from '#/env'
 import {useConvo, useConvoState, useConvoDispatch} from './convo'
-import {useSonetConvo, useSonetConvoState, useSonetConvoDispatch} from './sonet/convo'
+import {useSonetConvo, useSonetConvoState, useSonetConvoDispatch} from './sonet'
 import type {ConvoParams} from './convo/types'
 import type {SonetSendMessageParams, SonetGetMessagesParams} from './sonet/types'
 
