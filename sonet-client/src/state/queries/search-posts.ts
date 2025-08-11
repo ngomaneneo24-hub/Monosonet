@@ -15,6 +15,7 @@ import {
 
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
 import {useAgent} from '#/state/session'
+import {useSonetApi, useSonetSession} from '#/state/session/sonet'
 import {
   didOrHandleUriMatches,
   embedViewRecordToPostView,
@@ -38,6 +39,8 @@ export function useSearchPostsQuery({
   enabled?: boolean
 }) {
   const agent = useAgent()
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
   const moderationOpts = useModerationOpts()
   const selectArgs = React.useMemo(
     () => ({
@@ -61,6 +64,20 @@ export function useSearchPostsQuery({
   >({
     queryKey: searchPostsQueryKey({query, sort}),
     queryFn: async ({pageParam}) => {
+      if (sonetSession.hasSession) {
+        const res = await sonet.getApi().search(query, 'notes', {limit: 25, cursor: pageParam})
+        const notes = Array.isArray(res?.results) ? res.results : []
+        return {
+          cursor: res?.pagination?.cursor,
+          hitsTotal: notes.length,
+          posts: notes.map((n: any) => ({
+            uri: `sonet://note/${n.id}`,
+            cid: n.id,
+            author: {did: n.author?.id || 'sonet:user'} as any,
+            record: {text: n.content || n.text || ''} as any,
+          } as any)),
+        } as any
+      }
       const res = await agent.app.bsky.feed.searchPosts({
         q: query,
         limit: 25,

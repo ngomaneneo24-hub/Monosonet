@@ -20,11 +20,13 @@ import {createFullHandle} from '#/lib/strings/handles'
 import {logger} from '#/logger'
 import {useSetHasCheckedForStarterPack} from '#/state/preferences/used-starter-packs'
 import {useSessionApi} from '#/state/session'
+import {useSonetApi} from '#/state/session/sonet'
 import {useLoggedOutViewControls} from '#/state/shell/logged-out'
 import {atoms as a, useTheme} from '#/alf'
 import {Button, ButtonIcon, ButtonText} from '#/components/Button'
 import {FormError} from '#/components/forms/FormError'
 import {HostingProvider} from '#/components/forms/HostingProvider'
+import {SONET_API_BASE} from '#/env'
 import * as TextField from '#/components/forms/TextField'
 import {At_Stroke2_Corner0_Rounded as At} from '#/components/icons/At'
 import {Lock_Stroke2_Corner0_Rounded as Lock} from '#/components/icons/Lock'
@@ -72,6 +74,7 @@ export const LoginForm = ({
   const passwordRef = useRef<TextInput>(null)
   const {_} = useLingui()
   const {login} = useSessionApi()
+  const {login: sonetLogin} = useSonetApi()
   const requestNotificationsPermission = useRequestNotificationsPermission()
   const {setShowLoggedOut} = useLoggedOutViewControls()
   const setHasCheckedForStarterPack = useSetHasCheckedForStarterPack()
@@ -103,25 +106,21 @@ export const LoginForm = ({
     setIsProcessing(true)
 
     try {
+      await sonetLogin({username: identifier, password})
+      onAttemptSuccess()
+      setShowLoggedOut(false)
+      setHasCheckedForStarterPack(true)
+      requestNotificationsPermission('Login')
+      return
       // try to guess the handle if the user just gave their own username
       let fullIdent = identifier
       if (
-        !identifier.includes('@') && // not an email
-        !identifier.includes('.') && // not a domain
-        serviceDescription &&
-        serviceDescription.availableUserDomains.length > 0
+        !identifier.includes('@') &&
+        !identifier.includes('.')
       ) {
         let matched = false
-        for (const domain of serviceDescription.availableUserDomains) {
-          if (fullIdent.endsWith(domain)) {
-            matched = true
-          }
-        }
         if (!matched) {
-          fullIdent = createFullHandle(
-            identifier,
-            serviceDescription.availableUserDomains[0],
-          )
+          fullIdent = identifier
         }
       }
 
@@ -181,13 +180,9 @@ export const LoginForm = ({
     <FormContainer testID="loginForm" titleText={<Trans>Sign in</Trans>}>
       <View>
         <TextField.LabelText>
-          <Trans>Hosting provider</Trans>
+          <Trans>Service</Trans>
         </TextField.LabelText>
-        <HostingProvider
-          serviceUrl={serviceUrl}
-          onSelectServiceUrl={setServiceUrl}
-          onOpenDialog={onPressSelectService}
-        />
+        <HostingProvider serviceUrl={serviceUrl} />
       </View>
       <View>
         <TextField.LabelText>
@@ -317,7 +312,7 @@ export const LoginForm = ({
           </ButtonText>
         </Button>
         <View style={a.flex_1} />
-        {!serviceDescription && error ? (
+        {false && error ? (
           <Button
             testID="loginRetryButton"
             label={_(msg`Retry`)}
@@ -330,7 +325,7 @@ export const LoginForm = ({
               <Trans>Retry</Trans>
             </ButtonText>
           </Button>
-        ) : !serviceDescription ? (
+        ) : false ? (
           <>
             <ActivityIndicator />
             <Text style={[t.atoms.text_contrast_high, a.pl_md]}>

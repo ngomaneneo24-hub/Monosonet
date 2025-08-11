@@ -26,6 +26,7 @@ import {useModerationOpts} from '#/state/preferences/moderation-opts'
 import {useDeleteActorDeclaration} from '#/state/queries/messages/actor-declaration'
 import {useProfileQuery, useProfilesQuery} from '#/state/queries/profile'
 import {useAgent} from '#/state/session'
+import {useSonetSession} from '#/state/session/sonet'
 import {type SessionAccount, useSession, useSessionApi} from '#/state/session'
 import {useOnboardingDispatch} from '#/state/shell'
 import {useLoggedOutViewControls} from '#/state/shell/logged-out'
@@ -78,6 +79,7 @@ export function SettingsScreen({}: Props) {
   const reducedMotion = useReducedMotion()
   const {logoutEveryAccount} = useSessionApi()
   const {accounts, currentAccount} = useSession()
+  const sonetSession = useSonetSession()
   const switchAccountControl = useDialogControl()
   const signOutPromptControl = Prompt.usePromptControl()
   const {data: profile} = useProfileQuery({did: currentAccount?.did})
@@ -185,6 +187,15 @@ export function SettingsScreen({}: Props) {
               <Trans>Privacy and security</Trans>
             </SettingsList.ItemText>
           </SettingsList.LinkItem>
+          {/* Hide decentralization-specific screens when using centralized Sonet */}
+          {!sonetSession.hasSession && (
+            <SettingsList.LinkItem to="/settings/app-passwords" label={_(msg`App passwords`)}>
+              <SettingsList.ItemIcon icon={CodeBracketsIcon} />
+              <SettingsList.ItemText>
+                <Trans>App passwords</Trans>
+              </SettingsList.ItemText>
+            </SettingsList.LinkItem>
+          )}
           <SettingsList.LinkItem to="/moderation" label={_(msg`Moderation`)}>
             <SettingsList.ItemIcon icon={HandIcon} />
             <SettingsList.ItemText>

@@ -7,7 +7,7 @@ import {useLingui} from '@lingui/react'
 import {BSKY_SERVICE} from '#/lib/constants'
 import {logEvent} from '#/lib/statsig/statsig'
 import * as persisted from '#/state/persisted'
-import {useSession} from '#/state/session'
+import {useSonetSession} from '#/state/session/sonet'
 import {atoms as a, useBreakpoints, useTheme} from '#/alf'
 import {Admonition} from '#/components/Admonition'
 import {Button, ButtonText} from '#/components/Button'
@@ -77,12 +77,13 @@ function DialogInner({
   const control = Dialog.useDialogContext()
   const {_} = useLingui()
   const t = useTheme()
-  const {accounts} = useSession()
+  // SonetSession has no account list; keep logic simple
   const {gtMobile} = useBreakpoints()
   const [customAddress, setCustomAddress] = useState(initialCustomAddress)
   const [pdsAddressHistory, setPdsAddressHistory] = useState<string[]>(
     persisted.get('pdsAddressHistory') || [],
   )
+  const sonetSession = useSonetSession()
 
   useImperativeHandle(
     formRef,
@@ -119,7 +120,7 @@ function DialogInner({
     [customAddress, fixedOption, pdsAddressHistory],
   )
 
-  const isFirstTimeUser = accounts.length === 0
+  const isFirstTimeUser = pdsAddressHistory.length === 0 && !initialCustomAddress
 
   return (
     <Dialog.ScrollableInner
@@ -127,14 +128,14 @@ function DialogInner({
       accessibilityLabelledBy="dialog-title">
       <View style={[a.relative, a.gap_md, a.w_full]}>
         <Text nativeID="dialog-title" style={[a.text_2xl, a.font_bold]}>
-          <Trans>Choose your account provider</Trans>
+          <Trans>Choose your service</Trans>
         </Text>
         <ToggleButton.Group
           label="Preferences"
           values={[fixedOption]}
           onChange={values => setFixedOption(values[0])}>
-          <ToggleButton.Button name={BSKY_SERVICE} label={_(msg`Bluesky`)}>
-            <ToggleButton.ButtonText>{_(msg`Bluesky`)}</ToggleButton.ButtonText>
+          <ToggleButton.Button name={BSKY_SERVICE} label={_(msg`Default`)}>
+            <ToggleButton.ButtonText>{_(msg`Default`)}</ToggleButton.ButtonText>
           </ToggleButton.Button>
           <ToggleButton.Button
             testID="customSelectBtn"
@@ -143,13 +144,11 @@ function DialogInner({
             <ToggleButton.ButtonText>{_(msg`Custom`)}</ToggleButton.ButtonText>
           </ToggleButton.Button>
         </ToggleButton.Group>
-
         {fixedOption === BSKY_SERVICE && isFirstTimeUser && (
           <Admonition type="tip">
             <Trans>
-              Bluesky is an open network where you can choose your own provider.
-              If you're new here, we recommend sticking with the default Bluesky
-              Social option.
+              You can connect to the default service or a custom server.
+              If you're new here, we recommend using the default option.
             </Trans>
           </Admonition>
         )}
@@ -204,21 +203,9 @@ function DialogInner({
               a.leading_snug,
               a.flex_1,
             ]}>
-            {isFirstTimeUser ? (
-              <Trans>
-                If you're a developer, you can host your own server.
-              </Trans>
-            ) : (
-              <Trans>
-                Bluesky is an open network where you can choose your hosting
-                provider. If you're a developer, you can host your own server.
-              </Trans>
-            )}{' '}
-            <InlineLinkText
-              label={_(msg`Learn more about self hosting your PDS.`)}
-              to="https://atproto.com/guides/self-hosting">
-              <Trans>Learn more.</Trans>
-            </InlineLinkText>
+            <Trans>
+              Advanced users can connect to a custom server.
+            </Trans>
           </P>
         </View>
 

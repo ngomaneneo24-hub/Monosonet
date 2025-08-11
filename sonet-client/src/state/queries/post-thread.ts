@@ -22,6 +22,7 @@ import {
   findAllProfilesInQueryData as findAllProfilesInSearchQueryData,
 } from '#/state/queries/search-posts'
 import {useAgent} from '#/state/session'
+import {useSonetApi, useSonetSession} from '#/state/session/sonet'
 import * as bsky from '#/types/bsky'
 import {
   findAllPostsInQueryData as findAllPostsInNotifsQueryData,
@@ -99,10 +100,21 @@ export type PostThreadQueryData = {
 export function usePostThreadQuery(uri: string | undefined) {
   const queryClient = useQueryClient()
   const agent = useAgent()
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
   return useQuery<PostThreadQueryData, Error>({
     gcTime: 0,
     queryKey: RQKEY(uri || ''),
     async queryFn() {
+      // Sonet thread (MVP: only the main post and thread context if provided)
+      if (sonetSession.hasSession && uri) {
+        const idMatch = /sonet:\/\/note\/([^?#]+)/.exec(uri)
+        if (idMatch) {
+          const noteRes = await sonet.getApi().getNote(idMatch[1], {include_thread: true})
+          const threadNode = mapSonetNoteToThread(noteRes?.note || noteRes)
+          return {thread: threadNode}
+        }
+      }
       const res = await agent.getPostThread({
         uri: uri!,
         depth: REPLY_TREE_DEPTH,
@@ -628,4 +640,35 @@ function embedViewRecordToPlaceholderThread(
       isChildLoading: true, // not available, so assume yes (to show the spinner)
     },
   }
+}
+
+function mapSonetNoteToThread(n: any): ThreadNode {
+  const author = n?.author || {}
+  const post: AppBskyFeedDefs.PostView = {
+    uri: `sonet://note/${n.id}`,
+    cid: n.id,
+    author: {
+      did: author.did || author.id || 'sonet:user',
+      handle: author.username || 'user',
+      displayName: author.display_name,
+      avatar: author.avatar_url,
+    } as any,
+    record: {text: n.content || n.text || ''} as any,
+    likeCount: n.like_count || 0,
+    repostCount: n.renote_count || n.repost_count || 0,
+    replyCount: n.reply_count || 0,
+    indexedAt: n.created_at || new Date().toISOString(),
+  }
+  const node: ThreadPost = {
+    type: 'post',
+    _reactKey: post.uri,
+    uri: post.uri,
+    post,
+    record: post.record as AppBskyFeedPost.Record,
+    parent: undefined,
+    replies: undefined,
+    hasOPLike: false,
+    ctx: {depth: 0, isHighlightedPost: true},
+  } as any
+  return node
 }

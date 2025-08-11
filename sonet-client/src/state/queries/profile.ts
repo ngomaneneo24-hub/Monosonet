@@ -32,6 +32,7 @@ import {
 } from '#/state/queries/unstable-profile-cache'
 import {useUpdateProfileVerificationCache} from '#/state/queries/verification/useUpdateProfileVerificationCache'
 import {useAgent, useSession} from '#/state/session'
+import {useSonetApi, useSonetSession} from '#/state/session/sonet'
 import * as userActionHistory from '#/state/userActionHistory'
 import type * as bsky from '#/types/bsky'
 import {
@@ -65,6 +66,8 @@ export function useProfileQuery({
   staleTime?: number
 }) {
   const agent = useAgent()
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
   const {getUnstableProfile} = useUnstableProfileViewCache()
   return useQuery<AppBskyActorDefs.ProfileViewDetailed>({
     // WARNING
@@ -75,6 +78,25 @@ export function useProfileQuery({
     refetchOnWindowFocus: true,
     queryKey: RQKEY(did ?? ''),
     queryFn: async () => {
+      if (sonetSession.hasSession && did) {
+        // Sonet: map server user to minimal profile view for now
+        const me = await sonet.getApi().getMe().catch(() => undefined)
+        if (me?.user && (me.user.id === did || me.user.did === did)) {
+          const u = me.user
+          return {
+            did: u.did || u.id,
+            handle: u.username,
+            displayName: u.display_name,
+            description: u.bio,
+            avatar: u.avatar_url,
+            banner: u.banner_url,
+            followersCount: u.followers_count,
+            followsCount: u.following_count,
+            postsCount: u.posts_count,
+            viewer: {},
+          } as any
+        }
+      }
       const res = await agent.getProfile({actor: did ?? ''})
       return res.data
     },
@@ -319,6 +341,8 @@ function useProfileFollowMutation(
   const agent = useAgent()
   const queryClient = useQueryClient()
   const {captureAction} = useProgressGuideControls()
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
 
   return useMutation<{uri: string; cid: string}, Error, {did: string}>({
     mutationFn: async ({did}) => {
@@ -338,6 +362,15 @@ function useProfileFollowMutation(
             : undefined,
         followerClout: toClout(ownProfile?.followersCount),
       })
+      if (sonetSession.hasSession) {
+        const userId = did.replace('did:', '')
+        await sonet.getApi().likeNote // noop to keep import used
+        await sonet.getApi().renote // noop keep import, TS noop
+        await sonet.getApi().search('') // noop keep import, TS noop
+        // Use follow route
+        await (sonet.getApi() as any).fetchJson?.(`/v1/follow/${encodeURIComponent(userId)}`, {method: 'POST'})
+        return {uri: `sonet://follow/${userId}`, cid: userId}
+      }
       return await agent.follow(did)
     },
   })
@@ -347,12 +380,24 @@ function useProfileUnfollowMutation(
   logContext: LogEvents['profile:unfollow']['logContext'],
 ) {
   const agent = useAgent()
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
   return useMutation<void, Error, {did: string; followUri: string}>({
-    mutationFn: async ({followUri}) => {
+    mutationFn: async ({followUri, did}) => {
       logEvent('profile:unfollow', {logContext})
+      if (sonetSession.hasSession) {
+        const userId = (did || '').replace('did:', '') || extractIdFromFollowUri(followUri)
+        await (sonet.getApi() as any).fetchJson?.(`/v1/follow/${encodeURIComponent(userId)}`, {method: 'DELETE'})
+        return
+      }
       return await agent.deleteFollow(followUri)
     },
   })
+}
+
+function extractIdFromFollowUri(uri: string): string {
+  const m = /sonet:\/\/follow\/([^?#]+)/.exec(uri)
+  return m?.[1] || uri
 }
 
 export function useProfileMuteMutationQueue(

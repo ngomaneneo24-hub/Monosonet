@@ -11,6 +11,7 @@ import BroadcastChannel from '#/lib/broadcast'
 import {resetBadgeCount} from '#/lib/notifications/notifications'
 import {logger} from '#/logger'
 import {useAgent, useSession} from '#/state/session'
+import {useSonetApi, useSonetSession} from '#/state/session/sonet'
 import {useModerationOpts} from '../../preferences/moderation-opts'
 import {truncateAndInvalidate} from '../util'
 import {RQKEY as RQKEY_NOTIFS} from './feed'
@@ -45,6 +46,8 @@ const apiContext = React.createContext<ApiContext>({
 export function Provider({children}: React.PropsWithChildren<{}>) {
   const {hasSession} = useSession()
   const agent = useAgent()
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
   const queryClient = useQueryClient()
   const moderationOpts = useModerationOpts()
 
@@ -112,9 +115,17 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
     return {
       async markAllRead() {
         // update server
-        await agent.updateSeenNotifications(
-          cacheRef.current.syncedAt.toISOString(),
-        )
+        if (sonetSession.hasSession) {
+          // Mark all read not yet defined in gateway; simulate by fetching and marking each or no-op
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const res: any = await (sonet.getApi() as any).fetchJson?.(`/v1/notifications`)
+          const items = Array.isArray(res?.notifications) ? res.notifications : []
+          await Promise.all(items.map((it: any) => (sonet.getApi() as any).fetchJson?.(`/v1/notifications/${encodeURIComponent(it.id)}/read`, {method: 'PUT'})))
+        } else {
+          await agent.updateSeenNotifications(
+            cacheRef.current.syncedAt.toISOString(),
+          )
+        }
 
         // update & broadcast
         setNumUnread('')
@@ -147,18 +158,37 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
           isFetchingRef.current = true
 
           // count
-          const {page, indexedAt: lastIndexed} = await fetchPage({
-            agent,
-            cursor: undefined,
-            limit: 40,
-            queryClient,
-            moderationOpts,
-            reasons: [],
-
-            // only fetch subjects when the page is going to be used
-            // in the notifications query, otherwise skip it
-            fetchAdditionalData: !!invalidate,
-          })
+          let page: FeedPage
+          let lastIndexed: string | undefined
+          if (sonetSession.hasSession) {
+            // Pull 40 and map
+            const res = await (sonet.getApi() as any).fetchJson?.(`/v1/notifications?limit=40`)
+            const items = Array.isArray(res?.notifications) ? res.notifications : []
+            page = {
+              cursor: res?.pagination?.cursor || undefined,
+              seenAt: new Date(),
+              items: items.map((it: any) => ({
+                type: it.type || 'other',
+                notification: {isRead: !!it.read, indexedAt: it.created_at ? new Date(it.created_at) : new Date()} as any,
+                subjectUri: it.note?.id ? `sonet://note/${it.note.id}` : undefined,
+                subject: undefined,
+              })),
+              priority: false,
+            }
+            lastIndexed = items[0]?.created_at
+          } else {
+            const result = await fetchPage({
+              agent,
+              cursor: undefined,
+              limit: 40,
+              queryClient,
+              moderationOpts,
+              reasons: [],
+              fetchAdditionalData: !!invalidate,
+            })
+            page = result.page
+            lastIndexed = result.indexedAt
+          }
           const unreadCount = countUnread(page)
           const unreadCountStr =
             unreadCount >= 30

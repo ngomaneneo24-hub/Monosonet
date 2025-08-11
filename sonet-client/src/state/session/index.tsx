@@ -15,6 +15,8 @@ import {
   sessionAccountToSession,
 } from './agent'
 import {getInitialState, reducer} from './reducer'
+import {__setSonetUploadBridge} from '#/lib/api/upload-blob'
+import {useSonetApi, useSonetSession} from '#/state/session/sonet'
 
 export {isSignupQueued} from './util'
 import {addSessionDebugLog} from './logging'
@@ -271,6 +273,31 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
     }),
     [state],
   )
+
+  // Install Sonet upload bridge if Sonet session is present
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
+  React.useEffect(() => {
+    if (sonetSession.hasSession) {
+      __setSonetUploadBridge(async (file, filename, mime) => {
+        const {media} = await sonet.getApi().uploadMedia(file, filename, mime)
+        return {media}
+      })
+      // Expose minimal global helpers for composer until full migration
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(globalThis as any).__SONET_ACTIVE = true
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(globalThis as any).__SONET_CREATE_NOTE = async ({text}: {text: string}) => {
+        return sonet.getApi().createNote({text})
+      }
+    } else {
+      __setSonetUploadBridge(null as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(globalThis as any).__SONET_ACTIVE = false
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(globalThis as any).__SONET_CREATE_NOTE = undefined
+    }
+  }, [sonet, sonetSession.hasSession])
 
   const api = React.useMemo(
     () => ({

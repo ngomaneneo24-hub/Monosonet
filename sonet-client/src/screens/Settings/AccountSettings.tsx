@@ -5,6 +5,7 @@ import {type NativeStackScreenProps} from '@react-navigation/native-stack'
 import {type CommonNavigatorParams} from '#/lib/routes/types'
 import {useModalControls} from '#/state/modals'
 import {useSession} from '#/state/session'
+import {useSonetSession} from '#/state/session/sonet'
 import * as SettingsList from '#/screens/Settings/components/SettingsList'
 import {atoms as a, useTheme} from '#/alf'
 import {AgeAssuranceAccountCard} from '#/components/ageAssurance/AgeAssuranceAccountCard'
@@ -33,6 +34,7 @@ export function AccountSettingsScreen({}: Props) {
   const t = useTheme()
   const {_} = useLingui()
   const {currentAccount} = useSession()
+  const sonetSession = useSonetSession()
   const {openModal} = useModalControls()
   const emailDialogControl = useEmailDialogControl()
   const birthdayControl = useDialogControl()
@@ -124,16 +126,18 @@ export function AccountSettingsScreen({}: Props) {
             </SettingsList.ItemText>
             <SettingsList.Chevron />
           </SettingsList.PressableItem>
-          <SettingsList.PressableItem
-            label={_(msg`Handle`)}
-            accessibilityHint={_(msg`Opens change handle dialog`)}
-            onPress={() => changeHandleControl.open()}>
-            <SettingsList.ItemIcon icon={AtIcon} />
-            <SettingsList.ItemText>
-              <Trans>Handle</Trans>
-            </SettingsList.ItemText>
-            <SettingsList.Chevron />
-          </SettingsList.PressableItem>
+          {!sonetSession.hasSession && (
+            <SettingsList.PressableItem
+              label={_(msg`Handle`)}
+              accessibilityHint={_(msg`Opens change handle dialog`)}
+              onPress={() => changeHandleControl.open()}>
+              <SettingsList.ItemIcon icon={AtIcon} />
+              <SettingsList.ItemText>
+                <Trans>Handle</Trans>
+              </SettingsList.ItemText>
+              <SettingsList.Chevron />
+            </SettingsList.PressableItem>
+          )}
           <SettingsList.Item>
             <SettingsList.ItemIcon icon={BirthdayCakeIcon} />
             <SettingsList.ItemText>
@@ -146,15 +150,17 @@ export function AccountSettingsScreen({}: Props) {
           </SettingsList.Item>
           <AgeAssuranceAccountCard style={[a.px_xl, a.pt_xs, a.pb_md]} />
           <SettingsList.Divider />
-          <SettingsList.PressableItem
-            label={_(msg`Export my data`)}
-            onPress={() => exportCarControl.open()}>
-            <SettingsList.ItemIcon icon={CarIcon} />
-            <SettingsList.ItemText>
-              <Trans>Export my data</Trans>
-            </SettingsList.ItemText>
-            <SettingsList.Chevron />
-          </SettingsList.PressableItem>
+          {!sonetSession.hasSession && (
+            <SettingsList.PressableItem
+              label={_(msg`Export my data`)}
+              onPress={() => exportCarControl.open()}>
+              <SettingsList.ItemIcon icon={CarIcon} />
+              <SettingsList.ItemText>
+                <Trans>Export my data</Trans>
+              </SettingsList.ItemText>
+              <SettingsList.Chevron />
+            </SettingsList.PressableItem>
+          )}
           <SettingsList.PressableItem
             label={_(msg`Deactivate account`)}
             onPress={() => deactivateAccountControl.open()}
@@ -179,8 +185,8 @@ export function AccountSettingsScreen({}: Props) {
       </Layout.Content>
 
       <BirthDateSettingsDialog control={birthdayControl} />
-      <ChangeHandleDialog control={changeHandleControl} />
-      <ExportCarDialog control={exportCarControl} />
+      {!sonetSession.hasSession && <ChangeHandleDialog control={changeHandleControl} />}
+      {!sonetSession.hasSession && <ExportCarDialog control={exportCarControl} />}
       <DeactivateAccountDialog control={deactivateAccountControl} />
     </Layout.Screen>
   )

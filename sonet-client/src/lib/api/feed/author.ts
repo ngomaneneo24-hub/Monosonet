@@ -5,6 +5,7 @@ import {
 } from '@atproto/api'
 
 import {FeedAPI, FeedAPIResponse} from './types'
+import {useSonetApi} from '#/state/session/sonet'
 
 export class AuthorFeedAPI implements FeedAPI {
   agent: BskyAgent
@@ -74,6 +75,45 @@ export class AuthorFeedAPI implements FeedAPI {
 
     return feed
   }
+}
+
+export class SonetAuthorFeedAPI implements FeedAPI {
+  private sonet: ReturnType<typeof useSonetApi>['getApi'] extends () => infer T ? T : any
+  private userId: string
+  constructor({sonet, userId}: {sonet: any; userId: string}) {
+    this.sonet = sonet
+    this.userId = userId
+  }
+  async peekLatest(): Promise<AppBskyFeedDefs.FeedViewPost> {
+    const res = await this.sonet.getUserTimeline(this.userId, {limit: 1})
+    const n = (res?.notes || [])[0]
+    return n ? mapSonetNote(n) : {post: {uri: 'sonet://empty', cid: 'empty'} as any}
+  }
+  async fetch({cursor, limit}: {cursor: string | undefined; limit: number}): Promise<FeedAPIResponse> {
+    const res = await this.sonet.getUserTimeline(this.userId, {cursor, limit})
+    const notes = Array.isArray(res?.notes) ? res.notes : []
+    return {cursor: res?.pagination?.cursor || undefined, feed: notes.map(mapSonetNote)}
+  }
+}
+
+function mapSonetNote(n: any): AppBskyFeedDefs.FeedViewPost {
+  const author = n.author || {}
+  const post: AppBskyFeedDefs.PostView = {
+    uri: `sonet://note/${n.id}`,
+    cid: n.id,
+    author: {
+      did: author.did || author.id || 'sonet:user',
+      handle: author.username || 'user',
+      displayName: author.display_name,
+      avatar: author.avatar_url,
+    } as any,
+    record: {text: n.content || n.text || ''} as any,
+    likeCount: n.like_count || 0,
+    repostCount: n.renote_count || n.repost_count || 0,
+    replyCount: n.reply_count || 0,
+    indexedAt: n.created_at || new Date().toISOString(),
+  }
+  return {post}
 }
 
 function isAuthorReplyChain(

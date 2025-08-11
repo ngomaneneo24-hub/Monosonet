@@ -26,6 +26,7 @@ import {useUnreadMessageCount} from '#/state/queries/messages/list-conversations
 import {useUnreadNotifications} from '#/state/queries/notifications/unread'
 import {useProfilesQuery} from '#/state/queries/profile'
 import {type SessionAccount, useSession, useSessionApi} from '#/state/session'
+import {useSonetSession} from '#/state/session/sonet'
 import {useLoggedOutViewControls} from '#/state/shell/logged-out'
 import {useCloseAllActiveElements} from '#/state/util'
 import {LoadingPlaceholder} from '#/view/com/util/LoadingPlaceholder'
@@ -565,6 +566,7 @@ export function DesktopLeftNav() {
   const numUnreadNotifications = useUnreadNotifications()
   const hasHomeBadge = useHomeBadge()
   const gate = useGate()
+  const sonet = useSonetSession()
 
   if (!hasSession && !isDesktop) {
     return null
@@ -673,24 +675,26 @@ export function DesktopLeftNav() {
             }
             label={_(msg`Feeds`)}
           />
-          <NavItem
-            href="/lists"
-            icon={
-              <List
-                style={pal.text}
-                aria-hidden={true}
-                width={NAV_ICON_WIDTH}
-              />
-            }
-            iconFilled={
-              <ListFilled
-                style={pal.text}
-                aria-hidden={true}
-                width={NAV_ICON_WIDTH}
-              />
-            }
-            label={_(msg`Lists`)}
-          />
+          {!sonet.hasSession && (
+            <NavItem
+              href="/lists"
+              icon={
+                <List
+                  style={pal.text}
+                  aria-hidden={true}
+                  width={NAV_ICON_WIDTH}
+                />
+              }
+              iconFilled={
+                <ListFilled
+                  style={pal.text}
+                  aria-hidden={true}
+                  width={NAV_ICON_WIDTH}
+                />
+              }
+              label={_(msg`Lists`)}
+            />
+          )}
           <NavItem
             href={currentAccount ? makeProfileLink(currentAccount) : '/'}
             icon={
