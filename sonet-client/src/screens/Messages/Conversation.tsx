@@ -25,6 +25,7 @@ import {
 import {isWeb} from '#/platform/detection'
 import {type Shadow, useMaybeProfileShadow} from '#/state/cache/profile-shadow'
 import {ConvoProvider, isConvoActive, useConvo} from '#/state/messages/convo'
+import {UnifiedConvoProvider, useUnifiedConvoState, useUnifiedConvoApi, useIsSonetMessaging} from '#/state/messages/hybrid-provider'
 import {ConvoStatus} from '#/state/messages/convo/types'
 import {useCurrentConvoId} from '#/state/messages/current-convo-id'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
@@ -89,15 +90,18 @@ export function MessagesConversationScreenInner({route}: Props) {
 
   return (
     <Layout.Screen testID="convoScreen" style={web([{minHeight: 0}, a.flex_1])}>
-      <ConvoProvider key={convoId} convoId={convoId}>
+      <UnifiedConvoProvider key={convoId} convoId={convoId}>
         <Inner />
-      </ConvoProvider>
+      </UnifiedConvoProvider>
     </Layout.Screen>
   )
 }
 
 function Inner() {
   const t = useTheme()
+  const isSonet = useIsSonetMessaging()
+  const state = useUnifiedConvoState()
+  const api = useUnifiedConvoApi()
   const convoState = useConvo()
   const {_} = useLingui()
 
