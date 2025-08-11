@@ -16,6 +16,7 @@ import {useTheme} from '#/alf'
 import {atoms as a} from '#/alf'
 import {Button} from '#/components/Button'
 import * as ProfileCard from '#/components/ProfileCard'
+import {PrivateProfileFollowButton} from '#/components/PrivateProfileFollowButton'
 import {boostInterests, Tabs} from '#/components/ProgressGuide/FollowDialog'
 import {SubtleHover} from '#/components/SubtleHover'
 import {Text} from '#/components/Typography'
@@ -214,9 +215,8 @@ let SuggestedProfileCard = ({
                   profile={profile}
                   moderationOpts={moderationOpts}
                 />
-                <ProfileCard.FollowButton
+                <PrivateProfileFollowButton
                   profile={profile}
-                  moderationOpts={moderationOpts}
                   withIcon={false}
                   logContext="ExploreSuggestedAccounts"
                   onFollow={() => {

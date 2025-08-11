@@ -41,6 +41,7 @@ import {MagnifyingGlass2_Stroke2_Corner0_Rounded as SearchIcon} from '#/componen
 import {PersonGroup_Stroke2_Corner2_Rounded as PersonGroupIcon} from '#/components/icons/Person'
 import {TimesLarge_Stroke2_Corner0_Rounded as X} from '#/components/icons/Times'
 import * as ProfileCard from '#/components/ProfileCard'
+import {PrivateProfileFollowButton} from '#/components/PrivateProfileFollowButton'
 import {Text} from '#/components/Typography'
 import type * as bsky from '#/types/bsky'
 import {ProgressGuideTask} from './Task'
@@ -608,12 +609,11 @@ function FollowProfileCardInner({
                 profile={profile}
                 moderationOpts={moderationOpts}
               />
-              <ProfileCard.FollowButton
+              <PrivateProfileFollowButton
                 profile={profile}
-                moderationOpts={moderationOpts}
                 logContext="PostOnboardingFindFollows"
                 shape="round"
-                onPress={onFollow}
+                onFollow={onFollow}
                 colorInverted
               />
             </ProfileCard.Header>

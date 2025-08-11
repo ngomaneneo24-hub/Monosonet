@@ -31,6 +31,7 @@ import {ArrowRight_Stroke2_Corner0_Rounded as Arrow} from '#/components/icons/Ar
 import {Hashtag_Stroke2_Corner0_Rounded as Hashtag} from '#/components/icons/Hashtag'
 import {InlineLinkText} from '#/components/Link'
 import * as ProfileCard from '#/components/ProfileCard'
+import {PrivateProfileFollowButton} from '#/components/PrivateProfileFollowButton'
 import {Text} from '#/components/Typography'
 import type * as bsky from '#/types/bsky'
 import {ProgressGuideList} from './ProgressGuide/List'
@@ -342,9 +343,8 @@ export function ProfileGrid({
                   </View>
                 </View>
 
-                <ProfileCard.FollowButton
+                <PrivateProfileFollowButton
                   profile={profile}
-                  moderationOpts={moderationOpts}
                   logContext="FeedInterstitial"
                   withIcon={false}
                   style={[a.rounded_sm]}
