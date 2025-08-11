@@ -73,3 +73,13 @@ See [./LICENSE](./LICENSE) for the full license.
 ## P.S.
 
 We ❤️ you and all of the ways you support us. Thank you for making Bluesky a great place!
+
+## AT Protocol Shim (Sonet Migration)
+
+During the Sonet migration we do not depend on upstream `@atproto/*` packages. Instead lightweight placeholder modules live under `src/shims/` and are wired both via `tsconfig.json` path mappings and Babel `module-resolver` aliases (added in this fork). If you see `Module not found: Can't resolve '@atproto/api'` ensure:
+
+1. `babel.config.js` contains aliases for `@atproto/api`, `@atproto/common-web`, `@atproto/lexicon` and `@atproto/api/dist`.
+2. Clear Metro/Expo caches: `rm -rf .expo .cache && expo start --web --clear`.
+3. TypeScript server picked up updated `tsconfig.json` (restart editor if needed).
+
+Replace the shims incrementally with real implementations once backend endpoints become available.
