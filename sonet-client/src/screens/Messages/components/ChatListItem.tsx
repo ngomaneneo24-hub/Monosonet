@@ -6,6 +6,8 @@ import {
   moderateProfile,
   type ModerationOpts,
 } from '@atproto/api'
+import type {SonetChat} from '#/services/sonetMessagingApi'
+import {useIsSonetMessaging} from '#/state/messages/hybrid-provider'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
@@ -52,16 +54,31 @@ export let ChatListItem = ({
   showMenu = true,
   children,
 }: {
-  convo: ChatBskyConvoDefs.ConvoView
+  convo: ChatBskyConvoDefs.ConvoView | SonetChat
   showMenu?: boolean
   children?: React.ReactNode
 }): React.ReactNode => {
   const {currentAccount} = useSession()
   const moderationOpts = useModerationOpts()
+  const isSonet = useIsSonetMessaging()
 
-  const otherUser = convo.members.find(
-    member => member.did !== currentAccount?.did,
-  )
+  // Handle both AT Protocol and Sonet conversation types
+  let otherUser: any = null
+  if (isSonet && 'chat_id' in convo) {
+    // Sonet chat - we'll need to get user info differently
+    // For now, use a placeholder until we have user lookup
+    otherUser = {
+      did: convo.participant_ids.find(id => id !== currentAccount?.did) || '',
+      handle: convo.name,
+      displayName: convo.name,
+      avatar: convo.avatar_url,
+    }
+  } else if (!isSonet && 'members' in convo) {
+    // AT Protocol conversation
+    otherUser = convo.members.find(
+      member => member.did !== currentAccount?.did,
+    )
+  }
 
   if (!otherUser || !moderationOpts) {
     return null
@@ -87,7 +104,7 @@ function ChatListItemReady({
   showMenu,
   children,
 }: {
-  convo: ChatBskyConvoDefs.ConvoView
+  convo: ChatBskyConvoDefs.ConvoView | SonetChat
   profile: bsky.profile.AnyProfileView
   moderationOpts: ModerationOpts
   showMenu?: boolean

@@ -44,6 +44,7 @@ import {MessagesListHeader} from '#/components/dms/MessagesListHeader'
 import {Error} from '#/components/Error'
 import * as Layout from '#/components/Layout'
 import {Loader} from '#/components/Loader'
+import {MigrationStatus} from '#/components/MigrationStatus'
 
 type Props = NativeStackScreenProps<
   CommonNavigatorParams,
@@ -156,6 +157,12 @@ function Inner() {
 
   return (
     <Layout.Center style={[a.flex_1]}>
+      {/* Show migration status when using Sonet */}
+      {isSonet && (
+        <View style={[a.p_4, a.w_full]}>
+          <MigrationStatus />
+        </View>
+      )}
       {!readyToShow &&
         (moderation ? (
           <MessagesListHeader moderation={moderation} profile={recipient} />

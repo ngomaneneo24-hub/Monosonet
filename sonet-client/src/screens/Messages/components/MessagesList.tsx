@@ -54,6 +54,8 @@ import {Loader} from '#/components/Loader'
 import {Text} from '#/components/Typography'
 import {ChatStatusInfo} from './ChatStatusInfo'
 import {MessageInputEmbed, useMessageEmbed} from './MessageInputEmbed'
+import {SonetMessageItem, SonetTypingIndicator, SonetSystemMessage} from './SonetMessageItem'
+import {useIsSonetMessaging} from '#/state/messages/hybrid-provider'
 
 function MaybeLoader({isLoading}: {isLoading: boolean}) {
   return (
@@ -70,12 +72,26 @@ function MaybeLoader({isLoading}: {isLoading: boolean}) {
 }
 
 function renderItem({item}: {item: ConvoItem}) {
-  if (item.type === 'message' || item.type === 'pending-message') {
-    return <MessageItem item={item} />
-  } else if (item.type === 'deleted-message') {
-    return <Text>Deleted message</Text>
-  } else if (item.type === 'error') {
-    return <MessageListError item={item} />
+  const isSonet = useIsSonetMessaging()
+  
+  if (isSonet) {
+    // Handle Sonet message types
+    if (item.type === 'message' && 'message_id' in item.message) {
+      return <SonetMessageItem message={item.message} isOwnMessage={item.isOwnMessage} />
+    } else if (item.type === 'typing') {
+      return <SonetTypingIndicator isTyping={true} />
+    } else if (item.type === 'system') {
+      return <SonetSystemMessage content={item.system?.content || ''} />
+    }
+  } else {
+    // Handle AT Protocol message types
+    if (item.type === 'message' || item.type === 'pending-message') {
+      return <MessageItem item={item} />
+    } else if (item.type === 'deleted-message') {
+      return <Text>Deleted message</Text>
+    } else if (item.type === 'error') {
+      return <MessageListError item={item} />
+    }
   }
 
   return null
