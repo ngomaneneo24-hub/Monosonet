@@ -30,6 +30,8 @@ import {android, atoms as a, useTheme} from '#/alf'
 import {useSharedInputStyles} from '#/components/forms/TextField'
 import {PaperPlane_Stroke2_Corner0_Rounded as PaperPlane} from '#/components/icons/PaperPlane'
 import {useExtractEmbedFromFacets} from './MessageInputEmbed'
+import {SonetMessageInput} from './SonetMessageInput'
+import {useIsSonetMessaging} from '#/state/messages/hybrid-provider'
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput)
 
@@ -38,12 +40,14 @@ export function MessageInput({
   hasEmbed,
   setEmbed,
   children,
+  chatId,
 }: {
-  onSendMessage: (message: string) => void
+  onSendMessage: (message: string, encryption?: 'none' | 'aes256' | 'e2e') => void
   hasEmbed: boolean
   setEmbed: (embedUrl: string | undefined) => void
   children?: React.ReactNode
   openEmojiPicker?: (pos: EmojiPickerPosition) => void
+  chatId?: string
 }) {
   const {_} = useLingui()
   const t = useTheme()
@@ -64,6 +68,7 @@ export function MessageInput({
   const [shouldEnforceClear, setShouldEnforceClear] = useState(false)
 
   const {needsEmailVerification} = useEmail()
+  const isSonet = useIsSonetMessaging()
 
   useSaveMessageDraft(message)
   useExtractEmbedFromFacets(message, setEmbed)
@@ -130,6 +135,18 @@ export function MessageInput({
   const animatedProps = useAnimatedProps(() => ({
     scrollEnabled: isInputScrollable.get(),
   }))
+
+  // Use Sonet message input if enabled
+  if (isSonet && chatId) {
+    return (
+      <SonetMessageInput
+        chatId={chatId}
+        onSendMessage={onSendMessage}
+        disabled={needsEmailVerification}
+        placeholder={_(msg`Write a message`)}
+      />
+    )
+  }
 
   return (
     <View style={[a.px_md, a.pb_sm, a.pt_xs]}>
