@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -13,8 +11,8 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	pb "sonet/src/services/starterpack_service/proto"
-	"sonet/src/services/starterpack_service/service"
 	"sonet/src/services/starterpack_service/repository"
+	"sonet/src/services/starterpack_service/service"
 )
 
 func main() {

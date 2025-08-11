@@ -7,6 +7,7 @@ import (
 	"os"
 
 	_ "github.com/lib/pq"
+	"sonet/src/services/starterpack_service/models"
 )
 
 // DatabaseConnection represents a database connection
@@ -69,16 +70,16 @@ func NewDatabaseConnection() (*DatabaseConnection, error) {
 // StarterpackRepository defines the interface for starterpack operations
 type StarterpackRepository interface {
 	// Starterpack operations
-	CreateStarterpack(req CreateStarterpackRequest) (*Starterpack, error)
-	GetStarterpack(starterpackID, requesterID string) (*Starterpack, error)
-	GetUserStarterpacks(userID, requesterID string, limit int32, cursor string) ([]*Starterpack, string, error)
-	UpdateStarterpack(req UpdateStarterpackRequest) (*Starterpack, error)
+	CreateStarterpack(req models.CreateStarterpackRequest) (*models.Starterpack, error)
+	GetStarterpack(starterpackID, requesterID string) (*models.Starterpack, error)
+	GetUserStarterpacks(userID, requesterID string, limit int32, cursor string) ([]*models.Starterpack, string, error)
+	UpdateStarterpack(req models.UpdateStarterpackRequest) (*models.Starterpack, error)
 	DeleteStarterpack(starterpackID, requesterID string) error
 
 	// Item operations
-	AddStarterpackItem(req AddStarterpackItemRequest) (*StarterpackItem, error)
+	AddStarterpackItem(req models.AddStarterpackItemRequest) (*models.StarterpackItem, error)
 	RemoveStarterpackItem(starterpackID, itemID, removedBy string) error
-	GetStarterpackItems(starterpackID, requesterID string, limit int32, cursor string) ([]*StarterpackItem, string, error)
+	GetStarterpackItems(starterpackID, requesterID string, limit int32, cursor string) ([]*models.StarterpackItem, string, error)
 	GetStarterpackItemCount(starterpackID string) (int32, error)
 
 	// Permission operations
@@ -87,7 +88,7 @@ type StarterpackRepository interface {
 	CanAddToStarterpack(starterpackID, requesterID string) (bool, error)
 
 	// Discovery operations
-	GetSuggestedStarterpacks(userID string, limit int32, cursor string) ([]*Starterpack, string, error)
+	GetSuggestedStarterpacks(userID string, limit int32, cursor string) ([]*models.Starterpack, string, error)
 }
 
 // StarterpackRepositoryImpl implements StarterpackRepository
