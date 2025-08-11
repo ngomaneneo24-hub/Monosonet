@@ -2,6 +2,9 @@ import {useCallback, useEffect, useMemo, useState} from 'react'
 import {View} from 'react-native'
 import {useAnimatedRef} from 'react-native-reanimated'
 import {type ChatBskyActorDefs, type ChatBskyConvoDefs} from '@atproto/api'
+import type {SonetChat} from '#/services/sonetMessagingApi'
+import {useIsSonetMessaging} from '#/state/messages/hybrid-provider'
+import {convertAtprotoConvoToSonet} from '#/state/messages/adapters/atproto-to-sonet'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useFocusEffect, useIsFocused} from '@react-navigation/native'
@@ -19,7 +22,9 @@ import {MESSAGE_SCREEN_POLL_INTERVAL} from '#/state/messages/convo/const'
 import {useMessagesEventBus} from '#/state/messages/events'
 import {useLeftConvos} from '#/state/queries/messages/leave-conversation'
 import {useListConvosQuery} from '#/state/queries/messages/list-conversations'
+import {useSonetListChatsQuery} from '#/state/queries/messages/sonet/list-conversations'
 import {useSession} from '#/state/session'
+import {useUnifiedSession} from '#/state/session/hybrid'
 import {List, type ListRef} from '#/view/com/util/List'
 import {ChatListLoadingPlaceholder} from '#/view/com/util/LoadingPlaceholder'
 import {atoms as a, useBreakpoints, useTheme} from '#/alf'
@@ -40,6 +45,7 @@ import {ListFooter} from '#/components/Lists'
 import {Text} from '#/components/Typography'
 import {ChatListItem} from './components/ChatListItem'
 import {InboxPreview} from './components/InboxPreview'
+import {MigrationStatus} from '#/components/MigrationStatus'
 
 type ListItem =
   | {
@@ -49,7 +55,7 @@ type ListItem =
     }
   | {
       type: 'CONVERSATION'
-      conversation: ChatBskyConvoDefs.ConvoView
+      conversation: ChatBskyConvoDefs.ConvoView | SonetChat
     }
 
 function renderItem({item}: {item: ListItem}) {
@@ -62,7 +68,8 @@ function renderItem({item}: {item: ListItem}) {
 }
 
 function keyExtractor(item: ListItem) {
-  return item.type === 'INBOX' ? 'INBOX' : item.conversation.id
+  return item.type === 'INBOX' ? 'INBOX' : 
+    'chat_id' in item.conversation ? item.conversation.chat_id : item.conversation.id
 }
 
 type Props = NativeStackScreenProps<MessagesTabNavigatorParams, 'Messages'>
@@ -87,6 +94,7 @@ export function MessagesScreenInner({navigation, route}: Props) {
   const newChatControl = useDialogControl()
   const scrollElRef: ListRef = useAnimatedRef()
   const pushToConversation = route.params?.pushToConversation
+  const isSonet = useIsSonetMessaging()
 
   // Whenever we have `pushToConversation` set, it means we pressed a notification for a chat without being on
   // this tab. We should immediately push to the conversation after pressing the notification.
@@ -120,20 +128,46 @@ export function MessagesScreenInner({navigation, route}: Props) {
   const initialNumToRender = useInitialNumToRender({minItemHeight: 80})
   const [isPTRing, setIsPTRing] = useState(false)
 
+  // Use Sonet or AT Protocol queries based on feature flag
   const {
-    data,
-    isLoading,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
-    isError,
-    error,
-    refetch,
+    data: atprotoData,
+    isLoading: atprotoIsLoading,
+    isFetchingNextPage: atprotoIsFetchingNextPage,
+    hasNextPage: atprotoHasNextPage,
+    fetchNextPage: atprotoFetchNextPage,
+    isError: atprotoIsError,
+    error: atprotoError,
+    refetch: atprotoRefetch,
   } = useListConvosQuery({status: 'accepted'})
 
-  const {data: inboxData, refetch: refetchInbox} = useListConvosQuery({
+  const {data: atprotoInboxData, refetch: atprotoRefetchInbox} = useListConvosQuery({
     status: 'request',
   })
+
+  // Sonet queries
+  const {
+    data: sonetData,
+    isLoading: sonetIsLoading,
+    isFetchingNextPage: sonetIsFetchingNextPage,
+    hasNextPage: sonetHasNextPage,
+    fetchNextPage: sonetFetchNextPage,
+    isError: sonetIsError,
+    error: sonetError,
+    refetch: sonetRefetch,
+  } = useSonetListChatsQuery({type: 'direct'})
+
+  // Use appropriate data based on feature flag
+  const data = isSonet ? sonetData : atprotoData
+  const isLoading = isSonet ? sonetIsLoading : atprotoIsLoading
+  const isFetchingNextPage = isSonet ? sonetIsFetchingNextPage : atprotoIsFetchingNextPage
+  const hasNextPage = isSonet ? sonetHasNextPage : atprotoHasNextPage
+  const fetchNextPage = isSonet ? sonetFetchNextPage : atprotoFetchNextPage
+  const isError = isSonet ? sonetIsError : atprotoIsError
+  const error = isSonet ? sonetError : atprotoError
+  const refetch = isSonet ? sonetRefetch : atprotoRefetch
+
+  const inboxData = isSonet ? undefined : atprotoInboxData
+  const refetchInbox = isSonet ? (() => {}) : atprotoRefetchInbox
 
   useRefreshOnFocus(refetch)
   useRefreshOnFocus(refetchInbox)
@@ -160,29 +194,41 @@ export function MessagesScreenInner({navigation, route}: Props) {
     .filter(x => !!x)
 
   const conversations = useMemo(() => {
-    if (data?.pages) {
-      const conversations = data.pages
-        .flatMap(page => page.convos)
-        // filter out convos that are actively being left
-        .filter(convo => !leftConvos.includes(convo.id))
+    if (isSonet) {
+      // Handle Sonet data
+      if (data?.pages) {
+        const sonetChats = data.pages.flatMap(page => page.chats || [])
+        return sonetChats.map(
+          chat => ({type: 'CONVERSATION', conversation: chat}) as const,
+        )
+      }
+      return []
+    } else {
+      // Handle AT Protocol data
+      if (data?.pages) {
+        const conversations = data.pages
+          .flatMap(page => page.convos)
+          // filter out convos that are actively being left
+          .filter(convo => !leftConvos.includes(convo.id))
 
-      return [
-        ...(hasInboxConvos
-          ? [
-              {
-                type: 'INBOX' as const,
-                count: inboxUnreadConvoMembers.length,
-                profiles: inboxUnreadConvoMembers.slice(0, 3),
-              },
-            ]
-          : []),
-        ...conversations.map(
-          convo => ({type: 'CONVERSATION', conversation: convo}) as const,
-        ),
-      ] satisfies ListItem[]
+        return [
+          ...(hasInboxConvos
+            ? [
+                {
+                  type: 'INBOX' as const,
+                  count: inboxUnreadConvoMembers.length,
+                  profiles: inboxUnreadConvoMembers.slice(0, 3),
+                },
+              ]
+            : []),
+          ...conversations.map(
+            convo => ({type: 'CONVERSATION', conversation: convo}) as const,
+          ),
+        ] satisfies ListItem[]
+      }
+      return []
     }
-    return []
-  }, [data, leftConvos, hasInboxConvos, inboxUnreadConvoMembers])
+  }, [data, leftConvos, hasInboxConvos, inboxUnreadConvoMembers, isSonet])
 
   const onRefresh = useCallback(async () => {
     setIsPTRing(true)
@@ -239,6 +285,12 @@ export function MessagesScreenInner({navigation, route}: Props) {
     return (
       <Layout.Screen>
         <Header newChatControl={newChatControl} />
+        {/* Show migration status when using Sonet */}
+        {isSonet && (
+          <View style={[a.p_4]}>
+            <MigrationStatus />
+          </View>
+        )}
         <Layout.Center>
           {!isLoading && hasInboxConvos && (
             <InboxPreview profiles={inboxUnreadConvoMembers} />
@@ -317,6 +369,12 @@ export function MessagesScreenInner({navigation, route}: Props) {
   return (
     <Layout.Screen testID="messagesScreen">
       <Header newChatControl={newChatControl} />
+      {/* Show migration status when using Sonet */}
+      {isSonet && (
+        <View style={[a.p_4]}>
+          <MigrationStatus />
+        </View>
+      )}
       <NewChat onNewChat={onNewChat} control={newChatControl} />
       <List
         ref={scrollElRef}
