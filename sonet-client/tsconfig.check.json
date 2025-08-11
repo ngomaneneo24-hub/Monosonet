@@ -1,4 +1,10 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["src"]
+  "include": [
+    "src/env/**/*",
+    "src/services/sonetApi.ts",
+    "src/state/session/sonet.tsx",
+    "src/lib/api/upload-blob.ts",
+    "src/lib/constants.ts"
+  ]
 }
