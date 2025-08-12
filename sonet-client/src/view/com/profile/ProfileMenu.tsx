@@ -27,6 +27,7 @@ import {EventStopper} from '#/view/com/util/EventStopper'
 import * as Toast from '#/view/com/util/Toast'
 import {Button, ButtonIcon} from '#/components/Button'
 import {useDialogControl} from '#/components/Dialog'
+import {FlagAccountDialog} from '#/components/moderation/FlagAccountDialog'
 import {ArrowOutOfBoxModified_Stroke2_Corner2_Rounded as ArrowOutOfBoxIcon} from '#/components/icons/ArrowOutOfBox'
 import {ChainLink_Stroke2_Corner0_Rounded as ChainLinkIcon} from '#/components/icons/ChainLink'
 import {CircleCheck_Stroke2_Corner0_Rounded as CircleCheckIcon} from '#/components/icons/CircleCheck'
@@ -88,6 +89,7 @@ let ProfileMenu = ({
   const blockPromptControl = Prompt.usePromptControl()
   const loggedOutWarningPromptControl = Prompt.usePromptControl()
   const goLiveDialogControl = useDialogControl()
+  const flagAccountDialogControl = useDialogControl()
 
   const showLoggedOutWarning = React.useMemo(() => {
     return (
@@ -356,11 +358,22 @@ let ProfileMenu = ({
                     <Menu.Divider />
                     <Menu.Group>
                       <Menu.Item
+                        testID="profileHeaderDropdownFlagBtn"
+                        label={_(msg`Flag account for review`)}
+                        onPress={() => {
+                          flagAccountDialogControl.open()
+                        }}>
+                        <Menu.ItemText>
+                          <Trans>Flag account for review</Trans>
+                        </Menu.ItemText>
+                        <Menu.ItemIcon icon={Flag} />
+                      </Menu.Item>
+                      <Menu.Item
                         testID="profileHeaderDropdownShadowbanBtn"
                         label={_(msg`Shadowban account`)}
                         onPress={() => {
                           // TODO: Implement shadowban functionality
-                          Toast.show(_(msg`Shadowban functionality coming soon`))
+                          Toast.show(_(msg`Account shadowbanned by Sonet moderation`))
                         }}>
                         <Menu.ItemText>
                           <Trans>Shadowban account</Trans>
@@ -372,7 +385,7 @@ let ProfileMenu = ({
                         label={_(msg`Ban account`)}
                         onPress={() => {
                           // TODO: Implement ban functionality
-                          Toast.show(_(msg`Ban functionality coming soon`))
+                          Toast.show(_(msg`Account banned by Sonet moderation`))
                         }}>
                         <Menu.ItemText>
                           <Trans>Ban account</Trans>
@@ -384,7 +397,7 @@ let ProfileMenu = ({
                         label={_(msg`Suspend account`)}
                         onPress={() => {
                           // TODO: Implement suspend functionality
-                          Toast.show(_(msg`Suspend functionality coming soon`))
+                          Toast.show(_(msg`Account suspended by Sonet moderation`))
                         }}>
                         <Menu.ItemText>
                           <Trans>Suspend account</Trans>
@@ -536,6 +549,11 @@ let ProfileMenu = ({
         control={verificationRemovePromptControl}
         profile={profile}
         verifications={currentAccountVerifications}
+      />
+
+      <FlagAccountDialog
+        control={flagAccountDialogControl}
+        profile={profile}
       />
 
       {status.isActive ? (

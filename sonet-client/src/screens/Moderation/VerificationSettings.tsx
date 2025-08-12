@@ -39,8 +39,8 @@ export function Screen() {
           <SettingsList.Item>
             <Admonition type="tip" style={[a.flex_1]}>
               <Trans>
-                Verifications on Bluesky work differently than on other
-                platforms. Trusted accounts are selected by Bluesky and can verify other users.{' '}
+                Account verification on Sonet works differently than on other
+                platforms. Trusted accounts are selected by Sonet moderation and can verify other users.{' '}
                 <InlineLinkText
                   overridePresentation
                   to={urls.website.blog.initialVerificationAnnouncement}

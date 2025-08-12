@@ -221,7 +221,7 @@ let PostMenuItems = ({
   const onFounderDeletePost = () => {
     deletePostMutate({uri: postUri}).then(
       () => {
-        Toast.show(_(msg`Post deleted by founder`))
+        Toast.show(_(msg`Post removed by Sonet moderation`))
         
         // Navigate back if we're in a post thread
         const route = getCurrentRoute(navigation.getState())
@@ -230,8 +230,8 @@ let PostMenuItems = ({
         }
       },
       e => {
-        logger.error('Founder failed to delete post', {message: e})
-        Toast.show(_(msg`Failed to delete post, please try again`), 'xmark')
+        logger.error('Moderation failed to delete post', {message: e})
+        Toast.show(_(msg`Failed to remove post, please try again`), 'xmark')
       },
     )
   }
@@ -722,9 +722,9 @@ let PostMenuItems = ({
               {isFounder && !isAuthor && (
                 <Menu.Item
                   testID="postDropdownFounderDeleteBtn"
-                  label={_(msg`Delete post (Founder)`)}
+                  label={_(msg`Delete post (Moderation)`)}
                   onPress={onFounderDeletePost}>
-                  <Menu.ItemText>{_(msg`Delete post (Founder)`)}</Menu.ItemText>
+                  <Menu.ItemText>{_(msg`Delete post (Moderation)`)}</Menu.ItemText>
                   <Menu.ItemIcon icon={Trash} position="right" />
                 </Menu.Item>
               )}
