@@ -152,6 +152,15 @@ add_executable(messaging_service ${MESSAGING_SERVICE_SOURCES} ${MESSAGING_SERVIC
 # Test executable
 add_executable(messaging_tests ${MESSAGING_SERVICE_TESTS} ${MESSAGING_SERVICE_HEADERS})
 
+# Add MLS Protocol and PQC Algorithms
+add_library(mls_protocol STATIC
+    src/mls_protocol.cpp
+)
+
+add_library(pqc_algorithms STATIC
+    src/pqc_algorithms.cpp
+)
+
 # Link libraries for main service
 target_link_libraries(messaging_service
     ${Boost_LIBRARIES}
@@ -159,6 +168,8 @@ target_link_libraries(messaging_service
     ${PROTOBUF_LIBRARIES}
     ${GRPC_LIBRARIES}
     ${JSONCPP_LIBRARIES}
+    mls_protocol
+    pqc_algorithms
     ${POSTGRESQL_LIBRARIES}
     ${LIBPQXX_LIBRARIES}
     ${HIREDIS_LIBRARIES}
