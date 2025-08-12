@@ -1,10 +1,10 @@
 import React, {useCallback} from 'react'
 import {TouchableOpacity, View} from 'react-native'
 import {
-  type AppBskyActorDefs,
+  type SonetActorDefs,
   type ModerationCause,
   type ModerationDecision,
-} from '@atproto/api'
+} from '@sonet/api'
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -23,7 +23,7 @@ import {atoms as a, useBreakpoints, useTheme, web} from '#/alf'
 import {ConvoMenu} from '#/components/dms/ConvoMenu'
 import {Bell2Off_Filled_Corner0_Rounded as BellStroke} from '#/components/icons/Bell2'
 import {Link} from '#/components/Link'
-import {PostAlerts} from '#/components/moderation/PostAlerts'
+import {NoteAlerts} from '#/components/moderation/NoteAlerts'
 import {Text} from '#/components/Typography'
 import {useSimpleVerificationState} from '#/components/verification'
 import {VerificationCheck} from '#/components/verification/VerificationCheck'
@@ -34,7 +34,7 @@ export let MessagesListHeader = ({
   profile,
   moderation,
 }: {
-  profile?: Shadow<AppBskyActorDefs.ProfileViewDetailed>
+  profile?: Shadow<SonetActorDefs.ProfileViewDetailed>
   moderation?: ModerationDecision
 }): React.ReactNode => {
   const t = useTheme()
@@ -141,7 +141,7 @@ function HeaderReady({
   moderation,
   blockInfo,
 }: {
-  profile: Shadow<AppBskyActorDefs.ProfileViewDetailed>
+  profile: Shadow<SonetActorDefs.ProfileViewDetailed>
   moderation: ModerationDecision
   blockInfo: {
     listBlocks: ModerationCause[]
@@ -155,18 +155,18 @@ function HeaderReady({
     profile,
   })
 
-  const isDeletedAccount = profile?.handle === 'missing.invalid'
+  const isDeletedAccount = profile?.username === 'missing.invalid'
   const displayName = isDeletedAccount
     ? _(msg`Deleted Account`)
     : sanitizeDisplayName(
-        profile.displayName || profile.handle,
+        profile.displayName || profile.username,
         moderation.ui('displayName'),
       )
 
   // @ts-ignore findLast is polyfilled - esb
   const latestMessageFromOther = convoState.items.findLast(
     (item: ConvoItem) =>
-      item.type === 'message' && item.message.sender.did === profile.did,
+      item.type === 'message' && item.message.sender.userId === profile.userId,
   )
 
   const latestReportableMessage =
@@ -219,7 +219,7 @@ function HeaderReady({
                   web([a.leading_normal, {marginTop: -2}]),
                 ]}
                 numberOfLines={1}>
-                @{profile.handle}
+                @{profile.username}
                 {convoState.convo?.muted && (
                   <>
                     {' '}
@@ -252,7 +252,7 @@ function HeaderReady({
             paddingLeft: PFP_SIZE + a.gap_md.gap,
           },
         ]}>
-        <PostAlerts
+        <NoteAlerts
           modui={moderation.ui('contentList')}
           size="lg"
           style={[a.pt_xs]}

@@ -1,7 +1,7 @@
 import React, {createContext, useContext, useMemo} from 'react'
-import {BskyAgent, ModerationOpts} from '@atproto/api'
+import {SonetAppAgent, ModerationOpts} from '@sonet/api'
 
-import {useHiddenPosts, useLabelDefinitions} from '#/state/preferences'
+import {useHiddenNotes, useLabelDefinitions} from '#/state/preferences'
 import {DEFAULT_LOGGED_OUT_LABEL_PREFERENCES} from '#/state/queries/preferences/moderation'
 import {useSession} from '#/state/session'
 import {usePreferencesQuery} from '../queries/preferences'
@@ -24,9 +24,9 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
   const {currentAccount} = useSession()
   const prefs = usePreferencesQuery()
   const {labelDefs} = useLabelDefinitions()
-  const hiddenPosts = useHiddenPosts() // TODO move this into pds-stored prefs
+  const hiddenNotes = useHiddenNotes() // TODO move this into pds-stored prefs
 
-  const userDid = currentAccount?.did
+  const userDid = currentAccount?.userId
   const moderationPrefs = prefs.data?.moderationPrefs
   const value = useMemo<ModerationOpts | undefined>(() => {
     if (override) {
@@ -41,15 +41,15 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
         ...moderationPrefs,
         labelers: moderationPrefs.labelers.length
           ? moderationPrefs.labelers
-          : BskyAgent.appLabelers.map(did => ({
-              did,
+          : SonetAppAgent.appLabelers.map(userId => ({
+              userId,
               labels: DEFAULT_LOGGED_OUT_LABEL_PREFERENCES,
             })),
-        hiddenPosts: hiddenPosts || [],
+        hiddenNotes: hiddenNotes || [],
       },
       labelDefs,
     }
-  }, [override, userDid, labelDefs, moderationPrefs, hiddenPosts])
+  }, [override, userDid, labelDefs, moderationPrefs, hiddenNotes])
 
   return (
     <moderationOptsContext.Provider value={value}>

@@ -1,20 +1,20 @@
 /* eslint-disable no-labels */
-import {AppBskyUnspeccedDefs, type ModerationOpts} from '@atproto/api'
+import {SonetUnspeccedDefs, type ModerationOpts} from '@sonet/api'
 
 import {
   type ApiThreadItem,
-  type PostThreadParams,
+  type NoteThreadParams,
   type ThreadItem,
   type TraversalMetadata,
-} from '#/state/queries/usePostThread/types'
+} from '#/state/queries/useNoteThread/types'
 import {
-  getPostRecord,
-  getThreadPostNoUnauthenticatedUI,
-  getThreadPostUI,
+  getNoteRecord,
+  getThreadNoteNoUnauthenticatedUI,
+  getThreadNoteUI,
   getTraversalMetadata,
   storeTraversalMetadata,
-} from '#/state/queries/usePostThread/utils'
-import * as views from '#/state/queries/usePostThread/views'
+} from '#/state/queries/useNoteThread/utils'
+import * as views from '#/state/queries/useNoteThread/views'
 
 export function sortAndAnnotateThreadItems(
   thread: ApiThreadItem[],
@@ -26,10 +26,10 @@ export function sortAndAnnotateThreadItems(
   }: {
     threadgateHiddenReplies: Set<string>
     moderationOpts: ModerationOpts
-    view: PostThreadParams['view']
+    view: NoteThreadParams['view']
     /**
      * Set to `true` in cases where we already know the moderation state of the
-     * post e.g. when fetching additional replies from the server. This will
+     * note e.g. when fetching additional replies from the server. This will
      * prevent additional sorting or nested-branch truncation, and all replies,
      * regardless of moderation state, will be included in the resulting
      * `threadItems` array.
@@ -46,9 +46,9 @@ export function sortAndAnnotateThreadItems(
     let parentMetadata: TraversalMetadata | undefined
     let metadata: TraversalMetadata | undefined
 
-    if (AppBskyUnspeccedDefs.isThreadItemPost(item.value)) {
+    if (SonetUnspeccedDefs.isThreadItemNote(item.value)) {
       parentMetadata = metadatas.get(
-        getPostRecord(item.value.post).reply?.parent?.uri || '',
+        getNoteRecord(item.value.note).reply?.parent?.uri || '',
       )
       metadata = getTraversalMetadata({
         item,
@@ -61,51 +61,51 @@ export function sortAndAnnotateThreadItems(
 
     if (item.depth < 0) {
       /*
-       * Parents are ignored until we find the anchor post, then we walk
+       * Parents are ignored until we find the anchor note, then we walk
        * _up_ from there.
        */
     } else if (item.depth === 0) {
-      if (AppBskyUnspeccedDefs.isThreadItemNoUnauthenticated(item.value)) {
-        threadItems.push(views.threadPostNoUnauthenticated(item))
-      } else if (AppBskyUnspeccedDefs.isThreadItemNotFound(item.value)) {
-        threadItems.push(views.threadPostNotFound(item))
-      } else if (AppBskyUnspeccedDefs.isThreadItemBlocked(item.value)) {
-        threadItems.push(views.threadPostBlocked(item))
-      } else if (AppBskyUnspeccedDefs.isThreadItemPost(item.value)) {
-        const post = views.threadPost({
+      if (SonetUnspeccedDefs.isThreadItemNoUnauthenticated(item.value)) {
+        threadItems.push(views.threadNoteNoUnauthenticated(item))
+      } else if (SonetUnspeccedDefs.isThreadItemNotFound(item.value)) {
+        threadItems.push(views.threadNoteNotFound(item))
+      } else if (SonetUnspeccedDefs.isThreadItemBlocked(item.value)) {
+        threadItems.push(views.threadNoteBlocked(item))
+      } else if (SonetUnspeccedDefs.isThreadItemNote(item.value)) {
+        const note = views.threadNote({
           uri: item.uri,
           depth: item.depth,
           value: item.value,
           moderationOpts,
           threadgateHiddenReplies,
         })
-        threadItems.push(post)
+        threadItems.push(note)
 
         parentTraversal: for (let pi = i - 1; pi >= 0; pi--) {
           const parent = thread[pi]
 
           if (
-            AppBskyUnspeccedDefs.isThreadItemNoUnauthenticated(parent.value)
+            SonetUnspeccedDefs.isThreadItemNoUnauthenticated(parent.value)
           ) {
-            const post = views.threadPostNoUnauthenticated(parent)
-            post.ui = getThreadPostNoUnauthenticatedUI({
+            const note = views.threadNoteNoUnauthenticated(parent)
+            note.ui = getThreadNoteNoUnauthenticatedUI({
               depth: parent.depth,
               // ignore for now
               // prevItemDepth: thread[pi - 1]?.depth,
               nextItemDepth: thread[pi + 1]?.depth,
             })
-            threadItems.unshift(post)
+            threadItems.unshift(note)
             // for now, break parent traversal at first no-unauthed
             break parentTraversal
-          } else if (AppBskyUnspeccedDefs.isThreadItemNotFound(parent.value)) {
-            threadItems.unshift(views.threadPostNotFound(parent))
+          } else if (SonetUnspeccedDefs.isThreadItemNotFound(parent.value)) {
+            threadItems.unshift(views.threadNoteNotFound(parent))
             break parentTraversal
-          } else if (AppBskyUnspeccedDefs.isThreadItemBlocked(parent.value)) {
-            threadItems.unshift(views.threadPostBlocked(parent))
+          } else if (SonetUnspeccedDefs.isThreadItemBlocked(parent.value)) {
+            threadItems.unshift(views.threadNoteBlocked(parent))
             break parentTraversal
-          } else if (AppBskyUnspeccedDefs.isThreadItemPost(parent.value)) {
+          } else if (SonetUnspeccedDefs.isThreadItemNote(parent.value)) {
             threadItems.unshift(
-              views.threadPost({
+              views.threadNote({
                 uri: parent.uri,
                 depth: parent.depth,
                 value: parent.value,
@@ -123,16 +123,16 @@ export function sortAndAnnotateThreadItems(
        * we could.
        */
       const shouldBreak =
-        AppBskyUnspeccedDefs.isThreadItemNoUnauthenticated(item.value) ||
-        AppBskyUnspeccedDefs.isThreadItemNotFound(item.value) ||
-        AppBskyUnspeccedDefs.isThreadItemBlocked(item.value)
+        SonetUnspeccedDefs.isThreadItemNoUnauthenticated(item.value) ||
+        SonetUnspeccedDefs.isThreadItemNotFound(item.value) ||
+        SonetUnspeccedDefs.isThreadItemBlocked(item.value)
 
       if (shouldBreak) {
         const branch = getBranch(thread, i, item.depth)
         // could insert tombstone
         i = branch.end
         continue traversal
-      } else if (AppBskyUnspeccedDefs.isThreadItemPost(item.value)) {
+      } else if (SonetUnspeccedDefs.isThreadItemNote(item.value)) {
         if (parentMetadata) {
           /*
            * Set this value before incrementing the parent's repliesSeenCounter
@@ -142,7 +142,7 @@ export function sortAndAnnotateThreadItems(
           parentMetadata.repliesIndexCounter += 1
         }
 
-        const post = views.threadPost({
+        const note = views.threadNote({
           uri: item.uri,
           depth: item.depth,
           value: item.value,
@@ -150,11 +150,11 @@ export function sortAndAnnotateThreadItems(
           threadgateHiddenReplies,
         })
 
-        if (!post.isBlurred || skipModerationHandling) {
+        if (!note.isBlurred || skipModerationHandling) {
           /*
            * Not moderated, need to insert it
            */
-          threadItems.push(post)
+          threadItems.push(note)
 
           /*
            * Update seen reply count of parent
@@ -166,7 +166,7 @@ export function sortAndAnnotateThreadItems(
           /*
            * Moderated in some way, we're going to walk children
            */
-          const parent = post
+          const parent = note
           const parentIsTopLevelReply = parent.depth === 1
           // get sub tree
           const branch = getBranch(thread, i, item.depth)
@@ -180,9 +180,9 @@ export function sortAndAnnotateThreadItems(
             for (let ci = startIndex; ci <= branch.end; ci++) {
               const child = thread[ci]
 
-              if (AppBskyUnspeccedDefs.isThreadItemPost(child.value)) {
+              if (SonetUnspeccedDefs.isThreadItemNote(child.value)) {
                 const childParentMetadata = metadatas.get(
-                  getPostRecord(child.value.post).reply?.parent?.uri || '',
+                  getNoteRecord(child.value.note).reply?.parent?.uri || '',
                 )
                 const childMetadata = getTraversalMetadata({
                   item: child,
@@ -200,7 +200,7 @@ export function sortAndAnnotateThreadItems(
                   childParentMetadata.repliesIndexCounter += 1
                 }
 
-                const childPost = views.threadPost({
+                const childNote = views.threadNote({
                   uri: child.uri,
                   depth: child.depth,
                   value: child.value,
@@ -211,12 +211,12 @@ export function sortAndAnnotateThreadItems(
                 /*
                  * If a child is moderated in any way, drop it an its sub-branch
                  * entirely. To reveal these, the user must navigate to the
-                 * parent post directly.
+                 * parent note directly.
                  */
-                if (childPost.isBlurred) {
+                if (childNote.isBlurred) {
                   ci = getBranch(thread, ci, child.depth).end
                 } else {
-                  otherThreadItems.push(childPost)
+                  otherThreadItems.push(childNote)
 
                   if (childParentMetadata) {
                     childParentMetadata.repliesSeenCounter += 1
@@ -251,7 +251,7 @@ export function sortAndAnnotateThreadItems(
       const prevItem = subset.at(i - 1)
       const nextItem = subset.at(i + 1)
 
-      if (item.type === 'threadPost') {
+      if (item.type === 'threadNote') {
         const metadata = metadatas.get(item.uri)
 
         if (metadata) {
@@ -259,9 +259,9 @@ export function sortAndAnnotateThreadItems(
             /*
              * Track what's before/after now that we've applied moderation
              */
-            if (prevItem?.type === 'threadPost')
+            if (prevItem?.type === 'threadNote')
               metadata.prevItemDepth = prevItem?.depth
-            if (nextItem?.type === 'threadPost')
+            if (nextItem?.type === 'threadNote')
               metadata.nextItemDepth = nextItem?.depth
 
             /*
@@ -360,7 +360,7 @@ export function sortAndAnnotateThreadItems(
           }
 
           /*
-           * If this post has unhydrated replies, and it is the last child, then
+           * If this note has unhydrated replies, and it is the last child, then
            * it itself needs a "read more"
            */
           if (metadata.repliesUnhydrated > 0 && metadata.isLastChild) {
@@ -409,7 +409,7 @@ export function sortAndAnnotateThreadItems(
           /*
            * Calculate the final UI state for the thread item.
            */
-          item.ui = getThreadPostUI(metadata)
+          item.ui = getThreadNoteUI(metadata)
         }
       }
     }
@@ -446,10 +446,10 @@ export function buildThread({
   const items = [...threadItems]
 
   if (isLoading) {
-    const anchorPost = items.at(0)
-    const hasAnchorFromCache = anchorPost && anchorPost.type === 'threadPost'
+    const anchorNote = items.at(0)
+    const hasAnchorFromCache = anchorNote && anchorNote.type === 'threadNote'
     const skeletonReplies = hasAnchorFromCache
-      ? (anchorPost.value.post.replyCount ?? 4)
+      ? (anchorNote.value.note.replyCount ?? 4)
       : 4
 
     if (!items.length) {
@@ -465,7 +465,7 @@ export function buildThread({
       // we might have this from cache
       const replyDisabled =
         hasAnchorFromCache &&
-        anchorPost.value.post.viewer?.replyDisabled === true
+        anchorNote.value.note.viewer?.replyDisabled === true
 
       if (hasAnchorFromCache) {
         if (!replyDisabled) {
@@ -496,9 +496,9 @@ export function buildThread({
     for (let i = 0; i < items.length; i++) {
       const item = items[i]
       if (
-        item.type === 'threadPost' &&
+        item.type === 'threadNote' &&
         item.depth === 0 &&
-        !item.value.post.viewer?.replyDisabled &&
+        !item.value.note.viewer?.replyDisabled &&
         hasSession
       ) {
         items.splice(i + 1, 0, {

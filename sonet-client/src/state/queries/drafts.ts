@@ -28,7 +28,7 @@ export interface Draft {
   content: string
   reply_to_uri?: string
   quote_uri?: string
-  mention_handle?: string
+  mention_username?: string
   images: DraftImage[]
   video?: DraftVideo
   labels: string[]
@@ -43,7 +43,7 @@ export interface CreateDraftRequest {
   content: string
   reply_to_uri?: string
   quote_uri?: string
-  mention_handle?: string
+  mention_username?: string
   images?: DraftImage[]
   video?: DraftVideo
   labels?: string[]
@@ -57,7 +57,7 @@ export interface UpdateDraftRequest {
   content: string
   reply_to_uri?: string
   quote_uri?: string
-  mention_handle?: string
+  mention_username?: string
   images?: DraftImage[]
   video?: DraftVideo
   labels?: string[]
@@ -69,7 +69,7 @@ export interface AutoSaveDraftRequest {
   content: string
   reply_to_uri?: string
   quote_uri?: string
-  mention_handle?: string
+  mention_username?: string
   images?: DraftImage[]
   video?: DraftVideo
   labels?: string[]
@@ -112,9 +112,9 @@ export function useUserDraftsQuery(limit = 20, cursor?: string, includeAutoSaved
   const {currentAccount} = useSession()
 
   return useQuery<{drafts: Draft[], next_cursor?: string}, Error>({
-    queryKey: RQKEY_USER_DRAFTS(currentAccount?.did || ''),
+    queryKey: RQKEY_USER_DRAFTS(currentAccount?.userId || ''),
     queryFn: async () => {
-      if (!currentAccount?.did) throw new Error('User not authenticated')
+      if (!currentAccount?.userId) throw new Error('User not authenticated')
       
       const params = new URLSearchParams({
         limit: limit.toString(),
@@ -125,7 +125,7 @@ export function useUserDraftsQuery(limit = 20, cursor?: string, includeAutoSaved
       const response = await apiRequest(`/v1/drafts?${params}`)
       return response
     },
-    enabled: !!currentAccount?.did,
+    enabled: !!currentAccount?.userId,
     staleTime: STALE.MINUTES.FIVE,
   })
 }
@@ -136,11 +136,11 @@ export function useDraftQuery(draftId: string) {
   return useQuery<{draft: Draft}, Error>({
     queryKey: RQKEY(draftId),
     queryFn: async () => {
-      if (!currentAccount?.did) throw new Error('User not authenticated')
+      if (!currentAccount?.userId) throw new Error('User not authenticated')
       const response = await apiRequest(`/v1/drafts/${draftId}`)
       return response
     },
-    enabled: !!currentAccount?.did && !!draftId,
+    enabled: !!currentAccount?.userId && !!draftId,
     staleTime: STALE.MINUTES.FIVE,
   })
 }
@@ -149,13 +149,13 @@ export function useAutoSavedDraftQuery() {
   const {currentAccount} = useSession()
 
   return useQuery<{draft: Draft}, Error>({
-    queryKey: RQKEY_AUTO_SAVED(currentAccount?.did || ''),
+    queryKey: RQKEY_AUTO_SAVED(currentAccount?.userId || ''),
     queryFn: async () => {
-      if (!currentAccount?.did) throw new Error('User not authenticated')
+      if (!currentAccount?.userId) throw new Error('User not authenticated')
       const response = await apiRequest('/v1/drafts/auto-saved')
       return response
     },
-    enabled: !!currentAccount?.did,
+    enabled: !!currentAccount?.userId,
     staleTime: STALE.MINUTES.ONE,
   })
 }
@@ -174,9 +174,9 @@ export function useCreateDraftMutation() {
       return response
     },
     onSuccess: () => {
-      if (currentAccount?.did) {
+      if (currentAccount?.userId) {
         queryClient.invalidateQueries({
-          queryKey: RQKEY_USER_DRAFTS(currentAccount.did),
+          queryKey: RQKEY_USER_DRAFTS(currentAccount.userId),
         })
       }
     },
@@ -197,9 +197,9 @@ export function useUpdateDraftMutation() {
       return response
     },
     onSuccess: (data) => {
-      if (currentAccount?.did) {
+      if (currentAccount?.userId) {
         queryClient.invalidateQueries({
-          queryKey: RQKEY_USER_DRAFTS(currentAccount.did),
+          queryKey: RQKEY_USER_DRAFTS(currentAccount.userId),
         })
         queryClient.setQueryData(RQKEY(data.draft.draft_id), {draft: data.draft})
       }
@@ -218,9 +218,9 @@ export function useDeleteDraftMutation() {
       })
     },
     onSuccess: (_, draftId) => {
-      if (currentAccount?.did) {
+      if (currentAccount?.userId) {
         queryClient.invalidateQueries({
-          queryKey: RQKEY_USER_DRAFTS(currentAccount.did),
+          queryKey: RQKEY_USER_DRAFTS(currentAccount.userId),
         })
         queryClient.removeQueries({
           queryKey: RQKEY(draftId),
@@ -243,8 +243,8 @@ export function useAutoSaveDraftMutation() {
       return response
     },
     onSuccess: (data) => {
-      if (currentAccount?.did) {
-        queryClient.setQueryData(RQKEY_AUTO_SAVED(currentAccount.did), {draft: data.draft})
+      if (currentAccount?.userId) {
+        queryClient.setQueryData(RQKEY_AUTO_SAVED(currentAccount.userId), {draft: data.draft})
       }
     },
   })

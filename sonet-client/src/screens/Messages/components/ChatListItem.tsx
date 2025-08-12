@@ -29,7 +29,7 @@ export function ChatListItem({
   const {currentAccount} = useSession()
   const navigation = useNavigation()
 
-  const handlePress = useCallback(() => {
+  const usernamePress = useCallback(() => {
     navigation.navigate('MessagesConversation' as any, {
       conversation: convo.id || convo.chat_id,
     })
@@ -37,17 +37,17 @@ export function ChatListItem({
 
   // Extract user info from conversation
   const otherUser = convo.members?.find(
-    (member: any) => member.did !== currentAccount?.did,
+    (member: any) => member.userId !== currentAccount?.userId,
   )
   
-  const handle = otherUser?.handle || 'unknown'
-  const displayName = otherUser?.displayName || handle
+  const username = otherUser?.username || 'unknown'
+  const displayName = otherUser?.displayName || username
   const avatar = otherUser?.avatar
   const lastMessage = convo.lastMessage
   const unreadCount = convo.unreadCount || 0
   const isMuted = convo.muted || false
 
-  // Handle different message types
+  // Username different message types
   const renderLastMessage = () => {
     if (!lastMessage) {
       return (
@@ -89,7 +89,7 @@ export function ChatListItem({
     )
   }
 
-  // Handle embeds
+  // Username embeds
   const renderEmbed = () => {
     if (!lastMessage?.embed) return null
 
@@ -116,11 +116,11 @@ export function ChatListItem({
         )
       
       case 'record':
-        if (embed.record?.type === 'post') {
+        if (embed.record?.type === 'note') {
           return (
             <View style={[a.flex_row, a.align_center, a.gap_xs, a.mt_xs]}>
               <Text style={[a.text_xs, t.atoms.text_contrast_low]}>
-                <Trans>Post</Trans>
+                <Trans>Note</Trans>
               </Text>
             </View>
           )
@@ -145,7 +145,7 @@ export function ChatListItem({
       ]}>
       <View
         style={[a.flex_row, a.align_center, a.flex_1, a.mr_sm]}
-        onTouchEnd={handlePress}>
+        onTouchEnd={usernamePress}>
         <Avatar size={48} image={avatar} style={[a.mr_md]} />
         
         <View style={[a.flex_1, a.min_w_0]}>
@@ -169,7 +169,7 @@ export function ChatListItem({
           </View>
           
           <Text style={[a.text_sm, t.atoms.text_contrast_medium]} numberOfLines={1}>
-            @{handle}
+            @{username}
           </Text>
           
           {renderLastMessage()}
@@ -200,7 +200,7 @@ export function ChatListItem({
             size="small"
             color="secondary"
             variant="ghost"
-            onPress={handlePress}>
+            onPress={usernamePress}>
             <ButtonIcon icon={ArrowRightIcon} />
           </Button>
         )}

@@ -1,6 +1,6 @@
 import React from 'react'
 import {View} from 'react-native'
-import {BSKY_LABELER_DID, ComAtprotoModerationDefs} from '@atproto/api'
+import {BSKY_LABELER_UserID, SonetModerationDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useMutation} from '@tanstack/react-query'
@@ -23,7 +23,7 @@ export function AgeAssuranceAppealDialog({
   const {_} = useLingui()
   return (
     <Dialog.Outer control={control}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <Dialog.ScrollableInner
         label={_(msg`Contact our moderation team`)}
         style={[web({maxWidth: 400})]}>
@@ -49,17 +49,17 @@ function Inner({control}: {control: Dialog.DialogControlProps}) {
 
       await agent.createModerationReport(
         {
-          reasonType: ComAtprotoModerationDefs.REASONAPPEAL,
+          reasonType: SonetModerationDefs.REASONAPPEAL,
           subject: {
-            $type: 'com.atproto.admin.defs#repoRef',
-            did: currentAccount?.did,
+            type: "sonet",
+            userId: currentAccount?.userId,
           },
           reason: `AGE_ASSURANCE_INQUIRY: ` + details,
         },
         {
           encoding: 'application/json',
           headers: {
-            'atproto-proxy': `${BSKY_LABELER_DID}#atproto_labeler`,
+            'atproto-proxy': `${BSKY_LABELER_UserID}#atproto_labeler`,
           },
         },
       )

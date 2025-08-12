@@ -1,7 +1,7 @@
 import {
-  type AppBskyActorDefs,
-  type AppBskyUnspeccedGetSuggestedUsers,
-} from '@atproto/api'
+  type SonetActorDefs,
+  type SonetUnspeccedGetSuggestedUsers,
+} from '@sonet/api'
 import {type QueryClient, useQuery} from '@tanstack/react-query'
 
 import {
@@ -36,7 +36,7 @@ export function useGetSuggestedUsersQuery(props: QueryProps) {
     queryKey: createGetSuggestedUsersQueryKey(props),
     queryFn: async () => {
       const contentLangs = getContentLanguages().join(',')
-      const {data} = await agent.app.bsky.unspecced.getSuggestedUsers(
+      const {data} = await agent.app.sonet.unspecced.getSuggestedUsers(
         {
           category: props.category ?? undefined,
           limit: props.limit || 10,
@@ -56,10 +56,10 @@ export function useGetSuggestedUsersQuery(props: QueryProps) {
 
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
-  did: string,
-): Generator<AppBskyActorDefs.ProfileView, void> {
+  userId: string,
+): Generator<SonetActorDefs.ProfileView, void> {
   const responses =
-    queryClient.getQueriesData<AppBskyUnspeccedGetSuggestedUsers.OutputSchema>({
+    queryClient.getQueriesData<SonetUnspeccedGetSuggestedUsers.OutputSchema>({
       queryKey: [getSuggestedUsersQueryKeyRoot],
     })
   for (const [_, response] of responses) {
@@ -68,7 +68,7 @@ export function* findAllProfilesInQueryData(
     }
 
     for (const actor of response.actors) {
-      if (actor.did === did) {
+      if (actor.userId === userId) {
         yield actor
       }
     }

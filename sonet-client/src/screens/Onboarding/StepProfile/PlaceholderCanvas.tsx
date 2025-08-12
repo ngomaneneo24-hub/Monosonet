@@ -36,7 +36,7 @@ export const PlaceholderCanvas = React.forwardRef<PlaceholderCanvasRef, {}>(
       [],
     )
 
-    React.useImperativeHandle(ref, () => ({
+    React.useImperativeUsername(ref, () => ({
       capture: async () => {
         if (viewshotRef.current?.capture) {
           return await viewshotRef.current.capture()

@@ -1,17 +1,17 @@
 import React, {memo, useMemo} from 'react'
 import {View} from 'react-native'
 import {
-  type AppBskyActorDefs,
+  type SonetActorDefs,
   moderateProfile,
   type ModerationOpts,
   type RichText as RichTextAPI,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
 import {useActorStatus} from '#/lib/actor-status'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {logger} from '#/logger'
 import {isIOS} from '#/platform/detection'
 import {useProfileShadow} from '#/state/cache/profile-shadow'
@@ -37,12 +37,12 @@ import {RichText} from '#/components/RichText'
 import {Text} from '#/components/Typography'
 import {VerificationCheckButton} from '#/components/verification/VerificationCheckButton'
 import {EditProfileDialog} from './EditProfileDialog'
-import {ProfileHeaderHandle} from './Handle'
+import {ProfileHeaderUsername} from './Username'
 import {ProfileHeaderMetrics} from './Metrics'
 import {ProfileHeaderShell} from './Shell'
 
 interface Props {
-  profile: AppBskyActorDefs.ProfileViewDetailed
+  profile: SonetActorDefs.ProfileViewDetailed
   descriptionRT: RichTextAPI | null
   moderationOpts: ModerationOpts
   hideBackButton?: boolean
@@ -59,7 +59,7 @@ let ProfileHeaderStandard = ({
   const t = useTheme()
   const {gtMobile} = useBreakpoints()
   const profile =
-    useProfileShadow<AppBskyActorDefs.ProfileViewDetailed>(profileUnshadowed)
+    useProfileShadow<SonetActorDefs.ProfileViewDetailed>(profileUnshadowed)
   const {currentAccount, hasSession} = useSession()
   const {_} = useLingui()
   const moderation = useMemo(
@@ -87,7 +87,7 @@ let ProfileHeaderStandard = ({
         Toast.show(
           _(
             msg`Following ${sanitizeDisplayName(
-              profile.displayName || profile.handle,
+              profile.displayName || profile.username,
               moderation.ui('displayName'),
             )}`,
           ),
@@ -108,7 +108,7 @@ let ProfileHeaderStandard = ({
         Toast.show(
           _(
             msg`No longer following ${sanitizeDisplayName(
-              profile.displayName || profile.handle,
+              profile.displayName || profile.username,
               moderation.ui('displayName'),
             )}`,
           ),
@@ -135,7 +135,7 @@ let ProfileHeaderStandard = ({
   }, [_, queueUnblock])
 
   const isMe = useMemo(
-    () => currentAccount?.did === profile.did,
+    () => currentAccount?.userId === profile.userId,
     [currentAccount, profile],
   )
 
@@ -226,8 +226,8 @@ let ProfileHeaderStandard = ({
                 variant="solid"
                 label={
                   profile.viewer?.following
-                    ? _(msg`Unfollow ${profile.handle}`)
-                    : _(msg`Follow ${profile.handle}`)
+                    ? _(msg`Unfollow ${profile.username}`)
+                    : _(msg`Follow ${profile.username}`)
                 }
                 onPress={
                   profile.viewer?.following ? onPressUnfollow : onPressFollow
@@ -264,7 +264,7 @@ let ProfileHeaderStandard = ({
                 a.leading_tight,
               ]}>
               {sanitizeDisplayName(
-                profile.displayName || sanitizeHandle(profile.handle),
+                profile.displayName || sanitizeUsername(profile.username),
                 moderation.ui('displayName'),
               )}
               <View
@@ -278,7 +278,7 @@ let ProfileHeaderStandard = ({
               </View>
             </Text>
           </View>
-          <ProfileHeaderHandle profile={profile} />
+          <ProfileHeaderUsername profile={profile} />
         </View>
         {!isPlaceholderProfile && !isBlockedUser && (
           <View style={a.gap_md}>
@@ -291,7 +291,7 @@ let ProfileHeaderStandard = ({
                   numberOfLines={15}
                   value={descriptionRT}
                   enableTags
-                  authorHandle={profile.handle}
+                  authorUsername={profile.username}
                 />
               </View>
             ) : undefined}

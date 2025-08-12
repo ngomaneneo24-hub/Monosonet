@@ -1,12 +1,12 @@
 import React, {useCallback} from 'react'
 import {View} from 'react-native'
-import {type AppBskyActorDefs} from '@atproto/api'
+import {type SonetActorDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
 import {useActorStatus} from '#/lib/actor-status'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {useProfilesQuery} from '#/state/queries/profile'
 import {type SessionAccount, useSession} from '#/state/session'
 import {UserAvatar} from '#/view/com/util/UserAvatar'
@@ -33,7 +33,7 @@ export function AccountList({
   const t = useTheme()
   const {_} = useLingui()
   const {data: profiles} = useProfilesQuery({
-    handles: accounts.map(acc => acc.did),
+    usernames: accounts.map(acc => acc.userId),
   })
 
   const onPressAddAccount = useCallback(() => {
@@ -50,13 +50,13 @@ export function AccountList({
         t.atoms.border_contrast_low,
       ]}>
       {accounts.map(account => (
-        <React.Fragment key={account.did}>
+        <React.Fragment key={account.userId}>
           <AccountItem
-            profile={profiles?.profiles.find(p => p.did === account.did)}
+            profile={profiles?.profiles.find(p => p.userId === account.userId)}
             account={account}
             onSelect={onSelectAccount}
-            isCurrentAccount={account.did === currentAccount?.did}
-            isPendingAccount={account.did === pendingDid}
+            isCurrentAccount={account.userId === currentAccount?.userId}
+            isPendingAccount={account.userId === pendingDid}
           />
           <View style={[{borderBottomWidth: 1}, t.atoms.border_contrast_low]} />
         </React.Fragment>
@@ -102,7 +102,7 @@ function AccountItem({
   isCurrentAccount,
   isPendingAccount,
 }: {
-  profile?: AppBskyActorDefs.ProfileViewDetailed
+  profile?: SonetActorDefs.ProfileViewDetailed
   account: SessionAccount
   onSelect: (account: SessionAccount) => void
   isCurrentAccount: boolean
@@ -119,14 +119,14 @@ function AccountItem({
 
   return (
     <Button
-      testID={`chooseAccountBtn-${account.handle}`}
-      key={account.did}
+      testID={`chooseAccountBtn-${account.username}`}
+      key={account.userId}
       style={[a.w_full]}
       onPress={onPress}
       label={
         isCurrentAccount
-          ? _(msg`Continue as ${account.handle} (currently signed in)`)
-          : _(msg`Sign in as ${account.handle}`)
+          ? _(msg`Continue as ${account.username} (currently signed in)`)
+          : _(msg`Sign in as ${account.username}`)
       }>
       {({hovered, pressed}) => (
         <View
@@ -154,7 +154,7 @@ function AccountItem({
                 style={[a.font_bold, a.leading_tight]}
                 numberOfLines={1}>
                 {sanitizeDisplayName(
-                  profile?.displayName || profile?.handle || account.handle,
+                  profile?.displayName || profile?.username || account.username,
                 )}
               </Text>
               {verification.showBadge && (
@@ -167,7 +167,7 @@ function AccountItem({
               )}
             </View>
             <Text style={[a.leading_tight, t.atoms.text_contrast_medium]}>
-              {sanitizeHandle(account.handle, '@')}
+              {sanitizeUsername(account.username, '@')}
             </Text>
           </View>
 

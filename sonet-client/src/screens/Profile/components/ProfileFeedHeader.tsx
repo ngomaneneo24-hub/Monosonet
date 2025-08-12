@@ -1,6 +1,6 @@
 import React from 'react'
 import {View} from 'react-native'
-import {AtUri} from '@atproto/api'
+import {AtUri} from '@sonet/api'
 import {msg, Plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -8,7 +8,7 @@ import {useHaptics} from '#/lib/haptics'
 import {makeProfileLink} from '#/lib/routes/links'
 import {makeCustomFeedLink} from '#/lib/routes/links'
 import {shareUrl} from '#/lib/sharing'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {toShareUrl} from '#/lib/strings/url-helpers'
 import {logger} from '#/logger'
 import {isWeb} from '#/platform/detection'
@@ -250,7 +250,7 @@ export function ProfileFeedHeader({info}: {info: FeedSourceFeedInfo}) {
                             t.atoms.text_contrast_medium,
                           ]}
                           numberOfLines={1}>
-                          {sanitizeHandle(info.creatorHandle, '@')}
+                          {sanitizeUsername(info.creatorUsername, '@')}
                         </Text>
                         <View style={[a.flex_row, a.align_center, {gap: 2}]}>
                           <HeartFilled
@@ -349,7 +349,7 @@ export function ProfileFeedHeader({info}: {info: FeedSourceFeedInfo}) {
       </Layout.Center>
 
       <Dialog.Outer control={infoControl}>
-        <Dialog.Handle />
+        <Dialog.Username />
         <Dialog.ScrollableInner
           label={_(msg`Feed menu`)}
           style={[gtMobile ? {width: 'auto', minWidth: 450} : a.w_full]}>
@@ -451,10 +451,10 @@ function DialogInner({
             <Trans>
               By{' '}
               <InlineLinkText
-                label={_(msg`View ${info.creatorHandle}'s profile`)}
+                label={_(msg`View ${info.creatorUsername}'s profile`)}
                 to={makeProfileLink({
-                  did: info.creatorDid,
-                  handle: info.creatorHandle,
+                  userId: info.creatorDid,
+                  username: info.creatorUsername,
                 })}
                 style={[
                   a.text_sm,
@@ -464,7 +464,7 @@ function DialogInner({
                 ]}
                 numberOfLines={1}
                 onPress={() => control.close()}>
-                {sanitizeHandle(info.creatorHandle, '@')}
+                {sanitizeUsername(info.creatorUsername, '@')}
               </InlineLinkText>
             </Trans>
           </Text>
@@ -560,7 +560,7 @@ function DialogInner({
                 control={reportDialogControl}
                 subject={{
                   ...info.view,
-                  $type: 'app.bsky.feed.defs#generatorView',
+                  type: "sonet",
                 }}
               />
             )}

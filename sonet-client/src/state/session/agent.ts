@@ -1,5 +1,5 @@
-import {AtpSessionData, AtpSessionEvent, BskyAgent} from '@atproto/api'
-import {TID} from '@atproto/common-web'
+import {SonetSessionData, SonetSessionEvent, SonetAppAgent} from '@sonet/api'
+import {TID} from '@sonet/types'
 
 import {networkRetry} from '#/lib/async/retry'
 import {
@@ -30,18 +30,18 @@ export function createPublicAgent() {
 export async function createAgentAndResume(
   storedAccount: SessionAccount,
   onSessionChange: (
-    agent: BskyAgent,
-    did: string,
-    event: AtpSessionEvent,
+    agent: SonetAppAgent,
+    userId: string,
+    event: SonetSessionEvent,
   ) => void,
 ) {
   const agent = new BskyAppAgent({service: storedAccount.service})
   if (storedAccount.pdsUrl) {
     agent.sessionManager.pdsUrl = new URL(storedAccount.pdsUrl)
   }
-  const gates = tryFetchGates(storedAccount.did, 'prefer-low-latency')
+  const gates = tryFetchGates(storedAccount.userId, 'prefer-low-latency')
   const moderation = configureModerationForAccount(agent, storedAccount)
-  const prevSession: AtpSessionData = sessionAccountToSession(storedAccount)
+  const prevSession: SonetSessionData = sessionAccountToSession(storedAccount)
   if (isSessionExpired(storedAccount)) {
     await networkRetry(1, () => agent.resumeSession(prevSession))
   } else {
@@ -77,9 +77,9 @@ export async function createAgentAndLogin(
     authFactorToken?: string
   },
   onSessionChange: (
-    agent: BskyAgent,
-    did: string,
-    event: AtpSessionEvent,
+    agent: SonetAppAgent,
+    userId: string,
+    event: SonetSessionEvent,
   ) => void,
 ) {
   const agent = new BskyAppAgent({service})
@@ -91,7 +91,7 @@ export async function createAgentAndLogin(
   })
 
   const account = agentToSessionAccountOrThrow(agent)
-  const gates = tryFetchGates(account.did, 'prefer-fresh-gates')
+  const gates = tryFetchGates(account.userId, 'prefer-fresh-gates')
   const moderation = configureModerationForAccount(agent, account)
   return agent.prepare(gates, moderation, onSessionChange)
 }
@@ -101,7 +101,7 @@ export async function createAgentAndCreateAccount(
     service,
     email,
     password,
-    handle,
+    username,
     birthDate,
     inviteCode,
     verificationPhone,
@@ -110,29 +110,29 @@ export async function createAgentAndCreateAccount(
     service: string
     email: string
     password: string
-    handle: string
+    username: string
     birthDate: Date
     inviteCode?: string
     verificationPhone?: string
     verificationCode?: string
   },
   onSessionChange: (
-    agent: BskyAgent,
-    did: string,
-    event: AtpSessionEvent,
+    agent: SonetAppAgent,
+    userId: string,
+    event: SonetSessionEvent,
   ) => void,
 ) {
   const agent = new BskyAppAgent({service})
   await agent.createAccount({
     email,
     password,
-    handle,
+    username,
     inviteCode,
     verificationPhone,
     verificationCode,
   })
   const account = agentToSessionAccountOrThrow(agent)
-  const gates = tryFetchGates(account.did, 'prefer-fresh-gates')
+  const gates = tryFetchGates(account.userId, 'prefer-fresh-gates')
   const moderation = configureModerationForAccount(agent, account)
 
   // Not awaited so that we can still get into onboarding.
@@ -153,12 +153,12 @@ export async function createAgentAndCreateAccount(
         ])
 
         if (getAge(birthDate) < 18) {
-          await agent.api.com.atproto.repo.putRecord({
-            repo: account.did,
+          await agent.api.com.sonet.repo.putRecord({
+            repo: account.userId,
             collection: 'chat.bsky.actor.declaration',
             rkey: 'self',
             record: {
-              $type: 'chat.bsky.actor.declaration',
+              type: "sonet",
               allowIncoming: 'none',
             },
           })
@@ -183,7 +183,7 @@ export async function createAgentAndCreateAccount(
   return agent.prepare(gates, moderation, onSessionChange)
 }
 
-export function agentToSessionAccountOrThrow(agent: BskyAgent): SessionAccount {
+export function agentToSessionAccountOrThrow(agent: SonetAppAgent): SessionAccount {
   const account = agentToSessionAccount(agent)
   if (!account) {
     throw Error('Expected an active session')
@@ -192,15 +192,15 @@ export function agentToSessionAccountOrThrow(agent: BskyAgent): SessionAccount {
 }
 
 export function agentToSessionAccount(
-  agent: BskyAgent,
+  agent: SonetAppAgent,
 ): SessionAccount | undefined {
   if (!agent.session) {
     return undefined
   }
   return {
     service: agent.service.toString(),
-    did: agent.session.did,
-    handle: agent.session.handle,
+    userId: agent.session.userId,
+    username: agent.session.username,
     email: agent.session.email,
     emailConfirmed: agent.session.emailConfirmed || false,
     emailAuthFactor: agent.session.emailAuthFactor || false,
@@ -216,15 +216,15 @@ export function agentToSessionAccount(
 
 export function sessionAccountToSession(
   account: SessionAccount,
-): AtpSessionData {
+): SonetSessionData {
   return {
-    // Sorted in the same property order as when returned by BskyAgent (alphabetical).
+    // Sorted in the same property order as when returned by SonetAppAgent (alphabetical).
     accessJwt: account.accessJwt ?? '',
-    did: account.did,
+    userId: account.userId,
     email: account.email,
     emailAuthFactor: account.emailAuthFactor,
     emailConfirmed: account.emailConfirmed,
-    handle: account.handle,
+    username: account.username,
     refreshJwt: account.refreshJwt ?? '',
     /**
      * @see https://github.com/bluesky-social/atproto/blob/c5d36d5ba2a2c2a5c4f366a5621c06a5608e361e/packages/api/src/agent.ts#L188
@@ -236,8 +236,8 @@ export function sessionAccountToSession(
 
 // Not exported. Use factories above to create it.
 let realFetch = globalThis.fetch
-class BskyAppAgent extends BskyAgent {
-  persistSessionHandler: ((event: AtpSessionEvent) => void) | undefined =
+class BskyAppAgent extends SonetAppAgent {
+  persistSessionUsernamer: ((event: SonetSessionEvent) => void) | undefined =
     undefined
 
   constructor({service}: {service: string}) {
@@ -260,9 +260,9 @@ class BskyAppAgent extends BskyAgent {
           }
         }
       },
-      persistSession: (event: AtpSessionEvent) => {
-        if (this.persistSessionHandler) {
-          this.persistSessionHandler(event)
+      persistSession: (event: SonetSessionEvent) => {
+        if (this.persistSessionUsernamer) {
+          this.persistSessionUsernamer(event)
         }
       },
     })
@@ -273,9 +273,9 @@ class BskyAppAgent extends BskyAgent {
     gates: Promise<void>,
     moderation: Promise<void>,
     onSessionChange: (
-      agent: BskyAgent,
-      did: string,
-      event: AtpSessionEvent,
+      agent: SonetAppAgent,
+      userId: string,
+      event: SonetSessionEvent,
     ) => void,
   ) {
     // There's nothing else left to do, so block on them here.
@@ -284,7 +284,7 @@ class BskyAppAgent extends BskyAgent {
     // Now the agent is ready.
     const account = agentToSessionAccountOrThrow(this)
     let lastSession = this.sessionManager.session
-    this.persistSessionHandler = event => {
+    this.persistSessionUsernamer = event => {
       if (this.sessionManager.session) {
         lastSession = this.sessionManager.session
       } else if (event === 'network-error') {
@@ -292,9 +292,9 @@ class BskyAppAgent extends BskyAgent {
         this.sessionManager.session = lastSession
       }
 
-      onSessionChange(this, account.did, event)
+      onSessionChange(this, account.userId, event)
       if (event !== 'create' && event !== 'update') {
-        addSessionErrorLog(account.did, event)
+        addSessionErrorLog(account.userId, event)
       }
     }
     return {account, agent: this}
@@ -302,7 +302,7 @@ class BskyAppAgent extends BskyAgent {
 
   dispose() {
     this.sessionManager.session = undefined
-    this.persistSessionHandler = undefined
+    this.persistSessionUsernamer = undefined
   }
 }
 

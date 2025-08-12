@@ -13,7 +13,7 @@ import {
   Gesture,
   GestureDetector,
   type NativeGesture,
-} from 'react-native-gesture-handler'
+} from 'react-native-gesture-usernamer'
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -27,7 +27,7 @@ import {useEventListener} from 'expo'
 import {Image, type ImageStyle} from 'expo-image'
 import {LinearGradient} from 'expo-linear-gradient'
 import {createVideoPlayer, type VideoPlayer, VideoView} from 'expo-video'
-import { type SonetPost, type SonetProfile, type SonetFeedGenerator, type SonetPostRecord, type SonetFeedViewPost, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
+import { type SonetNote, type SonetProfile, type SonetFeedGenerator, type SonetNoteRecord, type SonetFeedViewNote, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {
@@ -49,31 +49,31 @@ import {
 } from '#/lib/routes/types'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
 import {cleanError} from '#/lib/strings/errors'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {isAndroid} from '#/platform/detection'
 import {useA11y} from '#/state/a11y'
 import {
   POST_TOMBSTONE,
   type Shadow,
-  usePostShadow,
-} from '#/state/cache/post-shadow'
+  useNoteShadow,
+} from '#/state/cache/note-shadow'
 import {useProfileShadow} from '#/state/cache/profile-shadow'
 import {
   FeedFeedbackProvider,
   useFeedFeedbackContext,
 } from '#/state/feed-feedback'
 import {useFeedFeedback} from '#/state/feed-feedback'
-import {usePostLikeMutationQueue} from '#/state/queries/post'
+import {useNoteLikeMutationQueue} from '#/state/queries/note'
 import {
   type AuthorFilter,
-  type FeedPostSliceItem,
-  usePostFeedQuery,
-} from '#/state/queries/post-feed'
+  type FeedNoteSliceItem,
+  useNoteFeedQuery,
+} from '#/state/queries/note-feed'
 import {useProfileFollowMutationQueue} from '#/state/queries/profile'
 import {useSession} from '#/state/session'
 import {useSetMinimalShellMode} from '#/state/shell'
 import {useSetLightStatusBar} from '#/state/shell/light-status-bar'
-import {PostThreadComposePrompt} from '#/view/com/post-thread/PostThreadComposePrompt'
+import {NoteThreadComposePrompt} from '#/view/com/note-thread/NoteThreadComposePrompt'
 import {List} from '#/view/com/util/List'
 import {UserAvatar} from '#/view/com/util/UserAvatar'
 import {Header} from '#/screens/VideoFeed/components/Header'
@@ -89,7 +89,7 @@ import * as Layout from '#/components/Layout'
 import {Link} from '#/components/Link'
 import {ListFooter} from '#/components/Lists'
 import * as Hider from '#/components/moderation/Hider'
-import {PostControls} from '#/components/PostControls'
+import {NoteControls} from '#/components/NoteControls'
 import {string} from '#/components/string'
 import {Text} from '#/components/Typography'
 import * as bsky from '#/types/bsky'
@@ -168,8 +168,8 @@ type CurrentSource = {
 
 type VideoItem = {
   moderation: SonetModerationDecision
-  post: SonetPost
-  video: AppBskyEmbedVideo.View
+  note: SonetNote
+  video: SonetEmbedVideo.View
   feedContext: string | undefined
   reqId: string | undefined
 }
@@ -185,7 +185,7 @@ function Feed() {
       case 'feedgen':
         return `feedgen|${params.uri as string}` as const
       case 'author':
-        return `author|${params.did as string}|${
+        return `author|${params.userId as string}|${
           params.filter as AuthorFilter
         }` as const
       default:
@@ -194,7 +194,7 @@ function Feed() {
   }, [params])
   const feedFeedback = useFeedFeedback(feedDesc, hasSession)
   const {data, error, hasNextPage, isFetchingNextPage, fetchNextPage} =
-    usePostFeedQuery(
+    useNoteFeedQuery(
       feedDesc,
       params.type === 'feedgen' && params.sourceInterstitial !== 'none'
         ? {feedCacheKey: params.sourceInterstitial}
@@ -207,21 +207,21 @@ function Feed() {
         const items: {
           _reactKey: string
           moderation: SonetModerationDecision
-          post: SonetPost
-          video: AppBskyEmbedVideo.View
+          note: SonetNote
+          video: SonetEmbedVideo.View
           feedContext: string | undefined
           reqId: string | undefined
         }[] = []
         for (const slice of page.slices) {
-          const feedPost = slice.items.find(
-            item => item.uri === slice.feedPostUri,
+          const feedNote = slice.items.find(
+            item => item.uri === slice.feedNoteUri,
           )
-          if (feedPost && AppBskyEmbedVideo.isView(feedPost.post.embed)) {
+          if (feedNote && SonetEmbedVideo.isView(feedNote.note.embed)) {
             items.push({
-              _reactKey: feedPost._reactKey,
-              moderation: feedPost.moderation,
-              post: feedPost.post,
-              video: feedPost.post.embed,
+              _reactKey: feedNote._reactKey,
+              moderation: feedNote.moderation,
+              note: feedNote.note,
+              video: feedNote.note.embed,
               feedContext: slice.feedContext,
               reqId: slice.reqId,
             })
@@ -230,13 +230,13 @@ function Feed() {
         return items
       }) ?? []
     const startingVideoIndex = vids?.findIndex(video => {
-      return video.post.uri === params.initialPostUri
+      return video.note.uri === params.initialNoteUri
     })
     if (vids && startingVideoIndex && startingVideoIndex > -1) {
       vids = vids.slice(startingVideoIndex)
     }
     return vids
-  }, [data, params.initialPostUri])
+  }, [data, params.initialNoteUri])
 
   const [currentSources, setCurrentSources] = useState<
     [CurrentSource, CurrentSource, CurrentSource]
@@ -252,14 +252,14 @@ function Feed() {
 
   const renderItem: ListRenderItem<VideoItem> = useCallback(
     ({item, index}) => {
-      const {post, video} = item
+      const {note, video} = item
       const player = players?.[index % 3]
       const currentSource = currentSources[index % 3]
 
       return (
         <VideoItem
           player={player}
-          post={post}
+          note={note}
           embed={video}
           active={
             isFocused &&
@@ -282,25 +282,25 @@ function Feed() {
       if (!videos.length) return
 
       const prevSlice = videos.at(index - 1)
-      const prevPost = prevSlice?.post
-      const prevEmbed = prevPost?.embed
+      const prevNote = prevSlice?.note
+      const prevEmbed = prevNote?.embed
       const prevVideo =
-        prevEmbed && AppBskyEmbedVideo.isView(prevEmbed)
+        prevEmbed && SonetEmbedVideo.isView(prevEmbed)
           ? prevEmbed.playlist
           : null
       const currSlice = videos.at(index)
-      const currPost = currSlice?.post
-      const currEmbed = currPost?.embed
+      const currNote = currSlice?.note
+      const currEmbed = currNote?.embed
       const currVideo =
-        currEmbed && AppBskyEmbedVideo.isView(currEmbed)
+        currEmbed && SonetEmbedVideo.isView(currEmbed)
           ? currEmbed.playlist
           : null
       const currVideoModeration = currSlice?.moderation
       const nextSlice = videos.at(index + 1)
-      const nextPost = nextSlice?.post
-      const nextEmbed = nextPost?.embed
+      const nextNote = nextSlice?.note
+      const nextEmbed = nextNote?.embed
       const nextVideo =
-        nextEmbed && AppBskyEmbedVideo.isView(nextEmbed)
+        nextEmbed && SonetEmbedVideo.isView(nextEmbed)
           ? nextEmbed.playlist
           : null
 
@@ -454,13 +454,13 @@ function Feed() {
   )
 }
 
-function keyExtractor(item: FeedPostSliceItem) {
+function keyExtractor(item: FeedNoteSliceItem) {
   return item._reactKey
 }
 
 let VideoItem = ({
   player,
-  post,
+  note,
   embed,
   active,
   adjacent,
@@ -470,8 +470,8 @@ let VideoItem = ({
   reqId,
 }: {
   player?: VideoPlayer
-  post: SonetPost
-  embed: AppBskyEmbedVideo.View
+  note: SonetNote
+  embed: SonetEmbedVideo.View
   active: boolean
   adjacent: boolean
   scrollGesture: NativeGesture
@@ -479,20 +479,20 @@ let VideoItem = ({
   feedContext: string | undefined
   reqId: string | undefined
 }): React.ReactNode => {
-  const postShadow = usePostShadow(post)
+  const noteShadow = useNoteShadow(note)
   const {width, height} = useSafeAreaFrame()
   const {sendInteraction} = useFeedFeedbackContext()
 
   useEffect(() => {
     if (active) {
       sendInteraction({
-        item: post.uri,
-        event: 'app.bsky.feed.defs#interactionSeen',
+        item: note.uri,
+        event: 'app.sonet.feed.defs#interactionSeen',
         feedContext,
         reqId,
       })
     }
-  }, [active, post.uri, feedContext, reqId, sendInteraction])
+  }, [active, note.uri, feedContext, reqId, sendInteraction])
 
   // TODO: high-performance android phones should also
   // be capable of rendering 3 video players, but currently
@@ -501,7 +501,7 @@ let VideoItem = ({
 
   return (
     <View style={[a.relative, {height, width}]}>
-      {postShadow === POST_TOMBSTONE ? (
+      {noteShadow === POST_TOMBSTONE ? (
         <View
           style={[
             a.absolute,
@@ -519,7 +519,7 @@ let VideoItem = ({
               a.leading_tight,
               a.mx_xl,
             ]}>
-            <Trans>Post has been deleted</Trans>
+            <Trans>Note has been deleted</Trans>
           </Text>
         </View>
       ) : (
@@ -531,7 +531,7 @@ let VideoItem = ({
           {moderation && (
             <Overlay
               player={player}
-              post={postShadow}
+              note={noteShadow}
               embed={embed}
               active={active}
               scrollGesture={scrollGesture}
@@ -552,7 +552,7 @@ function VideoItemInner({
   embed,
 }: {
   player: VideoPlayer
-  embed: AppBskyEmbedVideo.View
+  embed: SonetEmbedVideo.View
 }) {
   const {bottom} = useSafeAreaInsets()
   const [isReady, setIsReady] = useState(!isAndroid)
@@ -588,7 +588,7 @@ function ModerationOverlay({
   embed,
   onPressShow,
 }: {
-  embed: AppBskyEmbedVideo.View
+  embed: SonetEmbedVideo.View
   onPressShow: () => void
 }) {
   const {_} = useLingui()
@@ -677,7 +677,7 @@ function ModerationOverlay({
 
 function Overlay({
   player,
-  post,
+  note,
   embed,
   active,
   scrollGesture,
@@ -686,8 +686,8 @@ function Overlay({
   reqId,
 }: {
   player?: VideoPlayer
-  post: Shadow<SonetPost>
-  embed: AppBskyEmbedVideo.View
+  note: Shadow<SonetNote>
+  embed: SonetEmbedVideo.View
   active: boolean
   scrollGesture: NativeGesture
   moderation: SonetModerationDecision
@@ -701,24 +701,24 @@ function Overlay({
   const navigation = useNavigation<NavigationProp>()
   const seekingAnimationSV = useSharedValue(0)
 
-  const profile = useProfileShadow(post.author)
+  const profile = useProfileShadow(note.author)
   const [queueFollow, queueUnfollow] = useProfileFollowMutationQueue(
     profile,
     'ImmersiveVideo',
   )
 
-  const rkey = new SonetUri(post.uri).rkey
-  const record = bsky.dangerousIsType<SonetPostRecord>(
-    post.record,
-    SonetPost.isRecord,
+  const rkey = new SonetUri(note.uri).rkey
+  const record = bsky.dangerousIsType<SonetNoteRecord>(
+    note.record,
+    SonetNote.isRecord,
   )
-    ? post.record
+    ? note.record
     : undefined
   const richText = new RichTextAPI({
     text: record?.text || '',
     facets: record?.facets,
   })
-  const handle = sanitizeHandle(post.author.handle, '@')
+  const username = sanitizeUsername(note.author.username, '@')
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: 1 - seekingAnimationSV.get(),
@@ -741,14 +741,14 @@ function Overlay({
   const onPressReply = useCallback(() => {
     openComposer({
       replyTo: {
-        uri: post.uri,
-        cid: post.cid,
+        uri: note.uri,
+        cid: note.cid,
         text: record?.text || '',
-        author: post.author,
-        embed: post.embed,
+        author: note.author,
+        embed: note.embed,
       },
     })
-  }, [openComposer, post, record])
+  }, [openComposer, note, record])
 
   return (
     <Hider.Outer modui={mergedModui}>
@@ -761,7 +761,7 @@ function Overlay({
             {player && (
               <PlayPauseTapArea
                 player={player}
-                post={post}
+                note={note}
                 feedContext={feedContext}
                 reqId={reqId}
               />
@@ -781,17 +781,17 @@ function Overlay({
                 <Link
                   label={_(
                     msg`View ${sanitizeDisplayName(
-                      post.author.displayName || post.author.handle,
+                      note.author.displayName || note.author.username,
                     )}'s profile`,
                   )}
                   to={{
                     screen: 'Profile',
-                    params: {name: post.author.did},
+                    params: {name: note.author.userId},
                   }}
                   style={[a.flex_1, a.flex_row, a.gap_md, a.align_center]}>
                   <UserAvatar
                     type="user"
-                    avatar={post.author.avatar}
+                    avatar={note.author.avatar}
                     size={32}
                   />
                   <View style={[a.flex_1]}>
@@ -800,24 +800,24 @@ function Overlay({
                       emoji
                       numberOfLines={1}>
                       {sanitizeDisplayName(
-                        post.author.displayName || post.author.handle,
+                        note.author.displayName || note.author.username,
                       )}
                     </Text>
                     <Text
                       style={[a.text_sm, t.atoms.text_contrast_high]}
                       numberOfLines={1}>
-                      {handle}
+                      {username}
                     </Text>
                   </View>
                 </Link>
                 {/* show button based on non-reactive version, so it doesn't hide on press */}
-                {post.author.did !== currentAccount?.did &&
-                  !post.author.viewer?.following && (
+                {note.author.userId !== currentAccount?.userId &&
+                  !note.author.viewer?.following && (
                     <Button
                       label={
                         profile.viewer?.following
-                          ? _(msg`Following ${handle}`)
-                          : _(msg`Follow ${handle}`)
+                          ? _(msg`Following ${username}`)
+                          : _(msg`Follow ${username}`)
                       }
                       accessibilityHint={
                         profile.viewer?.following
@@ -849,19 +849,19 @@ function Overlay({
               {record?.text?.trim() && (
                 <ExpandableRichTextView
                   value={richText}
-                  authorHandle={post.author.handle}
+                  authorUsername={note.author.username}
                 />
               )}
               {record && (
                 <View style={[{left: -5}]}>
-                  <PostControls
+                  <NoteControls
                     richText={richText}
-                    post={post}
+                    note={note}
                     record={record}
                     logContext="FeedItem"
                     onPressReply={() =>
-                      navigation.navigate('PostThread', {
-                        name: post.author.did,
+                      navigation.navigate('NoteThread', {
+                        name: note.author.userId,
                         rkey,
                       })
                     }
@@ -875,7 +875,7 @@ function Overlay({
               player={player}
               seekingAnimationSV={seekingAnimationSV}
               scrollGesture={scrollGesture}>
-              <PostThreadComposePrompt
+              <NoteThreadComposePrompt
                 onPressCompose={onPressReply}
                 style={[a.pt_md, a.pb_sm]}
               />
@@ -904,10 +904,10 @@ function Overlay({
 
 function ExpandableRichTextView({
   value,
-  authorHandle,
+  authorUsername,
 }: {
   value: RichTextAPI
-  authorHandle?: string
+  authorUsername?: string
 }) {
   const {height: screenHeight} = useSafeAreaFrame()
   const [expanded, setExpanded] = useState(false)
@@ -942,7 +942,7 @@ function ExpandableRichTextView({
       <string
         value={value}
         style={[a.text_sm, a.flex_1, a.leading_normal]}
-        authorHandle={authorHandle}
+        authorUsername={authorUsername}
         enableTags
         numberOfLines={
           expanded || screenReaderEnabled ? undefined : constrained ? 2 : 2
@@ -955,7 +955,7 @@ function ExpandableRichTextView({
       />
       {constrained && !screenReaderEnabled && (
         <Pressable
-          accessibilityHint={_(msg`Expands or collapses post text`)}
+          accessibilityHint={_(msg`Expands or collapses note text`)}
           accessibilityLabel={expanded ? _(msg`Read less`) : _(msg`Read more`)}
           hitSlop={HITSLOP_20}
           onPress={() => setExpanded(prev => !prev)}
@@ -971,7 +971,7 @@ function VideoItemPlaceholder({
   style,
   blur,
 }: {
-  embed: AppBskyEmbedVideo.View
+  embed: SonetEmbedVideo.View
   style?: ImageStyle
   blur?: boolean
 }) {
@@ -1007,21 +1007,21 @@ function VideoItemPlaceholder({
 
 function PlayPauseTapArea({
   player,
-  post,
+  note,
   feedContext,
   reqId,
 }: {
   player: VideoPlayer
-  post: Shadow<SonetPost>
+  note: Shadow<SonetNote>
   feedContext: string | undefined
   reqId: string | undefined
 }) {
   const {_} = useLingui()
   const doubleTapRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const playHaptic = useHaptics()
-  // TODO: implement viaRepost -sfn
-  const [queueLike] = usePostLikeMutationQueue(
-    post,
+  // TODO: implement viaRenote -sfn
+  const [queueLike] = useNoteLikeMutationQueue(
+    note,
     undefined,
     undefined,
     'ImmersiveVideo',
@@ -1048,8 +1048,8 @@ function PlayPauseTapArea({
       playHaptic('Light')
       queueLike()
       sendInteraction({
-        item: post.uri,
-        event: 'app.bsky.feed.defs#interactionLike',
+        item: note.uri,
+        event: 'app.sonet.feed.defs#interactionLike',
         feedContext,
         reqId,
       })
@@ -1065,8 +1065,8 @@ function PlayPauseTapArea({
         isPlaying ? _(msg`Video is playing`) : _(msg`Video is paused`)
       }
       label={_(
-        `Video from ${sanitizeHandle(
-          post.author.handle,
+        `Video from ${sanitizeUsername(
+          note.author.username,
           '@',
         )}. Tap to play or pause the video`,
       )}
@@ -1145,7 +1145,7 @@ function EndMessage() {
 /*
  * If the video is taller than 9:16
  */
-function isTallAspectRatio(aspectRatio: AppBskyEmbedVideo.View['aspectRatio']) {
+function isTallAspectRatio(aspectRatio: SonetEmbedVideo.View['aspectRatio']) {
   const videoAspectRatio =
     (aspectRatio?.width ?? 1) / (aspectRatio?.height ?? 1)
   return videoAspectRatio <= 9 / 16

@@ -38,19 +38,19 @@ export const ChooseAccountForm = ({
         onSelectAccount(account)
         return
       }
-      if (account.did === currentAccount?.did) {
+      if (account.userId === currentAccount?.userId) {
         setShowLoggedOut(false)
-        Toast.show(_(msg`Already signed in as @${account.handle}`))
+        Toast.show(_(msg`Already signed in as @${account.username}`))
         return
       }
       try {
-        setPendingDid(account.did)
+        setPendingDid(account.userId)
         await resumeSession(account)
         logEvent('account:loggedIn', {
           logContext: 'ChooseAccountForm',
           withPassword: false,
         })
-        Toast.show(_(msg`Signed in as @${account.handle}`))
+        Toast.show(_(msg`Signed in as @${account.username}`))
       } catch (e: any) {
         logger.error('choose account: initSession failed', {
           message: e.message,

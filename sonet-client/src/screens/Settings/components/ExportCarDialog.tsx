@@ -31,8 +31,8 @@ export function ExportCarDialog({
     }
     try {
       setLoading(true)
-      const did = agent.session.did
-      const downloadRes = await agent.com.atproto.sync.getRepo({did})
+      const userId = agent.session.userId
+      const downloadRes = await agent.com.sonet.sync.getRepo({userId})
       const saveRes = await saveBytesToDisk(
         'repo.car',
         downloadRes.data,
@@ -53,7 +53,7 @@ export function ExportCarDialog({
 
   return (
     <Dialog.Outer control={control}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <Dialog.ScrollableInner
         accessibilityDescribedBy="dialog-description"
         accessibilityLabelledBy="dialog-title">
@@ -97,10 +97,10 @@ export function ExportCarDialog({
               This feature is in beta. You can read more about repository
               exports in{' '}
               <InlineLinkText
-                label={_(msg`View blogpost for more details`)}
-                to="https://docs.bsky.app/blog/repo-export"
+                label={_(msg`View blognote for more details`)}
+                to="https://docs.sonet.app/blog/repo-export"
                 style={[a.text_sm]}>
-                this blogpost
+                this blognote
               </InlineLinkText>
               .
             </Trans>

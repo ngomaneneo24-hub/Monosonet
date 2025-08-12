@@ -1,5 +1,5 @@
 import React from 'react'
-import {AppBskyActorDefs} from '@atproto/api'
+import {SonetActorDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
@@ -18,20 +18,20 @@ import {Check_Stroke2_Corner0_Rounded as Check} from '#/components/icons/Check'
 import {PlusLarge_Stroke2_Corner0_Rounded as Plus} from '#/components/icons/Plus'
 import {PrivateProfileFollowButton} from '#/components/PrivateProfileFollowButton'
 
-export function PostThreadFollowBtn({did}: {did: string}) {
-  const {data: profile, isLoading} = useProfileQuery({did})
+export function NoteThreadFollowBtn({userId}: {userId: string}) {
+  const {data: profile, isLoading} = useProfileQuery({userId})
 
   // We will never hit this - the profile will always be cached or loaded above
   // but it keeps the typechecker happy
   if (isLoading || !profile) return null
 
-  return <PostThreadFollowBtnLoaded profile={profile} />
+  return <NoteThreadFollowBtnLoaded profile={profile} />
 }
 
-function PostThreadFollowBtnLoaded({
+function NoteThreadFollowBtnLoaded({
   profile: profileUnshadowed,
 }: {
-  profile: AppBskyActorDefs.ProfileViewDetailed
+  profile: SonetActorDefs.ProfileViewDetailed
 }) {
   const navigation = useNavigation()
   const {_} = useLingui()
@@ -39,7 +39,7 @@ function PostThreadFollowBtnLoaded({
   const profile = useProfileShadow(profileUnshadowed)
   const [queueFollow, queueUnfollow] = useProfileFollowMutationQueue(
     profile,
-    'PostThreadItem',
+    'NoteThreadItem',
   )
   const requireAuth = useRequireAuth()
 
@@ -56,8 +56,8 @@ function PostThreadFollowBtnLoaded({
   /**
    * We want this button to stay visible even after following, so that the user can unfollow if they want.
    * However, we need it to disappear after we push to a screen and then come back. We also need it to
-   * show up if we view the post while following, go to the profile and unfollow, then come back to the
-   * post.
+   * show up if we view the note while following, go to the profile and unfollow, then come back to the
+   * note.
    *
    * We want to update wasFollowing both on blur and on focus so that we hit all these cases. On native,
    * we could do this only on focus because the transition animation gives us time to not notice the
@@ -111,7 +111,7 @@ function PostThreadFollowBtnLoaded({
   return (
     <PrivateProfileFollowButton
       profile={profile}
-      logContext="PostThreadItem"
+      logContext="NoteThreadItem"
       size="small"
       variant="solid"
       shape="round"

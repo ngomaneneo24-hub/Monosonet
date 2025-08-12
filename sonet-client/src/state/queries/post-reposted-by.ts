@@ -1,4 +1,4 @@
-import {AppBskyActorDefs, AppBskyFeedGetRepostedBy} from '@atproto/api'
+import {SonetActorDefs, SonetFeedGetRenoteedBy} from '@sonet/api'
 import {
   InfiniteData,
   QueryClient,
@@ -12,21 +12,21 @@ const PAGE_SIZE = 30
 type RQPageParam = string | undefined
 
 // TODO refactor invalidate on mutate?
-const RQKEY_ROOT = 'post-reposted-by'
+const RQKEY_ROOT = 'note-renoteed-by'
 export const RQKEY = (resolvedUri: string) => [RQKEY_ROOT, resolvedUri]
 
-export function usePostRepostedByQuery(resolvedUri: string | undefined) {
+export function useNoteRenoteedByQuery(resolvedUri: string | undefined) {
   const agent = useAgent()
   return useInfiniteQuery<
-    AppBskyFeedGetRepostedBy.OutputSchema,
+    SonetFeedGetRenoteedBy.OutputSchema,
     Error,
-    InfiniteData<AppBskyFeedGetRepostedBy.OutputSchema>,
+    InfiniteData<SonetFeedGetRenoteedBy.OutputSchema>,
     QueryKey,
     RQPageParam
   >({
     queryKey: RQKEY(resolvedUri || ''),
     async queryFn({pageParam}: {pageParam: RQPageParam}) {
-      const res = await agent.getRepostedBy({
+      const res = await agent.getRenoteedBy({
         uri: resolvedUri || '',
         limit: PAGE_SIZE,
         cursor: pageParam,
@@ -41,10 +41,10 @@ export function usePostRepostedByQuery(resolvedUri: string | undefined) {
 
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
-  did: string,
-): Generator<AppBskyActorDefs.ProfileView, void> {
+  userId: string,
+): Generator<SonetActorDefs.ProfileView, void> {
   const queryDatas = queryClient.getQueriesData<
-    InfiniteData<AppBskyFeedGetRepostedBy.OutputSchema>
+    InfiniteData<SonetFeedGetRenoteedBy.OutputSchema>
   >({
     queryKey: [RQKEY_ROOT],
   })
@@ -53,9 +53,9 @@ export function* findAllProfilesInQueryData(
       continue
     }
     for (const page of queryData?.pages) {
-      for (const repostedBy of page.repostedBy) {
-        if (repostedBy.did === did) {
-          yield repostedBy
+      for (const renoteedBy of page.renoteedBy) {
+        if (renoteedBy.userId === userId) {
+          yield renoteedBy
         }
       }
     }

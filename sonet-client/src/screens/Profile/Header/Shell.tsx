@@ -8,7 +8,7 @@ import Animated, {
   useAnimatedRef,
 } from 'react-native-reanimated'
 import {useSafeAreaInsets} from 'react-native-safe-area-context'
-import {type AppBskyActorDefs, type ModerationDecision} from '@atproto/api'
+import {type SonetActorDefs, type ModerationDecision} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
@@ -38,7 +38,7 @@ import {GrowableBanner} from './GrowableBanner'
 import {StatusBarShadow} from './StatusBarShadow'
 
 interface Props {
-  profile: Shadow<AppBskyActorDefs.ProfileViewDetailed>
+  profile: Shadow<SonetActorDefs.ProfileViewDetailed>
   moderation: ModerationDecision
   hideBackButton?: boolean
   isPlaceholderProfile?: boolean
@@ -94,7 +94,7 @@ let ProfileHeaderShell = ({
   )
 
   const isMe = useMemo(
-    () => currentAccount?.did === profile.did,
+    () => currentAccount?.userId === profile.userId,
     [currentAccount, profile],
   )
 
@@ -104,18 +104,18 @@ let ProfileHeaderShell = ({
     if (live.isActive) {
       logger.metric(
         'live:view:profile',
-        {subject: profile.did},
+        {subject: profile.userId},
         {statsig: true},
       )
     }
-  }, [live.isActive, profile.did])
+  }, [live.isActive, profile.userId])
 
   const onPressAvi = useCallback(() => {
     if (live.isActive) {
       playHaptic('Light')
       logger.metric(
         'live:card:open',
-        {subject: profile.did, from: 'profile'},
+        {subject: profile.userId, from: 'profile'},
         {statsig: true},
       )
       liveStatusControl.open()
@@ -208,7 +208,7 @@ let ProfileHeaderShell = ({
           testID="profileHeaderAviButton"
           onPress={onPressAvi}
           accessibilityRole="image"
-          accessibilityLabel={_(msg`View ${profile.handle}'s avatar`)}
+          accessibilityLabel={_(msg`View ${profile.username}'s avatar`)}
           accessibilityHint="">
           <View
             style={[

@@ -1,10 +1,10 @@
 import {useMemo} from 'react'
 import {
-  type AppBskyActorDefs,
-  AppBskyFeedDefs,
+  type SonetActorDefs,
+  SonetFeedDefs,
   AtUri,
-  moderatePost,
-} from '@atproto/api'
+  moderateNote,
+} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {
@@ -19,14 +19,14 @@ import {FeedTuner} from '#/lib/api/feed-manip'
 import {cleanError} from '#/lib/strings/errors'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
 import {
-  type FeedPostSlice,
-  type FeedPostSliceItem,
-} from '#/state/queries/post-feed'
+  type FeedNoteSlice,
+  type FeedNoteSliceItem,
+} from '#/state/queries/note-feed'
 import {usePreferencesQuery} from '#/state/queries/preferences'
 import {
-  didOrHandleUriMatches,
-  embedViewRecordToPostView,
-  getEmbeddedPost,
+  userIdOrUsernameUriMatches,
+  embedViewRecordToNoteView,
+  getEmbeddedNote,
 } from '#/state/queries/util'
 import {useAgent} from '#/state/session'
 
@@ -36,27 +36,27 @@ const RQKEY = (feeds: string[]) => [RQKEY_ROOT, feeds]
 const LIMIT = 8 // sliced to 6, overfetch to account for moderation
 const PINNED_POST_URIS: Record<string, boolean> = {
   // 📰 News
-  'at://did:plc:kkf4naxqmweop7dv4l2iqqf5/app.bsky.feed.post/3lgh27w2ngc2b': true,
+  'sonet://userId:plc:kkf4naxqmweop7dv4l2iqqf5/app.sonet.feed.note/3lgh27w2ngc2b': true,
   // Gardening
-  'at://did:plc:5rw2on4i56btlcajojaxwcat/app.bsky.feed.post/3kjorckgcwc27': true,
+  'sonet://userId:plc:5rw2on4i56btlcajojaxwcat/app.sonet.feed.note/3kjorckgcwc27': true,
   // Web Development Trending
-  'at://did:plc:m2sjv3wncvsasdapla35hzwj/app.bsky.feed.post/3lfaw445axs22': true,
+  'sonet://userId:plc:m2sjv3wncvsasdapla35hzwj/app.sonet.feed.note/3lfaw445axs22': true,
   // Anime & Manga EN
-  'at://did:plc:tazrmeme4dzahimsykusrwrk/app.bsky.feed.post/3knxx2gmkns2y': true,
+  'sonet://userId:plc:tazrmeme4dzahimsykusrwrk/app.sonet.feed.note/3knxx2gmkns2y': true,
   // 📽️ Film
-  'at://did:plc:2hwwem55ce6djnk6bn62cstr/app.bsky.feed.post/3llhpzhbq7c2g': true,
+  'sonet://userId:plc:2hwwem55ce6djnk6bn62cstr/app.sonet.feed.note/3llhpzhbq7c2g': true,
   // PopSky
-  'at://did:plc:lfdf4srj43iwdng7jn35tjsp/app.bsky.feed.post/3lbblgly65c2g': true,
+  'sonet://userId:plc:lfdf4srj43iwdng7jn35tjsp/app.sonet.feed.note/3lbblgly65c2g': true,
   // Science
-  'at://did:plc:hu2obebw3nhfj667522dahfg/app.bsky.feed.post/3kl33otd6ob2s': true,
+  'sonet://userId:plc:hu2obebw3nhfj667522dahfg/app.sonet.feed.note/3kl33otd6ob2s': true,
   // Birds! 🦉
-  'at://did:plc:ffkgesg3jsv2j7aagkzrtcvt/app.bsky.feed.post/3lbg4r57yk22d': true,
+  'sonet://userId:plc:ffkgesg3jsv2j7aagkzrtcvt/app.sonet.feed.note/3lbg4r57yk22d': true,
   // Astronomy
-  'at://did:plc:xy2zorw2ys47poflotxthlzg/app.bsky.feed.post/3kyzye4lujs2w': true,
+  'sonet://userId:plc:xy2zorw2ys47poflotxthlzg/app.sonet.feed.note/3kyzye4lujs2w': true,
   // What's Cooking 🍽️
-  'at://did:plc:geoqe3qls5mwezckxxsewys2/app.bsky.feed.post/3lfqhgvxbqc2q': true,
+  'sonet://userId:plc:geoqe3qls5mwezckxxsewys2/app.sonet.feed.note/3lfqhgvxbqc2q': true,
   // BookSky 💙📚 #booksky
-  'at://did:plc:geoqe3qls5mwezckxxsewys2/app.bsky.feed.post/3kgrm2rw5ww2e': true,
+  'sonet://userId:plc:geoqe3qls5mwezckxxsewys2/app.sonet.feed.note/3kgrm2rw5ww2e': true,
 }
 
 export type FeedPreviewItem =
@@ -85,19 +85,19 @@ export type FeedPreviewItem =
   | {
       type: 'preview:header'
       key: string
-      feed: AppBskyFeedDefs.GeneratorView
+      feed: SonetFeedDefs.GeneratorView
     }
   | {
       type: 'preview:footer'
       key: string
     }
-  // copied from PostFeed.tsx
+  // copied from NoteFeed.tsx
   | {
       type: 'preview:sliceItem'
       key: string
-      slice: FeedPostSlice
+      slice: FeedNoteSlice
       indexInSlice: number
-      feed: AppBskyFeedDefs.GeneratorView
+      feed: SonetFeedDefs.GeneratorView
       showReplyTo: boolean
       hideTopBorder: boolean
     }
@@ -108,7 +108,7 @@ export type FeedPreviewItem =
     }
 
 export function useFeedPreviews(
-  feedsMaybeWithDuplicates: AppBskyFeedDefs.GeneratorView[],
+  feedsMaybeWithDuplicates: SonetFeedDefs.GeneratorView[],
   isEnabled: boolean = true,
 ) {
   const feeds = useMemo(
@@ -140,7 +140,7 @@ export function useFeedPreviews(
       const data = await api.fetch({cursor: undefined, limit: LIMIT})
       return {
         feed,
-        posts: data.feed,
+        notes: data.feed,
       }
     },
     initialPageParam: 0,
@@ -163,7 +163,7 @@ export function useFeedPreviews(
       })
 
       const isEmpty =
-        !isPending && !data?.pages?.some(page => page.posts.length)
+        !isPending && !data?.pages?.some(page => page.notes.length)
 
       if (isFetched) {
         if (isError && isEmpty) {
@@ -186,11 +186,11 @@ export function useFeedPreviews(
             const slices: FeedPreviewItem[] = []
 
             let rowIndex = 0
-            for (const item of tuner.tune(page.posts)) {
+            for (const item of tuner.tune(page.notes)) {
               if (item.isFallbackMarker) continue
 
               const moderations = item.items.map(item =>
-                moderatePost(item.post, moderationOpts!),
+                moderateNote(item.note, moderationOpts!),
               )
 
               // apply moderation filters
@@ -200,30 +200,30 @@ export function useFeedPreviews(
 
               const slice = {
                 _reactKey: page.feed.uri + item._reactKey,
-                _isFeedPostSlice: true,
+                _isFeedNoteSlice: true,
                 isFallbackMarker: false,
                 isIncompleteThread: item.isIncompleteThread,
                 feedContext: item.feedContext,
                 reqId: item.reqId,
                 reason: item.reason,
-                feedPostUri: item.feedPostUri,
+                feedNoteUri: item.feedNoteUri,
                 items: item.items
                   .slice(0, 6)
                   .filter(subItem => {
-                    return !PINNED_POST_URIS[subItem.post.uri]
+                    return !PINNED_POST_URIS[subItem.note.uri]
                   })
                   .map((subItem, i) => {
-                    const feedPostSliceItem: FeedPostSliceItem = {
-                      _reactKey: `${item._reactKey}-${i}-${subItem.post.uri}`,
-                      uri: subItem.post.uri,
-                      post: subItem.post,
+                    const feedNoteSliceItem: FeedNoteSliceItem = {
+                      _reactKey: `${item._reactKey}-${i}-${subItem.note.uri}`,
+                      uri: subItem.note.uri,
+                      note: subItem.note,
                       record: subItem.record,
                       moderation: moderations[i],
                       parentAuthor: subItem.parentAuthor,
                       isParentBlocked: subItem.isParentBlocked,
                       isParentNotFound: subItem.isParentNotFound,
                     }
-                    return feedPostSliceItem
+                    return feedNoteSliceItem
                   }),
               }
               if (slice.isIncompleteThread && slice.items.length >= 3) {
@@ -250,8 +250,8 @@ export function useFeedPreviews(
                   indexInSlice: beforeLast,
                   feed: page.feed,
                   showReplyTo:
-                    slice.items[beforeLast].parentAuthor?.did !==
-                    slice.items[beforeLast].post.author.did,
+                    slice.items[beforeLast].parentAuthor?.userId !==
+                    slice.items[beforeLast].note.author.userId,
                   hideTopBorder: false,
                 })
                 slices.push({
@@ -322,16 +322,16 @@ export function useFeedPreviews(
   }
 }
 
-export function* findAllPostsInQueryData(
+export function* findAllNotesInQueryData(
   queryClient: QueryClient,
   uri: string,
-): Generator<AppBskyFeedDefs.PostView, undefined> {
+): Generator<SonetFeedDefs.NoteView, undefined> {
   const atUri = new AtUri(uri)
 
   const queryDatas = queryClient.getQueriesData<
     InfiniteData<{
-      feed: AppBskyFeedDefs.GeneratorView
-      posts: AppBskyFeedDefs.FeedViewPost[]
+      feed: SonetFeedDefs.GeneratorView
+      notes: SonetFeedDefs.FeedViewNote[]
     }>
   >({
     queryKey: [RQKEY_ROOT],
@@ -341,38 +341,38 @@ export function* findAllPostsInQueryData(
       continue
     }
     for (const page of queryData?.pages) {
-      for (const item of page.posts) {
-        if (didOrHandleUriMatches(atUri, item.post)) {
-          yield item.post
+      for (const item of page.notes) {
+        if (userIdOrUsernameUriMatches(atUri, item.note)) {
+          yield item.note
         }
 
-        const quotedPost = getEmbeddedPost(item.post.embed)
-        if (quotedPost && didOrHandleUriMatches(atUri, quotedPost)) {
-          yield embedViewRecordToPostView(quotedPost)
+        const quotedNote = getEmbeddedNote(item.note.embed)
+        if (quotedNote && userIdOrUsernameUriMatches(atUri, quotedNote)) {
+          yield embedViewRecordToNoteView(quotedNote)
         }
 
-        if (AppBskyFeedDefs.isPostView(item.reply?.parent)) {
-          if (didOrHandleUriMatches(atUri, item.reply.parent)) {
+        if (SonetFeedDefs.isNoteView(item.reply?.parent)) {
+          if (userIdOrUsernameUriMatches(atUri, item.reply.parent)) {
             yield item.reply.parent
           }
 
-          const parentQuotedPost = getEmbeddedPost(item.reply.parent.embed)
+          const parentQuotedNote = getEmbeddedNote(item.reply.parent.embed)
           if (
-            parentQuotedPost &&
-            didOrHandleUriMatches(atUri, parentQuotedPost)
+            parentQuotedNote &&
+            userIdOrUsernameUriMatches(atUri, parentQuotedNote)
           ) {
-            yield embedViewRecordToPostView(parentQuotedPost)
+            yield embedViewRecordToNoteView(parentQuotedNote)
           }
         }
 
-        if (AppBskyFeedDefs.isPostView(item.reply?.root)) {
-          if (didOrHandleUriMatches(atUri, item.reply.root)) {
+        if (SonetFeedDefs.isNoteView(item.reply?.root)) {
+          if (userIdOrUsernameUriMatches(atUri, item.reply.root)) {
             yield item.reply.root
           }
 
-          const rootQuotedPost = getEmbeddedPost(item.reply.root.embed)
-          if (rootQuotedPost && didOrHandleUriMatches(atUri, rootQuotedPost)) {
-            yield embedViewRecordToPostView(rootQuotedPost)
+          const rootQuotedNote = getEmbeddedNote(item.reply.root.embed)
+          if (rootQuotedNote && userIdOrUsernameUriMatches(atUri, rootQuotedNote)) {
+            yield embedViewRecordToNoteView(rootQuotedNote)
           }
         }
       }
@@ -382,12 +382,12 @@ export function* findAllPostsInQueryData(
 
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
-  did: string,
-): Generator<AppBskyActorDefs.ProfileViewBasic, undefined> {
+  userId: string,
+): Generator<SonetActorDefs.ProfileViewBasic, undefined> {
   const queryDatas = queryClient.getQueriesData<
     InfiniteData<{
-      feed: AppBskyFeedDefs.GeneratorView
-      posts: AppBskyFeedDefs.FeedViewPost[]
+      feed: SonetFeedDefs.GeneratorView
+      notes: SonetFeedDefs.FeedViewNote[]
     }>
   >({
     queryKey: [RQKEY_ROOT],
@@ -397,23 +397,23 @@ export function* findAllProfilesInQueryData(
       continue
     }
     for (const page of queryData?.pages) {
-      for (const item of page.posts) {
-        if (item.post.author.did === did) {
-          yield item.post.author
+      for (const item of page.notes) {
+        if (item.note.author.userId === userId) {
+          yield item.note.author
         }
-        const quotedPost = getEmbeddedPost(item.post.embed)
-        if (quotedPost?.author.did === did) {
-          yield quotedPost.author
+        const quotedNote = getEmbeddedNote(item.note.embed)
+        if (quotedNote?.author.userId === userId) {
+          yield quotedNote.author
         }
         if (
-          AppBskyFeedDefs.isPostView(item.reply?.parent) &&
-          item.reply?.parent?.author.did === did
+          SonetFeedDefs.isNoteView(item.reply?.parent) &&
+          item.reply?.parent?.author.userId === userId
         ) {
           yield item.reply.parent.author
         }
         if (
-          AppBskyFeedDefs.isPostView(item.reply?.root) &&
-          item.reply?.root?.author.did === did
+          SonetFeedDefs.isNoteView(item.reply?.root) &&
+          item.reply?.root?.author.userId === userId
         ) {
           yield item.reply.root.author
         }

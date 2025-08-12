@@ -1,7 +1,7 @@
 import {useEffect} from 'react'
 import {Linking, View} from 'react-native'
 import * as Notification from 'expo-notifications'
-import {type AppBskyNotificationDefs} from '@atproto/api'
+import {type SonetNotificationDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useQuery, useQueryClient} from '@tanstack/react-query'
@@ -21,14 +21,14 @@ import {Bubble_Stroke2_Corner2_Rounded as BubbleIcon} from '#/components/icons/B
 import {Haptic_Stroke2_Corner2_Rounded as HapticIcon} from '#/components/icons/Haptic'
 import {
   Heart2_Stroke2_Corner0_Rounded as HeartIcon,
-  LikeRepost_Stroke2_Corner2_Rounded as LikeRepostIcon,
+  LikeRenote_Stroke2_Corner2_Rounded as LikeRenoteIcon,
 } from '#/components/icons/Heart2'
 import {PersonPlus_Stroke2_Corner2_Rounded as PersonPlusIcon} from '#/components/icons/Person'
 import {CloseQuote_Stroke2_Corner0_Rounded as CloseQuoteIcon} from '#/components/icons/Quote'
 import {
-  Repost_Stroke2_Corner2_Rounded as RepostIcon,
-  RepostRepost_Stroke2_Corner2_Rounded as RepostRepostIcon,
-} from '#/components/icons/Repost'
+  Renote_Stroke2_Corner2_Rounded as RenoteIcon,
+  RenoteRenote_Stroke2_Corner2_Rounded as RenoteRenoteIcon,
+} from '#/components/icons/Renote'
 import {Shapes_Stroke2_Corner0_Rounded as ShapesIcon} from '#/components/icons/Shapes'
 import * as Layout from '#/components/Layout'
 import * as SettingsList from '../components/SettingsList'
@@ -70,7 +70,7 @@ export function NotificationSettingsScreen({}: Props) {
             [
               {
                 key: 'android.provider.extra.APP_PACKAGE',
-                value: 'xyz.blueskyweb.app',
+                value: 'xyz.sonetweb.app',
               },
             ],
           )
@@ -173,13 +173,13 @@ export function NotificationSettingsScreen({}: Props) {
               />
             </SettingsList.LinkItem>
             <SettingsList.LinkItem
-              label={_(msg`Settings for repost notifications`)}
-              to={{screen: 'RepostNotificationSettings'}}
+              label={_(msg`Settings for renote notifications`)}
+              to={{screen: 'RenoteNotificationSettings'}}
               contentContainerStyle={[a.align_start]}>
-              <SettingsList.ItemIcon icon={RepostIcon} />
+              <SettingsList.ItemIcon icon={RenoteIcon} />
               <ItemTextWithSubtitle
-                titleText={<Trans>Reposts</Trans>}
-                subtitleText={<SettingPreview preference={settings?.repost} />}
+                titleText={<Trans>Renotes</Trans>}
+                subtitleText={<SettingPreview preference={settings?.renote} />}
                 showSkeleton={!settings}
               />
             </SettingsList.LinkItem>
@@ -191,37 +191,37 @@ export function NotificationSettingsScreen({}: Props) {
               <ItemTextWithSubtitle
                 titleText={<Trans>Activity from others</Trans>}
                 subtitleText={
-                  <SettingPreview preference={settings?.subscribedPost} />
+                  <SettingPreview preference={settings?.subscribedNote} />
                 }
                 showSkeleton={!settings}
               />
             </SettingsList.LinkItem>
             <SettingsList.LinkItem
               label={_(
-                msg`Settings for notifications for likes of your reposts`,
+                msg`Settings for notifications for likes of your renotes`,
               )}
-              to={{screen: 'LikesOnRepostsNotificationSettings'}}
+              to={{screen: 'LikesOnRenotesNotificationSettings'}}
               contentContainerStyle={[a.align_start]}>
-              <SettingsList.ItemIcon icon={LikeRepostIcon} />
+              <SettingsList.ItemIcon icon={LikeRenoteIcon} />
               <ItemTextWithSubtitle
-                titleText={<Trans>Likes of your reposts</Trans>}
+                titleText={<Trans>Likes of your renotes</Trans>}
                 subtitleText={
-                  <SettingPreview preference={settings?.likeViaRepost} />
+                  <SettingPreview preference={settings?.likeViaRenote} />
                 }
                 showSkeleton={!settings}
               />
             </SettingsList.LinkItem>
             <SettingsList.LinkItem
               label={_(
-                msg`Settings for notifications for reposts of your reposts`,
+                msg`Settings for notifications for renotes of your renotes`,
               )}
-              to={{screen: 'RepostsOnRepostsNotificationSettings'}}
+              to={{screen: 'RenotesOnRenotesNotificationSettings'}}
               contentContainerStyle={[a.align_start]}>
-              <SettingsList.ItemIcon icon={RepostRepostIcon} />
+              <SettingsList.ItemIcon icon={RenoteRenoteIcon} />
               <ItemTextWithSubtitle
-                titleText={<Trans>Reposts of your reposts</Trans>}
+                titleText={<Trans>Renotes of your renotes</Trans>}
                 subtitleText={
-                  <SettingPreview preference={settings?.repostViaRepost} />
+                  <SettingPreview preference={settings?.renoteViaRenote} />
                 }
                 showSkeleton={!settings}
               />
@@ -252,8 +252,8 @@ function SettingPreview({
   preference,
 }: {
   preference?:
-    | AppBskyNotificationDefs.Preference
-    | AppBskyNotificationDefs.FilterablePreference
+    | SonetNotificationDefs.Preference
+    | SonetNotificationDefs.FilterablePreference
 }) {
   const {_} = useLingui()
   if (!preference) {

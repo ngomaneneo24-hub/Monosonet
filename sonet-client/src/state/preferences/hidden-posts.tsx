@@ -3,40 +3,40 @@ import React from 'react'
 import * as persisted from '#/state/persisted'
 
 type SetStateCb = (
-  s: persisted.Schema['hiddenPosts'],
-) => persisted.Schema['hiddenPosts']
-type StateContext = persisted.Schema['hiddenPosts']
+  s: persisted.Schema['hiddenNotes'],
+) => persisted.Schema['hiddenNotes']
+type StateContext = persisted.Schema['hiddenNotes']
 type ApiContext = {
-  hidePost: ({uri}: {uri: string}) => void
-  unhidePost: ({uri}: {uri: string}) => void
+  hideNote: ({uri}: {uri: string}) => void
+  unhideNote: ({uri}: {uri: string}) => void
 }
 
 const stateContext = React.createContext<StateContext>(
-  persisted.defaults.hiddenPosts,
+  persisted.defaults.hiddenNotes,
 )
 const apiContext = React.createContext<ApiContext>({
-  hidePost: () => {},
-  unhidePost: () => {},
+  hideNote: () => {},
+  unhideNote: () => {},
 })
 
 export function Provider({children}: React.PropsWithChildren<{}>) {
-  const [state, setState] = React.useState(persisted.get('hiddenPosts'))
+  const [state, setState] = React.useState(persisted.get('hiddenNotes'))
 
   const setStateWrapped = React.useCallback(
     (fn: SetStateCb) => {
-      const s = fn(persisted.get('hiddenPosts'))
+      const s = fn(persisted.get('hiddenNotes'))
       setState(s)
-      persisted.write('hiddenPosts', s)
+      persisted.write('hiddenNotes', s)
     },
     [setState],
   )
 
   const api = React.useMemo(
     () => ({
-      hidePost: ({uri}: {uri: string}) => {
+      hideNote: ({uri}: {uri: string}) => {
         setStateWrapped(s => [...(s || []), uri])
       },
-      unhidePost: ({uri}: {uri: string}) => {
+      unhideNote: ({uri}: {uri: string}) => {
         setStateWrapped(s => (s || []).filter(u => u !== uri))
       },
     }),
@@ -44,8 +44,8 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
   )
 
   React.useEffect(() => {
-    return persisted.onUpdate('hiddenPosts', nextHiddenPosts => {
-      setState(nextHiddenPosts)
+    return persisted.onUpdate('hiddenNotes', nextHiddenNotes => {
+      setState(nextHiddenNotes)
     })
   }, [setStateWrapped])
 
@@ -56,10 +56,10 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
   )
 }
 
-export function useHiddenPosts() {
+export function useHiddenNotes() {
   return React.useContext(stateContext)
 }
 
-export function useHiddenPostsApi() {
+export function useHiddenNotesApi() {
   return React.useContext(apiContext)
 }

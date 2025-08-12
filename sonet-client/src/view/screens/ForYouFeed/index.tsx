@@ -11,7 +11,7 @@ import {useSetMinimalShellMode} from '#/state/shell'
 import {useHeaderOffset} from '#/components/hooks/useHeaderOffset'
 import {List, type ListRef} from '#/view/com/util/List'
 import {LoadMoreRetryBtn} from '#/view/com/util/LoadMoreRetryBtn'
-import {PostFeedLoadingPlaceholder} from '#/view/com/util/LoadingPlaceholder'
+import {NoteFeedLoadingPlaceholder} from '#/view/com/util/LoadingPlaceholder'
 import {MainScrollProvider} from '#/view/com/util/MainScrollProvider'
 import {ForYouFeedHeader} from './components/ForYouFeedHeader'
 import {ForYouFeedItem} from './components/ForYouFeedItem'
@@ -49,7 +49,7 @@ export function ForYouFeedScreen() {
 
   // State for ML insights panel
   const [showMLInsights, setShowMLInsights] = useState(false)
-  const [selectedPost, setSelectedPost] = useState<ForYouFeedItemType | null>(null)
+  const [selectedNote, setSelectedNote] = useState<ForYouFeedItemType | null>(null)
 
   // State for personalization settings
   const [showPersonalization, setShowPersonalization] = useState(false)
@@ -79,20 +79,20 @@ export function ForYouFeedScreen() {
     return feedData.pages.flatMap(page => 
       page.items.map((item, index) => ({
         ...item,
-        _reactKey: `${item.post.uri}-${index}`,
-        _isFeedPostSlice: true
+        _reactKey: `${item.note.uri}-${index}`,
+        _isFeedNoteSlice: true
       }))
     )
   }, [feedData])
 
-  // Handle post selection for ML insights
-  const handlePostPress = useCallback((post: ForYouFeedItemType) => {
-    setSelectedPost(post)
+  // Username note selection for ML insights
+  const usernameNotePress = useCallback((note: ForYouFeedItemType) => {
+    setSelectedNote(note)
     setShowMLInsights(true)
   }, [])
 
-  // Handle interaction tracking
-  const handleInteraction = useCallback((interaction: any) => {
+  // Username interaction tracking
+  const usernameInteraction = useCallback((interaction: any) => {
     trackInteraction.mutate(interaction)
   }, [trackInteraction])
 
@@ -100,11 +100,11 @@ export function ForYouFeedScreen() {
   const renderFeedItem = useCallback(({item}: {item: ForYouFeedItemType}) => (
     <ForYouFeedItem
       item={item}
-      onPress={() => handlePostPress(item)}
-      onInteraction={handleInteraction}
+      onPress={() => usernameNotePress(item)}
+      onInteraction={usernameInteraction}
       showMLInsights={true}
     />
-  ), [handlePostPress, handleInteraction])
+  ), [usernameNotePress, usernameInteraction])
 
   // Render empty state
   const renderEmptyState = useCallback(() => (
@@ -117,7 +117,7 @@ export function ForYouFeedScreen() {
           {_(msg`We're analyzing your interests to show you the best content`)}
         </Text>
         <Text style={styles.emptyStateHint}>
-          {_(msg`Try following some accounts or engaging with posts to get started`)}
+          {_(msg`Try following some accounts or engaging with notes to get started`)}
         </Text>
       </View>
     </View>
@@ -145,7 +145,7 @@ export function ForYouFeedScreen() {
           showMLInsights={showMLInsights}
           onToggleMLInsights={() => setShowMLInsights(!showMLInsights)}
         />
-        <PostFeedLoadingPlaceholder />
+        <NoteFeedLoadingPlaceholder />
       </View>
     )
   }
@@ -194,7 +194,7 @@ export function ForYouFeedScreen() {
           ListEmptyComponent={renderEmptyState}
           ListFooterComponent={
             isFetchingNextPage ? (
-              <PostFeedLoadingPlaceholder />
+              <NoteFeedLoadingPlaceholder />
             ) : null
           }
           removeClippedSubviews={true}
@@ -204,12 +204,12 @@ export function ForYouFeedScreen() {
         />
 
         {/* ML Insights Panel */}
-        {showMLInsights && selectedPost && (
+        {showMLInsights && selectedNote && (
           <MLInsightsPanel
-            post={selectedPost}
+            note={selectedNote}
             onClose={() => {
               setShowMLInsights(false)
-              setSelectedPost(null)
+              setSelectedNote(null)
             }}
           />
         )}

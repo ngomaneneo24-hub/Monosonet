@@ -1,10 +1,10 @@
 import React from 'react'
 import {type StyleProp, View, type ViewStyle} from 'react-native'
 import {
-  type AppBskyFeedDefs,
-  type AppBskyFeedPostgate,
+  type SonetFeedDefs,
+  type SonetFeedNotegate,
   AtUri,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
@@ -14,15 +14,15 @@ import {logger} from '#/logger'
 import {STALE} from '#/state/queries'
 import {useMyListsQuery} from '#/state/queries/my-lists'
 import {
-  createPostgateQueryKey,
-  getPostgateRecord,
-  usePostgateQuery,
-  useWritePostgateMutation,
-} from '#/state/queries/postgate'
+  createNotegateQueryKey,
+  getNotegateRecord,
+  useNotegateQuery,
+  useWriteNotegateMutation,
+} from '#/state/queries/notegate'
 import {
-  createPostgateRecord,
+  createNotegateRecord,
   embeddingRules,
-} from '#/state/queries/postgate/util'
+} from '#/state/queries/notegate/util'
 import {
   createThreadgateViewQueryKey,
   getThreadgateView,
@@ -43,13 +43,13 @@ import {CircleInfo_Stroke2_Corner0_Rounded as CircleInfo} from '#/components/ico
 import {Loader} from '#/components/Loader'
 import {Text} from '#/components/Typography'
 
-export type PostInteractionSettingsFormProps = {
+export type NoteInteractionSettingsFormProps = {
   canSave?: boolean
   onSave: () => void
   isSaving?: boolean
 
-  postgate: AppBskyFeedPostgate.Record
-  onChangePostgate: (v: AppBskyFeedPostgate.Record) => void
+  notegate: SonetFeedNotegate.Record
+  onChangeNotegate: (v: SonetFeedNotegate.Record) => void
 
   threadgateAllowUISettings: ThreadgateAllowUISetting[]
   onChangeThreadgateAllowUISettings: (v: ThreadgateAllowUISetting[]) => void
@@ -57,10 +57,10 @@ export type PostInteractionSettingsFormProps = {
   replySettingsDisabled?: boolean
 }
 
-export function PostInteractionSettingsControlledDialog({
+export function NoteInteractionSettingsControlledDialog({
   control,
   ...rest
-}: PostInteractionSettingsFormProps & {
+}: NoteInteractionSettingsFormProps & {
   control: Dialog.DialogControlProps
 }) {
   const t = useTheme()
@@ -68,13 +68,13 @@ export function PostInteractionSettingsControlledDialog({
 
   return (
     <Dialog.Outer control={control}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <Dialog.ScrollableInner
-        label={_(msg`Edit post interaction settings`)}
+        label={_(msg`Edit note interaction settings`)}
         style={[{maxWidth: 500}, a.w_full]}>
         <View style={[a.gap_md]}>
           <Header />
-          <PostInteractionSettingsForm {...rest} />
+          <NoteInteractionSettingsForm {...rest} />
           <Text
             style={[
               a.pt_sm,
@@ -101,78 +101,78 @@ export function Header() {
   return (
     <View style={[a.gap_md, a.pb_sm]}>
       <Text style={[a.text_2xl, a.font_bold]}>
-        <Trans>Post interaction settings</Trans>
+        <Trans>Note interaction settings</Trans>
       </Text>
       <Text style={[a.text_md, a.pb_xs]}>
-        <Trans>Customize who can interact with this post.</Trans>
+        <Trans>Customize who can interact with this note.</Trans>
       </Text>
       <Divider />
     </View>
   )
 }
 
-export type PostInteractionSettingsDialogProps = {
+export type NoteInteractionSettingsDialogProps = {
   control: Dialog.DialogControlProps
   /**
-   * URI of the post to edit the interaction settings for. Could be a root post
+   * URI of the note to edit the interaction settings for. Could be a root note
    * or could be a reply.
    */
-  postUri: string
+  noteUri: string
   /**
-   * The URI of the root post in the thread. Used to determine if the viewer
+   * The URI of the root note in the thread. Used to determine if the viewer
    * owns the threadgate record and can therefore edit it.
    */
-  rootPostUri: string
+  rootNoteUri: string
   /**
-   * Optional initial {@link AppBskyFeedDefs.ThreadgateView} to use if we
+   * Optional initial {@link SonetFeedDefs.ThreadgateView} to use if we
    * happen to have one before opening the settings dialog.
    */
-  initialThreadgateView?: AppBskyFeedDefs.ThreadgateView
+  initialThreadgateView?: SonetFeedDefs.ThreadgateView
 }
 
-export function PostInteractionSettingsDialog(
-  props: PostInteractionSettingsDialogProps,
+export function NoteInteractionSettingsDialog(
+  props: NoteInteractionSettingsDialogProps,
 ) {
   return (
     <Dialog.Outer control={props.control}>
-      <Dialog.Handle />
-      <PostInteractionSettingsDialogControlledInner {...props} />
+      <Dialog.Username />
+      <NoteInteractionSettingsDialogControlledInner {...props} />
     </Dialog.Outer>
   )
 }
 
-export function PostInteractionSettingsDialogControlledInner(
-  props: PostInteractionSettingsDialogProps,
+export function NoteInteractionSettingsDialogControlledInner(
+  props: NoteInteractionSettingsDialogProps,
 ) {
   const {_} = useLingui()
   const {currentAccount} = useSession()
   const [isSaving, setIsSaving] = React.useState(false)
 
   const {data: threadgateViewLoaded, isLoading: isLoadingThreadgate} =
-    useThreadgateViewQuery({postUri: props.rootPostUri})
-  const {data: postgate, isLoading: isLoadingPostgate} = usePostgateQuery({
-    postUri: props.postUri,
+    useThreadgateViewQuery({noteUri: props.rootNoteUri})
+  const {data: notegate, isLoading: isLoadingNotegate} = useNotegateQuery({
+    noteUri: props.noteUri,
   })
 
-  const {mutateAsync: writePostgateRecord} = useWritePostgateMutation()
+  const {mutateAsync: writeNotegateRecord} = useWriteNotegateMutation()
   const {mutateAsync: setThreadgateAllow} = useSetThreadgateAllowMutation()
 
-  const [editedPostgate, setEditedPostgate] =
-    React.useState<AppBskyFeedPostgate.Record>()
+  const [editedNotegate, setEditedNotegate] =
+    React.useState<SonetFeedNotegate.Record>()
   const [editedAllowUISettings, setEditedAllowUISettings] =
     React.useState<ThreadgateAllowUISetting[]>()
 
-  const isLoading = isLoadingThreadgate || isLoadingPostgate
+  const isLoading = isLoadingThreadgate || isLoadingNotegate
   const threadgateView = threadgateViewLoaded || props.initialThreadgateView
   const isThreadgateOwnedByViewer = React.useMemo(() => {
-    return currentAccount?.did === new AtUri(props.rootPostUri).host
-  }, [props.rootPostUri, currentAccount?.did])
+    return currentAccount?.userId === new AtUri(props.rootNoteUri).host
+  }, [props.rootNoteUri, currentAccount?.userId])
 
-  const postgateValue = React.useMemo(() => {
+  const notegateValue = React.useMemo(() => {
     return (
-      editedPostgate || postgate || createPostgateRecord({post: props.postUri})
+      editedNotegate || notegate || createNotegateRecord({note: props.noteUri})
     )
-  }, [postgate, editedPostgate, props.postUri])
+  }, [notegate, editedNotegate, props.noteUri])
   const allowUIValue = React.useMemo(() => {
     return (
       editedAllowUISettings || threadgateViewToAllowUISetting(threadgateView)
@@ -180,7 +180,7 @@ export function PostInteractionSettingsDialogControlledInner(
   }, [threadgateView, editedAllowUISettings])
 
   const onSave = React.useCallback(async () => {
-    if (!editedPostgate && !editedAllowUISettings) {
+    if (!editedNotegate && !editedAllowUISettings) {
       props.control.close()
       return
     }
@@ -190,11 +190,11 @@ export function PostInteractionSettingsDialogControlledInner(
     try {
       const requests = []
 
-      if (editedPostgate) {
+      if (editedNotegate) {
         requests.push(
-          writePostgateRecord({
-            postUri: props.postUri,
-            postgate: editedPostgate,
+          writeNotegateRecord({
+            noteUri: props.noteUri,
+            notegate: editedNotegate,
           }),
         )
       }
@@ -202,7 +202,7 @@ export function PostInteractionSettingsDialogControlledInner(
       if (editedAllowUISettings && isThreadgateOwnedByViewer) {
         requests.push(
           setThreadgateAllow({
-            postUri: props.rootPostUri,
+            noteUri: props.rootNoteUri,
             allow: editedAllowUISettings,
           }),
         )
@@ -212,8 +212,8 @@ export function PostInteractionSettingsDialogControlledInner(
 
       props.control.close()
     } catch (e: any) {
-      logger.error(`Failed to save post interaction settings`, {
-        source: 'PostInteractionSettingsDialogControlledInner',
+      logger.error(`Failed to save note interaction settings`, {
+        source: 'NoteInteractionSettingsDialogControlledInner',
         safeMessage: e.message,
       })
       Toast.show(
@@ -227,20 +227,20 @@ export function PostInteractionSettingsDialogControlledInner(
     }
   }, [
     _,
-    props.postUri,
-    props.rootPostUri,
+    props.noteUri,
+    props.rootNoteUri,
     props.control,
-    editedPostgate,
+    editedNotegate,
     editedAllowUISettings,
     setIsSaving,
-    writePostgateRecord,
+    writeNotegateRecord,
     setThreadgateAllow,
     isThreadgateOwnedByViewer,
   ])
 
   return (
     <Dialog.ScrollableInner
-      label={_(msg`Edit post interaction settings`)}
+      label={_(msg`Edit note interaction settings`)}
       style={[{maxWidth: 500}, a.w_full]}>
       <View style={[a.gap_md]}>
         <Header />
@@ -250,12 +250,12 @@ export function PostInteractionSettingsDialogControlledInner(
             <Loader size="xl" />
           </View>
         ) : (
-          <PostInteractionSettingsForm
+          <NoteInteractionSettingsForm
             replySettingsDisabled={!isThreadgateOwnedByViewer}
             isSaving={isSaving}
             onSave={onSave}
-            postgate={postgateValue}
-            onChangePostgate={setEditedPostgate}
+            notegate={notegateValue}
+            onChangeNotegate={setEditedNotegate}
             threadgateAllowUISettings={allowUIValue}
             onChangeThreadgateAllowUISettings={setEditedAllowUISettings}
           />
@@ -265,23 +265,23 @@ export function PostInteractionSettingsDialogControlledInner(
   )
 }
 
-export function PostInteractionSettingsForm({
+export function NoteInteractionSettingsForm({
   canSave = true,
   onSave,
   isSaving,
-  postgate,
-  onChangePostgate,
+  notegate,
+  onChangeNotegate,
   threadgateAllowUISettings,
   onChangeThreadgateAllowUISettings,
   replySettingsDisabled,
-}: PostInteractionSettingsFormProps) {
+}: NoteInteractionSettingsFormProps) {
   const t = useTheme()
   const {_} = useLingui()
   const {data: lists} = useMyListsQuery('curate')
   const [quotesEnabled, setQuotesEnabled] = React.useState(
     !(
-      postgate.embeddingRules &&
-      postgate.embeddingRules.find(
+      notegate.embeddingRules &&
+      notegate.embeddingRules.find(
         v => v.$type === embeddingRules.disableRule.$type,
       )
     ),
@@ -310,14 +310,14 @@ export function PostInteractionSettingsForm({
   const onChangeQuotesEnabled = React.useCallback(
     (enabled: boolean) => {
       setQuotesEnabled(enabled)
-      onChangePostgate(
-        createPostgateRecord({
-          ...postgate,
+      onChangeNotegate(
+        createNotegateRecord({
+          ...notegate,
           embeddingRules: enabled ? [] : [embeddingRules.disableRule],
         }),
       )
     },
-    [setQuotesEnabled, postgate, onChangePostgate],
+    [setQuotesEnabled, notegate, onChangeNotegate],
   )
 
   const noOneCanReply = !!threadgateAllowUISettings.find(
@@ -334,18 +334,18 @@ export function PostInteractionSettingsForm({
             </Text>
 
             <Toggle.Item
-              name="quoteposts"
+              name="quotenotes"
               type="checkbox"
               label={
                 quotesEnabled
-                  ? _(msg`Click to disable quote posts of this post.`)
-                  : _(msg`Click to enable quote posts of this post.`)
+                  ? _(msg`Click to disable quote notes of this note.`)
+                  : _(msg`Click to enable quote notes of this note.`)
               }
               value={quotesEnabled}
               onChange={onChangeQuotesEnabled}
               style={[a.justify_between, a.pt_xs]}>
               <Text style={[t.atoms.text_contrast_medium]}>
-                <Trans>Allow quote posts</Trans>
+                <Trans>Allow quote notes</Trans>
               </Text>
               <Toggle.Switch />
             </Toggle.Item>
@@ -547,12 +547,12 @@ function Selectable({
   )
 }
 
-export function usePrefetchPostInteractionSettings({
-  postUri,
-  rootPostUri,
+export function usePrefetchNoteInteractionSettings({
+  noteUri,
+  rootNoteUri,
 }: {
-  postUri: string
-  rootPostUri: string
+  noteUri: string
+  rootNoteUri: string
 }) {
   const queryClient = useQueryClient()
   const agent = useAgent()
@@ -561,21 +561,21 @@ export function usePrefetchPostInteractionSettings({
     try {
       await Promise.all([
         queryClient.prefetchQuery({
-          queryKey: createPostgateQueryKey(postUri),
+          queryKey: createNotegateQueryKey(noteUri),
           queryFn: () =>
-            getPostgateRecord({agent, postUri}).then(res => res ?? null),
+            getNotegateRecord({agent, noteUri}).then(res => res ?? null),
           staleTime: STALE.SECONDS.THIRTY,
         }),
         queryClient.prefetchQuery({
-          queryKey: createThreadgateViewQueryKey(rootPostUri),
-          queryFn: () => getThreadgateView({agent, postUri: rootPostUri}),
+          queryKey: createThreadgateViewQueryKey(rootNoteUri),
+          queryFn: () => getThreadgateView({agent, noteUri: rootNoteUri}),
           staleTime: STALE.SECONDS.THIRTY,
         }),
       ])
     } catch (e: any) {
-      logger.error(`Failed to prefetch post interaction settings`, {
+      logger.error(`Failed to prefetch note interaction settings`, {
         safeMessage: e.message,
       })
     }
-  }, [queryClient, agent, postUri, rootPostUri])
+  }, [queryClient, agent, noteUri, rootNoteUri])
 }

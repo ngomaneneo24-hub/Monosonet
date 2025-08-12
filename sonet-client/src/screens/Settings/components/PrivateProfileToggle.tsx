@@ -14,7 +14,7 @@ export function PrivateProfileToggle() {
   const updatePrivateProfile = useUpdatePrivateProfileMutation()
 
   const onToggle = useCallback(async () => {
-    if (!currentAccount?.did) return
+    if (!currentAccount?.userId) return
 
     try {
       await updatePrivateProfile.mutateAsync({
@@ -30,7 +30,7 @@ export function PrivateProfileToggle() {
     } catch (error) {
       Toast.show(_(msg`Failed to update profile privacy`), 'xmark')
     }
-  }, [_, currentAccount?.did, isPrivate, updatePrivateProfile])
+  }, [_, currentAccount?.userId, isPrivate, updatePrivateProfile])
 
   return (
     <SettingsList.Toggle

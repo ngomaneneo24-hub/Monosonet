@@ -1,20 +1,20 @@
 import React from 'react'
 import {View} from 'react-native'
 import {
-  type AppBskyActorProfile,
-  type AppBskyGraphDefs,
-  AppBskyGraphStarterpack,
+  type SonetActorProfile,
+  type SonetGraphDefs,
+  SonetGraphStarterpack,
   type Un$Typed,
-} from '@atproto/api'
-import {type SavedFeed} from '@atproto/api/dist/client/types/app/bsky/actor/defs'
-import {TID} from '@atproto/common-web'
+} from '@sonet/api'
+import {type SavedFeed} from '@sonet/api/dist/client/types/app/bsky/actor/defs'
+import {TID} from '@sonet/types'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
 
 import {uploadBlob} from '#/lib/api'
 import {
-  BSKY_APP_ACCOUNT_DID,
+  BSKY_APP_ACCOUNT_UserID,
   DISCOVER_SAVED_FEED,
   TIMELINE_SAVED_FEED,
   VIDEO_SAVED_FEED,
@@ -69,12 +69,12 @@ export function StepFinished() {
   const finishOnboarding = React.useCallback(async () => {
     setSaving(true)
 
-    let starterPack: AppBskyGraphDefs.StarterPackView | undefined
-    let listItems: AppBskyGraphDefs.ListItemView[] | undefined
+    let starterPack: SonetGraphDefs.StarterPackView | undefined
+    let listItems: SonetGraphDefs.ListItemView[] | undefined
 
     if (activeStarterPack?.uri) {
       try {
-        const spRes = await agent.app.bsky.graph.getStarterPack({
+        const spRes = await agent.app.sonet.graph.getStarterPack({
           starterPack: activeStarterPack.uri,
         })
         starterPack = spRes.data.starterPack
@@ -100,8 +100,8 @@ export function StepFinished() {
 
       await Promise.all([
         bulkWriteFollows(agent, [
-          BSKY_APP_ACCOUNT_DID,
-          ...(listItems?.map(i => i.subject.did) ?? []),
+          BSKY_APP_ACCOUNT_UserID,
+          ...(listItems?.map(i => i.subject.userId) ?? []),
         ]),
         (async () => {
           // Interests need to get saved first, then we can write the feeds to prefs
@@ -147,7 +147,7 @@ export function StepFinished() {
               : undefined
 
           await agent.upsertProfile(async existing => {
-            let next: Un$Typed<AppBskyActorProfile.Record> = existing ?? {}
+            let next: Un$Typed<SonetActorProfile.Record> = existing ?? {}
 
             if (blobPromise) {
               const res = await blobPromise
@@ -194,7 +194,7 @@ export function StepFinished() {
         queryKey: preferencesQueryKey,
       }),
       queryClient.invalidateQueries({
-        queryKey: profileRQKey(agent.session?.did ?? ''),
+        queryKey: profileRQKey(agent.session?.userId ?? ''),
       }),
     ]).catch(e => {
       logger.error(e)
@@ -205,7 +205,7 @@ export function StepFinished() {
     setActiveStarterPack(undefined)
     setHasCheckedForStarterPack(true)
     startProgressGuide(
-      gate('old_postonboarding') ? 'like-10-and-follow-7' : 'follow-10',
+      gate('old_noteonboarding') ? 'like-10-and-follow-7' : 'follow-10',
     )
     dispatch({type: 'finish'})
     onboardDispatch({type: 'finish'})
@@ -213,13 +213,13 @@ export function StepFinished() {
       usedStarterPack: Boolean(starterPack),
       starterPackName:
         starterPack &&
-        bsky.dangerousIsType<AppBskyGraphStarterpack.Record>(
+        bsky.dangerousIsType<SonetGraphStarterpack.Record>(
           starterPack.record,
-          AppBskyGraphStarterpack.isRecord,
+          SonetGraphStarterpack.isRecord,
         )
           ? starterPack.record.name
           : undefined,
-      starterPackCreator: starterPack?.creator.did,
+      starterPackCreator: starterPack?.creator.userId,
       starterPackUri: starterPack?.uri,
       profilesFollowed: listItems?.length ?? 0,
       feedsPinned: starterPack?.feeds?.length ?? 0,
@@ -266,7 +266,7 @@ export function StepFinished() {
             <Text
               style={[t.atoms.text_contrast_medium, a.text_md, a.leading_snug]}>
               <Trans>
-                Your posts, likes, and blocks are public. Mutes are private.
+                Your notes, likes, and blocks are public. Mutes are private.
               </Trans>
             </Text>
           </View>

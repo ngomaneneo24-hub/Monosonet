@@ -5,7 +5,7 @@ import {
   Pressable,
 } from 'react-native'
 import {Image} from 'expo-image'
-import {type AppBskyEmbedExternal} from '@atproto/api'
+import {type SonetEmbedExternal} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -22,7 +22,7 @@ export function ExternalGif({
   link,
   params,
 }: {
-  link: AppBskyEmbedExternal.ViewExternal
+  link: SonetEmbedExternal.ViewExternal
   params: EmbedPlayerParams
 }) {
   const t = useTheme()

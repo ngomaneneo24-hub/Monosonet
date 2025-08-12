@@ -35,7 +35,7 @@ export function EmailDialog() {
 
   return (
     <Dialog.Outer control={emailDialogControl.control} onClose={onClose}>
-      <Dialog.Handle />
+      <Dialog.Username />
 
       <Dialog.ScrollableInner
         label={_(msg`Make adjustments to email settings for your account`)}

@@ -9,11 +9,11 @@ type SetStateCb = (
 type StateContext = persisted.Schema['languagePrefs']
 type ApiContext = {
   setPrimaryLanguage: (code2: string) => void
-  setPostLanguage: (commaSeparatedLangCodes: string) => void
+  setNoteLanguage: (commaSeparatedLangCodes: string) => void
   setContentLanguage: (code2: string) => void
   toggleContentLanguage: (code2: string) => void
-  togglePostLanguage: (code2: string) => void
-  savePostLanguageToHistory: () => void
+  toggleNoteLanguage: (code2: string) => void
+  saveNoteLanguageToHistory: () => void
   setAppLanguage: (code2: AppLanguage) => void
 }
 
@@ -22,11 +22,11 @@ const stateContext = React.createContext<StateContext>(
 )
 const apiContext = React.createContext<ApiContext>({
   setPrimaryLanguage: (_: string) => {},
-  setPostLanguage: (_: string) => {},
+  setNoteLanguage: (_: string) => {},
   setContentLanguage: (_: string) => {},
   toggleContentLanguage: (_: string) => {},
-  togglePostLanguage: (_: string) => {},
-  savePostLanguageToHistory: () => {},
+  toggleNoteLanguage: (_: string) => {},
+  saveNoteLanguageToHistory: () => {},
   setAppLanguage: (_: AppLanguage) => {},
 })
 
@@ -53,8 +53,8 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
       setPrimaryLanguage(code2: string) {
         setStateWrapped(s => ({...s, primaryLanguage: code2}))
       },
-      setPostLanguage(commaSeparatedLangCodes: string) {
-        setStateWrapped(s => ({...s, postLanguage: commaSeparatedLangCodes}))
+      setNoteLanguage(commaSeparatedLangCodes: string) {
+        setStateWrapped(s => ({...s, noteLanguage: commaSeparatedLangCodes}))
       },
       setContentLanguage(code2: string) {
         setStateWrapped(s => ({...s, contentLanguages: [code2]}))
@@ -71,18 +71,18 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
           }
         })
       },
-      togglePostLanguage(code2: string) {
+      toggleNoteLanguage(code2: string) {
         setStateWrapped(s => {
-          const exists = hasPostLanguage(state.postLanguage, code2)
-          let next = s.postLanguage
+          const exists = hasNoteLanguage(state.noteLanguage, code2)
+          let next = s.noteLanguage
 
           if (exists) {
-            next = toPostLanguages(s.postLanguage)
+            next = toNoteLanguages(s.noteLanguage)
               .filter(lang => lang !== code2)
               .join(',')
           } else {
             // sort alphabetically for deterministic comparison in context menu
-            next = toPostLanguages(s.postLanguage)
+            next = toNoteLanguages(s.noteLanguage)
               .concat([code2])
               .sort((a, b) => a.localeCompare(b))
               .join(',')
@@ -90,7 +90,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
 
           return {
             ...s,
-            postLanguage: next,
+            noteLanguage: next,
           }
         })
       },
@@ -98,16 +98,16 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
        * Saves whatever language codes are currently selected into a history array,
        * which is then used to populate the language selector menu.
        */
-      savePostLanguageToHistory() {
-        // filter out duplicate `this.postLanguage` if exists, and prepend
+      saveNoteLanguageToHistory() {
+        // filter out duplicate `this.noteLanguage` if exists, and prepend
         // value to start of array
         setStateWrapped(s => ({
           ...s,
-          postLanguageHistory: [s.postLanguage]
+          noteLanguageHistory: [s.noteLanguage]
             .concat(
-              s.postLanguageHistory.filter(
+              s.noteLanguageHistory.filter(
                 commaSeparatedLangCodes =>
-                  commaSeparatedLangCodes !== s.postLanguage,
+                  commaSeparatedLangCodes !== s.noteLanguage,
               ),
             )
             .slice(0, 6),
@@ -149,11 +149,11 @@ export function getAppLanguageAsContentLanguage() {
   return persisted.get('languagePrefs').appLanguage.split('-')[0]
 }
 
-export function toPostLanguages(postLanguage: string): string[] {
+export function toNoteLanguages(noteLanguage: string): string[] {
   // filter out empty strings if exist
-  return postLanguage.split(',').filter(Boolean)
+  return noteLanguage.split(',').filter(Boolean)
 }
 
-export function hasPostLanguage(postLanguage: string, code2: string): boolean {
-  return toPostLanguages(postLanguage).includes(code2)
+export function hasNoteLanguage(noteLanguage: string, code2: string): boolean {
+  return toNoteLanguages(noteLanguage).includes(code2)
 }

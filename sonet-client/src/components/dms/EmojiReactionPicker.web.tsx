@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import {Pressable, View} from 'react-native'
-import {type ChatBskyConvoDefs} from '@atproto/api'
+import {type SonetConvoDefs} from '@sonet/api'
 import EmojiPicker from '@emoji-mart/react'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -21,7 +21,7 @@ export function EmojiReactionPicker({
   children,
   onEmojiSelect,
 }: {
-  message: ChatBskyConvoDefs.MessageView
+  message: SonetConvoDefs.MessageView
   children?: TriggerProps['children']
   onEmojiSelect: (emoji: string) => void
 }) {
@@ -42,7 +42,7 @@ function MenuInner({
   message,
   onEmojiSelect,
 }: {
-  message: ChatBskyConvoDefs.MessageView
+  message: SonetConvoDefs.MessageView
   onEmojiSelect: (emoji: string) => void
 }) {
   const t = useTheme()
@@ -62,16 +62,16 @@ function MenuInner({
     }
   }
 
-  const handleEmojiPickerResponse = (emoji: Emoji) => {
-    handleEmojiSelect(emoji.native)
+  const usernameEmojiPickerResponse = (emoji: Emoji) => {
+    usernameEmojiSelect(emoji.native)
   }
 
-  const handleEmojiSelect = (emoji: string) => {
+  const usernameEmojiSelect = (emoji: string) => {
     control.close()
     onEmojiSelect(emoji)
   }
 
-  const limitReacted = hasReachedReactionLimit(message, currentAccount?.did)
+  const limitReacted = hasReachedReactionLimit(message, currentAccount?.userId)
 
   return expanded ? (
     <DropdownMenu.Portal>
@@ -80,7 +80,7 @@ function MenuInner({
         collisionPadding={{left: 5, right: 5, bottom: 5}}>
         <div onWheel={evt => evt.stopPropagation()}>
           <EmojiPicker
-            onEmojiSelect={handleEmojiPickerResponse}
+            onEmojiSelect={usernameEmojiPickerResponse}
             autoFocus={true}
           />
         </div>
@@ -92,7 +92,7 @@ function MenuInner({
         {['👍', '😆', '❤️', '👀', '😢'].map(emoji => {
           const alreadyReacted = hasAlreadyReacted(
             message,
-            currentAccount?.did,
+            currentAccount?.userId,
             emoji,
           )
           return (
@@ -105,7 +105,7 @@ function MenuInner({
               ]
                 .filter(Boolean)
                 .join(' ')}
-              onSelect={() => handleEmojiSelect(emoji)}
+              onSelect={() => usernameEmojiSelect(emoji)}
               style={flatten([
                 a.flex,
                 a.flex_col,

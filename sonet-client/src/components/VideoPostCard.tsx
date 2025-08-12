@@ -3,16 +3,16 @@ import {View} from 'react-native'
 import {Image} from 'expo-image'
 import {LinearGradient} from 'expo-linear-gradient'
 import {
-  AppBskyActorDefs,
-  AppBskyEmbedVideo,
-  AppBskyFeedDefs,
-  AppBskyFeedPost,
+  SonetActorDefs,
+  SonetEmbedVideo,
+  SonetFeedDefs,
+  SonetFeedNote,
   ModerationDecision,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {formatCount} from '#/view/com/util/numeric/format'
 import {UserAvatar} from '#/view/com/util/UserAvatar'
 import {VideoFeedSourceContext} from '#/screens/VideoFeed/types'
@@ -22,7 +22,7 @@ import {select} from '#/alf/util/themeSelector'
 import {useInteractionState} from '#/components/hooks/useInteractionState'
 import {EyeSlash_Stroke2_Corner0_Rounded as Eye} from '#/components/icons/EyeSlash'
 import {Heart2_Stroke2_Corner0_Rounded as Heart} from '#/components/icons/Heart2'
-import {Repost_Stroke2_Corner2_Rounded as Repost} from '#/components/icons/Repost'
+import {Renote_Stroke2_Corner2_Rounded as Renote} from '#/components/icons/Renote'
 import {Link} from '#/components/Link'
 import {MediaInsetBorder} from '#/components/MediaInsetBorder'
 import * as Hider from '#/components/moderation/Hider'
@@ -37,13 +37,13 @@ function getBlackColor(t: ReturnType<typeof useTheme>) {
   })
 }
 
-export function VideoPostCard({
-  post,
+export function VideoNoteCard({
+  note,
   sourceContext,
   moderation,
   onInteract,
 }: {
-  post: AppBskyFeedDefs.PostView
+  note: SonetFeedDefs.NoteView
   sourceContext: VideoFeedSourceContext
   moderation: ModerationDecision
   /**
@@ -53,7 +53,7 @@ export function VideoPostCard({
 }) {
   const t = useTheme()
   const {_, i18n} = useLingui()
-  const embed = post.embed
+  const embed = note.embed
   const {
     state: pressed,
     onIn: onPressIn,
@@ -73,20 +73,20 @@ export function VideoPostCard({
   }, [moderation])
 
   /**
-   * Filtering should be done at a higher level, such as `PostFeed` or
-   * `PostFeedVideoGridRow`, but we need to protect here as well.
+   * Filtering should be done at a higher level, such as `NoteFeed` or
+   * `NoteFeedVideoGridRow`, but we need to protect here as well.
    */
-  if (!AppBskyEmbedVideo.isView(embed)) return null
+  if (!SonetEmbedVideo.isView(embed)) return null
 
-  const author = post.author
-  const text = bsky.dangerousIsType<AppBskyFeedPost.Record>(
-    post.record,
-    AppBskyFeedPost.isRecord,
+  const author = note.author
+  const text = bsky.dangerousIsType<SonetFeedNote.Record>(
+    note.record,
+    SonetFeedNote.isRecord,
   )
-    ? post.record?.text
+    ? note.record?.text
     : ''
-  const likeCount = post?.likeCount ?? 0
-  const repostCount = post?.repostCount ?? 0
+  const likeCount = note?.likeCount ?? 0
+  const renoteCount = note?.renoteCount ?? 0
   const {thumbnail} = embed
   const black = getBlackColor(t)
 
@@ -99,7 +99,7 @@ export function VideoPostCard({
       )}
       <View style={[a.flex_row, a.gap_xs, a.align_center]}>
         <View style={[a.relative, a.rounded_full, {width: 20, height: 20}]}>
-          <UserAvatar type="user" size={20} avatar={post.author.avatar} />
+          <UserAvatar type="user" size={20} avatar={note.author.avatar} />
           <MediaInsetBorder />
         </View>
         <Text
@@ -110,7 +110,7 @@ export function VideoPostCard({
             t.atoms.text_contrast_medium,
           ]}
           numberOfLines={1}>
-          {sanitizeHandle(post.author.handle, '@')}
+          {sanitizeUsername(note.author.username, '@')}
         </Text>
       </View>
     </View>
@@ -119,12 +119,12 @@ export function VideoPostCard({
   return (
     <Link
       accessibilityHint={_(msg`Views video in immersive mode`)}
-      label={_(msg`Video from ${author.handle}: ${text}`)}
+      label={_(msg`Video from ${author.username}: ${text}`)}
       to={{
         screen: 'VideoFeed',
         params: {
           ...sourceContext,
-          initialPostUri: post.uri,
+          initialNoteUri: note.uri,
         },
       }}
       onPress={() => {
@@ -181,7 +181,7 @@ export function VideoPostCard({
             </View>
           </View>
           {listModUi.blur ? (
-            <VideoPostCardTextPlaceholder author={post.author} />
+            <VideoNoteCardTextPlaceholder author={note.author} />
           ) : (
             textAndAuthor
           )}
@@ -232,11 +232,11 @@ export function VideoPostCard({
                       </Text>
                     </View>
                   )}
-                  {repostCount > 0 && (
+                  {renoteCount > 0 && (
                     <View style={[a.flex_row, a.align_center, a.gap_xs]}>
-                      <Repost size="sm" fill="white" />
+                      <Renote size="sm" fill="white" />
                       <Text style={[a.text_sm, a.font_bold, {color: 'white'}]}>
-                        {formatCount(i18n, repostCount)}
+                        {formatCount(i18n, renoteCount)}
                       </Text>
                     </View>
                   )}
@@ -251,7 +251,7 @@ export function VideoPostCard({
   )
 }
 
-export function VideoPostCardPlaceholder() {
+export function VideoNoteCardPlaceholder() {
   const t = useTheme()
   const black = getBlackColor(t)
 
@@ -268,15 +268,15 @@ export function VideoPostCardPlaceholder() {
         ]}>
         <MediaInsetBorder />
       </View>
-      <VideoPostCardTextPlaceholder />
+      <VideoNoteCardTextPlaceholder />
     </View>
   )
 }
 
-export function VideoPostCardTextPlaceholder({
+export function VideoNoteCardTextPlaceholder({
   author,
 }: {
-  author?: AppBskyActorDefs.ProfileViewBasic
+  author?: SonetActorDefs.ProfileViewBasic
 }) {
   const t = useTheme()
 
@@ -318,7 +318,7 @@ export function VideoPostCardTextPlaceholder({
                 t.atoms.text_contrast_medium,
               ]}
               numberOfLines={1}>
-              {sanitizeHandle(author.handle, '@')}
+              {sanitizeUsername(author.username, '@')}
             </Text>
           </View>
         ) : (
@@ -350,13 +350,13 @@ export function VideoPostCardTextPlaceholder({
   )
 }
 
-export function CompactVideoPostCard({
-  post,
+export function CompactVideoNoteCard({
+  note,
   sourceContext,
   moderation,
   onInteract,
 }: {
-  post: AppBskyFeedDefs.PostView
+  note: SonetFeedDefs.NoteView
   sourceContext: VideoFeedSourceContext
   moderation: ModerationDecision
   /**
@@ -366,7 +366,7 @@ export function CompactVideoPostCard({
 }) {
   const t = useTheme()
   const {_, i18n} = useLingui()
-  const embed = post.embed
+  const embed = note.embed
   const {
     state: pressed,
     onIn: onPressIn,
@@ -384,12 +384,12 @@ export function CompactVideoPostCard({
   }, [moderation])
 
   /**
-   * Filtering should be done at a higher level, such as `PostFeed` or
-   * `PostFeedVideoGridRow`, but we need to protect here as well.
+   * Filtering should be done at a higher level, such as `NoteFeed` or
+   * `NoteFeedVideoGridRow`, but we need to protect here as well.
    */
-  if (!AppBskyEmbedVideo.isView(embed)) return null
+  if (!SonetEmbedVideo.isView(embed)) return null
 
-  const likeCount = post?.likeCount ?? 0
+  const likeCount = note?.likeCount ?? 0
   const showLikeCount = false
   const {thumbnail} = embed
   const black = getBlackColor(t)
@@ -401,7 +401,7 @@ export function CompactVideoPostCard({
         screen: 'VideoFeed',
         params: {
           ...sourceContext,
-          initialPostUri: post.uri,
+          initialNoteUri: note.uri,
         },
       }}
       onPress={() => {
@@ -490,7 +490,7 @@ export function CompactVideoPostCard({
                   <UserAvatar
                     type="user"
                     size={24}
-                    avatar={post.author.avatar}
+                    avatar={note.author.avatar}
                   />
                   <MediaInsetBorder />
                 </View>
@@ -536,7 +536,7 @@ export function CompactVideoPostCard({
   )
 }
 
-export function CompactVideoPostCardPlaceholder() {
+export function CompactVideoNoteCardPlaceholder() {
   const t = useTheme()
   const black = getBlackColor(t)
 

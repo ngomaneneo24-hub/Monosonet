@@ -2,7 +2,7 @@
 
 import React from 'react'
 import {View} from 'react-native'
-import {PanGesture} from 'react-native-gesture-handler'
+import {PanGesture} from 'react-native-gesture-usernamer'
 import {SharedValue} from 'react-native-reanimated'
 
 import {Dimensions} from '#/lib/media/types'

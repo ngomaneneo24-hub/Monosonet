@@ -16,7 +16,7 @@ import {
   Heart2_Filled_Stroke2_Corner0_Rounded as HeartIconFilled,
   Heart2_Stroke2_Corner0_Rounded as HeartIconOutline,
 } from '#/components/icons/Heart2'
-import {Repost_Stroke2_Corner2_Rounded as Repost} from '#/components/icons/Repost'
+import {Renote_Stroke2_Corner2_Rounded as Renote} from '#/components/icons/Renote'
 
 export function LoadingPlaceholder({
   width,
@@ -43,7 +43,7 @@ export function LoadingPlaceholder({
   )
 }
 
-export function PostLoadingPlaceholder({
+export function NoteLoadingPlaceholder({
   style,
 }: {
   style?: StyleProp<ViewStyle>
@@ -51,7 +51,7 @@ export function PostLoadingPlaceholder({
   const t = useTheme_NEW()
   const pal = usePalette('default')
   return (
-    <View style={[styles.post, pal.view, style]}>
+    <View style={[styles.note, pal.view, style]}>
       <LoadingPlaceholder
         width={42}
         height={42}
@@ -68,9 +68,9 @@ export function PostLoadingPlaceholder({
         <LoadingPlaceholder width="95%" height={6} style={{marginBottom: 8}} />
         <LoadingPlaceholder width="95%" height={6} style={{marginBottom: 8}} />
         <LoadingPlaceholder width="80%" height={6} style={{marginBottom: 11}} />
-        <View style={styles.postCtrls}>
-          <View style={[styles.postCtrl, {marginLeft: -6}]}>
-            <View style={styles.postBtn}>
+        <View style={styles.noteCtrls}>
+          <View style={[styles.noteCtrl, {marginLeft: -6}]}>
+            <View style={styles.noteBtn}>
               <Bubble
                 style={[
                   {
@@ -82,9 +82,9 @@ export function PostLoadingPlaceholder({
               />
             </View>
           </View>
-          <View style={styles.postCtrl}>
-            <View style={styles.postBtn}>
-              <Repost
+          <View style={styles.noteCtrl}>
+            <View style={styles.noteBtn}>
+              <Renote
                 style={[
                   {
                     color: t.palette.contrast_500,
@@ -95,8 +95,8 @@ export function PostLoadingPlaceholder({
               />
             </View>
           </View>
-          <View style={styles.postCtrl}>
-            <View style={styles.postBtn}>
+          <View style={styles.noteCtrl}>
+            <View style={styles.noteBtn}>
               <HeartIconOutline
                 style={[
                   {
@@ -108,8 +108,8 @@ export function PostLoadingPlaceholder({
               />
             </View>
           </View>
-          <View style={styles.postCtrl}>
-            <View style={[styles.postBtn, {minHeight: 30}]} />
+          <View style={styles.noteCtrl}>
+            <View style={[styles.noteBtn, {minHeight: 30}]} />
           </View>
         </View>
       </View>
@@ -117,17 +117,17 @@ export function PostLoadingPlaceholder({
   )
 }
 
-export function PostFeedLoadingPlaceholder() {
+export function NoteFeedLoadingPlaceholder() {
   return (
     <View>
-      <PostLoadingPlaceholder />
-      <PostLoadingPlaceholder />
-      <PostLoadingPlaceholder />
-      <PostLoadingPlaceholder />
-      <PostLoadingPlaceholder />
-      <PostLoadingPlaceholder />
-      <PostLoadingPlaceholder />
-      <PostLoadingPlaceholder />
+      <NoteLoadingPlaceholder />
+      <NoteLoadingPlaceholder />
+      <NoteLoadingPlaceholder />
+      <NoteLoadingPlaceholder />
+      <NoteLoadingPlaceholder />
+      <NoteLoadingPlaceholder />
+      <NoteLoadingPlaceholder />
+      <NoteLoadingPlaceholder />
     </View>
   )
 }
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   loadingPlaceholder: {
     borderRadius: 6,
   },
-  post: {
+  note: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     paddingHorizontal: 10,
@@ -330,15 +330,15 @@ const styles = StyleSheet.create({
     paddingBottom: 5,
     paddingRight: 15,
   },
-  postCtrls: {
+  noteCtrls: {
     opacity: 0.5,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  postCtrl: {
+  noteCtrl: {
     flex: 1,
   },
-  postBtn: {
+  noteBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',

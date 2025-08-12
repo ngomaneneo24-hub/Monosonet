@@ -23,7 +23,7 @@ export function InAppBrowserConsentDialog() {
       control={inAppBrowserConsentControl.control}
       nativeOptions={{preventExpansion: true}}
       onClose={inAppBrowserConsentControl.clear}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <InAppBrowserConsentInner href={inAppBrowserConsentControl.value} />
     </Dialog.Outer>
   )

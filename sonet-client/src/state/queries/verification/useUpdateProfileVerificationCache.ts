@@ -19,9 +19,9 @@ export function useUpdateProfileVerificationCache() {
     async ({profile}: {profile: bsky.profile.AnyProfileView}) => {
       try {
         const {data: updated} = await agent.getProfile({
-          actor: profile.did ?? '',
+          actor: profile.userId ?? '',
         })
-        updateProfileShadow(qc, profile.did, {
+        updateProfileShadow(qc, profile.userId, {
           verification: updated.verification,
         })
       } catch (e) {

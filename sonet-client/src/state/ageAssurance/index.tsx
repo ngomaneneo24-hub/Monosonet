@@ -1,5 +1,5 @@
 import {createContext, useContext, useMemo, useState} from 'react'
-import {type AppBskyUnspeccedDefs} from '@atproto/api'
+import {type SonetUnspeccedDefs} from '@sonet/api'
 import {useQuery} from '@tanstack/react-query'
 
 import {networkRetry} from '#/lib/async/retry'
@@ -14,10 +14,10 @@ import {logger} from '#/state/ageAssurance/util'
 import {useGeolocation} from '#/state/geolocation'
 import {useAgent} from '#/state/session'
 
-export const createAgeAssuranceQueryKey = (did: string) =>
-  ['ageAssurance', did] as const
+export const createAgeAssuranceQueryKey = (userId: string) =>
+  ['ageAssurance', userId] as const
 
-const DEFAULT_AGE_ASSURANCE_STATE: AppBskyUnspeccedDefs.AgeAssuranceState = {
+const DEFAULT_AGE_ASSURANCE_STATE: SonetUnspeccedDefs.AgeAssuranceState = {
   lastInitiatedAt: undefined,
   status: 'unknown',
 }
@@ -56,24 +56,24 @@ export function Provider({children}: {children: React.ReactNode}) {
      */
     enabled: isAgeAssuranceEnabled,
     refetchOnWindowFocus: refetchWhilePending,
-    queryKey: createAgeAssuranceQueryKey(agent.session?.did ?? 'never'),
+    queryKey: createAgeAssuranceQueryKey(agent.session?.userId ?? 'never'),
     async queryFn() {
       if (!agent.session) return null
 
       try {
         const {data} = await networkRetry(3, () =>
-          agent.app.bsky.unspecced.getAgeAssuranceState(),
+          agent.app.sonet.unspecced.getAgeAssuranceState(),
         )
         // const {data} = {
         //   data: {
         //     lastInitiatedAt: new Date().toISOString(),
         //     status: 'pending',
-        //   } as AppBskyUnspeccedDefs.AgeAssuranceState,
+        //   } as SonetUnspeccedDefs.AgeAssuranceState,
         // }
 
         logger.debug(`fetch`, {
           data,
-          account: agent.session?.did,
+          account: agent.session?.userId,
         })
 
         await getAndRegisterPushToken({

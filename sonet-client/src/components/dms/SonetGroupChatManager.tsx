@@ -70,8 +70,8 @@ export function SonetGroupChatManager({
   const isAdmin = currentUser?.isAdmin || false
   const canManage = isOwner || isAdmin
 
-  // Handle adding participant
-  const handleAddParticipant = useCallback(async () => {
+  // Username adding participant
+  const usernameAddParticipant = useCallback(async () => {
     if (!newParticipantUsername.trim() || !onAddParticipant) return
 
     setIsAddingParticipant(true)
@@ -85,8 +85,8 @@ export function SonetGroupChatManager({
     }
   }, [newParticipantUsername, onAddParticipant])
 
-  // Handle removing participant
-  const handleRemoveParticipant = useCallback(async (participantId: string) => {
+  // Username removing participant
+  const usernameRemoveParticipant = useCallback(async (participantId: string) => {
     if (!onRemoveParticipant) return
 
     try {
@@ -96,8 +96,8 @@ export function SonetGroupChatManager({
     }
   }, [onRemoveParticipant])
 
-  // Handle updating group info
-  const handleUpdateGroupInfo = useCallback(async () => {
+  // Username updating group info
+  const usernameUpdateGroupInfo = useCallback(async () => {
     if (!onUpdateGroupInfo) return
 
     setIsUpdating(true)
@@ -114,8 +114,8 @@ export function SonetGroupChatManager({
     }
   }, [editingTitle, editingDescription, onUpdateGroupInfo])
 
-  // Handle leaving group
-  const handleLeaveGroup = useCallback(async () => {
+  // Username leaving group
+  const usernameLeaveGroup = useCallback(async () => {
     if (!onLeaveGroup) return
 
     try {
@@ -125,8 +125,8 @@ export function SonetGroupChatManager({
     }
   }, [onLeaveGroup])
 
-  // Handle deleting group
-  const handleDeleteGroup = useCallback(async () => {
+  // Username deleting group
+  const usernameDeleteGroup = useCallback(async () => {
     if (!onDeleteGroup) return
 
     try {
@@ -265,7 +265,7 @@ export function SonetGroupChatManager({
                 variant="solid"
                 color="primary"
                 size="small"
-                onPress={handleAddParticipant}
+                onPress={usernameAddParticipant}
                 disabled={!newParticipantUsername.trim() || isAddingParticipant}>
                 <ButtonIcon icon={PlusIcon} />
                 <ButtonText>
@@ -328,7 +328,7 @@ export function SonetGroupChatManager({
                     variant="solid"
                     color="primary"
                     size="small"
-                    onPress={handleUpdateGroupInfo}
+                    onPress={usernameUpdateGroupInfo}
                     disabled={isUpdating}
                     style={[a.flex_1]}>
                     <ButtonText>
@@ -478,7 +478,7 @@ export function SonetGroupChatManager({
                     variant="ghost"
                     color="negative"
                     size="small"
-                    onPress={() => handleRemoveParticipant(participant.id)}>
+                    onPress={() => usernameRemoveParticipant(participant.id)}>
                     <ButtonIcon icon={TrashIcon} />
                   </Button>
                 )}
@@ -495,7 +495,7 @@ export function SonetGroupChatManager({
             variant="solid"
             color="negative"
             size="lg"
-            onPress={handleDeleteGroup}>
+            onPress={usernameDeleteGroup}>
             <ButtonText>
               <Trans>Delete Group</Trans>
             </ButtonText>
@@ -505,7 +505,7 @@ export function SonetGroupChatManager({
             variant="solid"
             color="secondary"
             size="lg"
-            onPress={handleLeaveGroup}>
+            onPress={usernameLeaveGroup}>
             <ButtonText>
               <Trans>Leave Group</Trans>
             </ButtonText>

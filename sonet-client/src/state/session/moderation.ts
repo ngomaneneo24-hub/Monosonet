@@ -1,4 +1,4 @@
-import {BSKY_LABELER_DID, BskyAgent} from '@atproto/api'
+import {BSKY_LABELER_UserID, SonetAppAgent} from '@sonet/api'
 
 import {IS_TEST_USER} from '#/lib/constants'
 import {configureAdditionalModerationAuthorities} from './additional-moderation-authorities'
@@ -13,21 +13,21 @@ export function configureModerationForGuest() {
 }
 
 export async function configureModerationForAccount(
-  agent: BskyAgent,
+  agent: SonetAppAgent,
   account: SessionAccount,
 ) {
   // This global mutation is *only* OK because this code is only relevant for testing.
   // Don't add any other global behavior here!
   switchToBskyAppLabeler()
-  if (IS_TEST_USER(account.handle)) {
+  if (IS_TEST_USER(account.username)) {
     await trySwitchToTestAppLabeler(agent)
   }
 
   // The code below is actually relevant to production (and isn't global).
-  const labelerDids = await readLabelers(account.did).catch(_ => {})
+  const labelerDids = await readLabelers(account.userId).catch(_ => {})
   if (labelerDids) {
     agent.configureLabelersHeader(
-      labelerDids.filter(did => did !== BSKY_LABELER_DID),
+      labelerDids.filter(userId => userId !== BSKY_LABELER_UserID),
     )
   } else {
     // If there are no headers in the storage, we'll not send them on the initial requests.
@@ -38,17 +38,17 @@ export async function configureModerationForAccount(
 }
 
 function switchToBskyAppLabeler() {
-  BskyAgent.configure({appLabelers: [BSKY_LABELER_DID]})
+  SonetAppAgent.configure({appLabelers: [BSKY_LABELER_UserID]})
 }
 
-async function trySwitchToTestAppLabeler(agent: BskyAgent) {
-  const did = (
+async function trySwitchToTestAppLabeler(agent: SonetAppAgent) {
+  const userId = (
     await agent
-      .resolveHandle({handle: 'mod-authority.test'})
+      .resolveUsername({username: 'mod-authority.test'})
       .catch(_ => undefined)
-  )?.data.did
-  if (did) {
+  )?.data.userId
+  if (userId) {
     console.warn('USING TEST ENV MODERATION')
-    BskyAgent.configure({appLabelers: [did]})
+    SonetAppAgent.configure({appLabelers: [userId]})
   }
 }

@@ -1,9 +1,9 @@
 import {useMemo} from 'react'
 import {
   type $Typed,
-  type AppBskyActorDefs,
-  AppBskyEmbedExternal,
-} from '@atproto/api'
+  type SonetActorDefs,
+  SonetEmbedExternal,
+} from '@sonet/api'
 import {isAfter, parseISO} from 'date-fns'
 
 import {useMaybeProfileShadow} from '#/state/cache/profile-shadow'
@@ -23,22 +23,22 @@ export function useActorStatus(actor?: bsky.profile.AnyProfileView) {
       shadowed &&
       'status' in shadowed &&
       shadowed.status &&
-      validateStatus(shadowed.did, shadowed.status, config) &&
+      validateStatus(shadowed.userId, shadowed.status, config) &&
       isStatusStillActive(shadowed.status.expiresAt)
     ) {
       return {
         isActive: true,
-        status: 'app.bsky.actor.status#live',
-        embed: shadowed.status.embed as $Typed<AppBskyEmbedExternal.View>, // temp_isStatusValid asserts this
+        status: 'app.sonet.actor.status#live',
+        embed: shadowed.status.embed as $Typed<SonetEmbedExternal.View>, // temp_isStatusValid asserts this
         expiresAt: shadowed.status.expiresAt!, // isStatusStillActive asserts this
         record: shadowed.status.record,
-      } satisfies AppBskyActorDefs.StatusView
+      } satisfies SonetActorDefs.StatusView
     } else {
       return {
         status: '',
         isActive: false,
         record: {},
-      } satisfies AppBskyActorDefs.StatusView
+      } satisfies SonetActorDefs.StatusView
     }
   }, [shadowed, config, tick])
 }
@@ -52,17 +52,17 @@ export function isStatusStillActive(timeStr: string | undefined) {
 }
 
 export function validateStatus(
-  did: string,
-  status: AppBskyActorDefs.StatusView,
-  config: {did: string; domains: string[]}[],
+  userId: string,
+  status: SonetActorDefs.StatusView,
+  config: {userId: string; domains: string[]}[],
 ) {
-  if (status.status !== 'app.bsky.actor.status#live') return false
-  const sources = config.find(cfg => cfg.did === did)
+  if (status.status !== 'app.sonet.actor.status#live') return false
+  const sources = config.find(cfg => cfg.userId === userId)
   if (!sources) {
     return false
   }
   try {
-    if (AppBskyEmbedExternal.isView(status.embed)) {
+    if (SonetEmbedExternal.isView(status.embed)) {
       const url = new URL(status.embed.external.uri)
       return sources.domains.includes(url.hostname)
     } else {

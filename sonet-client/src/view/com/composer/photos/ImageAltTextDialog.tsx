@@ -39,7 +39,7 @@ export const ImageAltTextDialog = ({
           alt: enforceLen(altText, MAX_ALT_TEXT, true),
         })
       }}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <ImageAltTextInner
         control={control}
         image={image}

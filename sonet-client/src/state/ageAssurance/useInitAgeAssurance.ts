@@ -1,15 +1,15 @@
 import {
-  type AppBskyUnspeccedDefs,
-  type AppBskyUnspeccedInitAgeAssurance,
+  type SonetUnspeccedDefs,
+  type SonetUnspeccedInitAgeAssurance,
   AtpAgent,
-} from '@atproto/api'
+} from '@sonet/api'
 import {useMutation, useQueryClient} from '@tanstack/react-query'
 
 import {wait} from '#/lib/async/wait'
 import {
   // DEV_ENV_APPVIEW,
   PUBLIC_APPVIEW,
-  PUBLIC_APPVIEW_DID,
+  PUBLIC_APPVIEW_UserID,
 } from '#/lib/constants'
 import {isNetworkError} from '#/lib/hooks/useCleanError'
 import {logger} from '#/logger'
@@ -18,7 +18,7 @@ import {useGeolocation} from '#/state/geolocation'
 import {useAgent} from '#/state/session'
 
 let APPVIEW = PUBLIC_APPVIEW
-let APPVIEW_DID = PUBLIC_APPVIEW_DID
+let APPVIEW_UserID = PUBLIC_APPVIEW_UserID
 
 /*
  * Uncomment if using the local dev-env
@@ -30,7 +30,7 @@ let APPVIEW_DID = PUBLIC_APPVIEW_DID
 //    * introspection endpoint and updated in `constants`, since it changes
 //    * every time you run the dev-env.
 //    */
-//   APPVIEW_DID = ``
+//   APPVIEW_UserID = ``
 // }
 
 export function useInitAgeAssurance() {
@@ -39,7 +39,7 @@ export function useInitAgeAssurance() {
   const {geolocation} = useGeolocation()
   return useMutation({
     async mutationFn(
-      props: Omit<AppBskyUnspeccedInitAgeAssurance.InputSchema, 'countryCode'>,
+      props: Omit<SonetUnspeccedInitAgeAssurance.InputSchema, 'countryCode'>,
     ) {
       if (!geolocation?.countryCode) {
         throw new Error(`Geolocation not available, cannot init age assurance.`)
@@ -47,9 +47,9 @@ export function useInitAgeAssurance() {
 
       const {
         data: {token},
-      } = await agent.com.atproto.server.getServiceAuth({
-        aud: APPVIEW_DID,
-        lxm: `app.bsky.unspecced.initAgeAssurance`,
+      } = await agent.com.sonet.server.getServiceAuth({
+        aud: APPVIEW_UserID,
+        lxm: `app.sonet.unspecced.initAgeAssurance`,
       })
 
       const appView = new AtpAgent({service: APPVIEW})
@@ -63,14 +63,14 @@ export function useInitAgeAssurance() {
        */
       const {data} = await wait(
         2e3,
-        appView.app.bsky.unspecced.initAgeAssurance({
+        appView.app.sonet.unspecced.initAgeAssurance({
           ...props,
           countryCode: geolocation?.countryCode?.toUpperCase(),
         }),
       )
 
-      qc.setQueryData<AppBskyUnspeccedDefs.AgeAssuranceState>(
-        createAgeAssuranceQueryKey(agent.session?.did ?? 'never'),
+      qc.setQueryData<SonetUnspeccedDefs.AgeAssuranceState>(
+        createAgeAssuranceQueryKey(agent.session?.userId ?? 'never'),
         () => data,
       )
     },

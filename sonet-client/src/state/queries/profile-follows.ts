@@ -1,4 +1,4 @@
-import {AppBskyActorDefs, AppBskyGraphGetFollows} from '@atproto/api'
+import {SonetActorDefs, SonetGraphGetFollows} from '@sonet/api'
 import {
   InfiniteData,
   QueryClient,
@@ -14,10 +14,10 @@ type RQPageParam = string | undefined
 
 // TODO refactor invalidate on mutate?
 const RQKEY_ROOT = 'profile-follows'
-export const RQKEY = (did: string) => [RQKEY_ROOT, did]
+export const RQKEY = (userId: string) => [RQKEY_ROOT, userId]
 
 export function useProfileFollowsQuery(
-  did: string | undefined,
+  userId: string | undefined,
   {
     limit,
   }: {
@@ -28,17 +28,17 @@ export function useProfileFollowsQuery(
 ) {
   const agent = useAgent()
   return useInfiniteQuery<
-    AppBskyGraphGetFollows.OutputSchema,
+    SonetGraphGetFollows.OutputSchema,
     Error,
-    InfiniteData<AppBskyGraphGetFollows.OutputSchema>,
+    InfiniteData<SonetGraphGetFollows.OutputSchema>,
     QueryKey,
     RQPageParam
   >({
     staleTime: STALE.MINUTES.ONE,
-    queryKey: RQKEY(did || ''),
+    queryKey: RQKEY(userId || ''),
     async queryFn({pageParam}: {pageParam: RQPageParam}) {
-      const res = await agent.app.bsky.graph.getFollows({
-        actor: did || '',
+      const res = await agent.app.sonet.graph.getFollows({
+        actor: userId || '',
         limit: limit || PAGE_SIZE,
         cursor: pageParam,
       })
@@ -46,16 +46,16 @@ export function useProfileFollowsQuery(
     },
     initialPageParam: undefined,
     getNextPageParam: lastPage => lastPage.cursor,
-    enabled: !!did,
+    enabled: !!userId,
   })
 }
 
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
-  did: string,
-): Generator<AppBskyActorDefs.ProfileView, void> {
+  userId: string,
+): Generator<SonetActorDefs.ProfileView, void> {
   const queryDatas = queryClient.getQueriesData<
-    InfiniteData<AppBskyGraphGetFollows.OutputSchema>
+    InfiniteData<SonetGraphGetFollows.OutputSchema>
   >({
     queryKey: [RQKEY_ROOT],
   })
@@ -65,7 +65,7 @@ export function* findAllProfilesInQueryData(
     }
     for (const page of queryData?.pages) {
       for (const follow of page.follows) {
-        if (follow.did === did) {
+        if (follow.userId === userId) {
           yield follow
         }
       }

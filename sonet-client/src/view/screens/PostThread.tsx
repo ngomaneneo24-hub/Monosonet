@@ -8,17 +8,17 @@ import {
 import {useGate} from '#/lib/statsig/statsig'
 import {makeRecordUri} from '#/lib/strings/url-helpers'
 import {useSetMinimalShellMode} from '#/state/shell'
-import {PostThread as PostThreadComponent} from '#/view/com/post-thread/PostThread'
-import {PostThread} from '#/screens/PostThread'
+import {NoteThread as NoteThreadComponent} from '#/view/com/note-thread/NoteThread'
+import {NoteThread} from '#/screens/NoteThread'
 import * as Layout from '#/components/Layout'
 
-type Props = NativeStackScreenProps<CommonNavigatorParams, 'PostThread'>
-export function PostThreadScreen({route}: Props) {
+type Props = NativeStackScreenProps<CommonNavigatorParams, 'NoteThread'>
+export function NoteThreadScreen({route}: Props) {
   const setMinimalShellMode = useSetMinimalShellMode()
   const gate = useGate()
 
   const {name, rkey} = route.params
-  const uri = makeRecordUri(name, 'app.bsky.feed.post', rkey)
+  const uri = makeRecordUri(name, 'app.sonet.feed.note', rkey)
 
   useFocusEffect(
     useCallback(() => {
@@ -27,11 +27,11 @@ export function PostThreadScreen({route}: Props) {
   )
 
   return (
-    <Layout.Screen testID="postThreadScreen">
-      {gate('post_threads_v2_unspecced') || __DEV__ ? (
-        <PostThread uri={uri} />
+    <Layout.Screen testID="noteThreadScreen">
+      {gate('note_threads_v2_unspecced') || __DEV__ ? (
+        <NoteThread uri={uri} />
       ) : (
-        <PostThreadComponent uri={uri} />
+        <NoteThreadComponent uri={uri} />
       )}
     </Layout.Screen>
   )

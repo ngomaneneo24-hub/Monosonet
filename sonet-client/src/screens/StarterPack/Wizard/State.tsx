@@ -1,6 +1,6 @@
 import React from 'react'
-import {type AppBskyGraphDefs, AppBskyGraphStarterpack} from '@atproto/api'
-import {type GeneratorView} from '@atproto/api/dist/client/types/app/bsky/feed/defs'
+import {type SonetGraphDefs, SonetGraphStarterpack} from '@sonet/api'
+import {type GeneratorView} from '@sonet/api/dist/client/types/app/bsky/feed/defs'
 import {msg, plural} from '@lingui/macro'
 
 import {STARTER_PACK_MAX_SIZE} from '#/lib/constants'
@@ -86,7 +86,7 @@ function reducer(state: State, action: Action): State {
       updatedState = {
         ...state,
         profiles: state.profiles.filter(
-          profile => profile.did !== action.profileDid,
+          profile => profile.userId !== action.profileDid,
         ),
       }
       break
@@ -116,8 +116,8 @@ export function Provider({
   listItems,
   children,
 }: {
-  starterPack?: AppBskyGraphDefs.StarterPackView
-  listItems?: AppBskyGraphDefs.ListItemView[]
+  starterPack?: SonetGraphDefs.StarterPackView
+  listItems?: SonetGraphDefs.ListItemView[]
   children: React.ReactNode
 }) {
   const {currentAccount} = useSession()
@@ -125,7 +125,7 @@ export function Provider({
   const createInitialState = (): State => {
     if (
       starterPack &&
-      bsky.validate(starterPack.record, AppBskyGraphStarterpack.validateRecord)
+      bsky.validate(starterPack.record, SonetGraphStarterpack.validateRecord)
     ) {
       return {
         canNext: true,
@@ -135,7 +135,7 @@ export function Provider({
         profiles:
           listItems
             ?.map(i => i.subject)
-            .filter(p => p.did !== currentAccount?.did) ?? [],
+            .filter(p => p.userId !== currentAccount?.userId) ?? [],
         feeds: starterPack.feeds ?? [],
         processing: false,
         transitionDirection: 'Forward',

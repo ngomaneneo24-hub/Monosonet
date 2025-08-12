@@ -11,15 +11,15 @@ import {useLingui} from '@lingui/react'
 
 import {useGate} from '#/lib/statsig/statsig'
 import {
-  createFullHandle,
+  createFullUsername,
   MAX_SERVICE_HANDLE_LENGTH,
-  validateServiceHandle,
-} from '#/lib/strings/handles'
+  validateServiceUsername,
+} from '#/lib/strings/usernames'
 import {logger} from '#/logger'
 import {
-  checkHandleAvailability,
-  useHandleAvailabilityQuery,
-} from '#/state/queries/handle-availability'
+  checkUsernameAvailability,
+  useUsernameAvailabilityQuery,
+} from '#/state/queries/username-availability'
 import {ScreenTransition} from '#/screens/Login/ScreenTransition'
 import {useSignupContext} from '#/screens/Signup/state'
 import {atoms as a, native, useTheme} from '#/alf'
@@ -30,25 +30,25 @@ import {Check_Stroke2_Corner0_Rounded as CheckIcon} from '#/components/icons/Che
 import {Text} from '#/components/Typography'
 import {IS_INTERNAL} from '#/env'
 import {BackNextButtons} from '../BackNextButtons'
-import {HandleSuggestions} from './HandleSuggestions'
+import {UsernameSuggestions} from './UsernameSuggestions'
 
-export function StepHandle() {
+export function StepUsername() {
   const {_} = useLingui()
   const t = useTheme()
   const gate = useGate()
   const {state, dispatch} = useSignupContext()
-  const [draftValue, setDraftValue] = useState(state.handle)
+  const [draftValue, setDraftValue] = useState(state.username)
   const isNextLoading = useThrottledValue(state.isLoading, 500)
 
-  const validCheck = validateServiceHandle(draftValue, state.userDomain)
+  const validCheck = validateServiceUsername(draftValue, state.userDomain)
 
   const {
     debouncedUsername: debouncedDraftValue,
     enabled: queryEnabled,
-    query: {data: isHandleAvailable, isPending},
-  } = useHandleAvailabilityQuery({
+    query: {data: isUsernameAvailable, isPending},
+  } = useUsernameAvailabilityQuery({
     username: draftValue,
-    serviceDid: state.serviceDescription?.did ?? 'UNKNOWN',
+    serviceDid: state.serviceDescription?.userId ?? 'UNKNOWN',
     serviceDomain: state.userDomain,
     birthDate: state.dateOfBirth.toISOString(),
     email: state.email,
@@ -56,10 +56,10 @@ export function StepHandle() {
   })
 
   const onNextPress = async () => {
-    const handle = draftValue.trim()
+    const username = draftValue.trim()
     dispatch({
-      type: 'setHandle',
-      value: handle,
+      type: 'setUsername',
+      value: username,
     })
 
     if (!validCheck.overall) {
@@ -69,22 +69,22 @@ export function StepHandle() {
     dispatch({type: 'setIsLoading', value: true})
 
     try {
-      const {available: handleAvailable} = await checkHandleAvailability(
-        createFullHandle(handle, state.userDomain),
-        state.serviceDescription?.did ?? 'UNKNOWN',
+      const {available: usernameAvailable} = await checkUsernameAvailability(
+        createFullUsername(username, state.userDomain),
+        state.serviceDescription?.userId ?? 'UNKNOWN',
         {typeahead: false},
       )
 
-      if (!handleAvailable) {
+      if (!usernameAvailable) {
         dispatch({
           type: 'setError',
           value: _(msg`That username is already taken`),
-          field: 'handle',
+          field: 'username',
         })
         return
       }
     } catch (error) {
-      logger.error('Failed to check handle availability on next press', {
+      logger.error('Failed to check username availability on next press', {
         safeMessage: error,
       })
       // do nothing on error, let them pass
@@ -113,10 +113,10 @@ export function StepHandle() {
   }
 
   const onBackPress = () => {
-    const handle = draftValue.trim()
+    const username = draftValue.trim()
     dispatch({
-      type: 'setHandle',
-      value: handle,
+      type: 'setUsername',
+      value: username,
     })
     dispatch({type: 'prev'})
     logger.metric(
@@ -127,19 +127,19 @@ export function StepHandle() {
   }
 
   const hasDebounceSettled = draftValue === debouncedDraftValue
-  const isHandleTaken =
+  const isUsernameTaken =
     !isPending &&
     queryEnabled &&
-    isHandleAvailable &&
-    !isHandleAvailable.available
+    isUsernameAvailable &&
+    !isUsernameAvailable.available
   const isNotReady = isPending || !hasDebounceSettled
   const isNextDisabled =
-    !validCheck.overall || !!state.error || isNotReady ? true : isHandleTaken
+    !validCheck.overall || !!state.error || isNotReady ? true : isUsernameTaken
 
   const textFieldInvalid =
-    isHandleTaken ||
+    isUsernameTaken ||
     !validCheck.frontLengthNotTooLong ||
-    !validCheck.handleChars ||
+    !validCheck.usernameChars ||
     !validCheck.hyphenStartOrEnd ||
     !validCheck.totalLength
 
@@ -150,7 +150,7 @@ export function StepHandle() {
           <TextField.Root isInvalid={textFieldInvalid}>
             <TextField.Icon icon={AtIcon} />
             <TextField.Input
-              testID="handleInput"
+              testID="usernameInput"
               onChangeText={val => {
                 if (state.error) {
                   dispatch({type: 'setError', value: ''})
@@ -170,7 +170,7 @@ export function StepHandle() {
                 {draftValue}
               </TextField.GhostText>
             )}
-            {isHandleAvailable?.available && (
+            {isUsernameAvailable?.available && (
               <CheckIcon style={[{color: t.palette.positive_600}, a.z_20]} />
             )}
           </TextField.Root>
@@ -182,29 +182,29 @@ export function StepHandle() {
                 <RequirementText>{state.error}</RequirementText>
               </Requirement>
             )}
-            {isHandleTaken && validCheck.overall && (
+            {isUsernameTaken && validCheck.overall && (
               <>
                 <Requirement>
                   <RequirementText>
                     <Trans>
-                      {createFullHandle(draftValue, state.userDomain)} is not
+                      {createFullUsername(draftValue, state.userDomain)} is not
                       available
                     </Trans>
                   </RequirementText>
                 </Requirement>
-                {isHandleAvailable.suggestions &&
-                  isHandleAvailable.suggestions.length > 0 &&
-                  (gate('handle_suggestions') || IS_INTERNAL) && (
-                    <HandleSuggestions
-                      suggestions={isHandleAvailable.suggestions}
+                {isUsernameAvailable.suggestions &&
+                  isUsernameAvailable.suggestions.length > 0 &&
+                  (gate('username_suggestions') || IS_INTERNAL) && (
+                    <UsernameSuggestions
+                      suggestions={isUsernameAvailable.suggestions}
                       onSelect={suggestion => {
                         setDraftValue(
-                          suggestion.handle.slice(
+                          suggestion.username.slice(
                             0,
                             state.userDomain.length * -1,
                           ),
                         )
-                        logger.metric('signup:handleSuggestionSelected', {
+                        logger.metric('signup:usernameSuggestionSelected', {
                           method: suggestion.method,
                         })
                       }}
@@ -212,7 +212,7 @@ export function StepHandle() {
                   )}
               </>
             )}
-            {(!validCheck.handleChars || !validCheck.hyphenStartOrEnd) && (
+            {(!validCheck.usernameChars || !validCheck.hyphenStartOrEnd) && (
               <Requirement>
                 {!validCheck.hyphenStartOrEnd ? (
                   <RequirementText>

@@ -1,7 +1,7 @@
 import {useState} from 'react'
 import {ListRenderItemInfo, View} from 'react-native'
 import {KeyboardAwareScrollView} from 'react-native-keyboard-controller'
-import {AppBskyActorDefs, ModerationOpts} from '@atproto/api'
+import {SonetActorDefs, ModerationOpts} from '@sonet/api'
 import {Trans} from '@lingui/macro'
 
 import {isNative} from '#/platform/detection'
@@ -18,8 +18,8 @@ import {WizardProfileCard} from '#/components/StarterPack/Wizard/WizardListCard'
 import {Text} from '#/components/Typography'
 import * as bsky from '#/types/bsky'
 
-function keyExtractor(item: AppBskyActorDefs.ProfileViewBasic) {
-  return item?.did ?? ''
+function keyExtractor(item: SonetActorDefs.ProfileViewBasic) {
+  return item?.userId ?? ''
 }
 
 export function StepProfiles({
@@ -79,7 +79,7 @@ export function StepProfiles({
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         renderScrollComponent={props => <KeyboardAwareScrollView {...props} />}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="usernamed"
         disableFullWindowScroll={true}
         sideBorders={false}
         style={[a.flex_1]}

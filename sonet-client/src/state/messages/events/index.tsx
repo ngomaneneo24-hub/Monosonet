@@ -78,7 +78,7 @@ export function MessagesEventBusProviderInner({
   }, [bus])
 
   React.useEffect(() => {
-    const handleAppStateChange = (nextAppState: string) => {
+    const usernameAppStateChange = (nextAppState: string) => {
       if (nextAppState === 'active') {
         bus.resume()
       } else {
@@ -86,7 +86,7 @@ export function MessagesEventBusProviderInner({
       }
     }
 
-    const sub = AppState.addEventListener('change', handleAppStateChange)
+    const sub = AppState.addEventListener('change', usernameAppStateChange)
 
     return () => {
       sub.remove()

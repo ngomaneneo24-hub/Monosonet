@@ -31,7 +31,7 @@ export function InitialVerificationAnnouncement() {
 
   return (
     <Dialog.Outer control={control} onClose={onClose}>
-      <Dialog.Handle />
+      <Dialog.Username />
 
       <Dialog.ScrollableInner
         label={_(msg`Announcing verification on Bluesky`)}
@@ -155,7 +155,7 @@ export function InitialVerificationAnnouncement() {
             <Link
               overridePresentation
               to={urls.website.blog.initialVerificationAnnouncement}
-              label={_(msg`Read blog post`)}
+              label={_(msg`Read blog note`)}
               size="small"
               variant="solid"
               color="primary"
@@ -170,7 +170,7 @@ export function InitialVerificationAnnouncement() {
                 )
               }}>
               <ButtonText>
-                <Trans>Read blog post</Trans>
+                <Trans>Read blog note</Trans>
               </ButtonText>
             </Link>
             {isNative && (

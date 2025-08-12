@@ -21,12 +21,12 @@ const HEADER_ITEM = {_reactKey: '__header__'}
 const SELECTOR_ITEM = {_reactKey: '__selector__'}
 const STICKY_HEADER_INDICES = [1]
 
-export type ViewSelectorHandle = {
+export type ViewSelectorUsername = {
   scrollToTop: () => void
 }
 
 export const ViewSelector = React.forwardRef<
-  ViewSelectorHandle,
+  ViewSelectorUsername,
   {
     sections: string[]
     items: any[]
@@ -76,7 +76,7 @@ export const ViewSelector = React.forwardRef<
     onSelectView?.(selectedIndex)
   }, [selectedIndex, onSelectView])
 
-  React.useImperativeHandle(ref, () => ({
+  React.useImperativeUsername(ref, () => ({
     scrollToTop: () => {
       flatListRef.current?.scrollToOffset({offset: 0})
     },

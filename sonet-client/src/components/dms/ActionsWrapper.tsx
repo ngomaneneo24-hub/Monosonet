@@ -1,5 +1,5 @@
 import {View} from 'react-native'
-import {type ChatBskyConvoDefs} from '@atproto/api'
+import {type SonetConvoDefs} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -11,7 +11,7 @@ export function ActionsWrapper({
   isFromSelf,
   children,
 }: {
-  message: ChatBskyConvoDefs.MessageView
+  message: SonetConvoDefs.MessageView
   isFromSelf: boolean
   children: React.ReactNode
 }) {

@@ -22,7 +22,7 @@ export const SONET_FEED_DEFINITIONS: Record<string, SonetFeedDefinition> = {
     type: 'timeline',
     value: SONET_FEEDS.FOLLOWING,
     displayName: 'Following',
-    description: 'Posts from people you follow',
+    description: 'Notes from people you follow',
     icon: '👥',
     contentMode: 'text',
     isDefault: true,

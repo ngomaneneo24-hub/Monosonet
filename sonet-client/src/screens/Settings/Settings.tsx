@@ -2,7 +2,7 @@ import {useState} from 'react'
 import {Alert, LayoutAnimation, Pressable, View} from 'react-native'
 import {Linking} from 'react-native'
 import {useReducedMotion} from 'react-native-reanimated'
-import {type AppBskyActorDefs, moderateProfile} from '@atproto/api'
+import {type SonetActorDefs, moderateProfile} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
@@ -17,7 +17,7 @@ import {
   type NavigationProp,
 } from '#/lib/routes/types'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {isIOS, isNative} from '#/platform/detection'
 import {useProfileShadow} from '#/state/cache/profile-shadow'
 import * as persisted from '#/state/persisted'
@@ -82,11 +82,11 @@ export function SettingsScreen({}: Props) {
   const sonetSession = useSonetSession()
   const switchAccountControl = useDialogControl()
   const signOutPromptControl = Prompt.usePromptControl()
-  const {data: profile} = useProfileQuery({did: currentAccount?.did})
+  const {data: profile} = useProfileQuery({userId: currentAccount?.userId})
   const {data: otherProfiles} = useProfilesQuery({
-    handles: accounts
-      .filter(acc => acc.did !== currentAccount?.did)
-      .map(acc => acc.handle),
+    usernames: accounts
+      .filter(acc => acc.userId !== currentAccount?.userId)
+      .map(acc => acc.username),
   })
   const {pendingDid, onPressSwitchAccount} = useAccountSwitcher()
   const [showAccounts, setShowAccounts] = useState(false)
@@ -143,8 +143,8 @@ export function SettingsScreen({}: Props) {
                 ) : (
                   <AvatarStackWithFetch
                     profiles={accounts
-                      .map(acc => acc.did)
-                      .filter(did => did !== currentAccount?.did)
+                      .map(acc => acc.userId)
+                      .filter(userId => userId !== currentAccount?.userId)
                       .slice(0, 5)}
                   />
                 )}
@@ -153,13 +153,13 @@ export function SettingsScreen({}: Props) {
                 <>
                   <SettingsList.Divider />
                   {accounts
-                    .filter(acc => acc.did !== currentAccount?.did)
+                    .filter(acc => acc.userId !== currentAccount?.userId)
                     .map(account => (
                       <AccountRow
-                        key={account.did}
+                        key={account.userId}
                         account={account}
                         profile={otherProfiles?.profiles?.find(
-                          p => p.did === account.did,
+                          p => p.userId === account.userId,
                         )}
                         pendingDid={pendingDid}
                         onPressSwitchAccount={onPressSwitchAccount}
@@ -309,7 +309,7 @@ export function SettingsScreen({}: Props) {
 function ProfilePreview({
   profile,
 }: {
-  profile: AppBskyActorDefs.ProfileViewDetailed
+  profile: SonetActorDefs.ProfileViewDetailed
 }) {
   const t = useTheme()
   const {gtMobile} = useBreakpoints()
@@ -324,7 +324,7 @@ function ProfilePreview({
 
   const moderation = moderateProfile(profile, moderationOpts)
   const displayName = sanitizeDisplayName(
-    profile.displayName || sanitizeHandle(profile.handle),
+    profile.displayName || sanitizeUsername(profile.username),
     moderation.ui('displayName'),
   )
 
@@ -370,7 +370,7 @@ function ProfilePreview({
         )}
       </View>
       <Text style={[a.text_md, a.leading_snug, t.atoms.text_contrast_medium]}>
-        {sanitizeHandle(profile.handle, '@')}
+        {sanitizeUsername(profile.username, '@')}
       </Text>
     </>
   )
@@ -587,7 +587,7 @@ function AccountRow({
   pendingDid,
   onPressSwitchAccount,
 }: {
-  profile?: AppBskyActorDefs.ProfileViewDetailed
+  profile?: SonetActorDefs.ProfileViewDetailed
   account: SessionAccount
   pendingDid: string | null
   onPressSwitchAccount: (
@@ -626,9 +626,9 @@ function AccountRow({
           <View style={[{width: 28}]} />
         )}
         <SettingsList.ItemText>
-          {sanitizeHandle(account.handle, '@')}
+          {sanitizeUsername(account.username, '@')}
         </SettingsList.ItemText>
-        {pendingDid === account.did && <SettingsList.ItemIcon icon={Loader} />}
+        {pendingDid === account.userId && <SettingsList.ItemIcon icon={Loader} />}
       </SettingsList.PressableItem>
       {!pendingDid && (
         <Menu.Root>
@@ -664,7 +664,7 @@ function AccountRow({
         control={removePromptControl}
         title={_(msg`Remove from quick access?`)}
         description={_(
-          msg`This will remove @${account.handle} from the quick access list.`,
+          msg`This will remove @${account.username} from the quick access list.`,
         )}
         onConfirm={() => {
           removeAccount(account)

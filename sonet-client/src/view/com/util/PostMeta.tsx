@@ -1,6 +1,6 @@
 import {memo, useCallback} from 'react'
 import {type StyleProp, View, type ViewStyle} from 'react-native'
-import {type AppBskyActorDefs, type ModerationDecision} from '@atproto/api'
+import {type SonetActorDefs, type ModerationDecision} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
@@ -11,7 +11,7 @@ import {makeProfileLink} from '#/lib/routes/links'
 import {forceLTR} from '#/lib/strings/bidi'
 import {NON_BREAKING_SPACE} from '#/lib/strings/constants'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {niceDate} from '#/lib/strings/time'
 import {isAndroid} from '#/platform/detection'
 import {useProfileShadow} from '#/state/cache/profile-shadow'
@@ -25,10 +25,10 @@ import {VerificationCheck} from '#/components/verification/VerificationCheck'
 import {TimeElapsed} from './TimeElapsed'
 import {PreviewableUserAvatar} from './UserAvatar'
 
-interface PostMetaOpts {
-  author: AppBskyActorDefs.ProfileViewBasic
+interface NoteMetaOpts {
+  author: SonetActorDefs.ProfileViewBasic
   moderation: ModerationDecision | undefined
-  postHref: string
+  noteHref: string
   timestamp: string
   showAvatar?: boolean
   avatarSize?: number
@@ -36,13 +36,13 @@ interface PostMetaOpts {
   style?: StyleProp<ViewStyle>
 }
 
-let PostMeta = (opts: PostMetaOpts): React.ReactNode => {
+let NoteMeta = (opts: NoteMetaOpts): React.ReactNode => {
   const t = useTheme()
   const {i18n, _} = useLingui()
 
   const author = useProfileShadow(opts.author)
-  const displayName = author.displayName || author.handle
-  const handle = author.handle
+  const displayName = author.displayName || author.username
+  const username = author.username
   const profileLink = makeProfileLink(author)
   const queryClient = useQueryClient()
   const onOpenAuthor = opts.onOpenAuthor
@@ -50,7 +50,7 @@ let PostMeta = (opts: PostMetaOpts): React.ReactNode => {
     precacheProfile(queryClient, author)
     onOpenAuthor?.()
   }, [queryClient, author, onOpenAuthor])
-  const onBeforePressPost = useCallback(() => {
+  const onBeforePressNote = useCallback(() => {
     precacheProfile(queryClient, author)
   }, [queryClient, author])
 
@@ -82,7 +82,7 @@ let PostMeta = (opts: PostMetaOpts): React.ReactNode => {
         </View>
       )}
       <View style={[a.flex_row, a.align_end, a.flex_shrink]}>
-        <ProfileHoverCard did={author.did}>
+        <ProfileHoverCard userId={author.userId}>
           <View style={[a.flex_row, a.align_end, a.flex_shrink]}>
             <WebOnlyInlineLinkText
               emoji
@@ -135,7 +135,7 @@ let PostMeta = (opts: PostMetaOpts): React.ReactNode => {
                 a.leading_tight,
                 {flexShrink: 10},
               ]}>
-              {NON_BREAKING_SPACE + sanitizeHandle(handle, '@')}
+              {NON_BREAKING_SPACE + sanitizeUsername(username, '@')}
             </WebOnlyInlineLinkText>
           </View>
         </ProfileHoverCard>
@@ -143,12 +143,12 @@ let PostMeta = (opts: PostMetaOpts): React.ReactNode => {
         <TimeElapsed timestamp={opts.timestamp}>
           {({timeElapsed}) => (
             <WebOnlyInlineLinkText
-              to={opts.postHref}
+              to={opts.noteHref}
               label={timestampLabel}
               title={timestampLabel}
               disableMismatchWarning
               disableUnderline
-              onPress={onBeforePressPost}
+              onPress={onBeforePressNote}
               style={[
                 a.pl_xs,
                 a.text_md,
@@ -179,5 +179,5 @@ let PostMeta = (opts: PostMetaOpts): React.ReactNode => {
     </View>
   )
 }
-PostMeta = memo(PostMeta)
-export {PostMeta}
+NoteMeta = memo(NoteMeta)
+export {NoteMeta}

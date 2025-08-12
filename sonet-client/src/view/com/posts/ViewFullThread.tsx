@@ -1,7 +1,7 @@
 import React from 'react'
 import {StyleSheet, View} from 'react-native'
 import Svg, {Circle, Line} from 'react-native-svg'
-import {AtUri} from '@atproto/api'
+import {AtUri} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -21,7 +21,7 @@ export function ViewFullThread({uri}: {uri: string}) {
   const pal = usePalette('default')
   const itemHref = React.useMemo(() => {
     const urip = new AtUri(uri)
-    return makeProfileLink({did: urip.hostname, handle: ''}, 'post', urip.rkey)
+    return makeProfileLink({userId: urip.hostname, username: ''}, 'note', urip.rkey)
   }, [uri])
   const {_} = useLingui()
 

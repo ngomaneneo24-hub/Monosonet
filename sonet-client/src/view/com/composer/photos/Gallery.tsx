@@ -22,7 +22,7 @@ import {Text} from '#/view/com/util/text/Text'
 import {useTheme} from '#/alf'
 import * as Dialog from '#/components/Dialog'
 import {MediaInsetBorder} from '#/components/MediaInsetBorder'
-import {type PostAction} from '../state/composer'
+import {type NoteAction} from '../state/composer'
 import {EditImageDialog} from './EditImageDialog'
 import {ImageAltTextDialog} from './ImageAltTextDialog'
 
@@ -30,7 +30,7 @@ const IMAGE_GAP = 8
 
 interface GalleryProps {
   images: ComposerImage[]
-  dispatch: (action: PostAction) => void
+  dispatch: (action: NoteAction) => void
 }
 
 export let Gallery = (props: GalleryProps): React.ReactNode => {
@@ -162,7 +162,7 @@ const GalleryItem = ({
   return (
     <View
       style={imageStyle as ViewStyle}
-      // Fixes ALT and icons appearing with half opacity when the post is inactive
+      // Fixes ALT and icons appearing with half opacity when the note is inactive
       renderToHardwareTextureAndroid>
       <TouchableOpacity
         testID="altTextButton"

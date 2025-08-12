@@ -1,10 +1,10 @@
 import React from 'react'
 import {View} from 'react-native'
 import {
-  type AppBskyActorDefs,
-  AppBskyFeedGetAuthorFeed,
+  type SonetActorDefs,
+  SonetFeedGetAuthorFeed,
   AtUri,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg as msgLingui, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
@@ -13,7 +13,7 @@ import {usePalette} from '#/lib/hooks/usePalette'
 import {type NavigationProp} from '#/lib/routes/types'
 import {cleanError} from '#/lib/strings/errors'
 import {logger} from '#/logger'
-import {type FeedDescriptor} from '#/state/queries/post-feed'
+import {type FeedDescriptor} from '#/state/queries/note-feed'
 import {useRemoveFeedMutation} from '#/state/queries/preferences'
 import * as Prompt from '#/components/Prompt'
 import {EmptyState} from '../util/EmptyState'
@@ -34,7 +34,7 @@ export enum KnownError {
   Unknown = 'Unknown',
 }
 
-export function PostFeedErrorMessage({
+export function NoteFeedErrorMessage({
   feedDesc,
   error,
   onPressTryAgain,
@@ -43,7 +43,7 @@ export function PostFeedErrorMessage({
   feedDesc: FeedDescriptor
   error?: Error
   onPressTryAgain: () => void
-  savedFeedConfig?: AppBskyActorDefs.SavedFeed
+  savedFeedConfig?: SonetActorDefs.SavedFeed
 }) {
   const {_: _l} = useLingui()
   const knownError = React.useMemo(
@@ -69,7 +69,7 @@ export function PostFeedErrorMessage({
     return (
       <EmptyState
         icon="ban"
-        message={_l(msgLingui`Posts hidden`)}
+        message={_l(msgLingui`Notes hidden`)}
         style={{paddingVertical: 40}}
       />
     )
@@ -92,7 +92,7 @@ function FeedgenErrorMessage({
   feedDesc: FeedDescriptor
   knownError: KnownError
   rawError?: Error
-  savedFeedConfig?: AppBskyActorDefs.SavedFeed
+  savedFeedConfig?: SonetActorDefs.SavedFeed
 }) {
   const pal = usePalette('default')
   const {_: _l} = useLingui()
@@ -238,8 +238,8 @@ function detectKnownError(
     return undefined
   }
   if (
-    error instanceof AppBskyFeedGetAuthorFeed.BlockedActorError ||
-    error instanceof AppBskyFeedGetAuthorFeed.BlockedByActorError
+    error instanceof SonetFeedGetAuthorFeed.BlockedActorError ||
+    error instanceof SonetFeedGetAuthorFeed.BlockedByActorError
   ) {
     return KnownError.Block
   }
@@ -265,14 +265,14 @@ function detectKnownError(
   if (error.includes('feed unavailable')) {
     return KnownError.FeedgenOffline
   }
-  if (error.includes('invalid did document')) {
+  if (error.includes('invalid userId document')) {
     return KnownError.FeedgenMisconfigured
   }
-  if (error.includes('could not resolve did document')) {
+  if (error.includes('could not resolve userId document')) {
     return KnownError.FeedgenMisconfigured
   }
   if (
-    error.includes('invalid feed generator service details in did document')
+    error.includes('invalid feed generator service details in userId document')
   ) {
     return KnownError.FeedgenMisconfigured
   }

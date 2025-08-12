@@ -66,8 +66,8 @@ export function SonetMessageSearch({
     {id: 'year', label: _('This year')},
   ], [_])
 
-  // Handle search
-  const handleSearch = useCallback(async () => {
+  // Username search
+  const usernameSearch = useCallback(async () => {
     if (!searchQuery.trim()) return
 
     setIsSearching(true)
@@ -123,8 +123,8 @@ export function SonetMessageSearch({
     }
   }, [searchQuery, chatId, activeFilters, selectedTimeRange])
 
-  // Handle filter toggle
-  const handleFilterToggle = useCallback((filterId: string) => {
+  // Username filter toggle
+  const usernameFilterToggle = useCallback((filterId: string) => {
     const newFilters = new Set(activeFilters)
     if (newFilters.has(filterId)) {
       newFilters.delete(filterId)
@@ -134,20 +134,20 @@ export function SonetMessageSearch({
     setActiveFilters(newFilters)
   }, [activeFilters])
 
-  // Handle time range change
-  const handleTimeRangeChange = useCallback((timeRange: string) => {
+  // Username time range change
+  const usernameTimeRangeChange = useCallback((timeRange: string) => {
     setSelectedTimeRange(timeRange)
   }, [])
 
-  // Handle result press
-  const handleResultPress = useCallback((result: SonetSearchResult) => {
+  // Username result press
+  const usernameResultPress = useCallback((result: SonetSearchResult) => {
     if (onResultPress) {
       onResultPress(result)
     }
   }, [onResultPress])
 
   // Clear search
-  const handleClearSearch = useCallback(() => {
+  const usernameClearSearch = useCallback(() => {
     setSearchQuery('')
     setSearchResults([])
     setActiveFilters(new Set())
@@ -224,11 +224,11 @@ export function SonetMessageSearch({
               a.text_sm,
               t.atoms.text,
             ]}
-            onSubmitEditing={handleSearch}
+            onSubmitEditing={usernameSearch}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity
-              onPress={handleClearSearch}
+              onPress={usernameClearSearch}
               style={[a.p_1]}>
               <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
                 ✕
@@ -242,7 +242,7 @@ export function SonetMessageSearch({
           variant="solid"
           color="primary"
           size="lg"
-          onPress={handleSearch}
+          onPress={usernameSearch}
           disabled={!searchQuery.trim() || isSearching}>
           <ButtonIcon icon={SearchIcon} />
           <ButtonText>
@@ -262,7 +262,7 @@ export function SonetMessageSearch({
           {availableFilters.map(filter => (
             <TouchableOpacity
               key={filter.id}
-              onPress={() => handleFilterToggle(filter.id)}
+              onPress={() => usernameFilterToggle(filter.id)}
               style={[
                 a.flex_row,
                 a.items_center,
@@ -302,7 +302,7 @@ export function SonetMessageSearch({
             {timeRangeOptions.map(option => (
               <TouchableOpacity
                 key={option.id}
-                onPress={() => handleTimeRangeChange(option.id)}
+                onPress={() => usernameTimeRangeChange(option.id)}
                 style={[
                   a.px_sm,
                   a.py_xs,
@@ -332,7 +332,7 @@ export function SonetMessageSearch({
             {searchResults.map(result => (
               <TouchableOpacity
                 key={result.id}
-                onPress={() => handleResultPress(result)}
+                onPress={() => usernameResultPress(result)}
                 style={[
                   a.p_md,
                   a.rounded_2xl,

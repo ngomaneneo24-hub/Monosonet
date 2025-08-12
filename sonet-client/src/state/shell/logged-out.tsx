@@ -7,7 +7,7 @@ import {useActiveStarterPack} from '#/state/shell/starter-pack'
 type State = {
   showLoggedOut: boolean
   /**
-   * Account did used to populate the login form when the logged out view is
+   * Account userId used to populate the login form when the logged out view is
    * shown.
    */
   requestedAccountSwitchTo?: string
@@ -24,7 +24,7 @@ type Controls = {
    */
   requestSwitchToAccount: (props: {
     /**
-     * The did of the account to populate the login form with.
+     * The userId of the account to populate the login form with.
      */
     requestedAccount?: string | 'none' | 'new' | 'starterpack'
   }) => void

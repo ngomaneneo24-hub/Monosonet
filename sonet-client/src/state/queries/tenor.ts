@@ -95,17 +95,17 @@ export function tenorUrlToBskyGifUrl(tenorUrl: string) {
     logger.debug('invalid url passed to tenorUrlToBskyGifUrl()')
     return ''
   }
-  url.hostname = 't.gifs.bsky.app'
+  url.hostname = 't.gifs.sonet.app'
   return url.href
 }
 
 export type Gif = {
   /**
-   * A Unix timestamp that represents when this post was created.
+   * A Unix timestamp that represents when this note was created.
    */
   created: number
   /**
-   * Returns true if this post contains audio.
+   * Returns true if this note contains audio.
    * Note: Only video formats support audio. The GIF image file format can't contain audio information.
    */
   hasaudio: boolean
@@ -118,11 +118,11 @@ export type Gif = {
    */
   media_formats: Record<ContentFormats, MediaObject>
   /**
-   * An array of tags for the post
+   * An array of tags for the note
    */
   tags: string[]
   /**
-   * The title of the post
+   * The title of the note
    */
   title: string
   /**
@@ -131,11 +131,11 @@ export type Gif = {
    */
   content_description: string
   /**
-   * The full URL to view the post on tenor.com.
+   * The full URL to view the note on tenor.com.
    */
   itemurl: string
   /**
-   * Returns true if this post contains captions.
+   * Returns true if this note contains captions.
    */
   hascaption: boolean
   /**
@@ -147,7 +147,7 @@ export type Gif = {
    */
   bg_color?: string
   /**
-   * A short URL to view the post on tenor.com.
+   * A short URL to view the note on tenor.com.
    */
   url: string
 }

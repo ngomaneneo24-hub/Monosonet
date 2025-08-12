@@ -52,7 +52,7 @@ export function Outer({
       testID={testID}
       webOptions={{alignCenter: true}}
       nativeOptions={{preventExpansion: true, ...nativeOptions}}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <Context.Provider value={context}>
         <Dialog.ScrollableInner
           accessibilityLabelledBy={titleId}
@@ -171,7 +171,7 @@ export function Action({
   const {_} = useLingui()
   const {gtMobile} = useBreakpoints()
   const {close} = Dialog.useDialogContext()
-  const handleOnPress = React.useCallback(
+  const usernameOnPress = React.useCallback(
     (e: GestureResponderEvent) => {
       close(() => onPress?.(e))
     },
@@ -184,7 +184,7 @@ export function Action({
       color={color}
       size={gtMobile ? 'small' : 'large'}
       label={cta || _(msg`Confirm`)}
-      onPress={handleOnPress}
+      onPress={usernameOnPress}
       testID={testID}>
       <ButtonText>{cta || _(msg`Confirm`)}</ButtonText>
     </Button>

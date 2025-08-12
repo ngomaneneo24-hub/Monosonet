@@ -60,7 +60,7 @@ function createStatsigOptions(prefetchUsers: StatsigUser[]) {
     initTimeoutMs: 1,
     // Get fresh flags for other accounts as well, if any.
     prefetchUsers,
-    api: 'https://events.bsky.app/v2',
+    api: 'https://events.sonet.app/v2',
   }
 }
 
@@ -201,10 +201,10 @@ export function useDangerousSetGate(): (
   return dangerousSetGate
 }
 
-function toStatsigUser(did: string | undefined): StatsigUser {
+function toStatsigUser(userId: string | undefined): StatsigUser {
   const languagePrefs = persisted.get('languagePrefs')
   return {
-    userID: did,
+    userID: userId,
     platform: Platform.OS as 'ios' | 'android' | 'web',
     custom: {
       refSrc,
@@ -242,7 +242,7 @@ AppState.addEventListener('change', (state: AppStateStatus) => {
 })
 
 export async function tryFetchGates(
-  did: string | undefined,
+  userId: string | undefined,
   strategy: 'prefer-low-latency' | 'prefer-fresh-gates',
 ) {
   try {
@@ -254,7 +254,7 @@ export async function tryFetchGates(
     if (Statsig.initializeCalled()) {
       await Promise.race([
         timeout(timeoutMs),
-        Statsig.prefetchUsers([toStatsigUser(did)]),
+        Statsig.prefetchUsers([toStatsigUser(userId)]),
       ])
     }
   } catch (e) {
@@ -269,13 +269,13 @@ export function initialize() {
 
 export function Provider({children}: {children: React.ReactNode}) {
   const {currentAccount, accounts} = useSession()
-  const did = currentAccount?.did
-  const currentStatsigUser = React.useMemo(() => toStatsigUser(did), [did])
+  const userId = currentAccount?.userId
+  const currentStatsigUser = React.useMemo(() => toStatsigUser(userId), [userId])
 
   const otherDidsConcatenated = accounts
-    .map(account => account.did)
-    .filter(accountDid => accountDid !== did)
-    .join(' ') // We're only interested in DID changes.
+    .map(account => account.userId)
+    .filter(accountDid => accountDid !== userId)
+    .join(' ') // We're only interested in UserID changes.
   const otherStatsigUsers = React.useMemo(
     () => otherDidsConcatenated.split(' ').map(toStatsigUser),
     [otherDidsConcatenated],
@@ -286,32 +286,32 @@ export function Provider({children}: {children: React.ReactNode}) {
   )
 
   // Have our own cache in front of Statsig.
-  // This ensures the results remain stable until the active DID changes.
+  // This ensures the results remain stable until the active UserID changes.
   const [gateCache, setGateCache] = React.useState(() => new Map())
-  const [prevDid, setPrevDid] = React.useState(did)
-  if (did !== prevDid) {
-    setPrevDid(did)
+  const [prevDid, setPrevDid] = React.useState(userId)
+  if (userId !== prevDid) {
+    setPrevDid(userId)
     setGateCache(new Map())
   }
 
   // Periodically poll Statsig to get the current rule evaluations for all stored accounts.
-  // These changes are prefetched and stored, but don't get applied until the active DID changes.
+  // These changes are prefetched and stored, but don't get applied until the active UserID changes.
   // This ensures that when you switch an account, it already has fresh results by then.
-  const handleIntervalTick = useNonReactiveCallback(() => {
+  const usernameIntervalTick = useNonReactiveCallback(() => {
     if (Statsig.initializeCalled()) {
       // Note: Only first five will be taken into account by Statsig.
       Statsig.prefetchUsers([currentStatsigUser, ...otherStatsigUsers])
     }
   })
   React.useEffect(() => {
-    const id = setInterval(handleIntervalTick, 60e3 /* 1 min */)
+    const id = setInterval(usernameIntervalTick, 60e3 /* 1 min */)
     return () => clearInterval(id)
-  }, [handleIntervalTick])
+  }, [usernameIntervalTick])
 
   return (
     <GateCache.Provider value={gateCache}>
       <StatsigProvider
-        key={did}
+        key={userId}
         sdkKey={SDK_KEY}
         mountKey={currentStatsigUser.userID}
         user={currentStatsigUser}

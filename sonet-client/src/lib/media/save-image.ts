@@ -7,7 +7,7 @@ import * as Toast from '#/view/com/util/Toast'
 import {saveImageToMediaLibrary} from './manip'
 
 /**
- * Same as `saveImageToMediaLibrary`, but also handles permissions and toasts
+ * Same as `saveImageToMediaLibrary`, but also usernames permissions and toasts
  */
 export function useSaveImageToMediaLibrary() {
   const [permissionResponse, requestPermission, getPermission] =

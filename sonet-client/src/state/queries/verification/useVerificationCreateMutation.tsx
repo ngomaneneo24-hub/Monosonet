@@ -1,4 +1,4 @@
-import {type AppBskyActorGetProfile} from '@atproto/api'
+import {type SonetActorGetProfile} from '@sonet/api'
 import {useMutation} from '@tanstack/react-query'
 
 import {until} from '#/lib/async/until'
@@ -18,12 +18,12 @@ export function useVerificationCreateMutation() {
         throw new Error('User not logged in')
       }
 
-      const {uri} = await agent.app.bsky.graph.verification.create(
-        {repo: currentAccount.did},
+      const {uri} = await agent.app.sonet.graph.verification.create(
+        {repo: currentAccount.userId},
         {
-          subject: profile.did,
+          subject: profile.userId,
           createdAt: new Date().toISOString(),
-          handle: profile.handle,
+          username: profile.username,
           displayName: profile.displayName || '',
         },
       )
@@ -31,7 +31,7 @@ export function useVerificationCreateMutation() {
       await until(
         5,
         1e3,
-        ({data: profile}: AppBskyActorGetProfile.Response) => {
+        ({data: profile}: SonetActorGetProfile.Response) => {
           if (
             profile.verification &&
             profile.verification.verifications.find(v => v.uri === uri)
@@ -41,7 +41,7 @@ export function useVerificationCreateMutation() {
           return false
         },
         () => {
-          return agent.getProfile({actor: profile.did ?? ''})
+          return agent.getProfile({actor: profile.userId ?? ''})
         },
       )
     },

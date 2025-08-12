@@ -5,7 +5,7 @@ import {
   Text as RNText,
   View,
 } from 'react-native'
-import { type SonetPost, type SonetProfile, type SonetFeedGenerator, type SonetPostRecord, type SonetFeedViewPost, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
+import { type SonetNote, type SonetProfile, type SonetFeedGenerator, type SonetNoteRecord, type SonetFeedViewNote, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
 import {msg, Plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -16,30 +16,30 @@ import {useOpenLink} from '#/lib/hooks/useOpenLink'
 import {usePalette} from '#/lib/hooks/usePalette'
 import {makeProfileLink} from '#/lib/routes/links'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {countLines} from '#/lib/strings/helpers'
 import {niceDate} from '#/lib/strings/time'
 import {s} from '#/lib/styles'
-import {getTranslatorLink, isPostInLanguage} from '#/locale/helpers'
+import {getTranslatorLink, isNoteInLanguage} from '#/locale/helpers'
 import {logger} from '#/logger'
 import {
   POST_TOMBSTONE,
   type Shadow,
-  usePostShadow,
-} from '#/state/cache/post-shadow'
+  useNoteShadow,
+} from '#/state/cache/note-shadow'
 import {useProfileShadow} from '#/state/cache/profile-shadow'
 import {FeedFeedbackProvider, useFeedFeedback} from '#/state/feed-feedback'
 import {useLanguagePrefs} from '#/state/preferences'
-import {type ThreadPost} from '#/state/queries/post-thread'
+import {type ThreadNote} from '#/state/queries/note-thread'
 import {useSession} from '#/state/session'
-import {type OnPostSuccessData} from '#/state/shell/composer'
+import {type OnNoteSuccessData} from '#/state/shell/composer'
 import {useMergedThreadgateHiddenReplies} from '#/state/threadgate-hidden-replies'
-import {type PostSource} from '#/state/unstable-post-source'
-import {PostThreadFollowBtn} from '#/view/com/post-thread/PostThreadFollowBtn'
+import {type NoteSource} from '#/state/unstable-note-source'
+import {NoteThreadFollowBtn} from '#/view/com/note-thread/NoteThreadFollowBtn'
 import {ErrorMessage} from '#/view/com/util/error/ErrorMessage'
 import {Link} from '#/view/com/util/Link'
 import {formatCount} from '#/view/com/util/numeric/format'
-import {PostMeta} from '#/view/com/util/PostMeta'
+import {NoteMeta} from '#/view/com/util/NoteMeta'
 import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
 import {atoms as a, useTheme} from '#/alf'
 import {colors} from '#/components/Admonition'
@@ -50,13 +50,13 @@ import {ChevronRight_Stroke2_Corner0_Rounded as ChevronRightIcon} from '#/compon
 import {Trash_Stroke2_Corner0_Rounded as TrashIcon} from '#/components/icons/Trash'
 import {InlineLinkText} from '#/components/Link'
 import {ContentHider} from '#/components/moderation/ContentHider'
-import {LabelsOnMyPost} from '#/components/moderation/LabelsOnMe'
-import {PostAlerts} from '#/components/moderation/PostAlerts'
-import {PostHider} from '#/components/moderation/PostHider'
+import {LabelsOnMyNote} from '#/components/moderation/LabelsOnMe'
+import {NoteAlerts} from '#/components/moderation/NoteAlerts'
+import {NoteHider} from '#/components/moderation/NoteHider'
 import {type AppModerationCause} from '#/components/Pills'
-import {Embed, PostEmbedViewContext} from '#/components/Post/Embed'
-import {ShowMoreTextButton} from '#/components/Post/ShowMoreTextButton'
-import {PostControls} from '#/components/PostControls'
+import {Embed, NoteEmbedViewContext} from '#/components/Note/Embed'
+import {ShowMoreTextButton} from '#/components/Note/ShowMoreTextButton'
+import {NoteControls} from '#/components/NoteControls'
 import * as Prompt from '#/components/Prompt'
 import {string} from '#/components/string'
 import {SubtleWebHover} from '#/components/SubtleWebHover'
@@ -65,46 +65,46 @@ import {VerificationCheckButton} from '#/components/verification/VerificationChe
 import {WhoCanReply} from '#/components/WhoCanReply'
 import * as bsky from '#/types/bsky'
 
-export function PostThreadItem({
-  post,
+export function NoteThreadItem({
+  note,
   record,
   moderation,
   treeView,
   depth,
-  prevPost,
-  nextPost,
-  isHighlightedPost,
+  prevNote,
+  nextNote,
+  isHighlightedNote,
   hasMore,
   showChildReplyLine,
   showParentReplyLine,
   hasPrecedingItem,
   overrideBlur,
-  onPostReply,
-  onPostSuccess,
+  onNoteReply,
+  onNoteSuccess,
   hideTopBorder,
   threadgateRecord,
-  anchorPostSource,
+  anchorNoteSource,
 }: {
-  post: SonetPost
-  record: SonetPostRecord
+  note: SonetNote
+  record: SonetNoteRecord
   moderation: SonetModerationDecision | undefined
   treeView: boolean
   depth: number
-  prevPost: ThreadPost | undefined
-  nextPost: ThreadPost | undefined
-  isHighlightedPost?: boolean
+  prevNote: ThreadNote | undefined
+  nextNote: ThreadNote | undefined
+  isHighlightedNote?: boolean
   hasMore?: boolean
   showChildReplyLine?: boolean
   showParentReplyLine?: boolean
   hasPrecedingItem: boolean
   overrideBlur: boolean
-  onPostReply: (postUri: string | undefined) => void
-  onPostSuccess?: (data: OnPostSuccessData) => void
+  onNoteReply: (noteUri: string | undefined) => void
+  onNoteSuccess?: (data: OnNoteSuccessData) => void
   hideTopBorder?: boolean
-  threadgateRecord?: AppBskyFeedThreadgate.Record
-  anchorPostSource?: PostSource
+  threadgateRecord?: SonetFeedThreadgate.Record
+  anchorNoteSource?: NoteSource
 }) {
-  const postShadowed = usePostShadow(post)
+  const noteShadowed = useNoteShadow(note)
   const richText = useMemo(
     () =>
       new RichTextAPI({
@@ -113,40 +113,40 @@ export function PostThreadItem({
       }),
     [record],
   )
-  if (postShadowed === POST_TOMBSTONE) {
-    return <PostThreadItemDeleted hideTopBorder={hideTopBorder} />
+  if (noteShadowed === POST_TOMBSTONE) {
+    return <NoteThreadItemDeleted hideTopBorder={hideTopBorder} />
   }
   if (richText && moderation) {
     return (
-      <PostThreadItemLoaded
-        // Safeguard from clobbering per-post state below:
-        key={postShadowed.uri}
-        post={postShadowed}
-        prevPost={prevPost}
-        nextPost={nextPost}
+      <NoteThreadItemLoaded
+        // Safeguard from clobbering per-note state below:
+        key={noteShadowed.uri}
+        note={noteShadowed}
+        prevNote={prevNote}
+        nextNote={nextNote}
         record={record}
         richText={richText}
         moderation={moderation}
         treeView={treeView}
         depth={depth}
-        isHighlightedPost={isHighlightedPost}
+        isHighlightedNote={isHighlightedNote}
         hasMore={hasMore}
         showChildReplyLine={showChildReplyLine}
         showParentReplyLine={showParentReplyLine}
         hasPrecedingItem={hasPrecedingItem}
         overrideBlur={overrideBlur}
-        onPostReply={onPostReply}
-        onPostSuccess={onPostSuccess}
+        onNoteReply={onNoteReply}
+        onNoteSuccess={onNoteSuccess}
         hideTopBorder={hideTopBorder}
         threadgateRecord={threadgateRecord}
-        anchorPostSource={anchorPostSource}
+        anchorNoteSource={anchorNoteSource}
       />
     )
   }
   return null
 }
 
-function PostThreadItemDeleted({hideTopBorder}: {hideTopBorder?: boolean}) {
+function NoteThreadItemDeleted({hideTopBorder}: {hideTopBorder?: boolean}) {
   const t = useTheme()
   return (
     <View
@@ -161,55 +161,55 @@ function PostThreadItemDeleted({hideTopBorder}: {hideTopBorder?: boolean}) {
       ]}>
       <TrashIcon style={[t.atoms.text]} />
       <Text style={[t.atoms.text_contrast_medium, a.mt_2xs]}>
-        <Trans>This post has been deleted.</Trans>
+        <Trans>This note has been deleted.</Trans>
       </Text>
     </View>
   )
 }
 
-let PostThreadItemLoaded = ({
-  post,
+let NoteThreadItemLoaded = ({
+  note,
   record,
   richText,
   moderation,
   treeView,
   depth,
-  prevPost,
-  nextPost,
-  isHighlightedPost,
+  prevNote,
+  nextNote,
+  isHighlightedNote,
   hasMore,
   showChildReplyLine,
   showParentReplyLine,
   hasPrecedingItem,
   overrideBlur,
-  onPostReply,
-  onPostSuccess,
+  onNoteReply,
+  onNoteSuccess,
   hideTopBorder,
   threadgateRecord,
-  anchorPostSource,
+  anchorNoteSource,
 }: {
-  post: Shadow<SonetPost>
-  record: SonetPostRecord
+  note: Shadow<SonetNote>
+  record: SonetNoteRecord
   richText: RichTextAPI
   moderation: SonetModerationDecision
   treeView: boolean
   depth: number
-  prevPost: ThreadPost | undefined
-  nextPost: ThreadPost | undefined
-  isHighlightedPost?: boolean
+  prevNote: ThreadNote | undefined
+  nextNote: ThreadNote | undefined
+  isHighlightedNote?: boolean
   hasMore?: boolean
   showChildReplyLine?: boolean
   showParentReplyLine?: boolean
   hasPrecedingItem: boolean
   overrideBlur: boolean
-  onPostReply: (postUri: string | undefined) => void
-  onPostSuccess?: (data: OnPostSuccessData) => void
+  onNoteReply: (noteUri: string | undefined) => void
+  onNoteSuccess?: (data: OnNoteSuccessData) => void
   hideTopBorder?: boolean
-  threadgateRecord?: AppBskyFeedThreadgate.Record
-  anchorPostSource?: PostSource
+  threadgateRecord?: SonetFeedThreadgate.Record
+  anchorNoteSource?: NoteSource
 }): React.ReactNode => {
   const {currentAccount, hasSession} = useSession()
-  const feedFeedback = useFeedFeedback(anchorPostSource?.feed, hasSession)
+  const feedFeedback = useFeedFeedback(anchorNoteSource?.feed, hasSession)
 
   const t = useTheme()
   const pal = usePalette('default')
@@ -219,52 +219,52 @@ let PostThreadItemLoaded = ({
   const [limitLines, setLimitLines] = useState(
     () => countLines(richText?.text) >= MAX_POST_LINES,
   )
-  const shadowedPostAuthor = useProfileShadow(post.author)
-  const rootUri = record.reply?.root?.uri || post.uri
-  const postHref = useMemo(() => {
-    const urip = new SonetUri(post.uri)
-    return makeProfileLink(post.author, 'post', urip.rkey)
-  }, [post.uri, post.author])
-  const itemTitle = _(msg`Post by ${post.author.handle}`)
-  const authorHref = makeProfileLink(post.author)
-  const authorTitle = post.author.handle
-  const isThreadAuthor = getThreadAuthor(post, record) === currentAccount?.did
+  const shadowedNoteAuthor = useProfileShadow(note.author)
+  const rootUri = record.reply?.root?.uri || note.uri
+  const noteHref = useMemo(() => {
+    const urip = new SonetUri(note.uri)
+    return makeProfileLink(note.author, 'note', urip.rkey)
+  }, [note.uri, note.author])
+  const itemTitle = _(msg`Note by ${note.author.username}`)
+  const authorHref = makeProfileLink(note.author)
+  const authorTitle = note.author.username
+  const isThreadAuthor = getThreadAuthor(note, record) === currentAccount?.userId
   const likesHref = useMemo(() => {
-    const urip = new SonetUri(post.uri)
-    return makeProfileLink(post.author, 'post', urip.rkey, 'liked-by')
-  }, [post.uri, post.author])
-  const likesTitle = _(msg`Likes on this post`)
-  const repostsHref = useMemo(() => {
-    const urip = new SonetUri(post.uri)
-    return makeProfileLink(post.author, 'post', urip.rkey, 'reposted-by')
-  }, [post.uri, post.author])
-  const repostsTitle = _(msg`Reposts of this post`)
+    const urip = new SonetUri(note.uri)
+    return makeProfileLink(note.author, 'note', urip.rkey, 'liked-by')
+  }, [note.uri, note.author])
+  const likesTitle = _(msg`Likes on this note`)
+  const renotesHref = useMemo(() => {
+    const urip = new SonetUri(note.uri)
+    return makeProfileLink(note.author, 'note', urip.rkey, 'renoteed-by')
+  }, [note.uri, note.author])
+  const renotesTitle = _(msg`Renotes of this note`)
   const threadgateHiddenReplies = useMergedThreadgateHiddenReplies({
     threadgateRecord,
   })
-  const additionalPostAlerts: AppModerationCause[] = useMemo(() => {
-    const isPostHiddenByThreadgate = threadgateHiddenReplies.has(post.uri)
-    const isControlledByViewer = new SonetUri(rootUri).host === currentAccount?.did
-    return isControlledByViewer && isPostHiddenByThreadgate
+  const additionalNoteAlerts: AppModerationCause[] = useMemo(() => {
+    const isNoteHiddenByThreadgate = threadgateHiddenReplies.has(note.uri)
+    const isControlledByViewer = new SonetUri(rootUri).host === currentAccount?.userId
+    return isControlledByViewer && isNoteHiddenByThreadgate
       ? [
           {
             type: 'reply-hidden',
-            source: {type: 'user', did: currentAccount?.did},
+            source: {type: 'user', userId: currentAccount?.userId},
             priority: 6,
           },
         ]
       : []
-  }, [post, currentAccount?.did, threadgateHiddenReplies, rootUri])
+  }, [note, currentAccount?.userId, threadgateHiddenReplies, rootUri])
   const quotesHref = useMemo(() => {
-    const urip = new SonetUri(post.uri)
-    return makeProfileLink(post.author, 'post', urip.rkey, 'quotes')
-  }, [post.uri, post.author])
-  const quotesTitle = _(msg`Quotes of this post`)
+    const urip = new SonetUri(note.uri)
+    return makeProfileLink(note.author, 'note', urip.rkey, 'quotes')
+  }, [note.uri, note.author])
+  const quotesTitle = _(msg`Quotes of this note`)
   const onlyFollowersCanReply = !!threadgateRecord?.allow?.find(
-    rule => rule.$type === 'app.bsky.feed.threadgate#followerRule',
+    rule => rule.$type === 'app.sonet.feed.threadgate#followerRule',
   )
   const showFollowButton =
-    currentAccount?.did !== post.author.did && !onlyFollowersCanReply
+    currentAccount?.userId !== note.author.userId && !onlyFollowersCanReply
 
   const translatorUrl = getTranslatorLink(
     record?.text || '',
@@ -274,52 +274,52 @@ let PostThreadItemLoaded = ({
     () =>
       Boolean(
         langPrefs.primaryLanguage &&
-          !isPostInLanguage(post, [langPrefs.primaryLanguage]),
+          !isNoteInLanguage(note, [langPrefs.primaryLanguage]),
       ),
-    [post, langPrefs.primaryLanguage],
+    [note, langPrefs.primaryLanguage],
   )
 
   const onPressReply = () => {
-    if (anchorPostSource && isHighlightedPost) {
+    if (anchorNoteSource && isHighlightedNote) {
       feedFeedback.sendInteraction({
-        item: post.uri,
-        event: 'app.bsky.feed.defs#interactionReply',
-        feedContext: anchorPostSource.post.feedContext,
-        reqId: anchorPostSource.post.reqId,
+        item: note.uri,
+        event: 'app.sonet.feed.defs#interactionReply',
+        feedContext: anchorNoteSource.note.feedContext,
+        reqId: anchorNoteSource.note.reqId,
       })
     }
     openComposer({
       replyTo: {
-        uri: post.uri,
-        cid: post.cid,
+        uri: note.uri,
+        cid: note.cid,
         text: record.text,
-        author: post.author,
-        embed: post.embed,
+        author: note.author,
+        embed: note.embed,
         moderation,
       },
-      onPost: onPostReply,
-      onPostSuccess: onPostSuccess,
+      onNote: onNoteReply,
+      onNoteSuccess: onNoteSuccess,
     })
   }
 
   const onOpenAuthor = () => {
-    if (anchorPostSource) {
+    if (anchorNoteSource) {
       feedFeedback.sendInteraction({
-        item: post.uri,
-        event: 'app.bsky.feed.defs#clickthroughAuthor',
-        feedContext: anchorPostSource.post.feedContext,
-        reqId: anchorPostSource.post.reqId,
+        item: note.uri,
+        event: 'app.sonet.feed.defs#clickthroughAuthor',
+        feedContext: anchorNoteSource.note.feedContext,
+        reqId: anchorNoteSource.note.reqId,
       })
     }
   }
 
   const onOpenEmbed = () => {
-    if (anchorPostSource) {
+    if (anchorNoteSource) {
       feedFeedback.sendInteraction({
-        item: post.uri,
-        event: 'app.bsky.feed.defs#clickthroughEmbed',
-        feedContext: anchorPostSource.post.feedContext,
-        reqId: anchorPostSource.post.reqId,
+        item: note.uri,
+        event: 'app.sonet.feed.defs#clickthroughEmbed',
+        feedContext: anchorNoteSource.note.feedContext,
+        reqId: anchorNoteSource.note.reqId,
       })
     }
   }
@@ -328,11 +328,11 @@ let PostThreadItemLoaded = ({
     setLimitLines(false)
   }, [setLimitLines])
 
-  const {isActive: live} = useActorStatus(post.author)
+  const {isActive: live} = useActorStatus(note.author)
 
-  const reason = anchorPostSource?.post.reason
-  const viaRepost = useMemo(() => {
-    if (SonetUtils.isReasonRepost(reason) && reason.uri && reason.cid) {
+  const reason = anchorNoteSource?.note.reason
+  const viaRenote = useMemo(() => {
+    if (SonetUtils.isReasonRenote(reason) && reason.uri && reason.cid) {
       return {
         uri: reason.uri,
         cid: reason.cid,
@@ -341,13 +341,13 @@ let PostThreadItemLoaded = ({
   }, [reason])
 
   if (!record) {
-    return <ErrorMessage message={_(msg`Invalid or unsupported post record`)} />
+    return <ErrorMessage message={_(msg`Invalid or unsupported note record`)} />
   }
 
-  if (isHighlightedPost) {
+  if (isHighlightedNote) {
     return (
       <>
-        {rootUri !== post.uri && (
+        {rootUri !== note.uri && (
           <View
             style={[
               a.pl_lg,
@@ -368,19 +368,19 @@ let PostThreadItemLoaded = ({
         )}
 
         <View
-          testID={`postThreadItem-by-${post.author.handle}`}
+          testID={`noteThreadItem-by-${note.author.username}`}
           style={[
             a.px_lg,
             t.atoms.border_contrast_low,
-            // root post styles
-            rootUri === post.uri && [a.pt_lg],
+            // root note styles
+            rootUri === note.uri && [a.pt_lg],
           ]}>
           <View style={[a.flex_row, a.gap_md, a.pb_md]}>
             <PreviewableUserAvatar
               size={42}
-              profile={post.author}
+              profile={note.author}
               moderation={moderation.ui('avatar')}
-              type={post.author.associated?.labeler ? 'labeler' : 'user'}
+              type={note.author.associated?.labeler ? 'labeler' : 'user'}
               live={live}
               onBeforePress={onOpenAuthor}
             />
@@ -401,8 +401,8 @@ let PostThreadItemLoaded = ({
                     ]}
                     numberOfLines={1}>
                     {sanitizeDisplayName(
-                      post.author.displayName ||
-                        sanitizeHandle(post.author.handle),
+                      note.author.displayName ||
+                        sanitizeUsername(note.author.username),
                       moderation.ui('displayName'),
                     )}
                   </Text>
@@ -410,7 +410,7 @@ let PostThreadItemLoaded = ({
 
                 <View style={[{paddingLeft: 3, top: -1}]}>
                   <VerificationCheckButton
-                    profile={shadowedPostAuthor}
+                    profile={shadowedNoteAuthor}
                     size="md"
                   />
                 </View>
@@ -424,28 +424,28 @@ let PostThreadItemLoaded = ({
                     t.atoms.text_contrast_medium,
                   ]}
                   numberOfLines={1}>
-                  {sanitizeHandle(post.author.handle, '@')}
+                  {sanitizeUsername(note.author.username, '@')}
                 </Text>
               </Link>
             </View>
             {showFollowButton && (
               <View>
-                <PostThreadFollowBtn did={post.author.did} />
+                <NoteThreadFollowBtn userId={note.author.userId} />
               </View>
             )}
           </View>
           <View style={[a.pb_sm]}>
-            <LabelsOnMyPost post={post} style={[a.pb_sm]} />
+            <LabelsOnMyNote note={note} style={[a.pb_sm]} />
             <ContentHider
               modui={moderation.ui('contentView')}
               ignoreMute
               childContainerStyle={[a.pt_sm]}>
-              <PostAlerts
+              <NoteAlerts
                 modui={moderation.ui('contentView')}
                 size="lg"
                 includeMute
                 style={[a.pb_sm]}
-                additionalCauses={additionalPostAlerts}
+                additionalCauses={additionalNoteAlerts}
               />
               {richText?.text ? (
                 <string
@@ -453,30 +453,30 @@ let PostThreadItemLoaded = ({
                   selectable
                   value={richText}
                   style={[a.flex_1, a.text_xl]}
-                  authorHandle={post.author.handle}
+                  authorUsername={note.author.username}
                   shouldProxyLinks={true}
                 />
               ) : undefined}
-              {post.embed && (
+              {note.embed && (
                 <View style={[a.py_xs]}>
                   <Embed
-                    embed={post.embed}
+                    embed={note.embed}
                     moderation={moderation}
-                    viewContext={PostEmbedViewContext.ThreadHighlighted}
+                    viewContext={NoteEmbedViewContext.ThreadHighlighted}
                     onOpen={onOpenEmbed}
                   />
                 </View>
               )}
             </ContentHider>
-            <ExpandedPostDetails
-              post={post}
+            <ExpandedNoteDetails
+              note={note}
               isThreadAuthor={isThreadAuthor}
               translatorUrl={translatorUrl}
               needsTranslation={needsTranslation}
             />
-            {post.repostCount !== 0 ||
-            post.likeCount !== 0 ||
-            post.quoteCount !== 0 ? (
+            {note.renoteCount !== 0 ||
+            note.likeCount !== 0 ||
+            note.quoteCount !== 0 ? (
               // Show this section unless we're *sure* it has no engagement.
               <View
                 style={[
@@ -489,49 +489,49 @@ let PostThreadItemLoaded = ({
                   a.py_md,
                   t.atoms.border_contrast_low,
                 ]}>
-                {post.repostCount != null && post.repostCount !== 0 ? (
-                  <Link href={repostsHref} title={repostsTitle}>
+                {note.renoteCount != null && note.renoteCount !== 0 ? (
+                  <Link href={renotesHref} title={renotesTitle}>
                     <Text
-                      testID="repostCount-expanded"
+                      testID="renoteCount-expanded"
                       style={[a.text_md, t.atoms.text_contrast_medium]}>
                       <Text style={[a.text_md, a.font_bold, t.atoms.text]}>
-                        {formatCount(i18n, post.repostCount)}
+                        {formatCount(i18n, note.renoteCount)}
                       </Text>{' '}
                       <Plural
-                        value={post.repostCount}
-                        one="repost"
-                        other="reposts"
+                        value={note.renoteCount}
+                        one="renote"
+                        other="renotes"
                       />
                     </Text>
                   </Link>
                 ) : null}
-                {post.quoteCount != null &&
-                post.quoteCount !== 0 &&
-                !post.viewer?.embeddingDisabled ? (
+                {note.quoteCount != null &&
+                note.quoteCount !== 0 &&
+                !note.viewer?.embeddingDisabled ? (
                   <Link href={quotesHref} title={quotesTitle}>
                     <Text
                       testID="quoteCount-expanded"
                       style={[a.text_md, t.atoms.text_contrast_medium]}>
                       <Text style={[a.text_md, a.font_bold, t.atoms.text]}>
-                        {formatCount(i18n, post.quoteCount)}
+                        {formatCount(i18n, note.quoteCount)}
                       </Text>{' '}
                       <Plural
-                        value={post.quoteCount}
+                        value={note.quoteCount}
                         one="quote"
                         other="quotes"
                       />
                     </Text>
                   </Link>
                 ) : null}
-                {post.likeCount != null && post.likeCount !== 0 ? (
+                {note.likeCount != null && note.likeCount !== 0 ? (
                   <Link href={likesHref} title={likesTitle}>
                     <Text
                       testID="likeCount-expanded"
                       style={[a.text_md, t.atoms.text_contrast_medium]}>
                       <Text style={[a.text_md, a.font_bold, t.atoms.text]}>
-                        {formatCount(i18n, post.likeCount)}
+                        {formatCount(i18n, note.likeCount)}
                       </Text>{' '}
-                      <Plural value={post.likeCount} one="like" other="likes" />
+                      <Plural value={note.likeCount} one="like" other="likes" />
                     </Text>
                   </Link>
                 ) : null}
@@ -546,18 +546,18 @@ let PostThreadItemLoaded = ({
                 },
               ]}>
               <FeedFeedbackProvider value={feedFeedback}>
-                <PostControls
+                <NoteControls
                   big
-                  post={post}
+                  note={note}
                   record={record}
                   richText={richText}
                   onPressReply={onPressReply}
-                  onPostReply={onPostReply}
-                  logContext="PostThreadItem"
+                  onNoteReply={onNoteReply}
+                  logContext="NoteThreadItem"
                   threadgateRecord={threadgateRecord}
-                  feedContext={anchorPostSource?.post?.feedContext}
-                  reqId={anchorPostSource?.post?.reqId}
-                  viaRepost={viaRepost}
+                  feedContext={anchorNoteSource?.note?.feedContext}
+                  reqId={anchorNoteSource?.note?.reqId}
+                  viaRenote={viaRenote}
                 />
               </FeedFeedbackProvider>
             </View>
@@ -568,27 +568,27 @@ let PostThreadItemLoaded = ({
   } else {
     const isThreadedChild = treeView && depth > 0
     const isThreadedChildAdjacentTop =
-      isThreadedChild && prevPost?.ctx.depth === depth && depth !== 1
+      isThreadedChild && prevNote?.ctx.depth === depth && depth !== 1
     const isThreadedChildAdjacentBot =
-      isThreadedChild && nextPost?.ctx.depth === depth
+      isThreadedChild && nextNote?.ctx.depth === depth
     return (
-      <PostOuterWrapper
-        post={post}
+      <NoteOuterWrapper
+        note={note}
         depth={depth}
         showParentReplyLine={!!showParentReplyLine}
         treeView={treeView}
         hasPrecedingItem={hasPrecedingItem}
         hideTopBorder={hideTopBorder}>
-        <PostHider
-          testID={`postThreadItem-by-${post.author.handle}`}
-          href={postHref}
+        <NoteHider
+          testID={`noteThreadItem-by-${note.author.username}`}
+          href={noteHref}
           disabled={overrideBlur}
           modui={moderation.ui('contentList')}
           iconSize={isThreadedChild ? 24 : 42}
           iconStyles={
             isThreadedChild ? {marginRight: 4} : {marginLeft: 2, marginRight: 2}
           }
-          profile={post.author}
+          profile={note.author}
           interpretFilterAsBlur>
           <View
             style={{
@@ -627,14 +627,14 @@ let PostThreadItemLoaded = ({
                       : 8,
               },
             ]}>
-            {/* If we are in threaded mode, the avatar is rendered in PostMeta */}
+            {/* If we are in threaded mode, the avatar is rendered in NoteMeta */}
             {!isThreadedChild && (
               <View>
                 <PreviewableUserAvatar
                   size={42}
-                  profile={post.author}
+                  profile={note.author}
                   moderation={moderation.ui('avatar')}
-                  type={post.author.associated?.labeler ? 'labeler' : 'user'}
+                  type={note.author.associated?.labeler ? 'labeler' : 'user'}
                   live={live}
                 />
 
@@ -654,20 +654,20 @@ let PostThreadItemLoaded = ({
             )}
 
             <View style={[a.flex_1]}>
-              <PostMeta
-                author={post.author}
+              <NoteMeta
+                author={note.author}
                 moderation={moderation}
-                timestamp={post.indexedAt}
-                postHref={postHref}
+                timestamp={note.indexedAt}
+                noteHref={noteHref}
                 showAvatar={isThreadedChild}
                 avatarSize={24}
                 style={[a.pb_xs]}
               />
-              <LabelsOnMyPost post={post} style={[a.pb_xs]} />
-              <PostAlerts
+              <LabelsOnMyNote note={note} style={[a.pb_xs]} />
+              <NoteAlerts
                 modui={moderation.ui('contentList')}
                 style={[a.pb_2xs]}
-                additionalCauses={additionalPostAlerts}
+                additionalCauses={additionalNoteAlerts}
               />
               {richText?.text ? (
                 <View style={[a.pb_2xs, a.pr_sm]}>
@@ -676,7 +676,7 @@ let PostThreadItemLoaded = ({
                     value={richText}
                     style={[a.flex_1, a.text_md]}
                     numberOfLines={limitLines ? MAX_POST_LINES : undefined}
-                    authorHandle={post.author.handle}
+                    authorUsername={note.author.username}
                     shouldProxyLinks={true}
                   />
                   {limitLines && (
@@ -687,21 +687,21 @@ let PostThreadItemLoaded = ({
                   )}
                 </View>
               ) : undefined}
-              {post.embed && (
+              {note.embed && (
                 <View style={[a.pb_xs]}>
                   <Embed
-                    embed={post.embed}
+                    embed={note.embed}
                     moderation={moderation}
-                    viewContext={PostEmbedViewContext.Feed}
+                    viewContext={NoteEmbedViewContext.Feed}
                   />
                 </View>
               )}
-              <PostControls
-                post={post}
+              <NoteControls
+                note={note}
                 record={record}
                 richText={richText}
                 onPressReply={onPressReply}
-                logContext="PostThreadItem"
+                logContext="NoteThreadItem"
                 threadgateRecord={threadgateRecord}
               />
             </View>
@@ -716,7 +716,7 @@ let PostThreadItemLoaded = ({
                   paddingBottom: treeView ? 4 : 12,
                 },
               ]}
-              href={postHref}
+              href={noteHref}
               title={itemTitle}
               noFeedback>
               <Text
@@ -729,15 +729,15 @@ let PostThreadItemLoaded = ({
               />
             </Link>
           ) : undefined}
-        </PostHider>
-      </PostOuterWrapper>
+        </NoteHider>
+      </NoteOuterWrapper>
     )
   }
 }
-PostThreadItemLoaded = memo(PostThreadItemLoaded)
+NoteThreadItemLoaded = memo(NoteThreadItemLoaded)
 
-function PostOuterWrapper({
-  post,
+function NoteOuterWrapper({
+  note,
   treeView,
   depth,
   showParentReplyLine,
@@ -745,7 +745,7 @@ function PostOuterWrapper({
   hideTopBorder,
   children,
 }: React.PropsWithChildren<{
-  post: SonetPost
+  note: SonetNote
   treeView: boolean
   depth: number
   showParentReplyLine: boolean
@@ -773,7 +773,7 @@ function PostOuterWrapper({
         onPointerLeave={onHoverOut}>
         {Array.from(Array(depth - 1)).map((_, n: number) => (
           <View
-            key={`${post.uri}-padding-${n}`}
+            key={`${note.uri}-padding-${n}`}
             style={[
               a.ml_sm,
               t.atoms.border_contrast_low,
@@ -815,13 +815,13 @@ function PostOuterWrapper({
   )
 }
 
-function ExpandedPostDetails({
-  post,
+function ExpandedNoteDetails({
+  note,
   isThreadAuthor,
   needsTranslation,
   translatorUrl,
 }: {
-  post: SonetPost
+  note: SonetNote
   isThreadAuthor: boolean
   needsTranslation: boolean
   translatorUrl: string
@@ -830,7 +830,7 @@ function ExpandedPostDetails({
   const pal = usePalette('default')
   const {_, i18n} = useLingui()
   const openLink = useOpenLink()
-  const isRootPost = !('reply' in post.record)
+  const isRootNote = !('reply' in note.record)
   const langPrefs = useLanguagePrefs()
 
   const onTranslatePress = useCallback(
@@ -839,17 +839,17 @@ function ExpandedPostDetails({
       openLink(translatorUrl, true)
 
       if (
-        bsky.dangerousIsType<SonetPostRecord>(
-          post.record,
-          SonetPost.isRecord,
+        bsky.dangerousIsType<SonetNoteRecord>(
+          note.record,
+          SonetNote.isRecord,
         )
       ) {
         logger.metric(
           'translate',
           {
-            sourceLanguages: post.record.langs ?? [],
+            sourceLanguages: note.record.langs ?? [],
             targetLanguage: langPrefs.primaryLanguage,
-            textLength: post.record.text.length,
+            textLength: note.record.text.length,
           },
           {statsig: false},
         )
@@ -857,18 +857,18 @@ function ExpandedPostDetails({
 
       return false
     },
-    [openLink, translatorUrl, langPrefs, post],
+    [openLink, translatorUrl, langPrefs, note],
   )
 
   return (
     <View style={[a.gap_md, a.pt_md, a.align_start]}>
-      <BackdatedPostIndicator post={post} />
+      <BackdatedNoteIndicator note={note} />
       <View style={[a.flex_row, a.align_center, a.flex_wrap, a.gap_sm]}>
         <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
-          {niceDate(i18n, post.indexedAt)}
+          {niceDate(i18n, note.indexedAt)}
         </Text>
-        {isRootPost && (
-          <WhoCanReply post={post} isThreadAuthor={isThreadAuthor} />
+        {isRootNote && (
+          <WhoCanReply note={note} isThreadAuthor={isThreadAuthor} />
         )}
         {needsTranslation && (
           <>
@@ -890,18 +890,18 @@ function ExpandedPostDetails({
   )
 }
 
-function BackdatedPostIndicator({post}: {post: SonetPost}) {
+function BackdatedNoteIndicator({note}: {note: SonetNote}) {
   const t = useTheme()
   const {_, i18n} = useLingui()
   const control = Prompt.usePromptControl()
 
-  const indexedAt = new Date(post.indexedAt)
-  const createdAt = bsky.dangerousIsType<SonetPostRecord>(
-    post.record,
-    SonetPost.isRecord,
+  const indexedAt = new Date(note.indexedAt)
+  const createdAt = bsky.dangerousIsType<SonetNoteRecord>(
+    note.record,
+    SonetNote.isRecord,
   )
-    ? new Date(post.record.createdAt)
-    : new Date(post.indexedAt)
+    ? new Date(note.record.createdAt)
+    : new Date(note.indexedAt)
 
   // backdated if createdAt is 24 hours or more before indexedAt
   const isBackdated =
@@ -914,9 +914,9 @@ function BackdatedPostIndicator({post}: {post: SonetPost}) {
   return (
     <>
       <Button
-        label={_(msg`Archived post`)}
+        label={_(msg`Archived note`)}
         accessibilityHint={_(
-          msg`Shows information about when this post was created`,
+          msg`Shows information about when this note was created`,
         )}
         onPress={e => {
           e.preventDefault()
@@ -953,11 +953,11 @@ function BackdatedPostIndicator({post}: {post: SonetPost}) {
 
       <Prompt.Outer control={control}>
         <Prompt.TitleText>
-          <Trans>Archived post</Trans>
+          <Trans>Archived note</Trans>
         </Prompt.TitleText>
         <Prompt.DescriptionText>
           <Trans>
-            This post claims to have been created on{' '}
+            This note claims to have been created on{' '}
             <RNText style={[a.font_bold]}>{niceDate(i18n, createdAt)}</RNText>,
             but was first seen by Bluesky on{' '}
             <RNText style={[a.font_bold]}>{niceDate(i18n, indexedAt)}</RNText>.
@@ -983,11 +983,11 @@ function BackdatedPostIndicator({post}: {post: SonetPost}) {
 }
 
 function getThreadAuthor(
-  post: SonetPost,
-  record: SonetPostRecord,
+  note: SonetNote,
+  record: SonetNoteRecord,
 ): string {
   if (!record.reply) {
-    return post.author.did
+    return note.author.userId
   }
   try {
     return new SonetUri(record.reply.root.uri).host

@@ -109,7 +109,7 @@ export class SonetRealtimeManager {
       this.ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data)
-          this.handleMessage(data)
+          this.usernameMessage(data)
         } catch (error) {
           console.error('Failed to parse WebSocket message:', error)
         }
@@ -178,7 +178,7 @@ export class SonetRealtimeManager {
     })
   }
 
-  private handleMessage(data: any) {
+  private usernameMessage(data: any) {
     switch (data.type) {
       case 'message':
         this.events.emit('message', data.message as SonetMessage)
@@ -265,17 +265,17 @@ export function useSonetChatRealtime(chatId: string) {
   const [isConnected, setIsConnected] = React.useState(false)
 
   React.useEffect(() => {
-    const handleConnected = () => setIsConnected(true)
-    const handleDisconnected = () => setIsConnected(false)
+    const usernameConnected = () => setIsConnected(true)
+    const usernameDisconnected = () => setIsConnected(false)
 
-    manager.events.on('connected', handleConnected)
-    manager.events.on('disconnected', handleDisconnected)
+    manager.events.on('connected', usernameConnected)
+    manager.events.on('disconnected', usernameDisconnected)
 
     manager.connect(chatId)
 
     return () => {
-      manager.events.off('connected', handleConnected)
-      manager.events.off('disconnected', handleDisconnected)
+      manager.events.off('connected', usernameConnected)
+      manager.events.off('disconnected', usernameDisconnected)
     }
   }, [manager, chatId])
 

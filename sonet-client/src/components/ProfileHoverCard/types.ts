@@ -4,7 +4,7 @@ import {type ViewStyleProp} from '#/alf'
 
 export type ProfileHoverCardProps = ViewStyleProp & {
   children: React.ReactNode
-  did: string
+  userId: string
   disable?: boolean
   inline?: boolean
 }

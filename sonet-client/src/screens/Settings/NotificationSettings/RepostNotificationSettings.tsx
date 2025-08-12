@@ -8,7 +8,7 @@ import {
 import {useNotificationSettingsQuery} from '#/state/queries/notifications/settings'
 import {atoms as a} from '#/alf'
 import {Admonition} from '#/components/Admonition'
-import {Repost_Stroke2_Corner2_Rounded as RepostIcon} from '#/components/icons/Repost'
+import {Renote_Stroke2_Corner2_Rounded as RenoteIcon} from '#/components/icons/Renote'
 import * as Layout from '#/components/Layout'
 import * as SettingsList from '../components/SettingsList'
 import {ItemTextWithSubtitle} from './components/ItemTextWithSubtitle'
@@ -16,9 +16,9 @@ import {PreferenceControls} from './components/PreferenceControls'
 
 type Props = NativeStackScreenProps<
   AllNavigatorParams,
-  'RepostNotificationSettings'
+  'RenoteNotificationSettings'
 >
-export function RepostNotificationSettingsScreen({}: Props) {
+export function RenoteNotificationSettingsScreen({}: Props) {
   const {data: preferences, isError} = useNotificationSettingsQuery()
 
   return (
@@ -35,12 +35,12 @@ export function RepostNotificationSettingsScreen({}: Props) {
       <Layout.Content>
         <SettingsList.Container>
           <SettingsList.Item style={[a.align_start]}>
-            <SettingsList.ItemIcon icon={RepostIcon} />
+            <SettingsList.ItemIcon icon={RenoteIcon} />
             <ItemTextWithSubtitle
               bold
-              titleText={<Trans>Reposts</Trans>}
+              titleText={<Trans>Renotes</Trans>}
               subtitleText={
-                <Trans>Get notifications when people repost your posts.</Trans>
+                <Trans>Get notifications when people renote your notes.</Trans>
               }
             />
           </SettingsList.Item>
@@ -52,8 +52,8 @@ export function RepostNotificationSettingsScreen({}: Props) {
             </View>
           ) : (
             <PreferenceControls
-              name="repost"
-              preference={preferences?.repost}
+              name="renote"
+              preference={preferences?.renote}
             />
           )}
         </SettingsList.Container>

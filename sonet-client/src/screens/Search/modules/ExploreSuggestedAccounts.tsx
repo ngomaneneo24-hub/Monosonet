@@ -1,6 +1,6 @@
 import {memo, useEffect} from 'react'
 import {View} from 'react-native'
-import {type AppBskyActorSearchActors, type ModerationOpts} from '@atproto/api'
+import {type SonetActorSearchActors, type ModerationOpts} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {type InfiniteData} from '@tanstack/react-query'
@@ -31,7 +31,7 @@ export function useLoadEnoughProfiles({
   fetchNextPage,
 }: {
   interest: string | null
-  data?: InfiniteData<AppBskyActorSearchActors.OutputSchema>
+  data?: InfiniteData<SonetActorSearchActors.OutputSchema>
   isLoading: boolean
   isFetchingNextPage: boolean
   hasNextPage: boolean
@@ -211,7 +211,7 @@ let SuggestedProfileCard = ({
                   profile={profile}
                   moderationOpts={moderationOpts}
                 />
-                <ProfileCard.NameAndHandle
+                <ProfileCard.NameAndUsername
                   profile={profile}
                   moderationOpts={moderationOpts}
                 />

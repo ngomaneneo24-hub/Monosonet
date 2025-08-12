@@ -106,7 +106,7 @@ export class SonetClient {
     }
   }
 
-  // Notes (Posts)
+  // Notes (Notes)
   async createNote(content: string, replyTo?: string, media?: any[]): Promise<SonetNote> {
     if (!this.accessToken) throw new SonetAuthError('Not authenticated')
 

@@ -23,7 +23,7 @@ export function TokenField({
   const {_} = useLingui()
   const isInvalid = Boolean(value && value.length > 10 && !isValidCode(value))
 
-  const handleOnChangeText = (v: string) => {
+  const usernameOnChangeText = (v: string) => {
     onChangeText?.(normalizeCode(v))
   }
 
@@ -36,7 +36,7 @@ export function TokenField({
           label={_(msg`Confirmation code`)}
           placeholder="XXXXX-XXXXX"
           value={value}
-          onChangeText={handleOnChangeText}
+          onChangeText={usernameOnChangeText}
           onSubmitEditing={onSubmitEditing}
         />
       </TextField.Root>

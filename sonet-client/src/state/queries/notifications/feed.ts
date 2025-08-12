@@ -18,12 +18,12 @@
 
 import {useCallback, useEffect, useMemo, useRef} from 'react'
 import {
-  type AppBskyActorDefs,
-  AppBskyFeedDefs,
-  AppBskyFeedPost,
+  type SonetActorDefs,
+  SonetFeedDefs,
+  SonetFeedNote,
   AtUri,
-  moderatePost,
-} from '@atproto/api'
+  moderateNote,
+} from '@sonet/api'
 import {
   type InfiniteData,
   type QueryClient,
@@ -37,9 +37,9 @@ import {STALE} from '#/state/queries'
 import {useAgent} from '#/state/session'
 import {useThreadgateHiddenReplyUris} from '#/state/threadgate-hidden-replies'
 import {
-  didOrHandleUriMatches,
-  embedViewRecordToPostView,
-  getEmbeddedPost,
+  userIdOrUsernameUriMatches,
+  embedViewRecordToNoteView,
+  getEmbeddedNote,
 } from '../util'
 import {type FeedPage} from './types'
 import {useUnreadNotificationsApi} from './unread'
@@ -102,7 +102,7 @@ export function useNotificationFeedQuery(opts: {
         let reasons: string[] = []
         if (filter === 'mentions') {
           reasons = [
-            // Anything that's a post
+            // Anything that's a note
             'mention',
             'reply',
             'quote',
@@ -121,7 +121,7 @@ export function useNotificationFeedQuery(opts: {
               subject: it.note ? {
                 uri: `sonet://note/${it.note.id}`,
                 cid: it.note.id,
-                author: {did: it.note.author?.id || 'sonet:user'} as any,
+                author: {userId: it.note.author?.id || 'sonet:user'} as any,
                 record: {text: it.note.content || it.note.text || ''} as any,
               } as any : undefined,
             })),
@@ -220,12 +220,12 @@ export function useNotificationFeedQuery(opts: {
                       item.type === 'quote'
                     ) {
                       /*
-                       * The `isPostView` check will fail here bc we don't have
+                       * The `isNoteView` check will fail here bc we don't have
                        * a `$type` field on the `subject`. But if the nested
-                       * `record` is a post, we know it's a post view.
+                       * `record` is a note, we know it's a note view.
                        */
-                      if (AppBskyFeedPost.isRecord(item.subject?.record)) {
-                        const mod = moderatePost(item.subject, moderationOpts!)
+                      if (SonetFeedNote.isRecord(item.subject?.record)) {
+                        const mod = moderateNote(item.subject, moderationOpts!)
                         if (mod.ui('contentList').filter) {
                           return false
                         }
@@ -283,7 +283,7 @@ export function useNotificationFeedQuery(opts: {
       }
     } else if (hasNextPage) {
       // At this point we're not fetching anymore, so it's time to make a decision.
-      // If we didn't receive enough items from the server, paginate again until we do.
+      // If we userIdn't receive enough items from the server, paginate again until we do.
       if (itemCount < wantedItemCount.current) {
         autoPaginationAttemptCount.current++
         if (autoPaginationAttemptCount.current < 50 /* failsafe */) {
@@ -298,10 +298,10 @@ export function useNotificationFeedQuery(opts: {
   return query
 }
 
-export function* findAllPostsInQueryData(
+export function* findAllNotesInQueryData(
   queryClient: QueryClient,
   uri: string,
-): Generator<AppBskyFeedDefs.PostView, void> {
+): Generator<SonetFeedDefs.NoteView, void> {
   const atUri = new AtUri(uri)
 
   const queryDatas = queryClient.getQueriesData<InfiniteData<FeedPage>>({
@@ -315,15 +315,15 @@ export function* findAllPostsInQueryData(
     for (const page of queryData?.pages) {
       for (const item of page.items) {
         if (item.type !== 'starterpack-joined') {
-          if (item.subject && didOrHandleUriMatches(atUri, item.subject)) {
+          if (item.subject && userIdOrUsernameUriMatches(atUri, item.subject)) {
             yield item.subject
           }
         }
 
-        if (AppBskyFeedDefs.isPostView(item.subject)) {
-          const quotedPost = getEmbeddedPost(item.subject?.embed)
-          if (quotedPost && didOrHandleUriMatches(atUri, quotedPost)) {
-            yield embedViewRecordToPostView(quotedPost!)
+        if (SonetFeedDefs.isNoteView(item.subject)) {
+          const quotedNote = getEmbeddedNote(item.subject?.embed)
+          if (quotedNote && userIdOrUsernameUriMatches(atUri, quotedNote)) {
+            yield embedViewRecordToNoteView(quotedNote!)
           }
         }
       }
@@ -333,8 +333,8 @@ export function* findAllPostsInQueryData(
 
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
-  did: string,
-): Generator<AppBskyActorDefs.ProfileViewBasic, void> {
+  userId: string,
+): Generator<SonetActorDefs.ProfileViewBasic, void> {
   const queryDatas = queryClient.getQueriesData<InfiniteData<FeedPage>>({
     queryKey: [RQKEY_ROOT],
   })
@@ -346,14 +346,14 @@ export function* findAllProfilesInQueryData(
       for (const item of page.items) {
         if (
           item.type !== 'starterpack-joined' &&
-          item.subject?.author.did === did
+          item.subject?.author.userId === userId
         ) {
           yield item.subject.author
         }
-        if (AppBskyFeedDefs.isPostView(item.subject)) {
-          const quotedPost = getEmbeddedPost(item.subject?.embed)
-          if (quotedPost?.author.did === did) {
-            yield quotedPost.author
+        if (SonetFeedDefs.isNoteView(item.subject)) {
+          const quotedNote = getEmbeddedNote(item.subject?.embed)
+          if (quotedNote?.author.userId === userId) {
+            yield quotedNote.author
           }
         }
       }

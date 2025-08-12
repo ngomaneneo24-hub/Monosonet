@@ -18,7 +18,7 @@ interface VideoFeedItemProps {
   height: number
   onPress: () => void
   onLike: () => void
-  onRepost: () => void
+  onRenote: () => void
   onShare: () => void
   onVideoPress: (video: VideoItem) => void
 }
@@ -29,12 +29,12 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
   height,
   onPress,
   onLike,
-  onRepost,
+  onRenote,
   onShare,
   onVideoPress
 }) => {
   const [isLiked, setIsLiked] = useState(false)
-  const [isReposted, setIsReposted] = useState(false)
+  const [isRenoteed, setIsRenoteed] = useState(false)
 
   // Format numbers for display
   const formatNumber = (num: number): string => {
@@ -54,17 +54,17 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
   }
 
-  // Handle like toggle
-  const handleLike = useCallback(() => {
+  // Username like toggle
+  const usernameLike = useCallback(() => {
     setIsLiked(!isLiked)
     onLike()
   }, [isLiked, onLike])
 
-  // Handle repost toggle
-  const handleRepost = useCallback(() => {
-    setIsReposted(!isReposted)
-    onRepost()
-  }, [isReposted, onRepost])
+  // Username renote toggle
+  const usernameRenote = useCallback(() => {
+    setIsRenoteed(!isRenoteed)
+    onRenote()
+  }, [isRenoteed, onRenote])
 
   return (
     <TouchableOpacity
@@ -149,13 +149,13 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
             </Text>
           </View>
 
-          {/* Repost Count */}
+          {/* Renote Count */}
           <View style={styles.metricItem}>
-            <Text style={[styles.metricIcon, isReposted && styles.repostedIcon]}>
-              {isReposted ? '🔄' : '↩️'}
+            <Text style={[styles.metricIcon, isRenoteed && styles.renoteedIcon]}>
+              {isRenoteed ? '🔄' : '↩️'}
             </Text>
             <Text style={styles.metricText}>
-              {formatNumber(video.engagement.repost_count)}
+              {formatNumber(video.engagement.renote_count)}
             </Text>
           </View>
         </View>
@@ -164,7 +164,7 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
         <View style={styles.actionButtons}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={handleLike}
+            onPress={usernameLike}
             hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
           >
             <Text style={[styles.actionIcon, isLiked && styles.likedIcon]}>
@@ -174,11 +174,11 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={handleRepost}
+            onPress={usernameRenote}
             hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
           >
-            <Text style={[styles.actionIcon, isReposted && styles.repostedIcon]}>
-              {isReposted ? '🔄' : '↩️'}
+            <Text style={[styles.actionIcon, isRenoteed && styles.renoteedIcon]}>
+              {isRenoteed ? '🔄' : '↩️'}
             </Text>
           </TouchableOpacity>
 
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   likedIcon: {
     color: '#FF3B30',
   },
-  repostedIcon: {
+  renoteedIcon: {
     color: '#34C759',
   },
   actionButtons: {

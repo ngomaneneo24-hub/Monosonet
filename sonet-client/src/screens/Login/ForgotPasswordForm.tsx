@@ -1,7 +1,7 @@
 import React, {useState} from 'react'
 import {ActivityIndicator, Keyboard, View} from 'react-native'
-import {ComAtprotoServerDescribeServer} from '@atproto/api'
-import {BskyAgent} from '@atproto/api'
+import {SonetServerDescribeServer} from '@sonet/api'
+import {SonetAppAgent} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import * as EmailValidator from 'email-validator'
@@ -18,7 +18,7 @@ import {At_Stroke2_Corner0_Rounded as At} from '#/components/icons/At'
 import {Text} from '#/components/Typography'
 import {FormContainer} from './FormContainer'
 
-type ServiceDescription = ComAtprotoServerDescribeServer.OutputSchema
+type ServiceDescription = SonetServerDescribeServer.OutputSchema
 
 export const ForgotPasswordForm = ({
   error,
@@ -55,8 +55,8 @@ export const ForgotPasswordForm = ({
     setIsProcessing(true)
 
     try {
-      const agent = new BskyAgent({service: serviceUrl})
-      await agent.com.atproto.server.requestPasswordReset({email})
+      const agent = new SonetAppAgent({service: serviceUrl})
+      await agent.com.sonet.server.requestPasswordReset({email})
       onEmailSent()
     } catch (e: any) {
       const errMsg = e.toString()

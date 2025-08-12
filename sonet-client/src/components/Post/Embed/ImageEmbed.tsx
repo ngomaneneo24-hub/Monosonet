@@ -13,8 +13,8 @@ import {type Dimensions} from '#/view/com/lightbox/ImageViewing/@types'
 import {AutoSizedImage} from '#/view/com/util/images/AutoSizedImage'
 import {ImageLayoutGrid} from '#/view/com/util/images/ImageLayoutGrid'
 import {atoms as a} from '#/alf'
-import {PostEmbedViewContext} from '#/components/Post/Embed/types'
-import {type EmbedType} from '#/types/bsky/post'
+import {NoteEmbedViewContext} from '#/components/Note/Embed/types'
+import {type EmbedType} from '#/types/bsky/note'
 import {type CommonProps} from './types'
 
 export function ImageEmbed({
@@ -74,10 +74,10 @@ export function ImageEmbed({
         <View style={[a.mt_sm, rest.style]}>
           <AutoSizedImage
             crop={
-              rest.viewContext === PostEmbedViewContext.ThreadHighlighted
+              rest.viewContext === NoteEmbedViewContext.ThreadHighlighted
                 ? 'none'
                 : rest.viewContext ===
-                    PostEmbedViewContext.FeedEmbedRecordWithMedia
+                    NoteEmbedViewContext.FeedEmbedRecordWithMedia
                   ? 'square'
                   : 'constrained'
             }
@@ -85,7 +85,7 @@ export function ImageEmbed({
             onPress={(containerRef, dims) => onPress(0, [containerRef], [dims])}
             onPressIn={() => onPressIn(0)}
             hideBadge={
-              rest.viewContext === PostEmbedViewContext.FeedEmbedRecordWithMedia
+              rest.viewContext === NoteEmbedViewContext.FeedEmbedRecordWithMedia
             }
           />
         </View>

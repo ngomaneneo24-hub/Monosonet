@@ -1,7 +1,7 @@
 import React from 'react'
 import {StyleProp, StyleSheet, View, ViewStyle} from 'react-native'
 import {Image} from 'expo-image'
-import {AppBskyFeedDefs} from '@atproto/api'
+import {SonetFeedDefs} from '@sonet/api'
 import {Trans} from '@lingui/macro'
 
 import {isTenorGifUri} from '#/lib/strings/embed-player'
@@ -12,16 +12,16 @@ import {PlayButtonIcon} from '#/components/video/PlayButtonIcon'
 import * as bsky from '#/types/bsky'
 
 /**
- * Streamlined MediaPreview component which just handles images, gifs, and videos
+ * Streamlined MediaPreview component which just usernames images, gifs, and videos
  */
 export function Embed({
   embed,
   style,
 }: {
-  embed: AppBskyFeedDefs.PostView['embed']
+  embed: SonetFeedDefs.NoteView['embed']
   style?: StyleProp<ViewStyle>
 }) {
-  const e = bsky.post.parseEmbed(embed)
+  const e = bsky.note.parseEmbed(embed)
 
   if (!e) return null
 
@@ -55,9 +55,9 @@ export function Embed({
       </Outer>
     )
   } else if (
-    e.type === 'post_with_media' &&
+    e.type === 'note_with_media' &&
     // ignore further "nested" RecordWithMedia
-    e.media.type !== 'post_with_media' &&
+    e.media.type !== 'note_with_media' &&
     // ignore any unknowns
     e.media.view !== null
   ) {

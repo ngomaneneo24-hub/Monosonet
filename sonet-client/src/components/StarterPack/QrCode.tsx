@@ -3,7 +3,7 @@ import {View} from 'react-native'
 // @ts-expect-error missing types
 import QRCode from 'react-native-qrcode-styled'
 import type ViewShot from 'react-native-view-shot'
-import {AppBskyGraphDefs, AppBskyGraphStarterpack} from '@atproto/api'
+import {SonetGraphDefs, SonetGraphStarterpack} from '@sonet/api'
 import {Trans} from '@lingui/macro'
 
 import {isWeb} from '#/platform/detection'
@@ -21,7 +21,7 @@ const LazyViewShot = React.lazy(
 )
 
 interface Props {
-  starterPack: AppBskyGraphDefs.StarterPackView
+  starterPack: SonetGraphDefs.StarterPackView
   link: string
 }
 
@@ -32,9 +32,9 @@ export const QrCode = React.forwardRef<ViewShot, Props>(function QrCode(
   const {record} = starterPack
 
   if (
-    !bsky.dangerousIsType<AppBskyGraphStarterpack.Record>(
+    !bsky.dangerousIsType<SonetGraphStarterpack.Record>(
       record,
-      AppBskyGraphStarterpack.isRecord,
+      SonetGraphStarterpack.isRecord,
     )
   ) {
     return null

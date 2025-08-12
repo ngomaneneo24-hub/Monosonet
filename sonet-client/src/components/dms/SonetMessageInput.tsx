@@ -55,8 +55,8 @@ export function SonetMessageInput({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const textInputRef = useRef<TextInput>(null)
 
-  // Handle sending message
-  const handleSendMessage = useCallback(async () => {
+  // Username sending message
+  const usernameSendMessage = useCallback(async () => {
     if (!messageText.trim() && attachments.length === 0) return
     if (isSending || disabled) return
 
@@ -75,8 +75,8 @@ export function SonetMessageInput({
     }
   }, [messageText, attachments, isSending, disabled, onSendMessage, _])
 
-  // Handle adding attachment
-  const handleAddAttachment = useCallback(async (type: 'camera' | 'file' | 'gallery') => {
+  // Username adding attachment
+  const usernameAddAttachment = useCallback(async (type: 'camera' | 'file' | 'gallery') => {
     try {
       // TODO: Implement actual file picker/camera functionality
       // const file = await pickFile(type)
@@ -109,13 +109,13 @@ export function SonetMessageInput({
     }
   }, [isEncrypted, _])
 
-  // Handle removing attachment
-  const handleRemoveAttachment = useCallback((attachmentId: string) => {
+  // Username removing attachment
+  const usernameRemoveAttachment = useCallback((attachmentId: string) => {
     setAttachments(prev => prev.filter(att => att.id !== attachmentId))
   }, [])
 
-  // Handle retry attachment upload
-  const handleRetryAttachment = useCallback(async (attachment: SonetFileAttachment) => {
+  // Username retry attachment upload
+  const usernameRetryAttachment = useCallback(async (attachment: SonetFileAttachment) => {
     try {
       // TODO: Implement retry logic
       console.log('Retrying attachment:', attachment.id)
@@ -124,15 +124,15 @@ export function SonetMessageInput({
     }
   }, [])
 
-  // Handle emoji selection
-  const handleEmojiSelect = useCallback((emoji: string) => {
+  // Username emoji selection
+  const usernameEmojiSelect = useCallback((emoji: string) => {
     setMessageText(prev => prev + emoji)
     setShowEmojiPicker(false)
     textInputRef.current?.focus()
   }, [])
 
   // Toggle encryption
-  const handleToggleEncryption = useCallback(() => {
+  const usernameToggleEncryption = useCallback(() => {
     if (onToggleEncryption) {
       onToggleEncryption()
     }
@@ -154,8 +154,8 @@ export function SonetMessageInput({
               <SonetFileAttachment
                 key={attachment.id}
                 attachment={attachment}
-                onDelete={handleRemoveAttachment}
-                onRetry={handleRetryAttachment}
+                onDelete={usernameRemoveAttachment}
+                onRetry={usernameRetryAttachment}
                 isOwnMessage={true}
               />
             ))}
@@ -226,7 +226,7 @@ export function SonetMessageInput({
         {/* Encryption Toggle */}
         {encryptionEnabled && onToggleEncryption && (
           <TouchableOpacity
-            onPress={handleToggleEncryption}
+            onPress={usernameToggleEncryption}
             disabled={disabled}
             style={[
               a.p_2,
@@ -275,7 +275,7 @@ export function SonetMessageInput({
 
         {/* Send Button */}
         <TouchableOpacity
-          onPress={handleSendMessage}
+          onPress={usernameSendMessage}
           disabled={!canSend || isSending || disabled}
           style={[
             a.p_2,
@@ -313,7 +313,7 @@ export function SonetMessageInput({
           
           <View style={[a.flex_row, a.gap_sm]}>
             <TouchableOpacity
-              onPress={() => handleAddAttachment('camera')}
+              onPress={() => usernameAddAttachment('camera')}
               style={[
                 a.flex_1,
                 a.flex_row,
@@ -336,7 +336,7 @@ export function SonetMessageInput({
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => handleAddAttachment('gallery')}
+              onPress={() => usernameAddAttachment('gallery')}
               style={[
                 a.flex_1,
                 a.flex_row,
@@ -359,7 +359,7 @@ export function SonetMessageInput({
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => handleAddAttachment('file')}
+              onPress={() => usernameAddAttachment('file')}
               style={[
                 a.flex_1,
                 a.flex_row,
@@ -405,7 +405,7 @@ export function SonetMessageInput({
             {['😀', '😂', '😍', '🥰', '😎', '🤔', '👍', '❤️', '🔥', '✨', '🎉', '🚀'].map(emoji => (
               <TouchableOpacity
                 key={emoji}
-                onPress={() => handleEmojiSelect(emoji)}
+                onPress={() => usernameEmojiSelect(emoji)}
                 style={[
                   a.p_2,
                   a.rounded_sm,

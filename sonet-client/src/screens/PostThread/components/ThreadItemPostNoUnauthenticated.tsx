@@ -1,21 +1,21 @@
 import {View} from 'react-native'
 import {Trans} from '@lingui/macro'
 
-import {type ThreadItem} from '#/state/queries/usePostThread/types'
+import {type ThreadItem} from '#/state/queries/useNoteThread/types'
 import {
   LINEAR_AVI_WIDTH,
   OUTER_SPACE,
   REPLY_LINE_WIDTH,
-} from '#/screens/PostThread/const'
+} from '#/screens/NoteThread/const'
 import {atoms as a, useTheme} from '#/alf'
 import {Lock_Stroke2_Corner0_Rounded as LockIcon} from '#/components/icons/Lock'
 import * as Skele from '#/components/Skeleton'
 import {Text} from '#/components/Typography'
 
-export function ThreadItemPostNoUnauthenticated({
+export function ThreadItemNoteNoUnauthenticated({
   item,
 }: {
-  item: Extract<ThreadItem, {type: 'threadPostNoUnauthenticated'}>
+  item: Extract<ThreadItem, {type: 'threadNoteNoUnauthenticated'}>
 }) {
   const t = useTheme()
 
@@ -44,7 +44,7 @@ export function ThreadItemPostNoUnauthenticated({
         </Skele.Circle>
 
         <Text style={[a.text_md, a.italic, t.atoms.text_contrast_medium]}>
-          <Trans>You must sign in to view this post.</Trans>
+          <Trans>You must sign in to view this note.</Trans>
         </Text>
       </Skele.Row>
       <View

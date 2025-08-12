@@ -1,6 +1,6 @@
 import React from 'react'
 import {View} from 'react-native'
-import {$Typed, ComAtprotoLabelDefs} from '@atproto/api'
+import {$Typed, SonetLabelDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -18,7 +18,7 @@ export function PwiOptOut() {
   const t = useTheme()
   const {_} = useLingui()
   const {currentAccount} = useSession()
-  const {data: profile} = useProfileQuery({did: currentAccount?.did})
+  const {data: profile} = useProfileQuery({userId: currentAccount?.userId})
   const updateProfile = useProfileUpdateMutation()
 
   const isOptedOut =
@@ -34,13 +34,13 @@ export function PwiOptOut() {
       profile,
       updates: existing => {
         // create labels attr if needed
-        const labels: $Typed<ComAtprotoLabelDefs.SelfLabels> = bsky.validate(
+        const labels: $Typed<SonetLabelDefs.SelfLabels> = bsky.validate(
           existing.labels,
-          ComAtprotoLabelDefs.validateSelfLabels,
+          SonetLabelDefs.validateSelfLabels,
         )
           ? existing.labels
           : {
-              $type: 'com.atproto.label.defs#selfLabels',
+              type: "sonet",
               values: [],
             }
 
@@ -97,7 +97,7 @@ export function PwiOptOut() {
 
       <Text style={[a.leading_snug, t.atoms.text_contrast_high]}>
         <Trans>
-          Bluesky will not show your profile and posts to logged-out users.
+          Bluesky will not show your profile and notes to logged-out users.
           Other apps may not honor this request. This does not make your account
           private.
         </Trans>

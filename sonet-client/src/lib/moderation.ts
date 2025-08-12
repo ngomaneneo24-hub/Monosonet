@@ -2,7 +2,7 @@ import React from 'react'
 import {SonetUser, SonetLabel} from '@sonet/types'
 
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {SonetModerationDecision} from '@sonet/types'
 
 // =============================================================================
@@ -133,7 +133,7 @@ export function getModerationCauseKey(
 ): string {
   const source =
     cause.source.type === 'labeler'
-      ? cause.source.did
+      ? cause.source.userId
       : cause.source.type === 'list'
         ? cause.source.list.uri
         : 'user'
@@ -156,21 +156,21 @@ export function moduiContainsHideableOffense(modui: ModerationUI): boolean {
 }
 
 export function labelIsHideableOffense(
-  label: ComAtprotoLabelDefs.Label,
+  label: SonetLabelDefs.Label,
 ): boolean {
   return ['!hide', '!takedown'].includes(label.val)
 }
 
 export function getLabelingServiceTitle({
   displayName,
-  handle,
+  username,
 }: {
   displayName?: string
-  handle: string
+  username: string
 }) {
   return displayName
     ? sanitizeDisplayName(displayName)
-    : sanitizeHandle(handle, '@')
+    : sanitizeUsername(username, '@')
 }
 
 export function lookupLabelValueDefinition(
@@ -190,27 +190,27 @@ export function lookupLabelValueDefinition(
 export function isAppLabeler(
   labeler:
     | string
-    | AppBskyLabelerDefs.LabelerView
-    | AppBskyLabelerDefs.LabelerViewDetailed,
+    | SonetLabelerDefs.LabelerView
+    | SonetLabelerDefs.LabelerViewDetailed,
 ): boolean {
   if (typeof labeler === 'string') {
-    return BskyAgent.appLabelers.includes(labeler)
+    return SonetAppAgent.appLabelers.includes(labeler)
   }
-  return BskyAgent.appLabelers.includes(labeler.creator.did)
+  return SonetAppAgent.appLabelers.includes(labeler.creator.userId)
 }
 
 export function isLabelerSubscribed(
   labeler:
     | string
-    | AppBskyLabelerDefs.LabelerView
-    | AppBskyLabelerDefs.LabelerViewDetailed,
+    | SonetLabelerDefs.LabelerView
+    | SonetLabelerDefs.LabelerViewDetailed,
   modOpts: ModerationOpts,
 ) {
-  labeler = typeof labeler === 'string' ? labeler : labeler.creator.did
+  labeler = typeof labeler === 'string' ? labeler : labeler.creator.userId
   if (isAppLabeler(labeler)) {
     return true
   }
-  return modOpts.prefs.labelers.find(l => l.did === labeler)
+  return modOpts.prefs.labelers.find(l => l.userId === labeler)
 }
 
 export type Subject =
@@ -219,10 +219,10 @@ export type Subject =
       cid: string
     }
   | {
-      did: string
+      userId: string
     }
 
-export function useLabelSubject({label}: {label: ComAtprotoLabelDefs.Label}): {
+export function useLabelSubject({label}: {label: SonetLabelDefs.Label}): {
   subject: Subject
 } {
   return React.useMemo(() => {
@@ -237,7 +237,7 @@ export function useLabelSubject({label}: {label: ComAtprotoLabelDefs.Label}): {
     } else {
       return {
         subject: {
-          did: uri,
+          userId: uri,
         },
       }
     }

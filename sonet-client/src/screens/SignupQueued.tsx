@@ -37,7 +37,7 @@ export function SignupQueued() {
   const checkStatus = React.useCallback(async () => {
     setProcessing(true)
     try {
-      const res = await agent.com.atproto.temp.checkSignupQueue()
+      const res = await agent.com.sonet.temp.checkSignupQueue()
       if (res.data.activated) {
         // ready to go, exchange the access token for a usable one and kick off onboarding
         await agent.sessionManager.refreshSession()

@@ -58,7 +58,7 @@ export function Component() {
     setError('')
     setIsProcessing(true)
     try {
-      await agent.com.atproto.server.requestPasswordReset({
+      await agent.com.sonet.server.requestPasswordReset({
         email: currentAccount.email,
       })
       setStage(Stages.ChangePassword)
@@ -103,7 +103,7 @@ export function Component() {
     setError('')
     setIsProcessing(true)
     try {
-      await agent.com.atproto.server.resetPassword({
+      await agent.com.sonet.server.resetPassword({
         token: formattedCode,
         password: newPassword,
       })
@@ -145,7 +145,7 @@ export function Component() {
           styles.container,
           isMobile && styles.containerMobile,
         ]}
-        keyboardShouldPersistTaps="handled">
+        keyboardShouldPersistTaps="usernamed">
         <View>
           <View style={styles.titleSection}>
             <Text type="title-lg" style={[pal.text, styles.title]}>

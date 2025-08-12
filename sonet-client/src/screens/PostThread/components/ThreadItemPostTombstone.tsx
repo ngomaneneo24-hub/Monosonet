@@ -3,26 +3,26 @@ import {View} from 'react-native'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
-import {LINEAR_AVI_WIDTH, OUTER_SPACE} from '#/screens/PostThread/const'
+import {LINEAR_AVI_WIDTH, OUTER_SPACE} from '#/screens/NoteThread/const'
 import {atoms as a, useTheme} from '#/alf'
 import {PersonX_Stroke2_Corner0_Rounded as PersonXIcon} from '#/components/icons/Person'
 import {Trash_Stroke2_Corner0_Rounded as TrashIcon} from '#/components/icons/Trash'
 import {Text} from '#/components/Typography'
 
-export type ThreadItemPostTombstoneProps = {
+export type ThreadItemNoteTombstoneProps = {
   type: 'not-found' | 'blocked'
 }
 
-export function ThreadItemPostTombstone({type}: ThreadItemPostTombstoneProps) {
+export function ThreadItemNoteTombstone({type}: ThreadItemNoteTombstoneProps) {
   const t = useTheme()
   const {_} = useLingui()
   const {copy, Icon} = useMemo(() => {
     switch (type) {
       case 'blocked':
-        return {copy: _(msg`Post blocked`), Icon: PersonXIcon}
+        return {copy: _(msg`Note blocked`), Icon: PersonXIcon}
       case 'not-found':
       default:
-        return {copy: _(msg`Post not found`), Icon: TrashIcon}
+        return {copy: _(msg`Note not found`), Icon: TrashIcon}
     }
   }, [_, type])
 

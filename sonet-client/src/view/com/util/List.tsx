@@ -7,9 +7,9 @@ import {
 } from 'react-native-reanimated'
 import {updateActiveVideoViewAsync} from '@haileyok/bluesky-video'
 
-import {useAnimatedScrollHandler} from '#/lib/hooks/useAnimatedScrollHandler_FIXED'
+import {useAnimatedScrollUsernamer} from '#/lib/hooks/useAnimatedScrollUsernamer_FIXED'
 import {useDedupe} from '#/lib/hooks/useDedupe'
-import {useScrollHandlers} from '#/lib/ScrollContext'
+import {useScrollUsernamers} from '#/lib/ScrollContext'
 import {addStyle} from '#/lib/styles'
 import {isIOS} from '#/platform/detection'
 import {useLightbox} from '#/state/lightbox'
@@ -63,8 +63,8 @@ let List = React.forwardRef<ListMethods, ListProps>(
     const dedupe = useDedupe(400)
     const {activeLightbox} = useLightbox()
 
-    function handleScrolledDownChange(didScrollDown: boolean) {
-      onScrolledDownChange?.(didScrollDown)
+    function usernameScrolledDownChange(userIdScrollDown: boolean) {
+      onScrolledDownChange?.(userIdScrollDown)
     }
 
     // Intentionally destructured outside the main thread closure.
@@ -74,8 +74,8 @@ let List = React.forwardRef<ListMethods, ListProps>(
       onEndDrag: onEndDragFromContext,
       onScroll: onScrollFromContext,
       onMomentumEnd: onMomentumEndFromContext,
-    } = useScrollHandlers()
-    const scrollHandler = useAnimatedScrollHandler({
+    } = useScrollUsernamers()
+    const scrollUsernamer = useAnimatedScrollUsernamer({
       onBeginDrag(e, ctx) {
         onBeginDragFromContext?.(e, ctx)
       },
@@ -86,11 +86,11 @@ let List = React.forwardRef<ListMethods, ListProps>(
       onScroll(e, ctx) {
         onScrollFromContext?.(e, ctx)
 
-        const didScrollDown = e.contentOffset.y > SCROLLED_DOWN_LIMIT
-        if (isScrolledDown.get() !== didScrollDown) {
-          isScrolledDown.set(didScrollDown)
+        const userIdScrollDown = e.contentOffset.y > SCROLLED_DOWN_LIMIT
+        if (isScrolledDown.get() !== userIdScrollDown) {
+          isScrolledDown.set(userIdScrollDown)
           if (onScrolledDownChange != null) {
-            runOnJS(handleScrolledDownChange)(didScrollDown)
+            runOnJS(usernameScrolledDownChange)(userIdScrollDown)
           }
         }
 
@@ -167,7 +167,7 @@ let List = React.forwardRef<ListMethods, ListProps>(
         indicatorStyle={t.scheme === 'dark' ? 'white' : 'black'}
         contentOffset={contentOffset}
         refreshControl={refreshControl}
-        onScroll={scrollHandler}
+        onScroll={scrollUsernamer}
         scrollsToTop={!activeLightbox}
         scrollEventThrottle={1}
         style={style}

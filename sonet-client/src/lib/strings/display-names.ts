@@ -1,4 +1,4 @@
-import {ModerationUI} from '@atproto/api'
+import {ModerationUI} from '@sonet/api'
 
 // \u2705 = ✅
 // \u2713 = ✓
@@ -27,16 +27,16 @@ export function sanitizeDisplayName(
 }
 
 export function combinedDisplayName({
-  handle,
+  username,
   displayName,
 }: {
-  handle?: string
+  username?: string
   displayName?: string
 }): string {
-  if (!handle) {
+  if (!username) {
     return ''
   }
   return displayName
-    ? `${sanitizeDisplayName(displayName)} (@${handle})`
-    : `@${handle}`
+    ? `${sanitizeDisplayName(displayName)} (@${username})`
+    : `@${username}`
 }

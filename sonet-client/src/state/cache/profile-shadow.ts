@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useState} from 'react'
-import {type AppBskyActorDefs, type AppBskyNotificationDefs} from '@atproto/api'
+import {type SonetActorDefs, type SonetNotificationDefs} from '@sonet/api'
 import {type QueryClient} from '@tanstack/react-query'
 import EventEmitter from 'eventemitter3'
 
@@ -12,17 +12,17 @@ import {findAllProfilesInQueryData as findAllProfilesInListMembersQueryData} fro
 import {findAllProfilesInQueryData as findAllProfilesInListConvosQueryData} from '#/state/queries/messages/list-conversations'
 import {findAllProfilesInQueryData as findAllProfilesInMyBlockedAccountsQueryData} from '#/state/queries/my-blocked-accounts'
 import {findAllProfilesInQueryData as findAllProfilesInMyMutedAccountsQueryData} from '#/state/queries/my-muted-accounts'
-import {findAllProfilesInQueryData as findAllProfilesInFeedsQueryData} from '#/state/queries/post-feed'
-import {findAllProfilesInQueryData as findAllProfilesInPostLikedByQueryData} from '#/state/queries/post-liked-by'
-import {findAllProfilesInQueryData as findAllProfilesInPostQuotesQueryData} from '#/state/queries/post-quotes'
-import {findAllProfilesInQueryData as findAllProfilesInPostRepostedByQueryData} from '#/state/queries/post-reposted-by'
-import {findAllProfilesInQueryData as findAllProfilesInPostThreadQueryData} from '#/state/queries/post-thread'
+import {findAllProfilesInQueryData as findAllProfilesInFeedsQueryData} from '#/state/queries/note-feed'
+import {findAllProfilesInQueryData as findAllProfilesInNoteLikedByQueryData} from '#/state/queries/note-liked-by'
+import {findAllProfilesInQueryData as findAllProfilesInNoteQuotesQueryData} from '#/state/queries/note-quotes'
+import {findAllProfilesInQueryData as findAllProfilesInNoteRenoteedByQueryData} from '#/state/queries/note-renoteed-by'
+import {findAllProfilesInQueryData as findAllProfilesInNoteThreadQueryData} from '#/state/queries/note-thread'
 import {findAllProfilesInQueryData as findAllProfilesInProfileQueryData} from '#/state/queries/profile'
 import {findAllProfilesInQueryData as findAllProfilesInProfileFollowersQueryData} from '#/state/queries/profile-followers'
 import {findAllProfilesInQueryData as findAllProfilesInProfileFollowsQueryData} from '#/state/queries/profile-follows'
 import {findAllProfilesInQueryData as findAllProfilesInSuggestedFollowsQueryData} from '#/state/queries/suggested-follows'
 import {findAllProfilesInQueryData as findAllProfilesInSuggestedUsersQueryData} from '#/state/queries/trending/useGetSuggestedUsersQuery'
-import {findAllProfilesInQueryData as findAllProfilesInPostThreadV2QueryData} from '#/state/queries/usePostThread/queryCache'
+import {findAllProfilesInQueryData as findAllProfilesInNoteThreadV2QueryData} from '#/state/queries/useNoteThread/queryCache'
 import type * as bsky from '#/types/bsky'
 import {castAsShadow, type Shadow} from './types'
 
@@ -32,9 +32,9 @@ export interface ProfileShadow {
   followingUri: string | undefined
   muted: boolean | undefined
   blockingUri: string | undefined
-  verification: AppBskyActorDefs.VerificationState
-  status: AppBskyActorDefs.StatusView | undefined
-  activitySubscription: AppBskyNotificationDefs.ActivitySubscription | undefined
+  verification: SonetActorDefs.VerificationState
+  status: SonetActorDefs.StatusView | undefined
+  activitySubscription: SonetNotificationDefs.ActivitySubscription | undefined
 }
 
 const shadows: WeakMap<
@@ -47,9 +47,9 @@ export function useProfileShadow<
   TProfileView extends bsky.profile.AnyProfileView,
 >(profile: TProfileView): Shadow<TProfileView> {
   const [shadow, setShadow] = useState(() => shadows.get(profile))
-  const [prevPost, setPrevPost] = useState(profile)
-  if (profile !== prevPost) {
-    setPrevPost(profile)
+  const [prevNote, setPrevNote] = useState(profile)
+  if (profile !== prevNote) {
+    setPrevNote(profile)
     setShadow(shadows.get(profile))
   }
 
@@ -57,9 +57,9 @@ export function useProfileShadow<
     function onUpdate() {
       setShadow(shadows.get(profile))
     }
-    emitter.addListener(profile.did, onUpdate)
+    emitter.addListener(profile.userId, onUpdate)
     return () => {
-      emitter.removeListener(profile.did, onUpdate)
+      emitter.removeListener(profile.userId, onUpdate)
     }
   }, [profile])
 
@@ -82,9 +82,9 @@ export function useMaybeProfileShadow<
   const [shadow, setShadow] = useState(() =>
     profile ? shadows.get(profile) : undefined,
   )
-  const [prevPost, setPrevPost] = useState(profile)
-  if (profile !== prevPost) {
-    setPrevPost(profile)
+  const [prevNote, setPrevNote] = useState(profile)
+  if (profile !== prevNote) {
+    setPrevNote(profile)
     setShadow(profile ? shadows.get(profile) : undefined)
   }
 
@@ -94,9 +94,9 @@ export function useMaybeProfileShadow<
       if (!profile) return
       setShadow(shadows.get(profile))
     }
-    emitter.addListener(profile.did, onUpdate)
+    emitter.addListener(profile.userId, onUpdate)
     return () => {
-      emitter.removeListener(profile.did, onUpdate)
+      emitter.removeListener(profile.userId, onUpdate)
     }
   }, [profile])
 
@@ -112,15 +112,15 @@ export function useMaybeProfileShadow<
 
 export function updateProfileShadow(
   queryClient: QueryClient,
-  did: string,
+  userId: string,
   value: Partial<ProfileShadow>,
 ) {
-  const cachedProfiles = findProfilesInCache(queryClient, did)
+  const cachedProfiles = findProfilesInCache(queryClient, userId)
   for (let profile of cachedProfiles) {
     shadows.set(profile, {...shadows.get(profile), ...value})
   }
   batchedUpdates(() => {
-    emitter.emit(did, value)
+    emitter.emit(userId, value)
   })
 }
 
@@ -157,25 +157,25 @@ function mergeShadow<TProfileView extends bsky.profile.AnyProfileView>(
 
 function* findProfilesInCache(
   queryClient: QueryClient,
-  did: string,
+  userId: string,
 ): Generator<bsky.profile.AnyProfileView, void> {
-  yield* findAllProfilesInListMembersQueryData(queryClient, did)
-  yield* findAllProfilesInMyBlockedAccountsQueryData(queryClient, did)
-  yield* findAllProfilesInMyMutedAccountsQueryData(queryClient, did)
-  yield* findAllProfilesInPostLikedByQueryData(queryClient, did)
-  yield* findAllProfilesInPostRepostedByQueryData(queryClient, did)
-  yield* findAllProfilesInPostQuotesQueryData(queryClient, did)
-  yield* findAllProfilesInProfileQueryData(queryClient, did)
-  yield* findAllProfilesInProfileFollowersQueryData(queryClient, did)
-  yield* findAllProfilesInProfileFollowsQueryData(queryClient, did)
-  yield* findAllProfilesInSuggestedUsersQueryData(queryClient, did)
-  yield* findAllProfilesInSuggestedFollowsQueryData(queryClient, did)
-  yield* findAllProfilesInActorSearchQueryData(queryClient, did)
-  yield* findAllProfilesInListConvosQueryData(queryClient, did)
-  yield* findAllProfilesInFeedsQueryData(queryClient, did)
-  yield* findAllProfilesInPostThreadQueryData(queryClient, did)
-  yield* findAllProfilesInPostThreadV2QueryData(queryClient, did)
-  yield* findAllProfilesInKnownFollowersQueryData(queryClient, did)
-  yield* findAllProfilesInExploreFeedPreviewsQueryData(queryClient, did)
-  yield* findAllProfilesInActivitySubscriptionsQueryData(queryClient, did)
+  yield* findAllProfilesInListMembersQueryData(queryClient, userId)
+  yield* findAllProfilesInMyBlockedAccountsQueryData(queryClient, userId)
+  yield* findAllProfilesInMyMutedAccountsQueryData(queryClient, userId)
+  yield* findAllProfilesInNoteLikedByQueryData(queryClient, userId)
+  yield* findAllProfilesInNoteRenoteedByQueryData(queryClient, userId)
+  yield* findAllProfilesInNoteQuotesQueryData(queryClient, userId)
+  yield* findAllProfilesInProfileQueryData(queryClient, userId)
+  yield* findAllProfilesInProfileFollowersQueryData(queryClient, userId)
+  yield* findAllProfilesInProfileFollowsQueryData(queryClient, userId)
+  yield* findAllProfilesInSuggestedUsersQueryData(queryClient, userId)
+  yield* findAllProfilesInSuggestedFollowsQueryData(queryClient, userId)
+  yield* findAllProfilesInActorSearchQueryData(queryClient, userId)
+  yield* findAllProfilesInListConvosQueryData(queryClient, userId)
+  yield* findAllProfilesInFeedsQueryData(queryClient, userId)
+  yield* findAllProfilesInNoteThreadQueryData(queryClient, userId)
+  yield* findAllProfilesInNoteThreadV2QueryData(queryClient, userId)
+  yield* findAllProfilesInKnownFollowersQueryData(queryClient, userId)
+  yield* findAllProfilesInExploreFeedPreviewsQueryData(queryClient, userId)
+  yield* findAllProfilesInActivitySubscriptionsQueryData(queryClient, userId)
 }

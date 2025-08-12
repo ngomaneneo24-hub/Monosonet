@@ -5,10 +5,10 @@ const FOLLOW_WINDOW = 100
 const FOLLOW_SUGGESTION_WINDOW = 100
 const SEEN_WINDOW = 100
 
-export type SeenPost = {
+export type SeenNote = {
   uri: string
   likeCount: number
-  repostCount: number
+  renoteCount: number
   replyCount: number
   isFollowedBy: boolean
   feedContext: string | undefined
@@ -16,21 +16,21 @@ export type SeenPost = {
 
 export type UserActionHistory = {
   /**
-   * The last 100 post URIs the user has liked
+   * The last 100 note URIs the user has liked
    */
   likes: string[]
   /**
-   * The last 100 DIDs the user has followed
+   * The last 100 UserIDs the user has followed
    */
   follows: string[]
   /*
-   * The last 100 DIDs of suggested follows based on last follows
+   * The last 100 UserIDs of suggested follows based on last follows
    */
   followSuggestions: string[]
   /**
-   * The last 100 post URIs the user has seen from the Discover feed only
+   * The last 100 note URIs the user has seen from the Discover feed only
    */
-  seen: SeenPost[]
+  seen: SeenNote[]
 }
 
 const userActionHistory: UserActionHistory = {
@@ -48,37 +48,37 @@ export function useActionHistorySnapshot() {
   return React.useState(() => getActionHistory())[0]
 }
 
-export function like(postUris: string[]) {
+export function like(noteUris: string[]) {
   userActionHistory.likes = userActionHistory.likes
-    .concat(postUris)
+    .concat(noteUris)
     .slice(-LIKE_WINDOW)
 }
-export function unlike(postUris: string[]) {
+export function unlike(noteUris: string[]) {
   userActionHistory.likes = userActionHistory.likes.filter(
-    uri => !postUris.includes(uri),
+    uri => !noteUris.includes(uri),
   )
 }
 
-export function follow(dids: string[]) {
+export function follow(userIds: string[]) {
   userActionHistory.follows = userActionHistory.follows
-    .concat(dids)
+    .concat(userIds)
     .slice(-FOLLOW_WINDOW)
 }
 
-export function followSuggestion(dids: string[]) {
+export function followSuggestion(userIds: string[]) {
   userActionHistory.followSuggestions = userActionHistory.followSuggestions
-    .concat(dids)
+    .concat(userIds)
     .slice(-FOLLOW_SUGGESTION_WINDOW)
 }
 
-export function unfollow(dids: string[]) {
+export function unfollow(userIds: string[]) {
   userActionHistory.follows = userActionHistory.follows.filter(
-    uri => !dids.includes(uri),
+    uri => !userIds.includes(uri),
   )
 }
 
-export function seen(posts: SeenPost[]) {
+export function seen(notes: SeenNote[]) {
   userActionHistory.seen = userActionHistory.seen
-    .concat(posts)
+    .concat(notes)
     .slice(-SEEN_WINDOW)
 }

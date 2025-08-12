@@ -1,4 +1,4 @@
-import {AppBskyGraphGetActorStarterPacks} from '@atproto/api'
+import {SonetGraphGetActorStarterPacks} from '@sonet/api'
 import {
   InfiniteData,
   QueryClient,
@@ -9,34 +9,34 @@ import {
 import {useAgent} from '#/state/session'
 
 export const RQKEY_ROOT = 'actor-starter-packs'
-export const RQKEY = (did?: string) => [RQKEY_ROOT, did]
+export const RQKEY = (userId?: string) => [RQKEY_ROOT, userId]
 
 export function useActorStarterPacksQuery({
-  did,
+  userId,
   enabled = true,
 }: {
-  did?: string
+  userId?: string
   enabled?: boolean
 }) {
   const agent = useAgent()
 
   return useInfiniteQuery<
-    AppBskyGraphGetActorStarterPacks.OutputSchema,
+    SonetGraphGetActorStarterPacks.OutputSchema,
     Error,
-    InfiniteData<AppBskyGraphGetActorStarterPacks.OutputSchema>,
+    InfiniteData<SonetGraphGetActorStarterPacks.OutputSchema>,
     QueryKey,
     string | undefined
   >({
-    queryKey: RQKEY(did),
+    queryKey: RQKEY(userId),
     queryFn: async ({pageParam}: {pageParam?: string}) => {
-      const res = await agent.app.bsky.graph.getActorStarterPacks({
-        actor: did!,
+      const res = await agent.app.sonet.graph.getActorStarterPacks({
+        actor: userId!,
         limit: 10,
         cursor: pageParam,
       })
       return res.data
     },
-    enabled: Boolean(did) && enabled,
+    enabled: Boolean(userId) && enabled,
     initialPageParam: undefined,
     getNextPageParam: lastPage => lastPage.cursor,
   })
@@ -44,10 +44,10 @@ export function useActorStarterPacksQuery({
 
 export async function invalidateActorStarterPacksQuery({
   queryClient,
-  did,
+  userId,
 }: {
   queryClient: QueryClient
-  did: string
+  userId: string
 }) {
-  await queryClient.invalidateQueries({queryKey: RQKEY(did)})
+  await queryClient.invalidateQueries({queryKey: RQKEY(userId)})
 }

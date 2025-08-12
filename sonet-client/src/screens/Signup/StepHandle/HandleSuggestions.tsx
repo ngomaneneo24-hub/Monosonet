@@ -1,5 +1,5 @@
 import Animated, {Easing, FadeInDown, FadeOut} from 'react-native-reanimated'
-import {type SonetHandleAvailability} from '@sonet/types'
+import {type SonetUsernameAvailability} from '@sonet/types'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -8,13 +8,13 @@ import {borderRadius} from '#/alf/tokens'
 import {Button} from '#/components/Button'
 import {Text} from '#/components/Typography'
 
-export function HandleSuggestions({
+export function UsernameSuggestions({
   suggestions,
   onSelect,
 }: {
-  suggestions: ComAtprotoTempCheckHandleAvailability.Suggestion[]
+  suggestions: SonetTempCheckUsernameAvailability.Suggestion[]
   onSelect: (
-    suggestions: ComAtprotoTempCheckHandleAvailability.Suggestion,
+    suggestions: SonetTempCheckUsernameAvailability.Suggestion,
   ) => void
 }) {
   const t = useTheme()
@@ -40,7 +40,7 @@ export function HandleSuggestions({
         <Button
           label={_(
             msg({
-              message: `Select ${suggestion.handle}`,
+              message: `Select ${suggestion.username}`,
               comment: `Accessibility label for a username suggestion in the account creation flow`,
             }),
           )}
@@ -67,7 +67,7 @@ export function HandleSuggestions({
               a.border_b_0,
             ],
           ]}>
-          <Text style={[a.text_md]}>{suggestion.handle}</Text>
+          <Text style={[a.text_md]}>{suggestion.username}</Text>
           <Text style={[a.text_sm, {color: t.palette.positive_700}]}>
             <Trans comment="Shown next to an available username suggestion in the account creation flow">
               Available

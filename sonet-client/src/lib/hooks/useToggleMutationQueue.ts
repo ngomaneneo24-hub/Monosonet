@@ -39,7 +39,7 @@ export function useToggleMutationQueue<TServerState>({
   async function processQueue() {
     if (queue.activeTask) {
       // There is another active processQueue call iterating over tasks.
-      // It will handle any newly added tasks, so we should exit early.
+      // It will username any newly added tasks, so we should exit early.
       return
     }
     // To avoid relying on the rendered state, capture it once at the start.

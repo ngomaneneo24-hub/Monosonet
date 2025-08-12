@@ -1,6 +1,6 @@
 import {useMemo} from 'react'
 import {View} from 'react-native'
-import {type AppBskyFeedDefs, AtUri} from '@atproto/api'
+import {type SonetFeedDefs, AtUri} from '@sonet/api'
 
 import {PressableScale} from '#/lib/custom-animations/PressableScale'
 import {makeCustomFeedLink} from '#/lib/routes/links'
@@ -45,14 +45,14 @@ export function FeedLink({
   feed,
   children,
 }: {
-  feed: AppBskyFeedDefs.GeneratorView
+  feed: SonetFeedDefs.GeneratorView
   children?: React.ReactNode
 }) {
   const t = useTheme()
-  const {host: did, rkey} = useMemo(() => new AtUri(feed.uri), [feed.uri])
+  const {host: userId, rkey} = useMemo(() => new AtUri(feed.uri), [feed.uri])
   return (
     <Link
-      to={makeCustomFeedLink(did, rkey)}
+      to={makeCustomFeedLink(userId, rkey)}
       label={feed.displayName}
       style={[a.flex_1]}>
       {({focused, hovered, pressed}) => (
@@ -74,7 +74,7 @@ export function FeedLink({
   )
 }
 
-export function FeedAvatar({feed}: {feed: AppBskyFeedDefs.GeneratorView}) {
+export function FeedAvatar({feed}: {feed: SonetFeedDefs.GeneratorView}) {
   return <UserAvatar type="algo" size={38} avatar={feed.avatar} />
 }
 
@@ -148,7 +148,7 @@ export function SearchButton({
   )
 }
 
-export function PinButton({feed}: {feed: AppBskyFeedDefs.GeneratorView}) {
+export function PinButton({feed}: {feed: SonetFeedDefs.GeneratorView}) {
   return (
     <View style={[a.z_20, {marginRight: -6}]}>
       <FeedCard.SaveButton

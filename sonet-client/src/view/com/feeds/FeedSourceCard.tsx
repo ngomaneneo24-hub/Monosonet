@@ -1,9 +1,9 @@
 import {type StyleProp, View, type ViewStyle} from 'react-native'
-import { type SonetPost, type SonetProfile, type SonetFeedGenerator, type SonetPostRecord, type SonetFeedViewPost, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
+import { type SonetNote, type SonetProfile, type SonetFeedGenerator, type SonetNoteRecord, type SonetFeedViewNote, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
 import {msg, Plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {
   type FeedSourceInfo,
   hydrateFeedGenerator,
@@ -142,9 +142,9 @@ export function FeedSourceCardLoaded({
             style={[a.text_sm, t.atoms.text_contrast_medium, a.leading_snug]}
             numberOfLines={1}>
             {feed.type === 'feed' ? (
-              <Trans>Feed by {sanitizeHandle(feed.creatorHandle, '@')}</Trans>
+              <Trans>Feed by {sanitizeUsername(feed.creatorUsername, '@')}</Trans>
             ) : (
-              <Trans>List by {sanitizeHandle(feed.creatorHandle, '@')}</Trans>
+              <Trans>List by {sanitizeUsername(feed.creatorUsername, '@')}</Trans>
             )}
           </Text>
         </View>
@@ -179,8 +179,8 @@ export function FeedSourceCardLoaded({
         testID={`feed-${feed.displayName}`}
         label={_(
           feed.type === 'feed'
-            ? msg`${feed.displayName}, a feed by ${sanitizeHandle(feed.creatorHandle, '@')}, liked by ${feed.likeCount || 0}`
-            : msg`${feed.displayName}, a list by ${sanitizeHandle(feed.creatorHandle, '@')}`,
+            ? msg`${feed.displayName}, a feed by ${sanitizeUsername(feed.creatorUsername, '@')}, liked by ${feed.likeCount || 0}`
+            : msg`${feed.displayName}, a list by ${sanitizeUsername(feed.creatorUsername, '@')}`,
         )}
         to={{
           screen: feed.type === 'feed' ? 'ProfileFeed' : 'ProfileList',

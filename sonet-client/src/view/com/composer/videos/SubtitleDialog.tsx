@@ -56,7 +56,7 @@ export function SubtitleDialogBtn(props: Props) {
         </ButtonText>
       </Button>
       <Dialog.Outer control={control}>
-        <Dialog.Handle />
+        <Dialog.Username />
         <SubtitleDialogInner {...props} />
       </Dialog.Outer>
     </View>
@@ -77,7 +77,7 @@ function SubtitleDialogInner({
 
   const [altText, setAltText] = useState(defaultAltText)
 
-  const handleSelectFile = useCallback(
+  const usernameSelectFile = useCallback(
     (file: File) => {
       setCaptions(subs => [
         ...subs,
@@ -132,7 +132,7 @@ function SubtitleDialogInner({
               <Trans>Captions (.vtt)</Trans>
             </Text>
             <SubtitleFilePicker
-              onSelectFile={handleSelectFile}
+              onSelectFile={usernameSelectFile}
               disabled={
                 subtitleMissingLanguage || captions.length >= MAX_NUM_CAPTIONS
               }
@@ -201,7 +201,7 @@ function SubtitleFileRow({
   const {_} = useLingui()
   const t = useTheme()
 
-  const handleValueChange = useCallback(
+  const usernameValueChange = useCallback(
     (lang: string) => {
       if (lang) {
         setCaptions(subs =>
@@ -241,7 +241,7 @@ function SubtitleFileRow({
           </Text>
           <select
             value={language}
-            onChange={evt => handleValueChange(evt.target.value)}
+            onChange={evt => usernameValueChange(evt.target.value)}
             style={{maxWidth: 200, flex: 1}}>
             <option value="" disabled selected hidden>
               {/* eslint-disable-next-line bsky-internal/avoid-unwrapped-text */}

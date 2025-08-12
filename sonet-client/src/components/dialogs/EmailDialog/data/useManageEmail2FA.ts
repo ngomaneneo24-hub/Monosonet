@@ -17,7 +17,7 @@ export function useManageEmail2FA() {
         throw new Error('No email found for the current account')
       }
 
-      await agent.com.atproto.server.updateEmail({
+      await agent.com.sonet.server.updateEmail({
         email: currentAccount.email,
         emailAuthFactor: enabled,
         token,

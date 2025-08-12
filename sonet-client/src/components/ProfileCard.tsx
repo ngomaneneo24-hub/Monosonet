@@ -4,7 +4,7 @@ import {
   moderateProfile,
   type ModerationOpts,
   RichText as RichTextApi,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -14,7 +14,7 @@ import {type LogEvents} from '#/lib/statsig/statsig'
 import {forceLTR} from '#/lib/strings/bidi'
 import {NON_BREAKING_SPACE} from '#/lib/strings/constants'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {useProfileShadow} from '#/state/cache/profile-shadow'
 import {useProfileFollowMutationQueue} from '#/state/queries/profile'
 import {useSession} from '#/state/session'
@@ -79,7 +79,7 @@ export function Card({
     <Outer>
       <Header>
         <Avatar profile={profile} moderationOpts={moderationOpts} />
-        <NameAndHandle profile={profile} moderationOpts={moderationOpts} />
+        <NameAndUsername profile={profile} moderationOpts={moderationOpts} />
         <FollowButton
           profile={profile}
           moderationOpts={moderationOpts}
@@ -123,12 +123,12 @@ export function Link({
     <InternalLink
       label={_(
         msg`View ${
-          profile.displayName || sanitizeHandle(profile.handle)
+          profile.displayName || sanitizeUsername(profile.username)
         }'s profile`,
       )}
       to={{
         screen: 'Profile',
-        params: {name: profile.did},
+        params: {name: profile.userId},
       }}
       style={[a.flex_col, style]}
       {...rest}>
@@ -191,7 +191,7 @@ export function AvatarPlaceholder({size = 40}: {size?: number}) {
   )
 }
 
-export function NameAndHandle({
+export function NameAndUsername({
   profile,
   moderationOpts,
   inline = false,
@@ -202,19 +202,19 @@ export function NameAndHandle({
 }) {
   if (inline) {
     return (
-      <InlineNameAndHandle profile={profile} moderationOpts={moderationOpts} />
+      <InlineNameAndUsername profile={profile} moderationOpts={moderationOpts} />
     )
   } else {
     return (
       <View style={[a.flex_1]}>
         <Name profile={profile} moderationOpts={moderationOpts} />
-        <Handle profile={profile} />
+        <Username profile={profile} />
       </View>
     )
   }
 }
 
-function InlineNameAndHandle({
+function InlineNameAndUsername({
   profile,
   moderationOpts,
 }: {
@@ -225,10 +225,10 @@ function InlineNameAndHandle({
   const verification = useSimpleVerificationState({profile})
   const moderation = moderateProfile(profile, moderationOpts)
   const name = sanitizeDisplayName(
-    profile.displayName || sanitizeHandle(profile.handle),
+    profile.displayName || sanitizeUsername(profile.username),
     moderation.ui('displayName'),
   )
-  const handle = sanitizeHandle(profile.handle, '@')
+  const username = sanitizeUsername(profile.username, '@')
   return (
     <View style={[a.flex_row, a.align_end, a.flex_shrink]}>
       <Text
@@ -263,7 +263,7 @@ function InlineNameAndHandle({
           {flexShrink: 10},
         ]}
         numberOfLines={1}>
-        {NON_BREAKING_SPACE + handle}
+        {NON_BREAKING_SPACE + username}
       </Text>
     </View>
   )
@@ -278,7 +278,7 @@ export function Name({
 }) {
   const moderation = moderateProfile(profile, moderationOpts)
   const name = sanitizeDisplayName(
-    profile.displayName || sanitizeHandle(profile.handle),
+    profile.displayName || sanitizeUsername(profile.username),
     moderation.ui('displayName'),
   )
   const verification = useSimpleVerificationState({profile})
@@ -308,21 +308,21 @@ export function Name({
   )
 }
 
-export function Handle({profile}: {profile: bsky.profile.AnyProfileView}) {
+export function Username({profile}: {profile: bsky.profile.AnyProfileView}) {
   const t = useTheme()
-  const handle = sanitizeHandle(profile.handle, '@')
+  const username = sanitizeUsername(profile.username, '@')
 
   return (
     <Text
       emoji
       style={[a.leading_snug, t.atoms.text_contrast_medium]}
       numberOfLines={1}>
-      {handle}
+      {username}
     </Text>
   )
 }
 
-export function NameAndHandlePlaceholder() {
+export function NameAndUsernamePlaceholder() {
   const t = useTheme()
 
   return (
@@ -442,7 +442,7 @@ export type FollowButtonProps = {
 
 export function FollowButton(props: FollowButtonProps) {
   const {currentAccount, hasSession} = useSession()
-  const isMe = props.profile.did === currentAccount?.did
+  const isMe = props.profile.userId === currentAccount?.userId
   
   // Use PrivateProfileFollowButton for enhanced private profile support
   if (hasSession && !isMe) {
@@ -490,7 +490,7 @@ export function FollowButtonInner({
       Toast.show(
         _(
           msg`Following ${sanitizeDisplayName(
-            profile.displayName || profile.handle,
+            profile.displayName || profile.username,
             moderation.ui('displayName'),
           )}`,
         ),
@@ -512,7 +512,7 @@ export function FollowButtonInner({
       Toast.show(
         _(
           msg`No longer following ${sanitizeDisplayName(
-            profile.displayName || profile.handle,
+            profile.displayName || profile.username,
             moderation.ui('displayName'),
           )}`,
         ),

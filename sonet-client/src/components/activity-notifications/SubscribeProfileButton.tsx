@@ -1,5 +1,5 @@
 import {useCallback} from 'react'
-import {type ModerationOpts} from '@atproto/api'
+import {type ModerationOpts} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -41,14 +41,14 @@ export function SubscribeProfileButton({
   const wrappedOnPress = requireEmailVerification(onPress, {
     instructions: [
       <Trans key="message">
-        Before you can get notifications for {name}'s posts, you must first
+        Before you can get notifications for {name}'s notes, you must first
         verify your email.
       </Trans>,
     ],
   })
 
   const isSubscribed =
-    profile.viewer?.activitySubscription?.post ||
+    profile.viewer?.activitySubscription?.note ||
     profile.viewer?.activitySubscription?.reply
 
   const Icon = isSubscribed ? BellRingingIcon : BellPlusIcon
@@ -67,14 +67,14 @@ export function SubscribeProfileButton({
             color="secondary"
             variant="solid"
             shape="round"
-            label={_(msg`Get notified when ${name} posts`)}
+            label={_(msg`Get notified when ${name} notes`)}
             onPress={wrappedOnPress}>
             <ButtonIcon icon={Icon} size="md" />
           </Button>
         </Tooltip.Target>
         <Tooltip.TextBubble>
           <Text>
-            <Trans>Get notified about new posts</Trans>
+            <Trans>Get notified about new notes</Trans>
           </Text>
         </Tooltip.TextBubble>
       </Tooltip.Outer>

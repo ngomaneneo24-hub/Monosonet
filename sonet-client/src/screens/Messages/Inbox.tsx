@@ -81,7 +81,7 @@ export function MessagesInboxScreenInner({}: Props) {
     return conversations.some(
       conversation =>
         conversation.members.every(
-          member => member.handle !== 'missing.invalid',
+          member => member.username !== 'missing.invalid',
         ) && conversation.unreadCount > 0,
     )
   }, [conversations])

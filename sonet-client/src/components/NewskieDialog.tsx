@@ -1,6 +1,6 @@
 import React from 'react'
 import {View} from 'react-native'
-import {AppBskyActorDefs, moderateProfile} from '@atproto/api'
+import {SonetActorDefs, moderateProfile} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {differenceInSeconds} from 'date-fns'
@@ -23,7 +23,7 @@ export function NewskieDialog({
   profile,
   disabled,
 }: {
-  profile: AppBskyActorDefs.ProfileViewDetailed
+  profile: SonetActorDefs.ProfileViewDetailed
   disabled?: boolean
 }) {
   const {_} = useLingui()
@@ -33,11 +33,11 @@ export function NewskieDialog({
   const timeAgo = useGetTimeAgo()
   const control = useDialogControl()
 
-  const isMe = profile.did === currentAccount?.did
+  const isMe = profile.userId === currentAccount?.userId
   const createdAt = profile.createdAt as string | undefined
 
   const profileName = React.useMemo(() => {
-    const name = profile.displayName || profile.handle
+    const name = profile.displayName || profile.username
 
     if (isMe) {
       return _(msg`You`)
@@ -78,7 +78,7 @@ export function NewskieDialog({
       </Button>
 
       <Dialog.Outer control={control}>
-        <Dialog.Handle />
+        <Dialog.Username />
         <Dialog.ScrollableInner
           label={_(msg`New user info dialog`)}
           style={web({width: 'auto', maxWidth: 400, minWidth: 200})}>

@@ -18,7 +18,7 @@ export function CaptchaWebView({
   React.useEffect(() => {
     const timeout = setTimeout(() => {
       onError({
-        errorMessage: 'User did not complete the captcha within 30 seconds',
+        errorMessage: 'User userId not complete the captcha within 30 seconds',
       })
     }, 30e3)
 

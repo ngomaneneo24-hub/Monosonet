@@ -8,7 +8,7 @@ import {
   type ViewStyle,
 } from 'react-native'
 import Svg, {Circle, Path, Rect} from 'react-native-svg'
-import {type ModerationUI} from '@atproto/api'
+import {type ModerationUI} from '@sonet/api'
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -26,7 +26,7 @@ import {openCamera, openCropper, openPicker} from '#/lib/media/picker'
 import {type PickerImage} from '#/lib/media/picker.shared'
 import {makeProfileLink} from '#/lib/routes/links'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {logger} from '#/logger'
 import {isAndroid, isNative, isWeb} from '#/platform/detection'
 import {
@@ -545,11 +545,11 @@ let PreviewableUserAvatar = ({
     playHaptic('Light')
     logger.metric(
       'live:card:open',
-      {subject: profile.did, from: 'post'},
+      {subject: profile.userId, from: 'note'},
       {statsig: true},
     )
     liveControl.open()
-  }, [liveControl, playHaptic, profile.did])
+  }, [liveControl, playHaptic, profile.userId])
 
   const avatarEl = (
     <UserAvatar
@@ -562,7 +562,7 @@ let PreviewableUserAvatar = ({
   )
 
   return (
-    <ProfileHoverCard did={profile.did} disable={disableHoverCard}>
+    <ProfileHoverCard userId={profile.userId} disable={disableHoverCard}>
       {disableNavigation ? (
         avatarEl
       ) : status.isActive && (isNative || isTouchDevice) ? (
@@ -570,7 +570,7 @@ let PreviewableUserAvatar = ({
           <Button
             label={_(
               msg`${sanitizeDisplayName(
-                profile.displayName || sanitizeHandle(profile.handle),
+                profile.displayName || sanitizeUsername(profile.username),
               )}'s avatar`,
             )}
             accessibilityHint={_(msg`Opens live status dialog`)}
@@ -588,13 +588,13 @@ let PreviewableUserAvatar = ({
         <Link
           label={_(
             msg`${sanitizeDisplayName(
-              profile.displayName || sanitizeHandle(profile.handle),
+              profile.displayName || sanitizeUsername(profile.username),
             )}'s avatar`,
           )}
           accessibilityHint={_(msg`Opens this profile`)}
           to={makeProfileLink({
-            did: profile.did,
-            handle: profile.handle,
+            userId: profile.userId,
+            username: profile.username,
           })}
           onPress={onPress}>
           {avatarEl}

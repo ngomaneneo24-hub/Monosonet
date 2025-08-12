@@ -4,15 +4,15 @@ import {msg, Plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
 import {
-  type PostThreadParams,
+  type NoteThreadParams,
   type ThreadItem,
-} from '#/state/queries/usePostThread'
+} from '#/state/queries/useNoteThread'
 import {
   LINEAR_AVI_WIDTH,
   REPLY_LINE_WIDTH,
   TREE_AVI_WIDTH,
   TREE_INDENT,
-} from '#/screens/PostThread/const'
+} from '#/screens/NoteThread/const'
 import {atoms as a, useTheme} from '#/alf'
 import {CirclePlus_Stroke2_Corner0_Rounded as CirclePlus} from '#/components/icons/CirclePlus'
 import {Link} from '#/components/Link'
@@ -23,7 +23,7 @@ export const ThreadItemReadMore = memo(function ThreadItemReadMore({
   view,
 }: {
   item: Extract<ThreadItem, {type: 'readMore'}>
-  view: PostThreadParams['view']
+  view: NoteThreadParams['view']
 }) {
   const t = useTheme()
   const {_} = useLingui()

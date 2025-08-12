@@ -1,9 +1,9 @@
 import {StyleProp, StyleSheet, TextStyle} from 'react-native'
-import {AppBskyActorGetProfile as GetProfile} from '@atproto/api'
+import {SonetActorGetProfile as GetProfile} from '@sonet/api'
 
 import {makeProfileLink} from '#/lib/routes/links'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {TypographyVariant} from '#/lib/ThemeContext'
 import {STALE} from '#/state/queries'
 import {useProfileQuery} from '#/state/queries/profile'
@@ -13,25 +13,25 @@ import {Text} from './text/Text'
 
 export function UserInfoText({
   type = 'md',
-  did,
+  userId,
   attr,
   failed,
   prefix,
   style,
 }: {
   type?: TypographyVariant
-  did: string
+  userId: string
   attr?: keyof GetProfile.OutputSchema
   loading?: string
   failed?: string
   prefix?: string
   style?: StyleProp<TextStyle>
 }) {
-  attr = attr || 'handle'
+  attr = attr || 'username'
   failed = failed || 'user'
 
   const {data: profile, isError} = useProfileQuery({
-    did,
+    userId,
     staleTime: STALE.INFINITY,
   })
 
@@ -55,7 +55,7 @@ export function UserInfoText({
             {`${prefix || ''}${sanitizeDisplayName(
               typeof profile[attr] === 'string' && profile[attr]
                 ? (profile[attr] as string)
-                : sanitizeHandle(profile.handle),
+                : sanitizeUsername(profile.username),
             )}`}
           </Text>
         }

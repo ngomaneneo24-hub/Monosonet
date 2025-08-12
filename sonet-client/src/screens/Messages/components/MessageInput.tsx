@@ -1,7 +1,7 @@
 import {useCallback, useState} from 'react'
 import {Pressable, TextInput, useWindowDimensions, View} from 'react-native'
 import {
-  useFocusedInputHandler,
+  useFocusedInputUsernamer,
   useReanimatedKeyboardAnimation,
 } from 'react-native-keyboard-controller'
 import Animated, {
@@ -111,7 +111,7 @@ export function MessageInput({
     _,
   ])
 
-  useFocusedInputHandler(
+  useFocusedInputUsernamer(
     {
       onChangeText: () => {
         'worklet'

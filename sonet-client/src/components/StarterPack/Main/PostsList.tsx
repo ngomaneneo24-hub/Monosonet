@@ -4,8 +4,8 @@ import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
 import {isNative} from '#/platform/detection'
-import {FeedDescriptor} from '#/state/queries/post-feed'
-import {PostFeed} from '#/view/com/posts/PostFeed'
+import {FeedDescriptor} from '#/state/queries/note-feed'
+import {NoteFeed} from '#/view/com/notes/NoteFeed'
 import {EmptyState} from '#/view/com/util/EmptyState'
 import {ListRef} from '#/view/com/util/List'
 import {SectionRef} from '#/screens/Profile/Sections/types'
@@ -16,8 +16,8 @@ interface ProfilesListProps {
   scrollElRef: ListRef
 }
 
-export const PostsList = React.forwardRef<SectionRef, ProfilesListProps>(
-  function PostsListImpl({listUri, headerHeight, scrollElRef}, ref) {
+export const NotesList = React.forwardRef<SectionRef, ProfilesListProps>(
+  function NotesListImpl({listUri, headerHeight, scrollElRef}, ref) {
     const feed: FeedDescriptor = `list|${listUri}`
     const {_} = useLingui()
 
@@ -28,21 +28,21 @@ export const PostsList = React.forwardRef<SectionRef, ProfilesListProps>(
       })
     }, [scrollElRef, headerHeight])
 
-    React.useImperativeHandle(ref, () => ({
+    React.useImperativeUsername(ref, () => ({
       scrollToTop: onScrollToTop,
     }))
 
-    const renderPostsEmpty = useCallback(() => {
+    const renderNotesEmpty = useCallback(() => {
       return <EmptyState icon="hashtag" message={_(msg`This feed is empty.`)} />
     }, [_])
 
     return (
       <View>
-        <PostFeed
+        <NoteFeed
           feed={feed}
           pollInterval={60e3}
           scrollElRef={scrollElRef}
-          renderEmptyState={renderPostsEmpty}
+          renderEmptyState={renderNotesEmpty}
           headerOffset={headerHeight}
         />
       </View>

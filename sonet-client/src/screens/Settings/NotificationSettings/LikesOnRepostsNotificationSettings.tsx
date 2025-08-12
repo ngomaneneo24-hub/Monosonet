@@ -8,7 +8,7 @@ import {
 import {useNotificationSettingsQuery} from '#/state/queries/notifications/settings'
 import {atoms as a} from '#/alf'
 import {Admonition} from '#/components/Admonition'
-import {LikeRepost_Stroke2_Corner2_Rounded as LikeRepostIcon} from '#/components/icons/Heart2'
+import {LikeRenote_Stroke2_Corner2_Rounded as LikeRenoteIcon} from '#/components/icons/Heart2'
 import * as Layout from '#/components/Layout'
 import * as SettingsList from '../components/SettingsList'
 import {ItemTextWithSubtitle} from './components/ItemTextWithSubtitle'
@@ -16,9 +16,9 @@ import {PreferenceControls} from './components/PreferenceControls'
 
 type Props = NativeStackScreenProps<
   AllNavigatorParams,
-  'LikesOnRepostsNotificationSettings'
+  'LikesOnRenotesNotificationSettings'
 >
-export function LikesOnRepostsNotificationSettingsScreen({}: Props) {
+export function LikesOnRenotesNotificationSettingsScreen({}: Props) {
   const {data: preferences, isError} = useNotificationSettingsQuery()
 
   return (
@@ -35,13 +35,13 @@ export function LikesOnRepostsNotificationSettingsScreen({}: Props) {
       <Layout.Content>
         <SettingsList.Container>
           <SettingsList.Item style={[a.align_start]}>
-            <SettingsList.ItemIcon icon={LikeRepostIcon} />
+            <SettingsList.ItemIcon icon={LikeRenoteIcon} />
             <ItemTextWithSubtitle
               bold
-              titleText={<Trans>Likes of your reposts</Trans>}
+              titleText={<Trans>Likes of your renotes</Trans>}
               subtitleText={
                 <Trans>
-                  Get notifications when people like posts that you've reposted.
+                  Get notifications when people like notes that you've renoteed.
                 </Trans>
               }
             />
@@ -54,8 +54,8 @@ export function LikesOnRepostsNotificationSettingsScreen({}: Props) {
             </View>
           ) : (
             <PreferenceControls
-              name="likeViaRepost"
-              preference={preferences?.likeViaRepost}
+              name="likeViaRenote"
+              preference={preferences?.likeViaRenote}
             />
           )}
         </SettingsList.Container>
