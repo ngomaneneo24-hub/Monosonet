@@ -70,7 +70,6 @@
     "icons:optimize": "svgo -f ./assets/icons"
   },
   "dependencies": {
-
     "@bitdrift/react-native": "^0.6.8",
     "@braintree/sanitize-url": "^6.0.2",
     "@discord/bottom-sheet": "bluesky-social/react-native-bottom-sheet",
@@ -86,7 +85,6 @@
     "@fortawesome/free-regular-svg-icons": "^6.1.1",
     "@fortawesome/free-solid-svg-icons": "^6.1.1",
     "@fortawesome/react-native-fontawesome": "^0.3.2",
-
     "@lingui/react": "^4.14.1",
     "@mattermost/react-native-paste-input": "mattermost/react-native-paste-input",
     "@miblanchard/react-native-slider": "^2.6.0",
@@ -132,6 +130,7 @@
     "eventemitter3": "^5.0.1",
     "expo": "53.0.11",
     "expo-application": "~6.1.4",
+    "expo-av": "~14.1.5",
     "expo-blur": "~14.1.5",
     "expo-build-properties": "~0.14.6",
     "expo-camera": "~16.1.8",
@@ -146,7 +145,6 @@
     "expo-image-manipulator": "~13.1.7",
     "expo-image-picker": "~16.1.4",
     "expo-linear-gradient": "~14.1.5",
-    "expo-av": "~14.1.5",
     "expo-linking": "~7.1.5",
     "expo-localization": "~16.1.5",
     "expo-media-library": "~17.1.7",
@@ -170,7 +168,6 @@
     "lodash.isequal": "^4.5.0",
     "lodash.shuffle": "^4.2.0",
     "lodash.throttle": "^4.1.1",
-
     "nanoid": "^5.0.5",
     "normalize-url": "^8.0.0",
     "patch-package": "^6.5.1",
@@ -220,7 +217,6 @@
     "zod": "^3.20.2"
   },
   "devDependencies": {
-
     "@babel/core": "^7.26.0",
     "@babel/preset-env": "^7.26.0",
     "@babel/runtime": "^7.26.0",
@@ -250,7 +246,6 @@
     "babel-plugin-react-compiler": "^19.1.0-rc.1",
     "babel-preset-expo": "~13.1.11",
     "eslint": "^8.19.0",
-    "eslint-plugin-sonet-internal": "link:./eslint",
     "eslint-plugin-ft-flow": "^2.0.3",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-lingui": "^0.2.0",
@@ -258,8 +253,9 @@
     "eslint-plugin-react-compiler": "^19.1.0-rc.1",
     "eslint-plugin-react-native-a11y": "^3.3.0",
     "eslint-plugin-simple-import-sort": "^12.0.0",
+    "eslint-plugin-sonet-internal": "link:./eslint",
     "file-loader": "6.2.0",
-    "husky": "^8.0.3",
+    "husky": "^9.1.7",
     "is-ci": "^3.0.1",
     "jest": "^29.7.0",
     "jest-expo": "~53.0.7",
