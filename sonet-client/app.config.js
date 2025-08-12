@@ -33,13 +33,14 @@ module.exports = function (_config) {
   return {
     expo: {
       version: VERSION,
-      name: 'Bluesky',
-      slug: 'bluesky',
-      scheme: 'bluesky',
-      owner: 'blueskysocial',
+      name: 'Sonet',
+      slug: 'sonet',
+      scheme: 'sonet',
+      owner: 'entativa',
       runtimeVersion: {
         policy: 'appVersion',
       },
+
       icon: './assets/app-icons/ios_icon_default_light.png',
       userInterfaceStyle: 'automatic',
       primaryColor: '#1083fe',
@@ -385,7 +386,7 @@ module.exports = function (_config) {
               },
             },
           },
-          projectId: '55bd077a-d905-4184-9c7f-94789ba0f302',
+          projectId: 'f2a1a060-b251-42b0-bd79-66078c6e15ad',
         },
       },
     },
