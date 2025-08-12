@@ -2,28 +2,42 @@ import {logger} from '#/logger'
 
 export interface FlaggedAccount {
   id: string
+  user_id: string
   username: string
   reason: string
-  flaggedAt: Date
-  expiresAt: Date
-  warningMessage: string
-  isActive: boolean
+  warning_message: string
+  flagged_at: string
+  expires_at: string
+  is_active: boolean
 }
 
 export interface FlagAccountRequest {
-  accountId: string
+  target_user_id: string
+  target_username: string
   reason: string
-  warningMessage?: string
+  warning_message?: string
 }
 
 export interface FlagAccountResponse {
   success: boolean
-  flaggedAccount?: FlaggedAccount
+  flag_id?: string
+  message?: string
+  expires_at?: string
   error?: string
 }
 
+export interface ModerationAction {
+  type: 'flag' | 'shadowban' | 'suspend' | 'ban' | 'delete_note'
+  target_user_id: string
+  target_username: string
+  reason: string
+  warning_message?: string
+  duration_days?: number
+  permanent?: boolean
+}
+
 class FlaggingService {
-  private flaggedAccounts: Map<string, FlaggedAccount> = new Map()
+  private baseUrl = '/api/v1/moderation'
 
   /**
    * Flag an account for moderation review
@@ -31,40 +45,243 @@ class FlaggingService {
    */
   async flagAccount(request: FlagAccountRequest): Promise<FlagAccountResponse> {
     try {
-      const now = new Date()
-      const expiresAt = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000) // 60 days
+      const response = await fetch(`${this.baseUrl}/accounts/flag`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+        },
+        body: JSON.stringify(request),
+      })
 
-      const flaggedAccount: FlaggedAccount = {
-        id: request.accountId,
-        username: '', // Will be populated from account lookup
-        reason: request.reason,
-        flaggedAt: now,
-        expiresAt,
-        warningMessage: request.warningMessage || this.generateDefaultWarning(request.reason),
-        isActive: true,
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to flag account')
       }
 
-      // Store the flagged account
-      this.flaggedAccounts.set(request.accountId, flaggedAccount)
-
-      // Schedule automatic expiration
-      this.scheduleExpiration(request.accountId, expiresAt)
-
+      const data = await response.json()
+      
       logger.info('Account flagged for moderation review', {
-        accountId: request.accountId,
+        target_user_id: request.target_user_id,
         reason: request.reason,
-        expiresAt: expiresAt.toISOString(),
+        expires_at: data.expires_at,
       })
 
       return {
         success: true,
-        flaggedAccount,
+        flag_id: data.flag_id,
+        message: data.message,
+        expires_at: data.expires_at,
       }
     } catch (error) {
       logger.error('Failed to flag account', {error, request})
       return {
         success: false,
-        error: 'Failed to flag account',
+        error: error instanceof Error ? error.message : 'Failed to flag account',
+      }
+    }
+  }
+
+  /**
+   * Remove a flag from an account
+   */
+  async removeFlag(flagId: string): Promise<FlagAccountResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/accounts/flag/${flagId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to remove flag')
+      }
+
+      const data = await response.json()
+      
+      logger.info('Flag removed from account', {flag_id: flagId})
+
+      return {
+        success: true,
+        message: data.message,
+      }
+    } catch (error) {
+      logger.error('Failed to remove flag', {error, flag_id: flagId})
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to remove flag',
+      }
+    }
+  }
+
+  /**
+   * Shadowban an account
+   */
+  async shadowbanAccount(request: Omit<FlagAccountRequest, 'warning_message'>): Promise<FlagAccountResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/accounts/shadowban`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+        },
+        body: JSON.stringify(request),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to shadowban account')
+      }
+
+      const data = await response.json()
+      
+      logger.info('Account shadowbanned', {
+        target_user_id: request.target_user_id,
+        reason: request.reason,
+      })
+
+      return {
+        success: true,
+        message: data.message,
+      }
+    } catch (error) {
+      logger.error('Failed to shadowban account', {error, request})
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to shadowban account',
+      }
+    }
+  }
+
+  /**
+   * Suspend an account
+   */
+  async suspendAccount(
+    request: Omit<FlagAccountRequest, 'warning_message'> & { duration_days: number }
+  ): Promise<FlagAccountResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/accounts/suspend`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+        },
+        body: JSON.stringify(request),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to suspend account')
+      }
+
+      const data = await response.json()
+      
+      logger.info('Account suspended', {
+        target_user_id: request.target_user_id,
+        reason: request.reason,
+        duration_days: request.duration_days,
+      })
+
+      return {
+        success: true,
+        message: data.message,
+      }
+    } catch (error) {
+      logger.error('Failed to suspend account', {error, request})
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to suspend account',
+      }
+    }
+  }
+
+  /**
+   * Ban an account
+   */
+  async banAccount(
+    request: Omit<FlagAccountRequest, 'warning_message'> & { permanent: boolean }
+  ): Promise<FlagAccountResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/accounts/ban`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+        },
+        body: JSON.stringify(request),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to ban account')
+      }
+
+      const data = await response.json()
+      
+      logger.info('Account banned', {
+        target_user_id: request.target_user_id,
+        reason: request.reason,
+        permanent: request.permanent,
+      })
+
+      return {
+        success: true,
+        message: data.message,
+      }
+    } catch (error) {
+      logger.error('Failed to ban account', {error, request})
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to ban account',
+      }
+    }
+  }
+
+  /**
+   * Delete a note (appears as Sonet moderation)
+   */
+  async deleteNote(
+    noteId: string,
+    targetUserId: string,
+    reason: string
+  ): Promise<FlagAccountResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/notes/${noteId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+        },
+        body: JSON.stringify({
+          target_user_id: targetUserId,
+          reason,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete note')
+      }
+
+      const data = await response.json()
+      
+      logger.info('Note deleted by moderation', {
+        note_id: noteId,
+        target_user_id: targetUserId,
+        reason,
+      })
+
+      return {
+        success: true,
+        message: data.message,
+      }
+    } catch (error) {
+      logger.error('Failed to delete note', {error, note_id: noteId})
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to delete note',
       }
     }
   }
@@ -72,97 +289,102 @@ class FlaggingService {
   /**
    * Get all flagged accounts
    */
-  async getFlaggedAccounts(): Promise<FlaggedAccount[]> {
-    return Array.from(this.flaggedAccounts.values()).filter(account => account.isActive)
+  async getFlaggedAccounts(includeExpired = false): Promise<FlaggedAccount[]> {
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/accounts/flagged?include_expired=${includeExpired}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${this.getAuthToken()}`,
+          },
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to get flagged accounts')
+      }
+
+      const data = await response.json()
+      return data.accounts || []
+    } catch (error) {
+      logger.error('Failed to get flagged accounts', {error})
+      return []
+    }
   }
 
   /**
-   * Remove a flag from an account
+   * Get moderation statistics
    */
-  async removeFlag(accountId: string): Promise<boolean> {
-    const account = this.flaggedAccounts.get(accountId)
-    if (account) {
-      account.isActive = false
-      this.flaggedAccounts.set(accountId, account)
-      logger.info('Flag removed from account', {accountId})
-      return true
+  async getModerationStats(periodStart?: string, periodEnd?: string): Promise<any> {
+    try {
+      let url = `${this.baseUrl}/stats`
+      const params = new URLSearchParams()
+      
+      if (periodStart) params.append('period_start', periodStart)
+      if (periodEnd) params.append('period_end', periodEnd)
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${this.getAuthToken()}`,
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to get moderation stats')
+      }
+
+      const data = await response.json()
+      return data.stats || {}
+    } catch (error) {
+      logger.error('Failed to get moderation stats', {error})
+      return {}
     }
-    return false
   }
 
   /**
    * Check if an account is currently flagged
    */
-  async isAccountFlagged(accountId: string): Promise<boolean> {
-    const account = this.flaggedAccounts.get(accountId)
-    return account ? account.isActive && new Date() < account.expiresAt : false
+  async isAccountFlagged(userId: string): Promise<boolean> {
+    try {
+      const flaggedAccounts = await this.getFlaggedAccounts(false)
+      return flaggedAccounts.some(account => 
+        account.user_id === userId && account.is_active
+      )
+    } catch (error) {
+      logger.error('Failed to check if account is flagged', {error, user_id: userId})
+      return false
+    }
   }
 
   /**
    * Get flag details for an account
    */
-  async getAccountFlag(accountId: string): Promise<FlaggedAccount | null> {
-    const account = this.flaggedAccounts.get(accountId)
-    if (account && account.isActive && new Date() < account.expiresAt) {
-      return account
-    }
-    return null
-  }
-
-  /**
-   * Generate a default warning message that appears to come from Sonet moderation
-   */
-  private generateDefaultWarning(reason: string): string {
-    const warnings = {
-      'spam': 'Your account has been flagged for potential spam activity. Please review our community guidelines.',
-      'harassment': 'Your account has been flagged for potential harassment. Please review our community guidelines.',
-      'inappropriate_content': 'Your account has been flagged for potentially inappropriate content. Please review our community guidelines.',
-      'fake_news': 'Your account has been flagged for potentially spreading misinformation. Please review our community guidelines.',
-      'bot_activity': 'Your account has been flagged for potential automated activity. Please review our community guidelines.',
-      'default': 'Your account has been flagged for review by Sonet moderation. Please review our community guidelines.',
-    }
-
-    return warnings[reason as keyof typeof warnings] || warnings.default
-  }
-
-  /**
-   * Schedule automatic expiration of a flag
-   */
-  private scheduleExpiration(accountId: string, expiresAt: Date): void {
-    const now = new Date()
-    const timeUntilExpiration = expiresAt.getTime() - now.getTime()
-
-    if (timeUntilExpiration > 0) {
-      setTimeout(() => {
-        this.expireFlag(accountId)
-      }, timeUntilExpiration)
+  async getAccountFlag(userId: string): Promise<FlaggedAccount | null> {
+    try {
+      const flaggedAccounts = await this.getFlaggedAccounts(false)
+      const account = flaggedAccounts.find(acc => 
+        acc.user_id === userId && acc.is_active
+      )
+      return account || null
+    } catch (error) {
+      logger.error('Failed to get account flag', {error, user_id: userId})
+      return null
     }
   }
 
   /**
-   * Expire a flag automatically
+   * Get authentication token from storage
    */
-  private expireFlag(accountId: string): void {
-    const account = this.flaggedAccounts.get(accountId)
-    if (account) {
-      account.isActive = false
-      this.flaggedAccounts.set(accountId, account)
-      logger.info('Account flag automatically expired', {accountId})
-    }
-  }
-
-  /**
-   * Clean up expired flags
-   */
-  async cleanupExpiredFlags(): Promise<void> {
-    const now = new Date()
-    for (const [accountId, account] of this.flaggedAccounts.entries()) {
-      if (account.isActive && now >= account.expiresAt) {
-        account.isActive = false
-        this.flaggedAccounts.set(accountId, account)
-        logger.info('Expired flag cleaned up', {accountId})
-      }
-    }
+  private getAuthToken(): string {
+    // This should be implemented based on your auth system
+    // For now, returning empty string - implement based on your auth token storage
+    return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || ''
   }
 }
 
