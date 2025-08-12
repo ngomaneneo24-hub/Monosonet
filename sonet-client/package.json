@@ -1,5 +1,5 @@
 {
-  "name": "bsky.app",
+  "name": "sonet.app",
   "version": "1.106.0",
   "private": true,
   "engines": {
@@ -24,7 +24,7 @@
     "prebuild": "expo prebuild --clean",
     "android": "expo run:android",
     "android:prod": "expo run:android --variant release",
-    "android:profile": "BSKY_PROFILE=1 expo run:android --variant release",
+    "android:profile": "SONET_PROFILE=1 expo run:android --variant release",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "use-build-number": "./scripts/useBuildNumberEnv.sh",
@@ -34,7 +34,7 @@
     "build-ios": "yarn use-build-number-with-bump eas build -p ios",
     "build-android": "yarn use-build-number-with-bump eas build -p android",
     "build": "yarn use-build-number-with-bump eas build",
-    "build-embed": "cd bskyembed && yarn build && yarn build-snippet && cd .. && node ./scripts/post-embed-build.js",
+    "build-embed": "cd sonetembed && yarn build && yarn build-snippet && cd .. && node ./scripts/post-embed-build.js",
     "start": "expo start --dev-client",
     "start:prod": "expo start --dev-client --no-dev --minify",
     "test": "NODE_ENV=test jest --forceExit --testTimeout=20000 --bail",
@@ -250,7 +250,7 @@
     "babel-plugin-react-compiler": "^19.1.0-rc.1",
     "babel-preset-expo": "~13.1.11",
     "eslint": "^8.19.0",
-    "eslint-plugin-bsky-internal": "link:./eslint",
+    "eslint-plugin-sonet-internal": "link:./eslint",
     "eslint-plugin-ft-flow": "^2.0.3",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-lingui": "^0.2.0",

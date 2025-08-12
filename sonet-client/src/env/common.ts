@@ -1,4 +1,4 @@
-import {type Did} from '@atproto/api'
+// AT Protocol removed - using Sonet messaging instead
 
 import packageJson from '#/../package.json'
 
@@ -63,10 +63,11 @@ export const LOG_LEVEL = (process.env.EXPO_PUBLIC_LOG_LEVEL || 'info') as
 export const LOG_DEBUG: string = process.env.EXPO_PUBLIC_LOG_DEBUG || ''
 
 /**
- * The DID of the chat service to proxy to
+ * Legacy AT Protocol chat proxy (deprecated)
+ * @deprecated Use Sonet messaging instead
  */
-export const CHAT_PROXY_DID: Did =
-  process.env.EXPO_PUBLIC_CHAT_PROXY_DID || 'did:web:api.bsky.chat'
+export const CHAT_PROXY_DID: string =
+  process.env.EXPO_PUBLIC_CHAT_PROXY_DID || ''
 
 /**
  * Sentry DSN for telemetry
@@ -93,3 +94,9 @@ export const GCP_PROJECT_ID: number =
  */
 export const SONET_API_BASE: string =
   process.env.EXPO_PUBLIC_SONET_API_BASE || 'http://localhost:8080/api'
+
+/**
+ * Base URL for Sonet WebSocket gateway (e.g., ws://localhost:8080)
+ */
+export const SONET_WS_BASE: string =
+  process.env.EXPO_PUBLIC_SONET_WS_BASE || 'ws://localhost:8080'

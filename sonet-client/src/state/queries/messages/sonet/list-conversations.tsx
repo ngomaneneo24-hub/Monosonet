@@ -1,176 +1,176 @@
-import {createContext, useCallback, useContext, useEffect, useMemo} from 'react'
-import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query'
-import {useSonetApi, useSonetSession} from '#/state/session/sonet'
-import {SonetMessagingApi} from '#/services/sonetMessagingApi'
-import type {SonetChat, SonetGetChatsParams} from '#/services/sonetMessagingApi'
-import type {SonetListChatsQuery} from '#/state/messages/sonet/types'
+import React, {createContext, useContext, useMemo, useState, useEffect} from 'react'
+import {sonetMessagingApi} from '#/services/sonetMessagingApi'
+import type {SonetChat} from '#/services/sonetMessagingApi'
 
-export const RQKEY_ROOT = 'sonet-convo-list'
-export const RQKEY = (
-  type: 'direct' | 'group' | 'channel' | 'all',
-  readState: 'all' | 'unread' = 'all',
-) => [RQKEY_ROOT, type, readState]
+// =============================================================================
+// TYPES
+// =============================================================================
 
-type RQPageParam = string | undefined
-
-export function useSonetListChatsQuery({
-  enabled,
-  type,
-  readState = 'all',
-}: {
-  enabled?: boolean
-  type?: 'direct' | 'group' | 'channel'
-  readState?: 'all' | 'unread'
-} = {}) {
-  const sonetApi = useSonetApi()
-  const messagingApi = useMemo(() => new SonetMessagingApi(sonetApi), [sonetApi])
-
-  return useInfiniteQuery({
-    enabled,
-    queryKey: RQKEY(type ?? 'all', readState),
-    queryFn: async ({pageParam}) => {
-      const params: SonetGetChatsParams = {
-        user_id: 'me', // Will be replaced with actual user ID
-        limit: 20,
-        cursor: pageParam,
-      }
-      if (type && type !== 'all') {
-        params.type = type
-      }
-      
-      const result = await messagingApi.getChats(params)
-      return {
-        chats: result.chats,
-        pagination: result.pagination,
-      }
-    },
-    initialPageParam: undefined as RQPageParam,
-    getNextPageParam: lastPage => lastPage.pagination.cursor,
-  })
+export interface SonetListConvosState {
+  chats: SonetChat[]
+  isLoading: boolean
+  error: string | null
+  hasMore: boolean
+  cursor: string | null
+  lastUpdated: string | null
 }
 
-const SonetListChatsContext = createContext<{
-  direct: SonetChat[]
-  group: SonetChat[]
-  channel: SonetChat[]
-} | null>(null)
-
-export function useSonetListChats() {
-  const ctx = useContext(SonetListChatsContext)
-  if (!ctx) {
-    throw new Error('useSonetListChats must be used within a SonetListChatsProvider')
-  }
-  return ctx
+export interface SonetListConvosActions {
+  loadChats: (refresh?: boolean) => Promise<void>
+  loadMoreChats: () => Promise<void>
+  refreshChats: () => Promise<void>
+  clearError: () => void
 }
 
-const empty = {direct: [], group: [], channel: []}
-
-export function SonetListChatsProvider({children}: {children: React.ReactNode}) {
-  const {hasSession} = useSonetSession()
-
-  if (!hasSession) {
-    return (
-      <SonetListChatsContext.Provider value={empty}>
-        {children}
-      </SonetListChatsContext.Provider>
-    )
-  }
-
-  return <SonetListChatsProviderInner>{children}</SonetListChatsProviderInner>
+export interface SonetListConvosContextValue {
+  state: SonetListConvosState
+  actions: SonetListConvosActions
 }
 
-export function SonetListChatsProviderInner({
-  children,
-}: {
+// =============================================================================
+// CONTEXT
+// =============================================================================
+
+const SonetListConvosContext = createContext<SonetListConvosContextValue | null>(null)
+
+// =============================================================================
+// PROVIDER
+// =============================================================================
+
+interface SonetListConvosProviderProps {
   children: React.ReactNode
-}) {
-  const {data: directData} = useSonetListChatsQuery({type: 'direct'})
-  const {data: groupData} = useSonetListChatsQuery({type: 'group'})
-  const {data: channelData} = useSonetListChatsQuery({type: 'channel'})
-  const queryClient = useQueryClient()
+}
 
-  const direct = useMemo(() => {
-    return directData?.pages.flatMap(page => page.chats) || []
-  }, [directData])
+export function SonetListConvosProvider({children}: SonetListConvosProviderProps) {
+  const [state, setState] = useState<SonetListConvosState>({
+    chats: [],
+    isLoading: false,
+    error: null,
+    hasMore: false,
+    cursor: null,
+    lastUpdated: null
+  })
 
-  const group = useMemo(() => {
-    return groupData?.pages.flatMap(page => page.chats) || []
-  }, [groupData])
+  // ========================================================================
+  // LOAD CHATS
+  // ========================================================================
 
-  const channel = useMemo(() => {
-    return channelData?.pages.flatMap(page => page.chats) || []
-  }, [channelData])
+  const loadChats = async (refresh: boolean = false) => {
+    try {
+      setState(prev => ({
+        ...prev,
+        isLoading: true,
+        error: null
+      }))
 
-  const value = useMemo(() => ({
-    direct,
-    group,
-    channel,
-  }), [direct, group, channel])
+      const chats = await sonetMessagingApi.getChats()
+      
+      setState(prev => ({
+        ...prev,
+        chats: refresh ? chats : [...prev.chats, ...chats],
+        isLoading: false,
+        hasMore: chats.length >= 50, // Assuming 50 is the default page size
+        cursor: chats.length > 0 ? chats[chats.length - 1].id : null,
+        lastUpdated: new Date().toISOString()
+      }))
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to load chats'
+      }))
+    }
+  }
+
+  // ========================================================================
+  // LOAD MORE CHATS
+  // ========================================================================
+
+  const loadMoreChats = async () => {
+    if (state.isLoading || !state.hasMore) return
+
+    try {
+      setState(prev => ({
+        ...prev,
+        isLoading: true
+      }))
+
+      // For now, we'll just refresh since Sonet API doesn't have pagination yet
+      // In the future, this could use cursor-based pagination
+      await loadChats(false)
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Failed to load more chats'
+      }))
+    }
+  }
+
+  // ========================================================================
+  // REFRESH CHATS
+  // ========================================================================
+
+  const refreshChats = async () => {
+    await loadChats(true)
+  }
+
+  // ========================================================================
+  // CLEAR ERROR
+  // ========================================================================
+
+  const clearError = () => {
+    setState(prev => ({
+      ...prev,
+      error: null
+    }))
+  }
+
+  // ========================================================================
+  // INITIAL LOAD
+  // ========================================================================
+
+  useEffect(() => {
+    loadChats(true)
+  }, [])
+
+  // ========================================================================
+  // CONTEXT VALUE
+  // ========================================================================
+
+  const contextValue: SonetListConvosContextValue = useMemo(() => ({
+    state,
+    actions: {
+      loadChats,
+      loadMoreChats,
+      refreshChats,
+      clearError
+    }
+  }), [state])
 
   return (
-    <SonetListChatsContext.Provider value={value}>
+    <SonetListConvosContext.Provider value={contextValue}>
       {children}
-    </SonetListChatsContext.Provider>
+    </SonetListConvosContext.Provider>
   )
 }
 
-export function useSonetUnreadMessageCount() {
-  const {direct, group, channel} = useSonetListChats()
-  
-  return useMemo(() => {
-    const allChats = [...direct, ...group, ...channel]
-    return allChats.reduce((count, chat) => {
-      // Calculate unread count based on chat.last_message_id and user's read status
-      // This would need to be implemented based on your unread tracking logic
-      return count + 0 // Placeholder
-    }, 0)
-  }, [direct, group, channel])
-}
+// =============================================================================
+// HOOKS
+// =============================================================================
 
-export function useSonetOnMarkAsRead() {
-  const queryClient = useQueryClient()
-  
-  return useCallback((chatId: string) => {
-    // Invalidate and refetch chat list to update unread counts
-    queryClient.invalidateQueries({queryKey: [RQKEY_ROOT]})
-  }, [queryClient])
-}
-
-// Helper functions for optimistic updates
-export function optimisticUpdate(
-  chatId: string,
-  old: SonetListChatsQuery | undefined,
-  updateFn?: (chat: SonetChat) => SonetChat,
-) {
-  if (!old || !updateFn) return old
-  
-  return {
-    ...old,
-    pages: old.pages.map(page => ({
-      ...page,
-      chats: page.chats.map(chat => 
-        chat.chat_id === chatId ? updateFn(chat) : chat
-      ),
-    })),
+export function useSonetListConvos(): SonetListConvosContextValue {
+  const context = useContext(SonetListConvosContext)
+  if (!context) {
+    throw new Error('useSonetListConvos must be used within a SonetListConvosProvider')
   }
+  return context
 }
 
-export function optimisticDelete(chatId: string, old: SonetListChatsQuery | undefined) {
-  if (!old) return old
-  
-  return {
-    ...old,
-    pages: old.pages.map(page => ({
-      ...page,
-      chats: page.chats.filter(chat => chat.chat_id !== chatId),
-    })),
-  }
+export function useSonetListConvosState(): SonetListConvosState {
+  return useSonetListConvos().state
 }
 
-export function getSonetChatFromQueryData(chatId: string, old: SonetListChatsQuery) {
-  for (const page of old.pages) {
-    const chat = page.chats.find(c => c.chat_id === chatId)
-    if (chat) return chat
-  }
-  return undefined
+export function useSonetListConvosActions(): SonetListConvosActions {
+  return useSonetListConvos().actions
 }
