@@ -398,16 +398,16 @@ export class VideoFeedRepository {
   private mapDatabaseRowToVideo(row: any): VideoCandidate {
     return {
       id: row.id,
-      note: {
-        id: row.id,
-        text: row.title,
-        author: {
-          did: row.creator_id,
-          handle: row.creator_handle,
-          displayName: row.creator_display_name
+              note: {
+          id: row.id,
+          text: row.title,
+          author: {
+            userId: row.creator_id,
+            username: row.creator_username,
+            displayName: row.creator_display_name
+          },
+          createdAt: row.created_at
         },
-        createdAt: row.created_at
-      },
       video: {
         duration: row.duration,
         quality: row.quality,
@@ -502,8 +502,8 @@ export class VideoFeedRepository {
           id: `fallback_${i}`,
           text: `Fallback Video ${i + 1}`,
           author: {
-            did: 'fallback_creator',
-            handle: 'fallback.user',
+            userId: 'fallback_user',
+            username: 'fallback.user',
             displayName: 'Fallback User'
           },
           createdAt: new Date().toISOString()
@@ -534,7 +534,7 @@ export class VideoFeedRepository {
         category: 'general',
         tags: ['fallback'],
         language: 'en',
-        creatorId: 'fallback_creator',
+        creatorId: 'fallback_user',
         viewCount: 100,
         likeCount: 10,
         repostCount: 2,
