@@ -96,6 +96,7 @@ set(MESSAGING_SERVICE_SOURCES
     # Cryptography and encryption
     crypto/crypto_engine.cpp
     crypto/e2e_encryption.cpp
+    crypto/e2e_encryption_advanced.cpp
     crypto/encryption_manager.cpp
     crypto/key_management.cpp
     crypto/secure_random.cpp
@@ -126,6 +127,7 @@ set(MESSAGING_SERVICE_TESTS
     tests/test_x3dh_and_ratchet.cpp
     tests/test_server_security.cpp
     tests/test_crypto_roundtrip.cpp
+    tests/test_advanced_features.cpp
 )
 
 # Headers
@@ -133,8 +135,10 @@ set(MESSAGING_SERVICE_HEADERS
     include/message.hpp
     include/chat.hpp
     include/crypto_engine.hpp
+    include/e2e_encryption_manager.hpp
     include/encryption_manager.hpp
     include/messaging_controller.hpp
+    include/performance_optimizer.hpp
     include/websocket_manager.hpp
     include/typing_manager.hpp
     include/attachment_storage.hpp
