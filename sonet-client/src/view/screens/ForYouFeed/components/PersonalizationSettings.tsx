@@ -5,6 +5,7 @@ import {useLingui} from '@lingui/react'
 import {msg} from '@lingui/macro'
 
 import {CloseIcon, BrainIcon, SliderIcon, RefreshIcon} from '#/lib/icons'
+import {BottomSheet} from '#/view/com/util/BottomSheet'
 
 interface PersonalizationSettingsProps {
   onClose: () => void
@@ -107,26 +108,30 @@ export function PersonalizationSettings({onClose}: PersonalizationSettingsProps)
   }, [])
 
   return (
-    <View style={styles.overlay}>
-      <View style={styles.panel}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <BrainIcon size={24} color="#007AFF" />
-            <Text style={styles.title}>
-              {_(msg`Feed Personalization`)}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={onClose}
-            accessibilityLabel={_(msg`Close personalization settings`)}
-          >
-            <CloseIcon size={24} color="#666" />
-          </TouchableOpacity>
+    <BottomSheet
+      isVisible={true}
+      onClose={onClose}
+      snapPoint="LARGE"
+      showBackdrop={true}
+    >
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <BrainIcon size={24} color="#007AFF" />
+          <Text style={styles.title}>
+            {_(msg`Feed Personalization`)}
+          </Text>
         </View>
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={onClose}
+          accessibilityLabel={_(msg`Close personalization settings`)}
+        >
+          <CloseIcon size={24} color="#666" />
+        </TouchableOpacity>
+      </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* ML Algorithm Preferences */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>
@@ -270,34 +275,11 @@ export function PersonalizationSettings({onClose}: PersonalizationSettingsProps)
             </TouchableOpacity>
           </View>
         </ScrollView>
-      </View>
-    </View>
-  )
-}
+      </BottomSheet>
+    )
+  }
 
 const styles = StyleSheet.create({
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000
-  },
-  panel: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    width: '90%',
-    maxHeight: '80%',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
