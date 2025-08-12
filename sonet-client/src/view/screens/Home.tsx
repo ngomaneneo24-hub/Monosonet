@@ -27,6 +27,7 @@ import {useLoggedOutViewControls} from '#/state/shell/logged-out'
 import {useSelectedFeed, useSetSelectedFeed} from '#/state/shell/selected-feed'
 import {FeedPage} from '#/view/com/feeds/FeedPage'
 import {HomeHeader} from '#/view/com/home/HomeHeader'
+import {VideoFeedScreen} from '#/screens/VideoFeedScreen'
 import {
   Pager,
   type PagerRef,
@@ -204,7 +205,7 @@ function HomeScreenReady({
             testID="homeScreenFeedTabs"
             onPressSelected={onPressSelected}
             // @ts-ignore
-            feeds={[{displayName: 'Following'}, {displayName: 'For You'}]}
+            feeds={[{displayName: 'Following'}, {displayName: 'For You'}, {displayName: 'Videos'}]}
           />
         )
       }
@@ -265,6 +266,7 @@ function HomeScreenReady({
           renderEmptyState={renderCustomFeedEmptyState}
           feedInfo={pinnedFeedInfos[0]}
         />
+        <VideoFeedScreen />
       </Pager>
     )
   }

@@ -464,6 +464,23 @@ export class VideoFeedAPI {
     return response.json()
   }
 
+  // Track engagement batch
+  async trackEngagementBatch(events: EngagementEvent[]): Promise<any> {
+    const url = `${this.baseUrl}/v1/video-feed/engagement/batch`
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({events})
+    })
+
+    if (!response.ok) {
+      throw new Error(`Batch engagement tracking failed: ${response.status} ${response.statusText}`)
+    }
+
+    return response.json()
+  }
+
   // Private helper methods
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
