@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react'
 import {
   type SonetProfile,
-  type SonetFeedGenerator,
   type SonetFeedInfo,
   type SonetSavedFeed,
 } from '#/types/sonet'
@@ -16,7 +15,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 
-import {DISCOVER_FEED_URI, DISCOVER_SAVED_FEED} from '#/lib/constants'
+import {SONET_FEED_CONFIG} from '#/lib/constants'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
 import {sanitizeHandle} from '#/lib/strings/handles'
 import {STALE} from '#/state/queries'
@@ -30,7 +29,6 @@ import {precacheResolvedUri} from './resolve-uri'
 
 export type FeedSourceFeedInfo = {
   type: 'feed'
-  view?: SonetFeedGenerator
   uri: string
   feedDescriptor: FeedDescriptor
   route: {
@@ -42,16 +40,11 @@ export type FeedSourceFeedInfo = {
   avatar: string | undefined
   displayName: string
   description: string
-  creatorDid: string
-  creatorHandle: string
-  likeCount: number | undefined
-  likeUri: string | undefined
   contentMode: 'text' | 'images' | 'video' | undefined
 }
 
 export type FeedSourceListInfo = {
   type: 'list'
-  view?: any // TODO: Replace with SonetList type when created
   uri: string
   feedDescriptor: FeedDescriptor
   route: {
@@ -63,8 +56,6 @@ export type FeedSourceListInfo = {
   avatar: string | undefined
   displayName: string
   description: string
-  creatorDid: string
-  creatorHandle: string
   contentMode: undefined
 }
 
@@ -82,104 +73,83 @@ const feedSourceNSIDs = {
 }
 
 export function hydrateFeedGenerator(
-  view: SonetFeedGenerator,
+  feedInfo: SonetSavedFeed,
 ): FeedSourceInfo {
-  // Parse Sonet URI format: sonet://feed.generator/whats-hot
-  const uriParts = view.uri.replace('sonet://', '').split('/')
-  const collection = uriParts[0] === 'feed.generator' ? 'feed' : 'lists'
-  const href = `/profile/${view.creatorDid}/${collection}/${uriParts[1]}`
+  // For centralized feeds, we use simple routing
+  const href = `/feed/${feedInfo.value}`
   const route = router.matchPath(href)
 
   return {
     type: 'feed',
-    view,
-    uri: view.uri,
-    feedDescriptor: `feedgen|${view.uri}`,
-    cid: view.cid,
+    uri: feedInfo.value,
+    feedDescriptor: `feed|${feedInfo.value}`,
+    cid: feedInfo.id,
     route: {
       href,
       name: route[0],
       params: route[1],
     },
-    avatar: view.avatar,
-    displayName: view.displayName
-      ? sanitizeDisplayName(view.displayName)
-      : `Feed by ${sanitizeHandle(view.creator.handle, '@')}`,
-    description: new string({
-      text: view.description || '',
-      facets: (view.descriptionFacets || [])?.slice(),
-    }),
-    creatorDid: view.creator.did,
-    creatorHandle: view.creator.handle,
-    likeCount: view.likeCount,
-    likeUri: view.viewer?.like,
-    contentMode: view.contentMode,
+    avatar: feedInfo.avatar,
+    displayName: feedInfo.displayName,
+    description: feedInfo.description,
+    contentMode: feedInfo.contentMode,
   }
 }
 
-export function hydrateList(view: SonetListView): FeedSourceInfo {
-  const urip = new SonetUri(view.uri)
-  const collection =
-    urip.collection === 'app.bsky.feed.generator' ? 'feed' : 'lists'
-  const href = `/profile/${urip.hostname}/${collection}/${urip.rkey}`
-  const route = router.matchPath(href)
-
-  return {
-    type: 'list',
-    view,
-    uri: view.uri,
-    feedDescriptor: `list|${view.uri}`,
-    route: {
-      href,
-      name: route[0],
-      params: route[1],
-    },
-    cid: view.cid,
-    avatar: view.avatar,
-    description: new string({
-      text: view.description || '',
-      facets: (view.descriptionFacets || [])?.slice(),
-    }),
-    creatorDid: view.creator.did,
-    creatorHandle: view.creator.handle,
-    displayName: view.name
-      ? sanitizeDisplayName(view.name)
-      : `User List by ${sanitizeHandle(view.creator.handle, '@')}`,
-    contentMode: undefined,
-  }
-}
-
+// For centralized feeds, we don't need complex URI parsing
 export function getFeedTypeFromUri(uri: string) {
-  const {pathname} = new SonetUri(uri)
-  return pathname.includes(feedSourceNSIDs.feed) ? 'feed' : 'list'
+  return uri.startsWith('feed|') ? 'feed' : 'timeline'
 }
 
 export function getAvatarTypeFromUri(uri: string) {
-  return getFeedTypeFromUri(uri) === 'feed' ? 'algo' : 'list'
+  return getFeedTypeFromUri(uri) === 'feed' ? 'algo' : 'timeline'
 }
 
 export function useFeedSourceInfoQuery({uri}: {uri: string}) {
   const type = getFeedTypeFromUri(uri)
-  const agent = useAgent()
 
   return useQuery({
     staleTime: STALE.INFINITY,
     queryKey: feedSourceInfoQueryKey({uri}),
     queryFn: async () => {
-      let view: FeedSourceInfo
-
+      // For centralized feeds, we create feed info from constants
+      const feedValue = uri.replace('feed|', '').replace('timeline|', '')
+      
       if (type === 'feed') {
-        const res = await agent.app.bsky.feed.getFeedGenerator({feed: uri})
-        view = hydrateFeedGenerator(res.data.view)
-      } else {
-        const res = await agent.app.bsky.graph.getList({
-          list: uri,
-          limit: 1,
-        })
-        view = hydrateList(res.data.list)
+        // Map feed values to feed config
+        const feedConfig = Object.values(SONET_FEED_CONFIG).find(
+          config => config.value === feedValue
+        )
+        
+        if (feedConfig) {
+          return hydrateFeedGenerator({
+            id: feedValue,
+            type: 'feed',
+            value: feedValue,
+            pinned: true,
+            displayName: feedConfig.displayName,
+            description: feedConfig.description,
+            contentMode: feedConfig.contentMode
+          })
+        }
       }
-
-      return view
+      
+      // Default to following timeline
+      return {
+        type: 'timeline' as const,
+        uri: 'following',
+        feedDescriptor: 'following',
+        route: {
+          href: '/following',
+          name: 'Following',
+          params: {}
+        },
+        cid: 'following',
+        avatar: undefined,
+        displayName: 'Following',
+        description: 'Posts from people you follow',
+        contentMode: undefined
+      }
     },
   })
 }
