@@ -138,6 +138,15 @@ private:
     std::thread cleanup_thread_;
     std::thread encryption_key_rotation_thread_;
     
+    // Replay protection (in-memory, short-lived)
+    std::mutex replay_mutex_;
+    // key -> seen_at; key format: chatId|userId|iv|tag
+    std::unordered_map<std::string, std::chrono::system_clock::time_point> replay_seen_;
+    std::chrono::seconds replay_ttl_{600}; // 10 minutes
+    void replay_cleanup_locked_();
+    bool check_and_mark_replay_locked_(const std::string& chat_id, const std::string& user_id,
+                                       const std::string& iv_b64, const std::string& tag_b64);
+
     // Internal methods
     bool validate_message_content(const Message& message);
     bool check_rate_limits(const std::string& user_id);
