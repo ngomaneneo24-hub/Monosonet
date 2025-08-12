@@ -1,4 +1,5 @@
 const createExpoWebpackConfigAsync = require('@expo/webpack-config')
+const path = require('path')
 const {withAlias} = require('@expo/webpack-config/addons')
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin')
 const {BundleAnalyzerPlugin} = require('webpack-bundle-analyzer')
@@ -27,6 +28,18 @@ module.exports = async function (env, argv) {
   config.module.rules = [
     ...(config.module.rules || []),
     reactNativeWebWebviewConfiguration,
+  ]
+  // Ensure our shims resolve during bundling
+  config.resolve = config.resolve || {}
+  config.resolve.alias = {
+    ...(config.resolve.alias || {}),
+    '@atproto/api': path.resolve(__dirname, 'src/shims/atproto-runtime.ts'),
+    '@atproto/common-web': path.resolve(__dirname, 'src/shims/atproto-common-web.ts'),
+    '@atproto/lexicon': path.resolve(__dirname, 'src/shims/atproto-lexicon.ts'),
+    '@atproto/api/dist': path.resolve(__dirname, 'src/shims/atproto-api-dist.ts'),
+  }
+  config.resolve.extensions = [
+    '.web.tsx', '.web.ts', '.tsx', '.ts', '.web.js', '.js', '.json'
   ]
   if (env.mode === 'development') {
     config.plugins.push(new ReactRefreshWebpackPlugin())
