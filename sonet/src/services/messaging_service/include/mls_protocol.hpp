@@ -17,6 +17,11 @@ constexpr size_t KEY_SIZE = 32;
 constexpr size_t NONCE_SIZE = 12;
 constexpr size_t SIGNATURE_SIZE = 64;
 
+// Group Management Limits for Optimal Performance
+constexpr uint32_t MAX_GROUP_MEMBERS = 500;  // Optimal for buttery smooth key distribution
+constexpr uint32_t WARNING_GROUP_SIZE = 400; // Warning threshold for performance
+constexpr uint32_t OPTIMAL_GROUP_SIZE = 250; // Optimal group size for best performance
+
 // MLS Cipher Suites
 enum class CipherSuite : uint16_t {
     MLS_128_DHKEMX25519_AES128GCM_SHA256_Ed25519 = 0x0001,
@@ -34,6 +39,15 @@ enum class GroupState : uint8_t {
     ACTIVE = 0x01,
     UPDATING = 0x02,
     DELETING = 0x03
+};
+
+// Group Size Status for Performance Monitoring
+enum class GroupSizeStatus : uint8_t {
+    OPTIMAL = 0x00,      // 0-250 members: Best performance
+    GOOD = 0x01,         // 251-400 members: Good performance
+    WARNING = 0x02,      // 401-500 members: Performance warning
+    AT_LIMIT = 0x03,     // 500 members: At maximum limit
+    OVER_LIMIT = 0x04    // >500 members: Over limit (should not happen)
 };
 
 // MLS Message Types
@@ -204,6 +218,12 @@ public:
     
     std::vector<uint8_t> update_group(const std::vector<uint8_t>& group_id,
                                      const std::vector<uint8_t>& group_context_extensions);
+    
+    // Group Size Management
+    uint32_t get_group_member_count(const std::vector<uint8_t>& group_id);
+    bool can_add_member(const std::vector<uint8_t>& group_id);
+    GroupSizeStatus get_group_size_status(const std::vector<uint8_t>& group_id);
+    std::vector<uint8_t> optimize_group_performance(const std::vector<uint8_t>& group_id);
     
     // Message Encryption/Decryption
     std::vector<uint8_t> encrypt_message(const std::vector<uint8_t>& group_id,
