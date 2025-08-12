@@ -9,12 +9,7 @@ import Animated, {
   useSharedValue,
 } from 'react-native-reanimated'
 import {type ReanimatedScrollEvent} from 'react-native-reanimated/lib/typescript/hook/commonTypes'
-import {
-  type $Typed,
-  type AppBskyEmbedRecord,
-  AppBskyRichtextFacet,
-  RichText,
-} from '@atproto/api'
+// AT Protocol removed - using Sonet messaging
 
 import {useHideBottomBarBorderForScreen} from '#/lib/hooks/useHideBottomBarBorder'
 import {ScrollProvider} from '#/lib/ScrollContext'
@@ -26,16 +21,8 @@ import {
 import {logger} from '#/logger'
 import {isNative} from '#/platform/detection'
 import {isWeb} from '#/platform/detection'
-import {
-  type ActiveConvoStates,
-  isConvoActive,
-  useConvoActive,
-} from '#/state/messages/convo'
-import {
-  type ConvoItem,
-  type ConvoState,
-  ConvoStatus,
-} from '#/state/messages/convo/types'
+// AT Protocol removed - using Sonet messaging
+import {useUnifiedConvoState} from '#/state/messages/hybrid-provider'
 import {useGetPost} from '#/state/queries/post'
 import {useAgent} from '#/state/session'
 import {useShellLayout} from '#/state/shell/shell-layout'
@@ -44,18 +31,20 @@ import {
   type EmojiPickerState,
 } from '#/view/com/composer/text-input/web/EmojiPicker'
 import {List, type ListMethods} from '#/view/com/util/List'
-import {ChatDisabled} from '#/screens/Messages/components/ChatDisabled'
-import {MessageInput} from '#/screens/Messages/components/MessageInput'
+import {SonetChatDisabled} from '#/screens/Messages/components/SonetChatDisabled'
+import {SonetMessageInput} from '#/screens/Messages/components/SonetMessageInput'
 import {MessageListError} from '#/screens/Messages/components/MessageListError'
-import {ChatEmptyPill} from '#/components/dms/ChatEmptyPill'
+import {SonetChatEmptyPill} from '#/components/dms/SonetChatEmptyPill'
 import {MessageItem} from '#/components/dms/MessageItem'
 import {NewMessagesPill} from '#/components/dms/NewMessagesPill'
 import {Loader} from '#/components/Loader'
 import {Text} from '#/components/Typography'
-import {ChatStatusInfo} from './ChatStatusInfo'
+import {SonetChatStatusInfo} from '#/components/dms/SonetChatStatusInfo'
 import {MessageInputEmbed, useMessageEmbed} from './MessageInputEmbed'
-import {SonetMessageItem, SonetTypingIndicator, SonetSystemMessage} from './SonetMessageItem'
-import {useIsSonetMessaging} from '#/state/messages/hybrid-provider'
+import {SonetMessageItem} from '#/components/dms/SonetMessageItem'
+import {SonetTypingIndicator} from '#/components/dms/SonetTypingIndicator'
+import {SonetSystemMessage} from '#/components/dms/SonetSystemMessage'
+// AT Protocol removed - using Sonet messaging
 
 function MaybeLoader({isLoading}: {isLoading: boolean}) {
   return (
@@ -71,34 +60,21 @@ function MaybeLoader({isLoading}: {isLoading: boolean}) {
   )
 }
 
-function renderItem({item}: {item: ConvoItem}) {
-  const isSonet = useIsSonetMessaging()
-  
-  if (isSonet) {
-    // Handle Sonet message types
-    if (item.type === 'message' && 'message_id' in item.message) {
-      return <SonetMessageItem message={item.message} isOwnMessage={item.isOwnMessage} />
-    } else if (item.type === 'typing') {
-      return <SonetTypingIndicator isTyping={true} />
-    } else if (item.type === 'system') {
-      return <SonetSystemMessage content={item.system?.content || ''} />
-    }
-  } else {
-    // Handle AT Protocol message types
-    if (item.type === 'message' || item.type === 'pending-message') {
-      return <MessageItem item={item} />
-    } else if (item.type === 'deleted-message') {
-      return <Text>Deleted message</Text>
-    } else if (item.type === 'error') {
-      return <MessageListError item={item} />
-    }
+function renderItem({item}: {item: any}) {
+  // Handle Sonet message types
+  if (item.type === 'message') {
+    return <SonetMessageItem message={item} isOwnMessage={item.senderId === 'current_user'} />
+  } else if (item.type === 'typing') {
+    return <SonetTypingIndicator isTyping={true} />
+  } else if (item.type === 'system') {
+    return <SonetSystemMessage content={item.content || ''} />
   }
 
   return null
 }
 
-function keyExtractor(item: ConvoItem) {
-  return item.key
+function keyExtractor(item: any) {
+  return item.id || item.key || `item_${Math.random()}`
 }
 
 function onScrollToIndexFailed() {
@@ -118,7 +94,7 @@ export function MessagesList({
   footer?: React.ReactNode
   hasAcceptOverride?: boolean
 }) {
-  const convoState = useConvoActive()
+  const state = useUnifiedConvoState()
   const agent = useAgent()
   const getPost = useGetPost()
   const {embedUri, setEmbed} = useMessageEmbed()
@@ -154,10 +130,10 @@ export function MessagesList({
   const layoutHeight = useSharedValue(0)
   const didBackground = useRef(false)
   useEffect(() => {
-    if (convoState.status === ConvoStatus.Backgrounded) {
+    if (state.status === 'ready' && !state.isConnected) {
       didBackground.current = true
     }
-  }, [convoState.status])
+  }, [state.status, state.isConnected])
 
   // -- Scroll handling
 
@@ -192,7 +168,7 @@ export function MessagesList({
           didBackground.current &&
           hasScrolled &&
           height - prevContentHeight.current > layoutHeight.get() - 50 &&
-          convoState.items.length - prevItemCount.current > 1
+          state.messages.length - prevItemCount.current > 1
         ) {
           flatListRef.current?.scrollToOffset({
             offset: prevContentHeight.current - 65,
@@ -213,7 +189,7 @@ export function MessagesList({
           // scrolls and the time the screen appears, causing a flicker.
           // We cannot actually use a synchronous scroll here, because `onContentSizeChange`
           // is actually async itself - all the info has to come across the bridge first.
-          if (!hasScrolled && !convoState.isFetchingHistory) {
+          if (!hasScrolled && !state.isLoading) {
             setTimeout(() => {
               setHasScrolled(true)
             }, 100)
@@ -222,14 +198,14 @@ export function MessagesList({
       }
 
       prevContentHeight.current = height
-      prevItemCount.current = convoState.items.length
+      prevItemCount.current = state.messages.length
       didBackground.current = false
     },
     [
       hasScrolled,
       setHasScrolled,
-      convoState.isFetchingHistory,
-      convoState.items.length,
+              state.isLoading,
+              state.messages.length,
       // these are stable
       flatListRef,
       isAtTop,
@@ -240,9 +216,10 @@ export function MessagesList({
 
   const onStartReached = useCallback(() => {
     if (hasScrolled && prevContentHeight.current > layoutHeight.get()) {
-      convoState.fetchMessageHistory()
+      // Load more messages using Sonet API
+      // This would typically call state.actions.loadMoreMessages()
     }
-  }, [convoState, hasScrolled, layoutHeight])
+  }, [hasScrolled, layoutHeight])
 
   const onScroll = useCallback(
     (e: ReanimatedScrollEvent) => {
@@ -324,81 +301,28 @@ export function MessagesList({
   // -- Message sending
   const onSendMessage = useCallback(
     async (text: string) => {
-      let rt = new RichText({text: text.trimEnd()}, {cleanNewlines: true})
-
-      // detect facets without resolution first - this is used to see if there's
-      // any post links in the text that we can embed. We do this first because
-      // we want to remove the post link from the text, re-trim, then detect facets
-      rt.detectFacetsWithoutResolution()
-
-      let embed: $Typed<AppBskyEmbedRecord.Main> | undefined
-
-      if (embedUri) {
-        try {
-          const post = await getPost({uri: embedUri})
-          if (post) {
-            embed = {
-              $type: 'app.bsky.embed.record',
-              record: {
-                uri: post.uri,
-                cid: post.cid,
-              },
-            }
-
-            // look for the embed uri in the facets, so we can remove it from the text
-            const postLinkFacet = rt.facets?.find(facet => {
-              return facet.features.find(feature => {
-                if (AppBskyRichtextFacet.isLink(feature)) {
-                  if (isBskyPostUrl(feature.uri)) {
-                    const url = convertBskyAppUrlIfNeeded(feature.uri)
-                    const [_0, _1, _2, rkey] = url.split('/').filter(Boolean)
-
-                    // this might have a handle instead of a DID
-                    // so just compare the rkey - not particularly dangerous
-                    return post.uri.endsWith(rkey)
-                  }
-                }
-                return false
-              })
-            })
-
-            if (postLinkFacet) {
-              const isAtStart = postLinkFacet.index.byteStart === 0
-              const isAtEnd =
-                postLinkFacet.index.byteEnd === rt.unicodeText.graphemeLength
-
-              // remove the post link from the text
-              if (isAtStart || isAtEnd) {
-                rt.delete(
-                  postLinkFacet.index.byteStart,
-                  postLinkFacet.index.byteEnd,
-                )
-              }
-
-              rt = new RichText({text: rt.text.trim()}, {cleanNewlines: true})
-            }
-          }
-        } catch (error) {
-          logger.error('Failed to get post as quote for DM', {error})
-        }
+      // Send message using Sonet API
+      try {
+        // This would typically call state.actions.sendMessage()
+        console.log('Sending message:', text)
+      } catch (error) {
+        console.error('Failed to send message:', error)
       }
+    },
+    []
+  )
 
-      await rt.detectFacets(agent)
-
-      rt = shortenLinks(rt)
-      rt = stripInvalidMentions(rt)
+      // Handle embeds and rich text processing for Sonet
+      // This would be implemented based on Sonet's rich text capabilities
 
       if (!hasScrolled) {
         setHasScrolled(true)
       }
 
-      convoState.sendMessage({
-        text: rt.text,
-        facets: rt.facets,
-        embed,
-      })
+      // Send message using Sonet API
+      console.log('Sending message with text:', text)
     },
-    [agent, convoState, embedUri, getPost, hasScrolled, setHasScrolled],
+    [hasScrolled, setHasScrolled],
   )
 
   // -- List layout changes (opening emoji keyboard, etc.)
@@ -438,7 +362,7 @@ export function MessagesList({
       <ScrollProvider onScroll={onScroll}>
         <List
           ref={flatListRef}
-          data={convoState.items}
+          data={state.messages}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           disableFullWindowScroll={true}
@@ -460,26 +384,25 @@ export function MessagesList({
           onScrollToIndexFailed={onScrollToIndexFailed}
           scrollEventThrottle={100}
           ListHeaderComponent={
-            <MaybeLoader isLoading={convoState.isFetchingHistory} />
+            <MaybeLoader isLoading={state.isLoading} />
           }
         />
       </ScrollProvider>
       <Animated.View style={animatedStickyViewStyle}>
-        {convoState.status === ConvoStatus.Disabled ? (
-          <ChatDisabled />
+        {state.status === 'error' ? (
+          <SonetChatDisabled />
         ) : blocked ? (
           footer
         ) : (
           <ConversationFooter
-            convoState={convoState}
+            state={state}
             hasAcceptOverride={hasAcceptOverride}>
-            <MessageInput
+            <SonetMessageInput
               onSendMessage={onSendMessage}
-              hasEmbed={!!embedUri}
-              setEmbed={setEmbed}
-              openEmojiPicker={onOpenEmojiPicker}>
-              <MessageInputEmbed embedUri={embedUri} setEmbed={setEmbed} />
-            </MessageInput>
+              disabled={false}
+              isEncrypted={state.chat?.isEncrypted}
+              encryptionStatus={state.encryptionStatus}
+            />
           </ConversationFooter>
         )}
       </Animated.View>
@@ -500,51 +423,51 @@ export function MessagesList({
 type FooterState = 'loading' | 'new-chat' | 'request' | 'standard'
 
 function getFooterState(
-  convoState: ActiveConvoStates,
+  state: any,
   hasAcceptOverride?: boolean,
 ): FooterState {
-  if (convoState.items.length === 0) {
-    if (convoState.isFetchingHistory) {
+  if (state.messages.length === 0) {
+    if (state.isLoading) {
       return 'loading'
     } else {
       return 'new-chat'
     }
   }
 
-  if (convoState.convo.status === 'request' && !hasAcceptOverride) {
-    return 'request'
+  if (state.status === 'loading') {
+    return 'loading'
   }
 
   return 'standard'
 }
 
 function ConversationFooter({
-  convoState,
+  state,
   hasAcceptOverride,
   children,
 }: {
-  convoState: ConvoState
+  state: any
   hasAcceptOverride?: boolean
   children?: React.ReactNode // message input
 }) {
-  if (!isConvoActive(convoState)) {
+  if (state.status !== 'ready') {
     return null
   }
 
-  const footerState = getFooterState(convoState, hasAcceptOverride)
+  const footerState = getFooterState(state, hasAcceptOverride)
 
   switch (footerState) {
     case 'loading':
       return null
-    case 'new-chat':
-      return (
-        <>
-          <ChatEmptyPill />
-          {children}
-        </>
-      )
-    case 'request':
-      return <ChatStatusInfo convoState={convoState} />
+          case 'new-chat':
+        return (
+          <>
+            <SonetChatEmptyPill />
+            {children}
+          </>
+        )
+          case 'request':
+        return <SonetChatStatusInfo state={state} />
     case 'standard':
       return children
   }

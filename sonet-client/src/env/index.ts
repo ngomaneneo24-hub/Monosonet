@@ -5,11 +5,11 @@ import {BUNDLE_IDENTIFIER, IS_TESTFLIGHT, RELEASE_VERSION} from '#/env/common'
 export * from '#/env/common'
 
 /**
- * Feature flags for Sonet migration
+ * Sonet messaging configuration (AT Protocol deprecated)
  */
-export const USE_SONET_MESSAGING = process.env.EXPO_PUBLIC_USE_SONET_MESSAGING === 'true'
-export const USE_SONET_E2E_ENCRYPTION = process.env.EXPO_PUBLIC_USE_SONET_E2E_ENCRYPTION === 'true'
-export const USE_SONET_REALTIME = process.env.EXPO_PUBLIC_USE_SONET_REALTIME === 'true'
+export const USE_SONET_MESSAGING = true // AT Protocol removed
+export const USE_SONET_E2E_ENCRYPTION = true // E2E encryption enabled by default
+export const USE_SONET_REALTIME = true // Real-time messaging enabled by default
 
 /**
  * The semver version of the app, specified in our `package.json`.file. On

@@ -73,6 +73,10 @@ export type CommonNavigatorParams = {
   MessagesConversation: {conversation: string; embed?: string; accept?: true}
   MessagesSettings: undefined
   MessagesInbox: undefined
+  SonetChats: undefined
+  SonetConversation: {conversation: string}
+  SonetGroupChat: {groupId: string}
+  SonetMessageSearch: {chatId?: string}
   NotificationsActivityList: {posts: string}
   LegacyNotificationSettings: undefined
   Feeds: undefined

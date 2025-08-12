@@ -1,195 +1,167 @@
-import React, {useCallback, useState, useRef} from 'react'
-import {View, TextInput, Keyboard} from 'react-native'
-import {msg, Trans} from '@lingui/macro'
+import React, {useCallback, useState} from 'react'
+import {View, TextInput, TouchableOpacity} from 'react-native'
+import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
-import {useE2EEncryption} from '#/services/sonetE2E'
-import {useUnifiedSession} from '#/state/session/hybrid'
-import {useSonetChatRealtime} from '#/state/messages/sonet/realtime'
 import {atoms as a, useTheme} from '#/alf'
-import {Button, ButtonIcon, ButtonText} from '#/components/Button'
-import {Lock_Stroke2_Corner0_Rounded as LockIcon} from '#/components/icons/Lock'
-import {PaperPlane_Stroke2_Corner0_Rounded as SendIcon} from '#/components/icons/PaperPlane'
-import {Shield_Stroke2_Corner0_Rounded as ShieldIcon} from '#/components/icons/Shield'
 import {Text} from '#/components/Typography'
+import {Button} from '#/components/Button'
 
 interface SonetMessageInputProps {
-  chatId: string
-  onSendMessage: (content: string, encryption?: 'none' | 'aes256' | 'e2e') => Promise<void>
-  disabled?: boolean
+  onSendMessage: (text: string) => Promise<void>
   placeholder?: string
+  disabled?: boolean
+  isEncrypted?: boolean
+  encryptionStatus?: 'enabled' | 'disabled' | 'pending'
 }
 
 export function SonetMessageInput({
-  chatId,
   onSendMessage,
-  disabled = false,
   placeholder,
+  disabled = false,
+  isEncrypted = false,
+  encryptionStatus = 'disabled',
 }: SonetMessageInputProps) {
-  const {_} = useLingui()
   const t = useTheme()
-  const {e2e, isInitialized: e2eInitialized} = useE2EEncryption()
-  const {state: sessionState} = useUnifiedSession()
-  const {sendTyping} = useSonetChatRealtime(chatId)
-
-  const [message, setMessage] = useState('')
+  const {_} = useLingui()
+  const [text, setText] = useState('')
   const [isSending, setIsSending] = useState(false)
-  const [encryptionType, setEncryptionType] = useState<'none' | 'aes256' | 'e2e'>('e2e')
-  const [isTyping, setIsTyping] = useState(false)
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const handleSend = useCallback(async () => {
-    if (!message.trim() || isSending || disabled) return
+    if (!text.trim() || isSending || disabled) return
 
     setIsSending(true)
     try {
-      await onSendMessage(message.trim(), encryptionType)
-      setMessage('')
-      
-      // Stop typing indicator
-      setIsTyping(false)
-      sendTyping(false)
+      await onSendMessage(text.trim())
+      setText('')
     } catch (error) {
       console.error('Failed to send message:', error)
     } finally {
       setIsSending(false)
     }
-  }, [message, isSending, disabled, encryptionType, onSendMessage, sendTyping])
+  }, [text, isSending, disabled, onSendMessage])
 
-  const handleTextChange = useCallback((text: string) => {
-    setMessage(text)
-    
-    // Handle typing indicator
-    if (text.length > 0 && !isTyping) {
-      setIsTyping(true)
-      sendTyping(true)
-    } else if (text.length === 0 && isTyping) {
-      setIsTyping(false)
-      sendTyping(false)
+  const handleKeyPress = useCallback((e: any) => {
+    if (e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+      e.preventDefault()
+      handleSend()
     }
-
-    // Clear typing timeout and set new one
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current)
-    }
-    
-    typingTimeoutRef.current = setTimeout(() => {
-      setIsTyping(false)
-      sendTyping(false)
-    }, 2000)
-  }, [isTyping, sendTyping])
-
-  const toggleEncryption = useCallback(() => {
-    if (encryptionType === 'none') {
-      setEncryptionType('aes256')
-    } else if (encryptionType === 'aes256') {
-      setEncryptionType('e2e')
-    } else {
-      setEncryptionType('none')
-    }
-  }, [encryptionType])
+  }, [handleSend])
 
   const getEncryptionIcon = () => {
-    switch (encryptionType) {
-      case 'e2e':
-        return <ShieldIcon size="sm" fill={t.atoms.text_positive.color} />
-      case 'aes256':
-        return <LockIcon size="sm" fill={t.atoms.text_warning.color} />
-      case 'none':
-        return <LockIcon size="sm" fill={t.atoms.text_contrast_low.color} />
+    switch (encryptionStatus) {
+      case 'enabled':
+        return '🔒'
+      case 'disabled':
+        return '🔓'
+      case 'pending':
+        return '⏳'
+      default:
+        return '🔓'
     }
   }
 
-  const getEncryptionLabel = () => {
-    switch (encryptionType) {
-      case 'e2e':
-        return _(msg`E2E Encrypted`)
-      case 'aes256':
-        return _(msg`AES-256 Encrypted`)
-      case 'none':
-        return _(msg`No Encryption`)
+  const getEncryptionColor = () => {
+    switch (encryptionStatus) {
+      case 'enabled':
+        return t.atoms.text_positive
+      case 'disabled':
+        return t.atoms.text_contrast_medium
+      case 'pending':
+        return t.atoms.text_warning
+      default:
+        return t.atoms.text_contrast_medium
     }
   }
-
-  const canSend = message.trim().length > 0 && !isSending && !disabled
-  const showE2EIndicator = encryptionType === 'e2e' && e2eInitialized
 
   return (
-    <View style={[a.border_t, t.atoms.border_contrast_low, a.p_4, a.gap_sm]}>
+    <View style={[a.flex_row, a.items_end, a.gap_sm, a.px_md, a.py_sm]}>
       {/* Encryption Status */}
-      <View style={[a.flex_row, a.items_center, a.justify_between]}>
-        <View style={[a.flex_row, a.items_center, a.gap_xs]}>
+      <TouchableOpacity
+        style={[
+          a.w_8,
+          a.h_8,
+          a.rounded_full,
+          a.items_center,
+          a.justify_center,
+          t.atoms.bg_contrast_25,
+        ]}
+        disabled={true}>
+        <Text
+          style={[
+            a.text_sm,
+            {
+              color: getEncryptionColor(),
+            },
+          ]}>
           {getEncryptionIcon()}
-          <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>
-            {getEncryptionLabel()}
-          </Text>
-        </View>
-        
-        <Button
-          size="small"
-          variant="ghost"
-          color="secondary"
-          onPress={toggleEncryption}
-          disabled={!e2eInitialized}>
-          <ButtonText>
-            <Trans>Change</Trans>
-          </ButtonText>
-        </Button>
-      </View>
-
-      {/* E2E Status */}
-      {showE2EIndicator && (
-        <View style={[a.flex_row, a.items_center, a.gap_xs, a.p_2, a.rounded_sm, t.atoms.bg_positive_25]}>
-          <ShieldIcon size="xs" fill={t.atoms.text_positive.color} />
-          <Text style={[a.text_xs, t.atoms.text_positive]}>
-            <Trans>End-to-end encryption enabled</Trans>
-          </Text>
-        </View>
-      )}
-
-      {/* Message Input */}
-      <View style={[a.flex_row, a.items_end, a.gap_sm]}>
-        <View style={[a.flex_1, a.rounded_md, t.atoms.bg_contrast_25, t.atoms.border_contrast_low]}>
-          <TextInput
-            value={message}
-            onChangeText={handleTextChange}
-            placeholder={placeholder || _(msg`Type a message...`)}
-            placeholderTextColor={t.atoms.text_contrast_low.color}
-            multiline
-            maxLength={1000}
-            style={[
-              a.p_3,
-              a.text_md,
-              t.atoms.text,
-              {minHeight: 40, maxHeight: 120},
-            ]}
-            editable={!disabled}
-          />
-        </View>
-
-        <Button
-          size="lg"
-          variant="solid"
-          color="primary"
-          onPress={handleSend}
-          disabled={!canSend}
-          style={[a.rounded_full, {width: 44, height: 44}]}>
-          <ButtonIcon icon={SendIcon} />
-        </Button>
-      </View>
-
-      {/* Character Count */}
-      <View style={[a.flex_row, a.justify_between, a.items_center]}>
-        <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>
-          {message.length}/1000
         </Text>
+      </TouchableOpacity>
+
+      {/* Text Input */}
+      <View style={[a.flex_1, a.relative]}>
+        <TextInput
+          value={text}
+          onChangeText={setText}
+          onKeyPress={handleKeyPress}
+          placeholder={placeholder || _('Type a message...')}
+          placeholderTextColor={t.atoms.text_contrast_medium}
+          multiline
+          maxLength={1000}
+          editable={!disabled}
+          style={[
+            a.text_sm,
+            a.px_md,
+            a.py_sm,
+            a.rounded_2xl,
+            a.border,
+            a.min_h_10,
+            a.max_h_32,
+            t.atoms.bg,
+            t.atoms.text,
+            t.atoms.border_contrast_25,
+            {
+              textAlignVertical: 'center',
+            },
+          ]}
+        />
         
-        {isSending && (
-          <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>
-            <Trans>Sending...</Trans>
+        {/* Character count */}
+        <View style={[a.absolute, a.bottom_1, a.right_2]}>
+          <Text
+            style={[
+              a.text_xs,
+              t.atoms.text_contrast_medium,
+            ]}>
+            {text.length}/1000
           </Text>
-        )}
+        </View>
       </View>
+
+      {/* Send Button */}
+      <Button
+        onPress={handleSend}
+        disabled={!text.trim() || isSending || disabled}
+        style={[
+          a.w_10,
+          a.h_10,
+          a.rounded_full,
+          a.items_center,
+          a.justify_center,
+          !text.trim() || isSending || disabled
+            ? t.atoms.bg_contrast_25
+            : t.atoms.bg_primary,
+        ]}>
+        <Text
+          style={[
+            a.text_sm,
+            !text.trim() || isSending || disabled
+              ? t.atoms.text_contrast_medium
+              : t.atoms.text_on_primary,
+          ]}>
+          {isSending ? '⏳' : '➤'}
+        </Text>
+      </Button>
     </View>
   )
 }

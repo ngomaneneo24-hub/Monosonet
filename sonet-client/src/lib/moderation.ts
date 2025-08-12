@@ -13,6 +13,127 @@ import {
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
 import {sanitizeHandle} from '#/lib/strings/handles'
 import {type AppModerationCause} from '#/components/Pills'
+import type {ModerationDecision} from '#/state/preferences/moderation-opts'
+
+// =============================================================================
+// MODERATION UTILITIES
+// =============================================================================
+
+export interface ProfileView {
+  did: string
+  handle: string
+  displayName?: string
+  description?: string
+  avatar?: string
+  banner?: string
+  labels?: Array<{
+    val: string
+    uri: string
+    cid: string
+    neg?: boolean
+  }>
+  viewer?: {
+    blockedBy?: boolean
+    blocking?: string
+    following?: string
+    followedBy?: string
+  }
+}
+
+/**
+ * Create a basic moderation decision for a profile
+ * This replaces the AT Protocol moderateProfile function
+ */
+export function moderateProfile(
+  profile: ProfileView | null,
+  moderationOpts: any
+): ModerationDecision | null {
+  if (!profile || !moderationOpts) return null
+
+  // Basic moderation logic - can be enhanced based on your needs
+  const decision: ModerationDecision = {
+    profile: {
+      cause: null,
+      filter: false,
+      label: false,
+      blur: false,
+      alert: false,
+      noOverride: false,
+    },
+    content: {
+      cause: null,
+      filter: false,
+      label: false,
+      blur: false,
+      alert: false,
+      noOverride: false,
+    },
+    user: {
+      cause: null,
+      filter: false,
+      label: false,
+      blur: false,
+      alert: false,
+      noOverride: false,
+    },
+  }
+
+  // Check for labels that require moderation
+  if (profile.labels) {
+    for (const label of profile.labels) {
+      if (label.neg) continue // Skip negative labels
+      
+      // Example: moderate certain label types
+      if (label.val.includes('spam') || label.val.includes('bot')) {
+        decision.profile.label = true
+        decision.profile.blur = true
+      }
+    }
+  }
+
+  // Check for blocked users
+  if (profile.viewer?.blockedBy) {
+    decision.profile.filter = true
+    decision.profile.blur = true
+  }
+
+  return decision
+}
+
+/**
+ * Check if a profile is active (not blocked, etc.)
+ */
+export function isProfileActive(profile: ProfileView | null): boolean {
+  if (!profile) return false
+  
+  // Check if user is blocked
+  if (profile.viewer?.blockedBy) return false
+  
+  // Check for severe moderation labels
+  if (profile.labels) {
+    for (const label of profile.labels) {
+      if (label.neg) continue
+      if (label.val.includes('suspended') || label.val.includes('banned')) {
+        return false
+      }
+    }
+  }
+  
+  return true
+}
+
+/**
+ * Get moderation cause for display
+ */
+export function getModerationCause(decision: ModerationDecision | null): string | null {
+  if (!decision) return null
+  
+  if (decision.profile.cause) return decision.profile.cause
+  if (decision.content.cause) return decision.content.cause
+  if (decision.user.cause) return decision.user.cause
+  
+  return null
+}
 
 export const ADULT_CONTENT_LABELS = ['sexual', 'nudity', 'porn']
 export const OTHER_SELF_LABELS = ['graphic-media']

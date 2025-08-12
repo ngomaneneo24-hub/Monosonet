@@ -78,6 +78,10 @@ import {MessagesScreen} from '#/screens/Messages/ChatList'
 import {MessagesConversationScreen} from '#/screens/Messages/Conversation'
 import {MessagesInboxScreen} from '#/screens/Messages/Inbox'
 import {MessagesSettingsScreen} from '#/screens/Messages/Settings'
+import {SonetChatsScreen} from '#/screens/Messages/SonetChatsScreen'
+import {SonetConversationScreen} from '#/screens/Messages/SonetConversation'
+import {SonetGroupChatManager} from '#/components/dms/SonetGroupChatManager'
+import {SonetMessageSearch} from '#/components/dms/SonetMessageSearch'
 import {ModerationScreen} from '#/screens/Moderation'
 import {Screen as ModerationVerificationSettings} from '#/screens/Moderation/VerificationSettings'
 import {Screen as ModerationInteractionSettings} from '#/screens/ModerationInteractionSettings'
@@ -556,6 +560,26 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
         name="MessagesInbox"
         getComponent={() => MessagesInboxScreen}
         options={{title: title(msg`Chat request inbox`), requireAuth: true}}
+      />
+      <Stack.Screen
+        name="SonetChats"
+        getComponent={() => SonetChatsScreen}
+        options={{title: title(msg`Chats`), requireAuth: true}}
+      />
+      <Stack.Screen
+        name="SonetConversation"
+        getComponent={() => SonetConversationScreen}
+        options={{title: title(msg`Chat`), requireAuth: true}}
+      />
+      <Stack.Screen
+        name="SonetGroupChat"
+        getComponent={() => SonetGroupChatManager}
+        options={{title: title(msg`Group Chat`), requireAuth: true}}
+      />
+      <Stack.Screen
+        name="SonetMessageSearch"
+        getComponent={() => SonetMessageSearch}
+        options={{title: title(msg`Search Messages`), requireAuth: true}}
       />
       <Stack.Screen
         name="NotificationsActivityList"
