@@ -309,6 +309,16 @@ bool WebSocketManager::is_running() const {
     return running_.load();
 }
 
+void WebSocketManager::set_allowed_origins(const std::vector<std::string>& origins) {
+    std::lock_guard<std::mutex> lock(connections_mutex_);
+    allowed_origins_.clear();
+    for (const auto& o : origins) allowed_origins_.insert(o);
+}
+
+void WebSocketManager::set_require_tls_header(bool require_tls) {
+    require_tls_header_ = require_tls;
+}
+
 void WebSocketManager::on_open(connection_hdl hdl) {
     std::lock_guard<std::mutex> lock(connections_mutex_);
 
@@ -339,12 +349,19 @@ void WebSocketManager::on_open(connection_hdl hdl) {
             return;
         }
 
-        // Minimal origin check if header present (deployers should set allowed origins)
+        // Enforce TLS if behind proxy
+        if (require_tls_header_) {
+            auto xfproto = con->get_request_header("X-Forwarded-Proto");
+            if (xfproto != "https") {
+                server_->close(hdl, websocketpp::close::status::policy_violation, "HTTPS required");
+                return;
+            }
+        }
+
+        // Origin allowlist
         auto origin = con->get_request_header("Origin");
-        if (!origin.empty()) {
-            // Example: allow same-origin only; extend to a proper allowlist in config
-            auto host = con->get_request_header("Host");
-            if (host.empty() || origin.find(host) == std::string::npos) {
+        if (!allowed_origins_.empty()) {
+            if (origin.empty() || allowed_origins_.find(origin) == allowed_origins_.end()) {
                 server_->close(hdl, websocketpp::close::status::policy_violation, "Origin not allowed");
                 return;
             }
