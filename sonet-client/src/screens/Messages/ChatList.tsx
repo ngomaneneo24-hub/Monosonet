@@ -119,9 +119,8 @@ export function MessagesScreenInner({navigation, route}: Props) {
   useFocusEffect(
     useCallback(() => {
       if (isActive) {
-        const unsub = messagesBus.requestPollInterval(
-          MESSAGE_SCREEN_POLL_INTERVAL,
-        )
+        // Real-time via WebSocket; no polling interval needed
+        const unsub = () => {}
         return () => unsub()
       }
     }, [messagesBus, isActive]),
