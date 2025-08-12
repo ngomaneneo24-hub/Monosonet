@@ -1,547 +1,212 @@
-import React, {useCallback, useMemo, useState} from 'react'
-import {type GestureResponderEvent, View} from 'react-native'
-import {
-  AppBskyEmbedRecord,
-  ChatBskyConvoDefs,
-  moderateProfile,
-  type ModerationOpts,
-} from '@atproto/api'
-import type {SonetChat} from '#/services/sonetMessagingApi'
-import {useIsSonetMessaging} from '#/state/messages/hybrid-provider'
-import {msg} from '@lingui/macro'
+import {View} from 'react-native'
+import {useCallback, useMemo} from 'react'
+import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
-import {useQueryClient} from '@tanstack/react-query'
+import {useNavigation} from '@react-navigation/native'
 
-import {GestureActionView} from '#/lib/custom-animations/GestureActionView'
-import {useHaptics} from '#/lib/haptics'
-import {decrementBadgeCount} from '#/lib/notifications/notifications'
-import {logEvent} from '#/lib/statsig/statsig'
-import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {
-  postUriToRelativePath,
-  toBskyAppUrl,
-  toShortUrl,
-} from '#/lib/strings/url-helpers'
-import {isNative} from '#/platform/detection'
-import {useProfileShadow} from '#/state/cache/profile-shadow'
-import {useModerationOpts} from '#/state/preferences/moderation-opts'
-import {
-  precacheConvoQuery,
-  useMarkAsReadMutation,
-} from '#/state/queries/messages/conversation'
-import {precacheProfile} from '#/state/queries/profile'
 import {useSession} from '#/state/session'
-import {TimeElapsed} from '#/view/com/util/TimeElapsed'
-import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
-import {atoms as a, useBreakpoints, useTheme, web} from '#/alf'
-import * as tokens from '#/alf/tokens'
-import {useDialogControl} from '#/components/Dialog'
-import {ConvoMenu} from '#/components/dms/ConvoMenu'
-import {LeaveConvoPrompt} from '#/components/dms/LeaveConvoPrompt'
-import {Bell2Off_Filled_Corner0_Rounded as BellStroke} from '#/components/icons/Bell2'
-import {Envelope_Open_Stroke2_Corner0_Rounded as EnvelopeOpen} from '#/components/icons/EnveopeOpen'
-import {Trash_Stroke2_Corner0_Rounded} from '#/components/icons/Trash'
-import {Link} from '#/components/Link'
-import {useMenuControl} from '#/components/Menu'
-import {PostAlerts} from '#/components/moderation/PostAlerts'
+import {atoms as a, useTheme} from '#/alf'
+import {Button, ButtonIcon, ButtonText} from '#/components/Button'
+import {ArrowRight_Stroke2_Corner0_Rounded as ArrowRightIcon} from '#/components/icons/Arrow'
+import {Message_Stroke2_Corner0_Rounded as MessageIcon} from '#/components/icons/Message'
 import {Text} from '#/components/Typography'
-import {useSimpleVerificationState} from '#/components/verification'
-import {VerificationCheck} from '#/components/verification/VerificationCheck'
-import type * as bsky from '#/types/bsky'
+import {Avatar} from '#/view/com/util/Avatar'
+import {useModerationCause} from '#/lib/moderation/useModerationCause'
+import {useModerationCauseLabel} from '#/lib/moderation/useModerationCauseLabel'
+import {useModerationCauseDescription} from '#/lib/moderation/useModerationCauseDescription'
 
-export let ChatListItem = ({
+export function ChatListItem({
   convo,
   showMenu = true,
   children,
 }: {
-  convo: ChatBskyConvoDefs.ConvoView | SonetChat
-  showMenu?: boolean
-  children?: React.ReactNode
-}): React.ReactNode => {
-  const {currentAccount} = useSession()
-  const moderationOpts = useModerationOpts()
-  const isSonet = useIsSonetMessaging()
-
-  // Handle both AT Protocol and Sonet conversation types
-  let otherUser: any = null
-  if (isSonet && 'chat_id' in convo) {
-    // Sonet chat - we'll need to get user info differently
-    // For now, use a placeholder until we have user lookup
-    otherUser = {
-      did: convo.participant_ids.find(id => id !== currentAccount?.did) || '',
-      handle: convo.name,
-      displayName: convo.name,
-      avatar: convo.avatar_url,
-    }
-  } else if (!isSonet && 'members' in convo) {
-    // AT Protocol conversation
-    otherUser = convo.members.find(
-      member => member.did !== currentAccount?.did,
-    )
-  }
-
-  if (!otherUser || !moderationOpts) {
-    return null
-  }
-
-  return (
-    <ChatListItemReady
-      convo={convo}
-      profile={otherUser}
-      moderationOpts={moderationOpts}
-      showMenu={showMenu}>
-      {children}
-    </ChatListItemReady>
-  )
-}
-
-ChatListItem = React.memo(ChatListItem)
-
-function ChatListItemReady({
-  convo,
-  profile: profileUnshadowed,
-  moderationOpts,
-  showMenu,
-  children,
-}: {
-  convo: ChatBskyConvoDefs.ConvoView | SonetChat
-  profile: bsky.profile.AnyProfileView
-  moderationOpts: ModerationOpts
+  convo: any | any // TODO: Replace with proper Sonet chat type
   showMenu?: boolean
   children?: React.ReactNode
 }) {
-  const t = useTheme()
   const {_} = useLingui()
+  const t = useTheme()
   const {currentAccount} = useSession()
-  const menuControl = useMenuControl()
-  const leaveConvoControl = useDialogControl()
-  const {gtMobile} = useBreakpoints()
-  const profile = useProfileShadow(profileUnshadowed)
-  const {mutate: markAsRead} = useMarkAsReadMutation()
-  const moderation = React.useMemo(
-    () => moderateProfile(profile, moderationOpts),
-    [profile, moderationOpts],
+  const navigation = useNavigation()
+
+  const handlePress = useCallback(() => {
+    navigation.navigate('MessagesConversation' as any, {
+      conversation: convo.id || convo.chat_id,
+    })
+  }, [navigation, convo])
+
+  // Extract user info from conversation
+  const otherUser = convo.members?.find(
+    (member: any) => member.did !== currentAccount?.did,
   )
-  const playHaptic = useHaptics()
-  const queryClient = useQueryClient()
-  const isUnread = convo.unreadCount > 0
-  const verification = useSimpleVerificationState({
-    profile,
-  })
+  
+  const handle = otherUser?.handle || 'unknown'
+  const displayName = otherUser?.displayName || handle
+  const avatar = otherUser?.avatar
+  const lastMessage = convo.lastMessage
+  const unreadCount = convo.unreadCount || 0
+  const isMuted = convo.muted || false
 
-  const blockInfo = useMemo(() => {
-    const modui = moderation.ui('profileView')
-    const blocks = modui.alerts.filter(alert => alert.type === 'blocking')
-    const listBlocks = blocks.filter(alert => alert.source.type === 'list')
-    const userBlock = blocks.find(alert => alert.source.type === 'user')
-    return {
-      listBlocks,
-      userBlock,
-    }
-  }, [moderation])
-
-  const isDeletedAccount = profile.handle === 'missing.invalid'
-  const displayName = isDeletedAccount
-    ? _(msg`Deleted Account`)
-    : sanitizeDisplayName(
-        profile.displayName || profile.handle,
-        moderation.ui('displayName'),
+  // Handle different message types
+  const renderLastMessage = () => {
+    if (!lastMessage) {
+      return (
+        <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
+          <Trans>No messages yet</Trans>
+        </Text>
       )
+    }
 
-  const isDimStyle = convo.muted || moderation.blocked || isDeletedAccount
+    if (lastMessage.type === 'deleted') {
+      return (
+        <Text style={[a.text_sm, t.atoms.text_contrast_medium, a.font_italic]}>
+          <Trans>Message deleted</Trans>
+        </Text>
+      )
+    }
 
-  const {lastMessage, lastMessageSentAt, latestReportableMessage} =
-    useMemo(() => {
-      // eslint-disable-next-line @typescript-eslint/no-shadow
-      let lastMessage = _(msg`No messages yet`)
-      // eslint-disable-next-line @typescript-eslint/no-shadow
-      let lastMessageSentAt: string | null = null
-      // eslint-disable-next-line @typescript-eslint/no-shadow
-      let latestReportableMessage: ChatBskyConvoDefs.MessageView | undefined
+    if (lastMessage.type === 'reaction') {
+      return (
+        <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
+          <Trans>Reacted to a message</Trans>
+        </Text>
+      )
+    }
 
-      if (ChatBskyConvoDefs.isMessageView(convo.lastMessage)) {
-        const isFromMe = convo.lastMessage.sender?.did === currentAccount?.did
-
-        if (!isFromMe) {
-          latestReportableMessage = convo.lastMessage
-        }
-
-        if (convo.lastMessage.text) {
-          if (isFromMe) {
-            lastMessage = _(msg`You: ${convo.lastMessage.text}`)
-          } else {
-            lastMessage = convo.lastMessage.text
-          }
-        } else if (convo.lastMessage.embed) {
-          const defaultEmbeddedContentMessage = _(
-            msg`(contains embedded content)`,
-          )
-
-          if (AppBskyEmbedRecord.isView(convo.lastMessage.embed)) {
-            const embed = convo.lastMessage.embed
-
-            if (AppBskyEmbedRecord.isViewRecord(embed.record)) {
-              const record = embed.record
-              const path = postUriToRelativePath(record.uri, {
-                handle: record.author.handle,
-              })
-              const href = path ? toBskyAppUrl(path) : undefined
-              const short = href
-                ? toShortUrl(href)
-                : defaultEmbeddedContentMessage
-              if (isFromMe) {
-                lastMessage = _(msg`You: ${short}`)
-              } else {
-                lastMessage = short
-              }
-            }
-          } else {
-            if (isFromMe) {
-              lastMessage = _(msg`You: ${defaultEmbeddedContentMessage}`)
-            } else {
-              lastMessage = defaultEmbeddedContentMessage
-            }
-          }
-        }
-
-        lastMessageSentAt = convo.lastMessage.sentAt
-      }
-      if (ChatBskyConvoDefs.isDeletedMessageView(convo.lastMessage)) {
-        lastMessageSentAt = convo.lastMessage.sentAt
-
-        lastMessage = isDeletedAccount
-          ? _(msg`Conversation deleted`)
-          : _(msg`Message deleted`)
-      }
-
-      if (ChatBskyConvoDefs.isMessageAndReactionView(convo.lastReaction)) {
-        if (
-          !lastMessageSentAt ||
-          new Date(lastMessageSentAt) <
-            new Date(convo.lastReaction.reaction.createdAt)
-        ) {
-          const isFromMe =
-            convo.lastReaction.reaction.sender.did === currentAccount?.did
-          const lastMessageText = convo.lastReaction.message.text
-          const fallbackMessage = _(
-            msg({
-              message: 'a message',
-              comment: `If last message does not contain text, fall back to "{user} reacted to {a message}"`,
-            }),
-          )
-
-          if (isFromMe) {
-            lastMessage = _(
-              msg`You reacted ${convo.lastReaction.reaction.value} to ${
-                lastMessageText
-                  ? `"${convo.lastReaction.message.text}"`
-                  : fallbackMessage
-              }`,
-            )
-          } else {
-            const senderDid = convo.lastReaction.reaction.sender.did
-            const sender = convo.members.find(
-              member => member.did === senderDid,
-            )
-            if (sender) {
-              lastMessage = _(
-                msg`${sanitizeDisplayName(
-                  sender.displayName || sender.handle,
-                )} reacted ${convo.lastReaction.reaction.value} to ${
-                  lastMessageText
-                    ? `"${convo.lastReaction.message.text}"`
-                    : fallbackMessage
-                }`,
-              )
-            } else {
-              lastMessage = _(
-                msg`Someone reacted ${convo.lastReaction.reaction.value} to ${
-                  lastMessageText
-                    ? `"${convo.lastReaction.message.text}"`
-                    : fallbackMessage
-                }`,
-              )
-            }
-          }
-        }
-      }
-
-      return {
-        lastMessage,
-        lastMessageSentAt,
-        latestReportableMessage,
-      }
-    }, [
-      _,
-      convo.lastMessage,
-      convo.lastReaction,
-      currentAccount?.did,
-      isDeletedAccount,
-      convo.members,
-    ])
-
-  const [showActions, setShowActions] = useState(false)
-
-  const onMouseEnter = useCallback(() => {
-    setShowActions(true)
-  }, [])
-
-  const onMouseLeave = useCallback(() => {
-    setShowActions(false)
-  }, [])
-
-  const onFocus = useCallback<React.FocusEventHandler>(e => {
-    if (e.nativeEvent.relatedTarget == null) return
-    setShowActions(true)
-  }, [])
-
-  const onPress = useCallback(
-    (e: GestureResponderEvent) => {
-      precacheProfile(queryClient, profile)
-      precacheConvoQuery(queryClient, convo)
-      decrementBadgeCount(convo.unreadCount)
-      if (isDeletedAccount) {
-        e.preventDefault()
-        menuControl.open()
-        return false
-      } else {
-        logEvent('chat:open', {logContext: 'ChatsList'})
-      }
-    },
-    [isDeletedAccount, menuControl, queryClient, profile, convo],
-  )
-
-  const onLongPress = useCallback(() => {
-    playHaptic()
-    menuControl.open()
-  }, [playHaptic, menuControl])
-
-  const markReadAction = {
-    threshold: 120,
-    color: t.palette.primary_500,
-    icon: EnvelopeOpen,
-    action: () => {
-      markAsRead({
-        convoId: convo.id,
-      })
-    },
+    // Regular message
+    const messageText = lastMessage.text || ''
+    if (messageText.length > 50) {
+      return (
+        <Text style={[a.text_sm, t.atoms.text_contrast_medium]} numberOfLines={1}>
+          {messageText.substring(0, 50)}...
+        </Text>
+      )
+    }
+    return (
+      <Text style={[a.text_sm, t.atoms.text_contrast_medium]} numberOfLines={1}>
+        {messageText}
+      </Text>
+    )
   }
 
-  const deleteAction = {
-    threshold: 225,
-    color: t.palette.negative_500,
-    icon: Trash_Stroke2_Corner0_Rounded,
-    action: () => {
-      leaveConvoControl.open()
-    },
+  // Handle embeds
+  const renderEmbed = () => {
+    if (!lastMessage?.embed) return null
+
+    const embed = lastMessage.embed
+    switch (embed.type) {
+      case 'images':
+        return (
+          <View style={[a.flex_row, a.align_center, a.gap_xs, a.mt_xs]}>
+            <MessageIcon width={16} height={16} fill={t.atoms.text_contrast_low.color} />
+            <Text style={[a.text_xs, t.atoms.text_contrast_low]}>
+              <Trans>Photo</Trans>
+            </Text>
+          </View>
+        )
+      
+      case 'external':
+        return (
+          <View style={[a.flex_row, a.align_center, a.gap_xs, a.mt_xs]}>
+            <MessageIcon width={16} height={16} fill={t.atoms.text_contrast_low.color} />
+            <Text style={[a.text_xs, t.atoms.text_contrast_low]} numberOfLines={1}>
+              {embed.external?.title || 'Link'}
+            </Text>
+          </View>
+        )
+      
+      case 'record':
+        if (embed.record?.type === 'post') {
+          return (
+            <View style={[a.flex_row, a.align_center, a.gap_xs, a.mt_xs]}>
+              <Text style={[a.text_xs, t.atoms.text_contrast_low]}>
+                <Trans>Post</Trans>
+              </Text>
+            </View>
+          )
+        }
+        return null
+      
+      default:
+        return null
+    }
   }
-
-  const actions = isUnread
-    ? {
-        leftFirst: markReadAction,
-        leftSecond: deleteAction,
-      }
-    : {
-        leftFirst: deleteAction,
-      }
-
-  const hasUnread = convo.unreadCount > 0 && !isDeletedAccount
 
   return (
-    <GestureActionView actions={actions}>
+    <View
+      style={[
+        a.flex_row,
+        a.align_center,
+        a.justify_between,
+        a.px_md,
+        a.py_md,
+        a.border_b,
+        t.atoms.border_contrast_low,
+      ]}>
       <View
-        // @ts-expect-error web only
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-        onFocus={onFocus}
-        onBlur={onMouseLeave}
-        style={[a.relative, t.atoms.bg]}>
-        <View
-          style={[
-            a.z_10,
-            a.absolute,
-            {top: tokens.space.md, left: tokens.space.lg},
-          ]}>
-          <PreviewableUserAvatar
-            profile={profile}
-            size={52}
-            moderation={moderation.ui('avatar')}
-          />
-        </View>
-
-        <Link
-          to={`/messages/${convo.id}`}
-          label={displayName}
-          accessibilityHint={
-            !isDeletedAccount
-              ? _(msg`Go to conversation with ${profile.handle}`)
-              : _(
-                  msg`This conversation is with a deleted or a deactivated account. Press for options`,
-                )
-          }
-          accessibilityActions={
-            isNative
-              ? [
-                  {name: 'magicTap', label: _(msg`Open conversation options`)},
-                  {name: 'longpress', label: _(msg`Open conversation options`)},
-                ]
-              : undefined
-          }
-          onPress={onPress}
-          onLongPress={isNative ? onLongPress : undefined}
-          onAccessibilityAction={onLongPress}>
-          {({hovered, pressed, focused}) => (
-            <View
-              style={[
-                a.flex_row,
-                isDeletedAccount ? a.align_center : a.align_start,
-                a.flex_1,
-                a.px_lg,
-                a.py_md,
-                a.gap_md,
-                (hovered || pressed || focused) && t.atoms.bg_contrast_25,
-              ]}>
-              {/* Avatar goes here */}
-              <View style={{width: 52, height: 52}} />
-
+        style={[a.flex_row, a.align_center, a.flex_1, a.mr_sm]}
+        onTouchEnd={handlePress}>
+        <Avatar size={48} image={avatar} style={[a.mr_md]} />
+        
+        <View style={[a.flex_1, a.min_w_0]}>
+          <View style={[a.flex_row, a.align_center, a.gap_sm, a.mb_xs]}>
+            <Text style={[a.text_md, a.font_bold, a.leading_snug]} numberOfLines={1}>
+              {displayName}
+            </Text>
+            {isMuted && (
               <View
-                style={[a.flex_1, a.justify_center, web({paddingRight: 45})]}>
-                <View style={[a.w_full, a.flex_row, a.align_end, a.pb_2xs]}>
-                  <View style={[a.flex_shrink]}>
-                    <Text
-                      emoji
-                      numberOfLines={1}
-                      style={[
-                        a.text_md,
-                        t.atoms.text,
-                        a.font_bold,
-                        {lineHeight: 21},
-                        isDimStyle && t.atoms.text_contrast_medium,
-                      ]}>
-                      {displayName}
-                    </Text>
-                  </View>
-                  {verification.showBadge && (
-                    <View style={[a.pl_xs, a.self_center]}>
-                      <VerificationCheck
-                        width={14}
-                        verifier={verification.role === 'verifier'}
-                      />
-                    </View>
-                  )}
-                  {lastMessageSentAt && (
-                    <View style={[a.pl_xs]}>
-                      <TimeElapsed timestamp={lastMessageSentAt}>
-                        {({timeElapsed}) => (
-                          <Text
-                            style={[
-                              a.text_sm,
-                              {lineHeight: 21},
-                              t.atoms.text_contrast_medium,
-                              web({whiteSpace: 'preserve nowrap'}),
-                            ]}>
-                            &middot; {timeElapsed}
-                          </Text>
-                        )}
-                      </TimeElapsed>
-                    </View>
-                  )}
-                  {(convo.muted || moderation.blocked) && (
-                    <Text
-                      style={[
-                        a.text_sm,
-                        {lineHeight: 21},
-                        t.atoms.text_contrast_medium,
-                        web({whiteSpace: 'preserve nowrap'}),
-                      ]}>
-                      {' '}
-                      &middot;{' '}
-                      <BellStroke
-                        size="xs"
-                        style={[t.atoms.text_contrast_medium]}
-                      />
-                    </Text>
-                  )}
-                </View>
-
-                {!isDeletedAccount && (
-                  <Text
-                    numberOfLines={1}
-                    style={[a.text_sm, t.atoms.text_contrast_medium, a.pb_xs]}>
-                    @{profile.handle}
-                  </Text>
-                )}
-
-                <Text
-                  emoji
-                  numberOfLines={2}
-                  style={[
-                    a.text_sm,
-                    a.leading_snug,
-                    hasUnread ? a.font_bold : t.atoms.text_contrast_high,
-                    isDimStyle && t.atoms.text_contrast_medium,
-                  ]}>
-                  {lastMessage}
+                style={[
+                  a.px_xs,
+                  a.py_2xs,
+                  a.rounded_sm,
+                  t.atoms.bg_contrast_25,
+                ]}>
+                <Text style={[a.text_xs, t.atoms.text_contrast_low]}>
+                  <Trans>Muted</Trans>
                 </Text>
-
-                <PostAlerts
-                  modui={moderation.ui('contentList')}
-                  size="lg"
-                  style={[a.pt_xs]}
-                />
-
-                {children}
               </View>
-
-              {hasUnread && (
-                <View
-                  style={[
-                    a.absolute,
-                    a.rounded_full,
-                    {
-                      backgroundColor: isDimStyle
-                        ? t.palette.contrast_200
-                        : t.palette.primary_500,
-                      height: 7,
-                      width: 7,
-                      top: 15,
-                      right: 12,
-                    },
-                  ]}
-                />
-              )}
-            </View>
-          )}
-        </Link>
-
-        {showMenu && (
-          <ConvoMenu
-            convo={convo}
-            profile={profile}
-            control={menuControl}
-            currentScreen="list"
-            showMarkAsRead={convo.unreadCount > 0}
-            hideTrigger={isNative}
-            blockInfo={blockInfo}
-            style={[
-              a.absolute,
-              a.h_full,
-              a.self_end,
-              a.justify_center,
-              {
-                right: tokens.space.lg,
-                opacity: !gtMobile || showActions || menuControl.isOpen ? 1 : 0,
-              },
-            ]}
-            latestReportableMessage={latestReportableMessage}
-          />
-        )}
-        <LeaveConvoPrompt
-          control={leaveConvoControl}
-          convoId={convo.id}
-          currentScreen="list"
-        />
+            )}
+          </View>
+          
+          <Text style={[a.text_sm, t.atoms.text_contrast_medium]} numberOfLines={1}>
+            @{handle}
+          </Text>
+          
+          {renderLastMessage()}
+          {renderEmbed()}
+        </View>
       </View>
-    </GestureActionView>
+
+      <View style={[a.align_end, a.gap_sm]}>
+        {unreadCount > 0 && (
+          <View
+            style={[
+              a.rounded_full,
+              a.min_w_6,
+              a.h_6,
+              a.align_center,
+              a.justify_center,
+              t.palette.primary_500,
+            ]}>
+            <Text style={[a.text_xs, a.font_bold, {color: 'white'}]}>
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </Text>
+          </View>
+        )}
+        
+        {showMenu && (
+          <Button
+            label={_(msg`Open conversation`)}
+            size="small"
+            color="secondary"
+            variant="ghost"
+            onPress={handlePress}>
+            <ButtonIcon icon={ArrowRightIcon} />
+          </Button>
+        )}
+      </View>
+      
+      {children}
+    </View>
   )
 }
