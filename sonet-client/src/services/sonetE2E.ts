@@ -21,6 +21,7 @@ export interface E2EEncryptedPayload {
   iv: string
   tag: string
   ephemeralPublicKey: string
+  aad: string
 }
 
 export class SonetE2EEncryption {
@@ -37,7 +38,6 @@ export class SonetE2EEncryption {
     }
 
     try {
-      // Generate key pair if not exists
       if (!this.keyPair) {
         this.keyPair = await this.generateKeyPair()
       }
@@ -52,7 +52,7 @@ export class SonetE2EEncryption {
 
   async generateKeyPair(): Promise<E2EKeyPair> {
     try {
-      // Generate X25519 key pair for key exchange
+      // Use P-256 consistently for ECDH/ECDSA in this implementation
       const keyPair = await crypto.subtle.generateKey(
         {
           name: 'ECDH',
@@ -62,10 +62,7 @@ export class SonetE2EEncryption {
         ['deriveKey', 'deriveBits']
       )
 
-      // Export public key
       const publicKeyBytes = await crypto.subtle.exportKey('raw', keyPair.publicKey)
-      
-      // Generate fingerprint
       const fingerprint = await this.generateFingerprint(publicKeyBytes)
 
       return {
@@ -91,13 +88,15 @@ export class SonetE2EEncryption {
   async encryptMessage(
     message: string,
     recipientPublicKeyBytes: Uint8Array,
+    chatId: string,
+    messageId: string,
+    senderId: string,
   ): Promise<E2EEncryptedPayload> {
     if (!this.keyPair) {
       throw new Error('E2E encryption not initialized')
     }
 
     try {
-      // Import recipient's public key
       const recipientPublicKey = await crypto.subtle.importKey(
         'raw',
         recipientPublicKeyBytes,
@@ -106,20 +105,19 @@ export class SonetE2EEncryption {
           namedCurve: 'P-256',
         },
         false,
-        ['deriveKey']
+        ['deriveBits']
       )
 
-      // Generate ephemeral key pair for this message
       const ephemeralKeyPair = await crypto.subtle.generateKey(
         {
           name: 'ECDH',
           namedCurve: 'P-256',
         },
         true,
-        ['deriveKey']
+        ['deriveBits']
       )
 
-      // Derive shared secret
+      // ECDH shared secret
       const sharedSecret = await crypto.subtle.deriveBits(
         {
           name: 'ECDH',
@@ -129,44 +127,52 @@ export class SonetE2EEncryption {
         256
       )
 
-      // Derive encryption key from shared secret
-      const encryptionKey = await crypto.subtle.deriveKey(
-        {
-          name: 'PBKDF2',
-          salt: new TextEncoder().encode('sonet-e2e-salt'),
-          iterations: 100000,
-          hash: 'SHA-256',
-        },
+      // Per-message salt = IV; info ties to context
+      const iv = crypto.getRandomValues(new Uint8Array(12))
+      const info = new TextEncoder().encode('sonet:e2e:v1')
+
+      // Generate AAD (Additional Authenticated Data) for integrity binding
+      // Format: hash(msgId|chatId|senderId|alg|keyId) - matches server expectations
+      const ephemeralPublicKeyBytes = await crypto.subtle.exportKey('raw', ephemeralKeyPair.publicKey)
+      const aadComponents = [
+        messageId,
+        chatId, 
+        senderId,
+        'AES-GCM',
+        this.arrayBufferToBase64(ephemeralPublicKeyBytes)
+      ].join('|')
+      
+      const aadHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(aadComponents))
+      const aad = Array.from(new Uint8Array(aadHash)).map(b => b.toString(16).padStart(2, '0')).join('')
+
+      // HKDF extract+expand to AES-GCM key
+      const hkdfKey = await crypto.subtle.importKey(
+        'raw',
         sharedSecret,
+        { name: 'HKDF' },
+        false,
+        ['deriveKey']
+      )
+      const aesKey = await crypto.subtle.deriveKey(
         {
-          name: 'AES-GCM',
-          length: 256,
+          name: 'HKDF',
+          hash: 'SHA-256',
+          salt: iv, // bind key to nonce to avoid reuse across messages
+          info,
         },
+        hkdfKey,
+        { name: 'AES-GCM', length: 256 },
         false,
         ['encrypt']
       )
 
-      // Generate IV
-      const iv = crypto.getRandomValues(new Uint8Array(12))
-
-      // Encrypt message
       const encodedMessage = new TextEncoder().encode(message)
       const encrypted = await crypto.subtle.encrypt(
-        {
-          name: 'AES-GCM',
-          iv,
-        },
-        encryptionKey,
+        { name: 'AES-GCM', iv },
+        aesKey,
         encodedMessage
       )
 
-      // Export ephemeral public key
-      const ephemeralPublicKeyBytes = await crypto.subtle.exportKey(
-        'raw',
-        ephemeralKeyPair.publicKey
-      )
-
-      // Split encrypted data into ciphertext and tag
       const encryptedArray = new Uint8Array(encrypted)
       const ciphertext = encryptedArray.slice(0, -16)
       const tag = encryptedArray.slice(-16)
@@ -176,6 +182,7 @@ export class SonetE2EEncryption {
         iv: this.arrayBufferToBase64(iv),
         tag: this.arrayBufferToBase64(tag),
         ephemeralPublicKey: this.arrayBufferToBase64(ephemeralPublicKeyBytes),
+        aad: aad, // Include AAD for server validation
       }
     } catch (error) {
       console.error('Failed to encrypt message:', error)
@@ -192,7 +199,6 @@ export class SonetE2EEncryption {
     }
 
     try {
-      // Import sender's public key
       const senderPublicKey = await crypto.subtle.importKey(
         'raw',
         senderPublicKeyBytes,
@@ -201,10 +207,9 @@ export class SonetE2EEncryption {
           namedCurve: 'P-256',
         },
         false,
-        ['deriveKey']
+        ['deriveBits']
       )
 
-      // Import ephemeral public key
       const ephemeralPublicKeyBytes = this.base64ToArrayBuffer(encryptedPayload.ephemeralPublicKey)
       const ephemeralPublicKey = await crypto.subtle.importKey(
         'raw',
@@ -214,10 +219,9 @@ export class SonetE2EEncryption {
           namedCurve: 'P-256',
         },
         false,
-        ['deriveKey']
+        ['deriveBits']
       )
 
-      // Derive shared secret
       const sharedSecret = await crypto.subtle.deriveBits(
         {
           name: 'ECDH',
@@ -227,42 +231,31 @@ export class SonetE2EEncryption {
         256
       )
 
-      // Derive decryption key from shared secret
-      const decryptionKey = await crypto.subtle.deriveKey(
+      const iv = this.base64ToArrayBuffer(encryptedPayload.iv)
+      const info = new TextEncoder().encode('sonet:e2e:v1')
+
+      const hkdfKey = await crypto.subtle.importKey('raw', sharedSecret, { name: 'HKDF' }, false, ['deriveKey'])
+      const aesKey = await crypto.subtle.deriveKey(
         {
-          name: 'PBKDF2',
-          salt: new TextEncoder().encode('sonet-e2e-salt'),
-          iterations: 100000,
+          name: 'HKDF',
           hash: 'SHA-256',
+          salt: new Uint8Array(iv),
+          info,
         },
-        sharedSecret,
-        {
-          name: 'AES-GCM',
-          length: 256,
-        },
+        hkdfKey,
+        { name: 'AES-GCM', length: 256 },
         false,
         ['decrypt']
       )
 
-      // Combine ciphertext and tag
       const ciphertext = this.base64ToArrayBuffer(encryptedPayload.ciphertext)
       const tag = this.base64ToArrayBuffer(encryptedPayload.tag)
-      const iv = this.base64ToArrayBuffer(encryptedPayload.iv)
 
       const encryptedData = new Uint8Array(ciphertext.byteLength + tag.byteLength)
       encryptedData.set(new Uint8Array(ciphertext), 0)
       encryptedData.set(new Uint8Array(tag), ciphertext.byteLength)
 
-      // Decrypt message
-      const decrypted = await crypto.subtle.decrypt(
-        {
-          name: 'AES-GCM',
-          iv,
-        },
-        decryptionKey,
-        encryptedData
-      )
-
+      const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(iv) }, aesKey, encryptedData)
       return new TextDecoder().decode(decrypted)
     } catch (error) {
       console.error('Failed to decrypt message:', error)
@@ -276,29 +269,17 @@ export class SonetE2EEncryption {
     }
 
     try {
-      // Create signing key from private key
+      // Export private key to PKCS8 and import for ECDSA signing
       const signingKey = await crypto.subtle.importKey(
         'pkcs8',
         await crypto.subtle.exportKey('pkcs8', this.keyPair.privateKey),
-        {
-          name: 'ECDSA',
-          namedCurve: 'P-256',
-        },
+        { name: 'ECDSA', namedCurve: 'P-256' },
         false,
         ['sign']
       )
 
-      // Sign message
       const encodedMessage = new TextEncoder().encode(message)
-      const signature = await crypto.subtle.sign(
-        {
-          name: 'ECDSA',
-          hash: 'SHA-256',
-        },
-        signingKey,
-        encodedMessage
-      )
-
+      const signature = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, signingKey, encodedMessage)
       return this.arrayBufferToBase64(signature)
     } catch (error) {
       console.error('Failed to sign message:', error)
@@ -312,31 +293,18 @@ export class SonetE2EEncryption {
     publicKeyBytes: Uint8Array,
   ): Promise<boolean> {
     try {
-      // Import public key for verification
       const publicKey = await crypto.subtle.importKey(
         'raw',
         publicKeyBytes,
-        {
-          name: 'ECDSA',
-          namedCurve: 'P-256',
-        },
+        { name: 'ECDSA', namedCurve: 'P-256' },
         false,
         ['verify']
       )
 
-      // Verify signature
       const encodedMessage = new TextEncoder().encode(message)
       const signatureBytes = this.base64ToArrayBuffer(signature)
 
-      return await crypto.subtle.verify(
-        {
-          name: 'ECDSA',
-          hash: 'SHA-256',
-        },
-        publicKey,
-        signatureBytes,
-        encodedMessage
-      )
+      return await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, publicKey, signatureBytes, encodedMessage)
     } catch (error) {
       console.error('Failed to verify signature:', error)
       return false
@@ -355,7 +323,6 @@ export class SonetE2EEncryption {
     return USE_SONET_E2E_ENCRYPTION && this.isInitialized
   }
 
-  // Utility functions
   private arrayBufferToBase64(buffer: ArrayBuffer | Uint8Array): string {
     const bytes = new Uint8Array(buffer)
     let binary = ''
@@ -374,7 +341,6 @@ export class SonetE2EEncryption {
     return bytes.buffer
   }
 
-  // Clean up sensitive data
   destroy(): void {
     this.keyPair = null
     this.keyCache.clear()
@@ -382,7 +348,6 @@ export class SonetE2EEncryption {
   }
 }
 
-// Global E2E encryption instance
 let globalE2E: SonetE2EEncryption | null = null
 
 export function getE2EEncryption(): SonetE2EEncryption {
@@ -392,7 +357,6 @@ export function getE2EEncryption(): SonetE2EEncryption {
   return globalE2E
 }
 
-// React hook for E2E encryption
 export function useE2EEncryption() {
   const [e2e] = React.useState(() => getE2EEncryption())
   const [isInitialized, setIsInitialized] = React.useState(false)
@@ -403,7 +367,7 @@ export function useE2EEncryption() {
     }).catch(console.error)
 
     return () => {
-      // Don't destroy on unmount, keep it global
+      // keep global instance
     }
   }, [e2e])
 

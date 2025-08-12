@@ -3,6 +3,11 @@ import {sonetCrypto} from './sonetCrypto'
 import {sonetWebSocket} from './sonetWebSocket'
 import {EventEmitter} from 'events'
 
+function genMessageId(): string {
+  const rnd = crypto.getRandomValues(new Uint8Array(16))
+  return 'msg_' + Array.from(rnd).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 export interface SonetChat {
   id: string
   name: string
@@ -117,7 +122,7 @@ export class SonetMessagingApi extends EventEmitter {
 
     // Connect WebSocket
     try {
-      await sonetWebSocket.connect(token)
+      await sonetWebSocket.connect(token, userId || undefined)
       this.isConnected = true
       this.emit('authenticated')
     } catch (error) {
@@ -197,7 +202,8 @@ export class SonetMessagingApi extends EventEmitter {
   async sendMessage(request: SendMessageRequest): Promise<SonetMessage> {
     try {
       let encryptedContent = request.content
-      let encryptionData = undefined
+      let encryptionData: any = undefined
+      const clientMsgId = genMessageId()
 
       // Encrypt message if requested and chat supports encryption
       if (request.encrypt !== false) {
@@ -206,25 +212,44 @@ export class SonetMessagingApi extends EventEmitter {
           const recipient = chat.participants.find(p => p.id !== this.extractUserIdFromToken(this.authToken!))
           if (recipient?.publicKey) {
             const publicKey = await sonetCrypto.importPublicKey(recipient.publicKey)
-            const encrypted = await sonetCrypto.encryptMessage(request.content, request.chatId, publicKey)
+            const encrypted = await sonetCrypto.encryptMessage(
+              request.content, 
+              request.chatId, 
+              publicKey,
+              clientMsgId,
+              this.extractUserIdFromToken(this.authToken!)
+            )
             
             encryptedContent = encrypted.encryptedContent
             encryptionData = {
               keyId: encrypted.keyId,
               algorithm: encrypted.algorithm,
               iv: encrypted.iv,
-              authTag: encrypted.authTag
+              authTag: encrypted.authTag,
+              aad: encrypted.aad
             }
           }
         }
       }
 
-      const messageData = {
+      const messageData: any = {
         chatId: request.chatId,
         content: encryptedContent,
         type: request.type || 'text',
         replyTo: request.replyTo,
-        encrypt: request.encrypt !== false
+        encrypt: request.encrypt !== false,
+        clientMessageId: clientMsgId,
+      }
+
+      if (encryptionData) {
+        messageData.encryption = {
+          v: 1,
+          alg: encryptionData.algorithm,
+          keyId: encryptionData.keyId,
+          iv: encryptionData.iv,
+          tag: encryptionData.authTag,
+          aad: encryptionData.aad,
+        }
       }
 
       const response = await this.apiRequest('/messaging/messages', {

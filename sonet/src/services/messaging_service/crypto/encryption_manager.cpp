@@ -6,7 +6,7 @@
  * Unauthorized copying, distribution, or use is strictly prohibited.
  */
 
-#include "include/encryption_manager.hpp"
+#include "../include/encryption_manager.hpp"
 #include <cryptopp/aes.h>
 #include <cryptopp/gcm.h>
 #include <cryptopp/chacha.h>
@@ -27,6 +27,7 @@
 #include <iomanip>
 #include <filesystem>
 #include <fstream>
+#include <sodium.h>
 
 namespace {
     std::string get_session_keys_path() {
@@ -42,6 +43,14 @@ namespace {
 }
 
 namespace sonet::messaging::encryption {
+
+static inline void secure_zero_string(std::string& s) {
+    if (!s.empty()) {
+        sodium_memzero(s.data(), s.size());
+        s.clear();
+        s.shrink_to_fit();
+    }
+}
 
 // EncryptionKeyPair implementation
 std::string EncryptionKeyPair::serialize_public_key() const {
@@ -177,6 +186,19 @@ Json::Value DoubleRatchetState::to_json() const {
         created_at.time_since_epoch()).count();
     json["last_ratchet"] = std::chrono::duration_cast<std::chrono::milliseconds>(
         last_ratchet.time_since_epoch()).count();
+    
+    // Add new fields
+    json["sending_chain_length"] = sending_chain_length;
+    json["receiving_chain_length"] = receiving_chain_length;
+    json["messages_since_rekey"] = messages_since_rekey;
+    
+    // Add skipped message keys
+    Json::Value skipped_keys;
+    for (const auto& [msg_num, key] : skipped_message_keys) {
+        skipped_keys[std::to_string(msg_num)] = key;
+    }
+    json["skipped_message_keys"] = skipped_keys;
+    
     return json;
 }
 
@@ -186,6 +208,76 @@ bool DoubleRatchetState::should_ratchet() const {
     
     return time_since_ratchet > std::chrono::hours(24) || 
            sending_message_number > 1000;
+}
+
+bool DoubleRatchetState::should_rekey() const {
+    auto now = std::chrono::system_clock::now();
+    auto time_since_ratchet = now - last_ratchet;
+    
+    return time_since_ratchet > rekey_interval || 
+           messages_since_rekey > max_messages_per_chain;
+}
+
+void DoubleRatchetState::cleanup_old_skipped_keys() {
+    if (skipped_message_keys.size() > max_skipped_keys) {
+        // Remove oldest keys to maintain bounded memory usage
+        std::vector<uint32_t> keys_to_remove;
+        for (const auto& [msg_num, _] : skipped_message_keys) {
+            if (msg_num < receiving_message_number - max_skipped_keys) {
+                keys_to_remove.push_back(msg_num);
+            }
+        }
+        
+        for (uint32_t key : keys_to_remove) {
+            skipped_message_keys.erase(key);
+        }
+    }
+}
+
+DoubleRatchetState DoubleRatchetState::from_json(const Json::Value& json) {
+    DoubleRatchetState state;
+    state.state_id = json["state_id"].asString();
+    state.chat_id = json["chat_id"].asString();
+    state.our_identity_key = json["our_identity_key"].asString();
+    state.their_identity_key = json["their_identity_key"].asString();
+    state.root_key = json["root_key"].asString();
+    state.sending_chain_key = json["sending_chain_key"].asString();
+    state.receiving_chain_key = json["receiving_chain_key"].asString();
+    state.our_ratchet_private_key = json["our_ratchet_private_key"].asString();
+    state.our_ratchet_public_key = json["our_ratchet_public_key"].asString();
+    state.their_ratchet_public_key = json["their_ratchet_public_key"].asString();
+    state.sending_message_number = json["sending_message_number"].asUInt();
+    state.receiving_message_number = json["receiving_message_number"].asUInt();
+    state.previous_sending_chain_length = json["previous_sending_chain_length"].asUInt();
+    
+    auto created_ms = json["created_at"].asInt64();
+    state.created_at = std::chrono::system_clock::time_point(
+        std::chrono::milliseconds(created_ms));
+    
+    auto last_ratchet_ms = json["last_ratchet"].asInt64();
+    state.last_ratchet = std::chrono::system_clock::time_point(
+        std::chrono::milliseconds(last_ratchet_ms));
+    
+    // Load skipped message keys if present
+    if (json.isMember("skipped_message_keys") && json["skipped_message_keys"].isObject()) {
+        for (const auto& key_name : json["skipped_message_keys"].getMemberNames()) {
+            uint32_t msg_num = std::stoul(key_name);
+            state.skipped_message_keys[msg_num] = json["skipped_message_keys"][key_name].asString();
+        }
+    }
+    
+    // Load additional fields if present
+    if (json.isMember("sending_chain_length")) {
+        state.sending_chain_length = json["sending_chain_length"].asUInt();
+    }
+    if (json.isMember("receiving_chain_length")) {
+        state.receiving_chain_length = json["receiving_chain_length"].asUInt();
+    }
+    if (json.isMember("messages_since_rekey")) {
+        state.messages_since_rekey = json["messages_since_rekey"].asUInt();
+    }
+    
+    return state;
 }
 
 // EncryptionManager implementation
@@ -208,6 +300,7 @@ EncryptionManager::EncryptionManager() : rng_(std::make_unique<CryptoPP::AutoSee
     cleanup_thread_ = std::thread([this]() {
         while (running_.load()) {
             cleanup_expired_keys();
+            cleanup_expired_ratchet_states();
             std::this_thread::sleep_for(std::chrono::minutes(5));
         }
     });
@@ -903,6 +996,493 @@ std::string EncryptionManager::algorithm_to_string(EncryptionAlgorithm algorithm
         default:
             return "Unknown";
     }
+}
+
+// Helper methods for key size
+size_t EncryptionManager::get_key_size(EncryptionAlgorithm algorithm) {
+    switch (algorithm) {
+        case EncryptionAlgorithm::AES_256_GCM:
+            return 32; // 256 bits
+        case EncryptionAlgorithm::CHACHA20_POLY1305:
+            return 32; // 256 bits
+        case EncryptionAlgorithm::X25519_CHACHA20_POLY1305:
+            return 32; // 256 bits
+        default:
+            return 32;
+    }
+}
+
+// Double Ratchet helper methods
+std::string EncryptionManager::derive_chain_key(const std::string& input_key, const std::string& info) {
+    return derive_key(input_key, info, 32);
+}
+
+std::string EncryptionManager::derive_message_key_from_chain(const std::string& chain_key, uint32_t message_number) {
+    return derive_key(chain_key, "MessageKey" + std::to_string(message_number), 32);
+}
+
+void EncryptionManager::ratchet_sending_chain(DoubleRatchetState& state) {
+    // Derive new chain key and message key
+    state.sending_chain_key = derive_chain_key(state.sending_chain_key, "SendingChain");
+    state.sending_chain_length++;
+    state.sending_message_number++;
+    state.messages_since_rekey++;
+}
+
+void EncryptionManager::ratchet_receiving_chain(DoubleRatchetState& state) {
+    // Derive new chain key and message key
+    state.receiving_chain_key = derive_chain_key(state.receiving_chain_key, "ReceivingChain");
+    state.receiving_chain_length++;
+    state.receiving_message_number++;
+}
+
+bool EncryptionManager::should_perform_dh_ratchet(const DoubleRatchetState& state) {
+    return state.should_ratchet() || state.should_rekey();
+}
+
+void EncryptionManager::perform_rekey_if_needed(DoubleRatchetState& state) {
+    if (state.should_rekey()) {
+        // Generate new ratchet key pair
+        auto new_ratchet_key_pair = generate_key_pair(EncryptionAlgorithm::X25519_CHACHA20_POLY1305);
+        
+        // Update state with new keys
+        state.our_ratchet_private_key = new_ratchet_key_pair.serialize_private_key();
+        state.our_ratchet_public_key = new_ratchet_key_pair.serialize_public_key();
+        
+        // Reset counters
+        state.messages_since_rekey = 0;
+        state.last_ratchet = std::chrono::system_clock::now();
+    }
+}
+
+// Advanced Double Ratchet methods
+bool EncryptionManager::advance_sending_chain(const std::string& chat_id) {
+    std::lock_guard<std::mutex> lock(ratchet_states_mutex_);
+    
+    auto state_it = ratchet_states_.find(chat_id);
+    if (state_it == ratchet_states_.end()) {
+        return false;
+    }
+    
+    auto& state = state_it->second;
+    
+    // Check if we need to perform DH ratchet
+    if (should_perform_dh_ratchet(state)) {
+        // Generate new ratchet key pair
+        auto new_ratchet_key_pair = generate_key_pair(EncryptionAlgorithm::X25519_CHACHA20_POLY1305);
+        
+        // Update state
+        state.our_ratchet_private_key = new_ratchet_key_pair.serialize_private_key();
+        state.our_ratchet_public_key = new_ratchet_key_pair.serialize_public_key();
+        state.last_ratchet = std::chrono::system_clock::now();
+        state.messages_since_rekey = 0;
+    }
+    
+    // Advance the sending chain
+    ratchet_sending_chain(state);
+    
+    return true;
+}
+
+bool EncryptionManager::advance_receiving_chain(const std::string& chat_id) {
+    std::lock_guard<std::mutex> lock(ratchet_states_mutex_);
+    
+    auto state_it = ratchet_states_.find(chat_id);
+    if (state_it == ratchet_states_.end()) {
+        return false;
+    }
+    
+    auto& state = state_it->second;
+    
+    // Advance the receiving chain
+    ratchet_receiving_chain(state);
+    
+    return true;
+}
+
+std::string EncryptionManager::get_sending_message_key(const std::string& chat_id) {
+    std::lock_guard<std::mutex> lock(ratchet_states_mutex_);
+    
+    auto state_it = ratchet_states_.find(chat_id);
+    if (state_it == ratchet_states_.end()) {
+        return "";
+    }
+    
+    auto& state = state_it->second;
+    
+    // Derive message key from current chain key
+    std::string message_key = derive_message_key_from_chain(state.sending_chain_key, state.sending_message_number);
+    
+    // Advance the chain for next use
+    ratchet_sending_chain(state);
+    
+    return message_key;
+}
+
+std::string EncryptionManager::get_receiving_message_key(const std::string& chat_id) {
+    std::lock_guard<std::mutex> lock(ratchet_states_mutex_);
+    
+    auto state_it = ratchet_states_.find(chat_id);
+    if (state_it == ratchet_states_.end()) {
+        return "";
+    }
+    
+    auto& state = state_it->second;
+    
+    // Check if we have a skipped key for this message number
+    auto skipped_it = state.skipped_message_keys.find(state.receiving_message_number);
+    if (skipped_it != state.skipped_message_keys.end()) {
+        // Use the skipped key and remove it
+        std::string key = skipped_it->second;
+        state.skipped_message_keys.erase(skipped_it);
+        return key;
+    }
+    
+    // Derive message key from current chain key
+    std::string message_key = derive_message_key_from_chain(state.receiving_chain_key, state.receiving_message_number);
+    
+    // Advance the chain for next use
+    ratchet_receiving_chain(state);
+    
+    return message_key;
+}
+
+bool EncryptionManager::store_skipped_message_key(const std::string& chat_id, uint32_t message_number, const std::string& key) {
+    std::lock_guard<std::mutex> lock(ratchet_states_mutex_);
+    
+    auto state_it = ratchet_states_.find(chat_id);
+    if (state_it == ratchet_states_.end()) {
+        return false;
+    }
+    
+    auto& state = state_it->second;
+    
+    // Store the skipped key
+    state.skipped_message_keys[message_number] = key;
+    
+    // Clean up old keys if needed
+    state.cleanup_old_skipped_keys();
+    
+    return true;
+}
+
+std::string EncryptionManager::get_skipped_message_key(const std::string& chat_id, uint32_t message_number) {
+    std::lock_guard<std::mutex> lock(ratchet_states_mutex_);
+    
+    auto state_it = ratchet_states_.find(chat_id);
+    if (state_it == ratchet_states_.end()) {
+        return "";
+    }
+    
+    auto& state = state_it->second;
+    
+    auto key_it = state.skipped_message_keys.find(message_number);
+    if (key_it != state.skipped_message_keys.end()) {
+        std::string key = key_it->second;
+        state.skipped_message_keys.erase(key_it);
+        return key;
+    }
+    
+    return "";
+}
+
+void EncryptionManager::cleanup_expired_ratchet_states() {
+    std::lock_guard<std::mutex> lock(ratchet_states_mutex_);
+    
+    auto now = std::chrono::system_clock::now();
+    std::vector<std::string> expired_chats;
+    
+    for (const auto& [chat_id, state] : ratchet_states_) {
+        // Consider a state expired if it hasn't been used in 30 days
+        auto time_since_last_use = now - state.last_ratchet;
+        if (time_since_last_use > std::chrono::days(30)) {
+            expired_chats.push_back(chat_id);
+        }
+    }
+    
+    // Remove expired states
+    for (const auto& chat_id : expired_chats) {
+        ratchet_states_.erase(chat_id);
+    }
+}
+
+// Message handling with Double Ratchet
+bool EncryptionManager::process_incoming_message(const std::string& chat_id, uint32_t message_number, const std::string& encrypted_content) {
+    std::lock_guard<std::mutex> lock(ratchet_states_mutex_);
+    
+    auto state_it = ratchet_states_.find(chat_id);
+    if (state_it == ratchet_states_.end()) {
+        return false;
+    }
+    
+    auto& state = state_it->second;
+    
+    // Check if this is an out-of-order message
+    if (message_number < state.receiving_message_number) {
+        // This is a late message, check if we have the key
+        auto skipped_key = get_skipped_message_key(chat_id, message_number);
+        if (skipped_key.empty()) {
+            // We don't have the key for this message, can't decrypt
+            return false;
+        }
+        // Key found, message can be processed
+        return true;
+    }
+    
+    // Check if we need to skip ahead to this message number
+    if (message_number > state.receiving_message_number) {
+        // Generate keys for skipped messages and store them
+        for (uint32_t i = state.receiving_message_number; i < message_number; i++) {
+            std::string skipped_key = derive_message_key_from_chain(state.receiving_chain_key, i);
+            store_skipped_message_key(chat_id, i, skipped_key);
+        }
+    }
+    
+    // Advance receiving chain to current message
+    while (state.receiving_message_number < message_number) {
+        ratchet_receiving_chain(state);
+    }
+    
+    return true;
+}
+
+std::string EncryptionManager::prepare_outgoing_message(const std::string& chat_id, const std::string& plaintext) {
+    std::lock_guard<std::mutex> lock(ratchet_states_mutex_);
+    
+    auto state_it = ratchet_states_.find(chat_id);
+    if (state_it == ratchet_states_.end()) {
+        return "";
+    }
+    
+    auto& state = state_it->second;
+    
+    // Check if we need to perform DH ratchet
+    if (should_perform_dh_ratchet(state)) {
+        // Generate new ratchet key pair
+        auto new_ratchet_key_pair = generate_key_pair(EncryptionAlgorithm::X25519_CHACHA20_POLY1305);
+        
+        // Update state
+        state.our_ratchet_private_key = new_ratchet_key_pair.serialize_private_key();
+        state.our_ratchet_public_key = new_ratchet_key_pair.serialize_public_key();
+        state.last_ratchet = std::chrono::system_clock::now();
+        state.messages_since_rekey = 0;
+    }
+    
+    // Get the current sending message key
+    std::string message_key = derive_message_key_from_chain(state.sending_chain_key, state.sending_message_number);
+    
+    // Advance the sending chain
+    ratchet_sending_chain(state);
+    
+    // For now, return the message key (in a real implementation, this would encrypt the plaintext)
+    // The actual encryption would happen in the encrypt_message method
+    return message_key;
+}
+
+// Security and recovery methods
+bool EncryptionManager::mark_key_compromised(const std::string& chat_id) {
+    std::lock_guard<std::mutex> lock(ratchet_states_mutex_);
+    
+    auto state_it = ratchet_states_.find(chat_id);
+    if (state_it == ratchet_states_.end()) {
+        return false;
+    }
+    
+    auto& state = state_it->second;
+    
+    // Clear all sensitive key material
+    secure_zero_string(state.root_key);
+    secure_zero_string(state.sending_chain_key);
+    secure_zero_string(state.receiving_chain_key);
+    secure_zero_string(state.our_ratchet_private_key);
+    state.skipped_message_keys.clear();
+    
+    return true;
+}
+
+bool EncryptionManager::recover_from_compromise(const std::string& chat_id, const std::string& new_identity_key) {
+    std::lock_guard<std::mutex> lock(ratchet_states_mutex_);
+    
+    auto state_it = ratchet_states_.find(chat_id);
+    if (state_it == ratchet_states_.end()) {
+        return false;
+    }
+    
+    auto& state = state_it->second;
+    
+    // Generate new ratchet key pair
+    auto new_ratchet_key_pair = generate_key_pair(EncryptionAlgorithm::X25519_CHACHA20_POLY1305);
+    
+    // Update identity key
+    state.our_identity_key = new_identity_key;
+    
+    // Generate new root key (this would typically come from a new key exchange)
+    // For now, we'll generate a random one
+    CryptoPP::SecByteBlock new_root_key(32);
+    rng_->GenerateBlock(new_root_key, new_root_key.size());
+    state.root_key.assign(new_root_key.begin(), new_root_key.end());
+    
+    // Reset chain keys
+    state.sending_chain_key = derive_key(state.root_key, "SendingChain", 32);
+    state.receiving_chain_key = derive_key(state.root_key, "ReceivingChain", 32);
+    
+    // Update ratchet keys
+    state.our_ratchet_private_key = new_ratchet_key_pair.serialize_private_key();
+    
+    // Reset counters
+    state.sending_message_number = 0;
+    state.receiving_message_number = 0;
+    state.sending_chain_length = 0;
+    state.receiving_chain_length = 0;
+    state.messages_since_rekey = 0;
+    state.last_ratchet = std::chrono::system_clock::now();
+    
+    // Clear skipped keys
+    state.skipped_message_keys.clear();
+    
+    return true;
+}
+
+std::string EncryptionManager::export_ratchet_state(const std::string& chat_id) {
+    std::lock_guard<std::mutex> lock(ratchet_states_mutex_);
+    
+    auto state_it = ratchet_states_.find(chat_id);
+    if (state_it == ratchet_states_.end()) {
+        return "";
+    }
+    
+    const auto& state = state_it->second;
+    
+    // Export state to JSON (excluding sensitive private keys)
+    Json::Value json;
+    json["chat_id"] = state.chat_id;
+    json["our_identity_key"] = state.our_identity_key;
+    json["their_identity_key"] = state.their_identity_key;
+    json["our_ratchet_public_key"] = state.our_ratchet_public_key;
+    json["their_ratchet_public_key"] = state.their_ratchet_public_key;
+    json["sending_message_number"] = state.sending_message_number;
+    json["receiving_message_number"] = state.receiving_message_number;
+    json["sending_chain_length"] = state.sending_chain_length;
+    json["receiving_chain_length"] = state.receiving_chain_length;
+    json["created_at"] = std::chrono::duration_cast<std::chrono::milliseconds>(
+        state.created_at.time_since_epoch()).count();
+    json["last_ratchet"] = std::chrono::duration_cast<std::chrono::milliseconds>(
+        state.last_ratchet.time_since_epoch()).count();
+    
+    // Convert to string
+    Json::StreamWriterBuilder wb;
+    return Json::writeString(wb, json);
+}
+
+bool EncryptionManager::import_ratchet_state(const std::string& chat_id, const std::string& state_data) {
+    try {
+        Json::Value json;
+        Json::CharReaderBuilder rb;
+        std::string errs;
+        std::unique_ptr<Json::CharReader> reader(rb.newCharReader());
+        
+        if (!reader->parse(state_data.data(), state_data.data() + state_data.size(), &json, &errs)) {
+            return false;
+        }
+        
+        // Create new state
+        DoubleRatchetState state;
+        state.chat_id = chat_id;
+        state.our_identity_key = json["our_identity_key"].asString();
+        state.their_identity_key = json["their_identity_key"].asString();
+        state.our_ratchet_public_key = json["our_ratchet_public_key"].asString();
+        state.their_ratchet_public_key = json["their_ratchet_public_key"].asString();
+        state.sending_message_number = json["sending_message_number"].asUInt();
+        state.receiving_message_number = json["receiving_message_number"].asUInt();
+        state.sending_chain_length = json["sending_chain_length"].asUInt();
+        state.receiving_chain_length = json["receiving_chain_length"].asUInt();
+        
+        auto created_ms = json["created_at"].asInt64();
+        state.created_at = std::chrono::system_clock::time_point(
+            std::chrono::milliseconds(created_ms));
+        
+        auto last_ratchet_ms = json["last_ratchet"].asInt64();
+        state.last_ratchet = std::chrono::system_clock::time_point(
+            std::chrono::milliseconds(last_ratchet_ms));
+        
+        // Generate new private keys and derive chain keys
+        auto new_ratchet_key_pair = generate_key_pair(EncryptionAlgorithm::X25519_CHACHA20_POLY1305);
+        state.our_ratchet_private_key = new_ratchet_key_pair.serialize_private_key();
+        
+        // Generate new root key and chain keys
+        CryptoPP::SecByteBlock new_root_key(32);
+        rng_->GenerateBlock(new_root_key, new_root_key.size());
+        state.root_key.assign(new_root_key.begin(), new_root_key.end());
+        
+        state.sending_chain_key = derive_key(state.root_key, "SendingChain", 32);
+        state.receiving_chain_key = derive_key(state.root_key, "ReceivingChain", 32);
+        
+        // Store the state
+        std::lock_guard<std::mutex> lock(ratchet_states_mutex_);
+        ratchet_states_[chat_id] = state;
+        
+        return true;
+        
+    } catch (const std::exception& e) {
+        return false;
+    }
+}
+
+// Group chat encryption (interim implementation)
+bool EncryptionManager::add_group_member(const std::string& chat_id, const std::string& user_id, const std::string& public_key) {
+    std::lock_guard<std::mutex> lock(ratchet_states_mutex_);
+    
+    auto state_it = ratchet_states_.find(chat_id);
+    if (state_it == ratchet_states_.end()) {
+        return false;
+    }
+    
+    auto& state = state_it->second;
+    
+    // For now, we'll just store the member info
+    // In a full implementation, this would:
+    // 1. Generate a new group key
+    // 2. Encrypt it with the new member's public key
+    // 3. Distribute the encrypted group key to all members
+    
+    // This is a placeholder for the group member management
+    // The actual implementation would be more complex with proper group key management
+    
+    return true;
+}
+
+bool EncryptionManager::remove_group_member(const std::string& chat_id, const std::string& user_id) {
+    std::lock_guard<std::mutex> lock(ratchet_states_mutex_);
+    
+    auto state_it = ratchet_states_.find(chat_id);
+    if (state_it == ratchet_states_.end()) {
+        return false;
+    }
+    
+    auto& state = state_it->second;
+    
+    // For now, we'll just return success
+    // In a full implementation, this would:
+    // 1. Generate a new group key
+    // 2. Re-encrypt all existing messages with the new key
+    // 3. Distribute the new key to remaining members
+    
+    return true;
+}
+
+std::vector<std::string> EncryptionManager::get_group_members(const std::string& chat_id) {
+    std::lock_guard<std::mutex> lock(ratchet_states_mutex_);
+    
+    auto state_it = ratchet_states_.find(chat_id);
+    if (state_it == ratchet_states_.end()) {
+        return {};
+    }
+    
+    // For now, return empty list
+    // In a full implementation, this would return the actual group members
+    // stored in the ratchet state or a separate group management structure
+    
+    return {};
 }
 
 } // namespace sonet::messaging::encryption

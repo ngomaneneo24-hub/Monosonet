@@ -774,4 +774,132 @@ std::vector<uint8_t> base64_decode(const std::string& encoded) {
     return out;
 }
 
+std::unique_ptr<CryptoKey> CryptoEngine::derive_key(
+    const CryptoKey& parent_key,
+    const KeyDerivationParams& params,
+    const std::string& context) {
+    // Only HKDF-SHA256 is implemented for now
+    if (params.algorithm != "HKDF" && params.algorithm != "HKDF-SHA256") {
+        throw std::invalid_argument("Unsupported KDF algorithm");
+    }
+
+    const uint8_t* salt_ptr = params.salt.empty() ? nullptr : params.salt.data();
+    size_t salt_len = params.salt.size();
+
+    // Use OpenSSL HKDF
+    std::vector<uint8_t> okm(32); // 256-bit derived key
+
+    EVP_PKEY_CTX* pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr);
+    if (!pctx) {
+        throw std::runtime_error("Failed to create HKDF context");
+    }
+
+    if (EVP_PKEY_derive_init(pctx) <= 0 ||
+        EVP_PKEY_CTX_set_hkdf_md(pctx, EVP_sha256()) <= 0 ||
+        EVP_PKEY_CTX_set1_hkdf_salt(pctx, salt_ptr, static_cast<int>(salt_len)) <= 0 ||
+        EVP_PKEY_CTX_set1_hkdf_key(pctx, parent_key.key_data.data(), static_cast<int>(parent_key.key_data.size())) <= 0) {
+        EVP_PKEY_CTX_free(pctx);
+        throw std::runtime_error("Failed to initialize HKDF");
+    }
+
+    if (!params.info.empty()) {
+        if (EVP_PKEY_CTX_add1_hkdf_info(pctx,
+                                        reinterpret_cast<const uint8_t*>(params.info.data()),
+                                        static_cast<int>(params.info.size())) <= 0) {
+            EVP_PKEY_CTX_free(pctx);
+            throw std::runtime_error("Failed to set HKDF info");
+        }
+    }
+
+    size_t out_len = okm.size();
+    if (EVP_PKEY_derive(pctx, okm.data(), &out_len) <= 0) {
+        EVP_PKEY_CTX_free(pctx);
+        throw std::runtime_error("Failed to derive HKDF key");
+    }
+    EVP_PKEY_CTX_free(pctx);
+    okm.resize(out_len);
+
+    auto derived = std::make_unique<CryptoKey>();
+    derived->id = generate_session_id();
+    derived->algorithm = parent_key.algorithm;
+    derived->key_data = std::move(okm);
+    derived->created_at = std::chrono::system_clock::now();
+    derived->expires_at = derived->created_at + std::chrono::hours(24);
+    derived->user_id = parent_key.user_id;
+    derived->device_id = parent_key.device_id;
+    derived->parent_key_id = parent_key.id;
+    derived->is_ephemeral = true;
+    return derived;
+}
+
+std::unique_ptr<CryptoKey> CryptoEngine::perform_key_exchange(
+    const CryptoKey& private_key,
+    const CryptoKey& public_key,
+    const std::string& session_id) {
+
+    // Only X25519 implemented for now
+    if (private_key.algorithm != "X25519" || public_key.algorithm != "X25519") {
+        throw std::invalid_argument("Unsupported key exchange protocol");
+    }
+    if (private_key.key_data.size() != crypto_scalarmult_SCALARBYTES ||
+        public_key.key_data.size() != crypto_scalarmult_BYTES) {
+        throw std::invalid_argument("Invalid X25519 key sizes");
+    }
+
+    std::vector<uint8_t> shared(crypto_scalarmult_BYTES);
+    if (crypto_scalarmult(shared.data(), private_key.key_data.data(), public_key.key_data.data()) != 0) {
+        throw std::runtime_error("X25519 key exchange failed");
+    }
+
+    auto key = std::make_unique<CryptoKey>();
+    key->id = !session_id.empty() ? session_id : generate_session_id();
+    key->algorithm = "X25519-SHARED";
+    key->key_data = std::move(shared);
+    key->created_at = std::chrono::system_clock::now();
+    key->expires_at = key->created_at + std::chrono::hours(24);
+    key->user_id = private_key.user_id;
+    key->device_id = private_key.device_id;
+    key->is_ephemeral = true;
+    return key;
+}
+
+SignatureData CryptoEngine::sign(
+    const std::vector<uint8_t>& data,
+    const CryptoKey& private_key,
+    HashAlgorithm hash_algorithm) {
+
+    if (private_key.algorithm != "ED25519") {
+        throw std::invalid_argument("Unsupported signature algorithm");
+    }
+
+    SignatureData sig;
+    sig.algorithm = SignatureAlgorithm::ED25519;
+    sig.hash_algorithm = hash_algorithm; // Not used for Ed25519
+    sig.signer_key_id = private_key.id;
+    sig.signed_at = std::chrono::system_clock::now();
+
+    sig.signature.resize(crypto_sign_BYTES);
+    unsigned long long siglen = 0;
+    if (crypto_sign_detached(sig.signature.data(), &siglen, data.data(), data.size(), private_key.key_data.data()) != 0) {
+        throw std::runtime_error("Ed25519 signing failed");
+    }
+    sig.signature.resize(siglen);
+    return sig;
+}
+
+bool CryptoEngine::verify_signature(
+    const std::vector<uint8_t>& data,
+    const SignatureData& signature,
+    const CryptoKey& public_key) {
+
+    if (signature.algorithm != SignatureAlgorithm::ED25519 || public_key.algorithm != "ED25519") {
+        return false;
+    }
+
+    if (crypto_sign_verify_detached(signature.signature.data(), data.data(), data.size(), public_key.key_data.data()) != 0) {
+        return false;
+    }
+    return true;
+}
+
 } // namespace sonet::messaging::crypto

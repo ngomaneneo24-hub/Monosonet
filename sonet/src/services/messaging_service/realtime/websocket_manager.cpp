@@ -309,48 +309,76 @@ bool WebSocketManager::is_running() const {
     return running_.load();
 }
 
+void WebSocketManager::set_allowed_origins(const std::vector<std::string>& origins) {
+    std::lock_guard<std::mutex> lock(connections_mutex_);
+    allowed_origins_.clear();
+    for (const auto& o : origins) allowed_origins_.insert(o);
+}
+
+void WebSocketManager::set_require_tls_header(bool require_tls) {
+    require_tls_header_ = require_tls;
+}
+
 void WebSocketManager::on_open(connection_hdl hdl) {
     std::lock_guard<std::mutex> lock(connections_mutex_);
-    
+
     if (connections_.size() >= max_connections_) {
-        // Reject connection - too many connections
         try {
-            server_->close(hdl, websocketpp::close::status::service_restart, "Server full");
-        } catch (...) {
-            // Ignore close errors
-        }
+            server_->close(hdl, websocketpp::close::status::policy_violation, "Server full");
+        } catch (...) {}
         return;
     }
-    
+
     std::string connection_id = generate_connection_id();
-    
+
     auto connection = std::make_shared<ClientConnection>();
     connection->connection_id = connection_id;
     connection->status = ConnectionStatus::CONNECTED;
     connection->online_status = OnlineStatus::ONLINE;
     connection->connected_at = std::chrono::system_clock::now();
     connection->last_activity = connection->connected_at;
-    
-    // Get connection info
+
     try {
         auto con = server_->get_con_from_hdl(hdl);
         connection->ip_address = con->get_remote_endpoint();
-        
-        auto headers = con->get_request_header("User-Agent");
-        if (!headers.empty()) {
-            connection->user_agent = headers;
+
+        // Reject tokens in URL to avoid leakage via logs and intermediaries
+        std::string resource = con->get_resource();
+        if (resource.find("token=") != std::string::npos) {
+            server_->close(hdl, websocketpp::close::status::policy_violation, "Token in URL not allowed");
+            return;
         }
+
+        // Enforce TLS if behind proxy
+        if (require_tls_header_) {
+            auto xfproto = con->get_request_header("X-Forwarded-Proto");
+            if (xfproto != "https") {
+                server_->close(hdl, websocketpp::close::status::policy_violation, "HTTPS required");
+                return;
+            }
+        }
+
+        // Origin allowlist
+        auto origin = con->get_request_header("Origin");
+        if (!allowed_origins_.empty()) {
+            if (origin.empty() || allowed_origins_.find(origin) == allowed_origins_.end()) {
+                server_->close(hdl, websocketpp::close::status::policy_violation, "Origin not allowed");
+                return;
+            }
+        }
+
+        auto ua = con->get_request_header("User-Agent");
+        if (!ua.empty()) connection->user_agent = ua;
     } catch (...) {
-        // Ignore header extraction errors
+        // ignore
     }
-    
+
     connections_[connection_id] = connection;
     hdl_to_id_[hdl] = connection_id;
     id_to_hdl_[connection_id] = hdl;
-    
+
     metrics_.total_connections++;
-    
-    // Send welcome message
+
     Json::Value welcome;
     welcome["type"] = "connection_established";
     welcome["connection_id"] = connection_id;
@@ -360,8 +388,7 @@ void WebSocketManager::on_open(connection_hdl hdl) {
     welcome["features"].append("e2e_encryption");
     welcome["features"].append("typing_indicators");
     welcome["features"].append("read_receipts");
-    welcome["features"].append("message_reactions");
-    
+
     send_to_connection(connection_id, welcome);
 }
 
@@ -517,55 +544,66 @@ void WebSocketManager::process_client_message(const std::string& connection_id,
 
 void WebSocketManager::handle_authentication(const std::string& connection_id, 
                                            const Json::Value& auth_data) {
-    
+
     auto connection = get_connection(connection_id);
     if (!connection) {
         return;
     }
-    
+
+    // Simple per-connection auth attempt rate limiting
+    static thread_local std::unordered_map<std::string, std::pair<std::chrono::system_clock::time_point,int>> auth_attempts;
+    auto& entry = auth_attempts[connection_id];
+    auto now = std::chrono::system_clock::now();
+    if (entry.first + std::chrono::seconds(10) < now) {
+        entry = {now, 0};
+    }
+    entry.second++;
+    if (entry.second > 5) {
+        Json::Value error;
+        error["type"] = "auth_error";
+        error["error"] = "too_many_attempts";
+        error["message"] = "Too many authentication attempts";
+        send_to_connection(connection_id, error);
+        return;
+    }
+
     if (!auth_data.isMember("token") || !auth_data.isMember("user_id")) {
         Json::Value error;
         error["type"] = "auth_error";
         error["error"] = "missing_credentials";
         error["message"] = "Token and user_id are required";
-        
         send_to_connection(connection_id, error);
         return;
     }
-    
+
     std::string token = auth_data["token"].asString();
     std::string user_id = auth_data["user_id"].asString();
-    
-    // Validate token using callback
+
     bool auth_success = false;
     if (auth_callback_) {
         auth_success = auth_callback_(user_id, token);
     }
-    
+
     if (auth_success) {
         std::lock_guard<std::mutex> lock(connections_mutex_);
-        
         connection->user_id = user_id;
         connection->session_token = token;
         connection->status = ConnectionStatus::AUTHENTICATED;
         connection->authenticated_at = std::chrono::system_clock::now();
-        
+
         if (auth_data.isMember("device_id")) {
             connection->device_id = auth_data["device_id"].asString();
         }
-        
         if (auth_data.isMember("platform")) {
             connection->platform = auth_data["platform"].asString();
         }
-        
         if (auth_data.isMember("app_version")) {
             connection->app_version = auth_data["app_version"].asString();
         }
-        
-        // Add to user connections
+
         user_connections_[user_id].insert(connection_id);
         metrics_.authenticated_connections++;
-        
+
         Json::Value success;
         success["type"] = "auth_success";
         success["user_id"] = user_id;
@@ -574,17 +612,14 @@ void WebSocketManager::handle_authentication(const std::string& connection_id,
         success["features"].append("e2e_encryption");
         success["features"].append("typing_indicators");
         success["features"].append("read_receipts");
-        
         send_to_connection(connection_id, success);
-        
+
     } else {
         metrics_.failed_authentications++;
-        
         Json::Value error;
         error["type"] = "auth_error";
         error["error"] = "invalid_credentials";
         error["message"] = "Authentication failed";
-        
         send_to_connection(connection_id, error);
     }
 }
