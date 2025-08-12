@@ -251,7 +251,7 @@ function InlineNameAndHandle({
           ]}>
           <VerificationCheck
             width={platform({android: 13, default: 12})}
-            verifier={verification.role === 'verifier'}
+            founder={verification.role === 'founder'}
           />
         </View>
       )}
@@ -300,7 +300,7 @@ export function Name({
         <View style={[a.pl_xs]}>
           <VerificationCheck
             width={14}
-            verifier={verification.role === 'verifier'}
+            founder={verification.role === 'founder'}
           />
         </View>
       )}

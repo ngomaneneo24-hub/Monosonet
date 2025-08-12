@@ -40,7 +40,7 @@ export function Screen() {
             <Admonition type="tip" style={[a.flex_1]}>
               <Trans>
                 Verifications on Bluesky work differently than on other
-                platforms.{' '}
+                platforms. Trusted accounts are selected by Bluesky and can verify other users.{' '}
                 <InlineLinkText
                   overridePresentation
                   to={urls.website.blog.initialVerificationAnnouncement}
