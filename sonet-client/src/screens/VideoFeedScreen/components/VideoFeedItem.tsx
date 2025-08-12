@@ -20,6 +20,7 @@ interface VideoFeedItemProps {
   onLike: () => void
   onRepost: () => void
   onShare: () => void
+  onVideoPress: (video: VideoItem) => void
 }
 
 export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
@@ -29,7 +30,8 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
   onPress,
   onLike,
   onRepost,
-  onShare
+  onShare,
+  onVideoPress
 }) => {
   const [isLiked, setIsLiked] = useState(false)
   const [isReposted, setIsReposted] = useState(false)
@@ -71,7 +73,11 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
       activeOpacity={0.9}
     >
       {/* Video Thumbnail */}
-      <View style={styles.thumbnailContainer}>
+      <TouchableOpacity
+        style={styles.thumbnailContainer}
+        onPress={() => onVideoPress(video)}
+        activeOpacity={0.9}
+      >
         <Image
           source={{uri: video.thumbnail_url}}
           style={styles.thumbnail}
@@ -91,6 +97,7 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
             <View style={styles.playTriangle} />
           </View>
         </View>
+      </TouchableOpacity>
 
         {/* Gradient Overlay for Text */}
         <LinearGradient
