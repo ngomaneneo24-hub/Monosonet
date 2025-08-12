@@ -6,6 +6,7 @@ import {msg} from '@lingui/macro'
 
 import {type ForYouFeedItem as ForYouFeedItemType} from '#/state/queries/for-you-feed'
 import {CloseIcon, BrainIcon, TrendingIcon, HeartIcon, SparklesIcon} from '#/lib/icons'
+import {BottomSheet} from '#/view/com/util/BottomSheet'
 
 interface MLInsightsPanelProps {
   post: ForYouFeedItemType
@@ -30,26 +31,30 @@ export function MLInsightsPanel({post, onClose}: MLInsightsPanelProps) {
   }
 
   return (
-    <View style={styles.overlay}>
-      <View style={styles.panel}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <BrainIcon size={24} color="#007AFF" />
-            <Text style={styles.title}>
-              {_(msg`Why This Was Recommended`)}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={onClose}
-            accessibilityLabel={_(msg`Close insights panel`)}
-          >
-            <CloseIcon size={24} color="#666" />
-          </TouchableOpacity>
+    <BottomSheet
+      isVisible={true}
+      onClose={onClose}
+      snapPoint="LARGE"
+      showBackdrop={true}
+    >
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <BrainIcon size={24} color="#007AFF" />
+          <Text style={styles.title}>
+            {_(msg`Why This Was Recommended`)}
+          </Text>
         </View>
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={onClose}
+          accessibilityLabel={_(msg`Close insights panel`)}
+        >
+          <CloseIcon size={24} color="#666" />
+        </TouchableOpacity>
+      </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Overall Score */}
           <View style={styles.scoreSection}>
             <Text style={styles.sectionTitle}>
@@ -199,34 +204,11 @@ export function MLInsightsPanel({post, onClose}: MLInsightsPanelProps) {
             </View>
           </View>
         </ScrollView>
-      </View>
-    </View>
-  )
-}
+      </BottomSheet>
+    )
+  }
 
 const styles = StyleSheet.create({
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000
-  },
-  panel: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    width: '90%',
-    maxHeight: '80%',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
