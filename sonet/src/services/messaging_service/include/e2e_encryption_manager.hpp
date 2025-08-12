@@ -10,6 +10,8 @@
 #include <atomic>
 #include <thread>
 #include "crypto_engine.hpp"
+#include "mls_protocol.hpp"
+#include "pqc_algorithms.hpp"
 
 namespace sonet::messaging::crypto {
 
@@ -156,6 +158,16 @@ public:
     std::vector<uint8_t> encrypt_group_message(const std::string& group_id, const std::vector<uint8_t>& plaintext);
     std::vector<uint8_t> decrypt_group_message(const std::string& group_id, const std::vector<uint8_t>& ciphertext);
     
+    // PQC Operations
+    std::vector<uint8_t> pqc_encrypt(const std::vector<uint8_t>& plaintext, const std::vector<uint8_t>& public_key);
+    std::vector<uint8_t> pqc_decrypt(const std::vector<uint8_t>& ciphertext, const std::vector<uint8_t>& private_key);
+    std::vector<uint8_t> pqc_sign(const std::vector<uint8_t>& message, const std::vector<uint8_t>& private_key);
+    bool pqc_verify(const std::vector<uint8_t>& message, const std::vector<uint8_t>& signature, const std::vector<uint8_t>& public_key);
+    
+    // Hybrid Encryption
+    std::vector<uint8_t> hybrid_encrypt(const std::vector<uint8_t>& plaintext, const std::vector<uint8_t>& pqc_public_key);
+    std::vector<uint8_t> hybrid_decrypt(const std::vector<uint8_t>& encrypted_data, const std::vector<uint8_t>& pqc_private_key);
+    
     // Key Transparency & Verification
     bool log_key_change(const std::string& user_id, const std::string& device_id, 
                        const std::string& operation, const CryptoKey& old_key, 
@@ -247,6 +259,10 @@ private:
     // MLS helpers
     bool perform_mls_key_exchange(const std::string& group_id);
     bool update_mls_epoch(const std::string& group_id);
+    
+    // PQC and MLS instances
+    std::unique_ptr<sonet::mls::MLSProtocol> mls_protocol_;
+    std::unique_ptr<sonet::pqc::PQCAlgorithms> pqc_algorithms_;
     
     // Trust helpers
     std::string calculate_trust_hash(const std::string& user_id, const std::string& other_user_id);
