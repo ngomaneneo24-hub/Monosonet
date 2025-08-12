@@ -1,13 +1,10 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react'
 import {
-  type AppBskyActorDefs,
-  type AppBskyFeedDefs,
-  type AppBskyGraphDefs,
-  type AppBskyUnspeccedGetPopularFeedGenerators,
-  AtUri,
-  moderateFeedGenerator,
-  RichText,
-} from '@atproto/api'
+  type SonetProfile,
+  type SonetFeedGenerator,
+  type SonetFeedInfo,
+  type SonetSavedFeed,
+} from '#/types/sonet'
 import {
   type InfiniteData,
   keepPreviousData,
@@ -33,7 +30,7 @@ import {precacheResolvedUri} from './resolve-uri'
 
 export type FeedSourceFeedInfo = {
   type: 'feed'
-  view?: AppBskyFeedDefs.GeneratorView
+  view?: SonetFeedGenerator
   uri: string
   feedDescriptor: FeedDescriptor
   route: {
@@ -44,17 +41,17 @@ export type FeedSourceFeedInfo = {
   cid: string
   avatar: string | undefined
   displayName: string
-  description: RichText
+  description: string
   creatorDid: string
   creatorHandle: string
   likeCount: number | undefined
   likeUri: string | undefined
-  contentMode: AppBskyFeedDefs.GeneratorView['contentMode']
+  contentMode: 'text' | 'images' | 'video' | undefined
 }
 
 export type FeedSourceListInfo = {
   type: 'list'
-  view?: AppBskyGraphDefs.ListView
+  view?: any // TODO: Replace with SonetList type when created
   uri: string
   feedDescriptor: FeedDescriptor
   route: {
@@ -65,7 +62,7 @@ export type FeedSourceListInfo = {
   cid: string
   avatar: string | undefined
   displayName: string
-  description: RichText
+  description: string
   creatorDid: string
   creatorHandle: string
   contentMode: undefined
@@ -85,12 +82,12 @@ const feedSourceNSIDs = {
 }
 
 export function hydrateFeedGenerator(
-  view: AppBskyFeedDefs.GeneratorView,
+  view: SonetFeedGenerator,
 ): FeedSourceInfo {
-  const urip = new AtUri(view.uri)
-  const collection =
-    urip.collection === 'app.bsky.feed.generator' ? 'feed' : 'lists'
-  const href = `/profile/${urip.hostname}/${collection}/${urip.rkey}`
+  // Parse Sonet URI format: sonet://feed.generator/whats-hot
+  const uriParts = view.uri.replace('sonet://', '').split('/')
+  const collection = uriParts[0] === 'feed.generator' ? 'feed' : 'lists'
+  const href = `/profile/${view.creatorDid}/${collection}/${uriParts[1]}`
   const route = router.matchPath(href)
 
   return {
@@ -108,7 +105,7 @@ export function hydrateFeedGenerator(
     displayName: view.displayName
       ? sanitizeDisplayName(view.displayName)
       : `Feed by ${sanitizeHandle(view.creator.handle, '@')}`,
-    description: new RichText({
+    description: new string({
       text: view.description || '',
       facets: (view.descriptionFacets || [])?.slice(),
     }),
@@ -120,8 +117,8 @@ export function hydrateFeedGenerator(
   }
 }
 
-export function hydrateList(view: AppBskyGraphDefs.ListView): FeedSourceInfo {
-  const urip = new AtUri(view.uri)
+export function hydrateList(view: SonetListView): FeedSourceInfo {
+  const urip = new SonetUri(view.uri)
   const collection =
     urip.collection === 'app.bsky.feed.generator' ? 'feed' : 'lists'
   const href = `/profile/${urip.hostname}/${collection}/${urip.rkey}`
@@ -139,7 +136,7 @@ export function hydrateList(view: AppBskyGraphDefs.ListView): FeedSourceInfo {
     },
     cid: view.cid,
     avatar: view.avatar,
-    description: new RichText({
+    description: new string({
       text: view.description || '',
       facets: (view.descriptionFacets || [])?.slice(),
     }),
@@ -153,7 +150,7 @@ export function hydrateList(view: AppBskyGraphDefs.ListView): FeedSourceInfo {
 }
 
 export function getFeedTypeFromUri(uri: string) {
-  const {pathname} = new AtUri(uri)
+  const {pathname} = new SonetUri(uri)
   return pathname.includes(feedSourceNSIDs.feed) ? 'feed' : 'list'
 }
 
@@ -382,7 +379,7 @@ export function usePopularFeedsSearch({
 }
 
 export type SavedFeedSourceInfo = FeedSourceInfo & {
-  savedFeed: AppBskyActorDefs.SavedFeed
+  savedFeed: SonetSavedFeed
 }
 
 const PWI_DISCOVER_FEED_STUB: SavedFeedSourceInfo = {
@@ -397,7 +394,7 @@ const PWI_DISCOVER_FEED_STUB: SavedFeedSourceInfo = {
   },
   cid: '',
   avatar: '',
-  description: new RichText({text: ''}),
+  description: new string({text: ''}),
   creatorDid: '',
   creatorHandle: '',
   likeCount: 0,
@@ -488,7 +485,7 @@ export function usePinnedFeedsInfos() {
             },
             cid: '',
             avatar: '',
-            description: new RichText({text: ''}),
+            description: new string({text: ''}),
             creatorDid: '',
             creatorHandle: '',
             likeCount: 0,
@@ -506,17 +503,17 @@ export function usePinnedFeedsInfos() {
 export type SavedFeedItem =
   | {
       type: 'feed'
-      config: AppBskyActorDefs.SavedFeed
-      view: AppBskyFeedDefs.GeneratorView
+      config: SonetSavedFeed
+      view: SonetFeedGenerator
     }
   | {
       type: 'list'
-      config: AppBskyActorDefs.SavedFeed
-      view: AppBskyGraphDefs.ListView
+      config: SonetSavedFeed
+      view: SonetListView
     }
   | {
       type: 'timeline'
-      config: AppBskyActorDefs.SavedFeed
+      config: SonetSavedFeed
       view: undefined
     }
 
@@ -540,8 +537,8 @@ export function useSavedFeeds() {
       )
     },
     queryFn: async () => {
-      const resolvedFeeds = new Map<string, AppBskyFeedDefs.GeneratorView>()
-      const resolvedLists = new Map<string, AppBskyGraphDefs.ListView>()
+      const resolvedFeeds = new Map<string, SonetFeedGenerator>()
+      const resolvedLists = new Map<string, SonetListView>()
 
       const savedFeeds = savedItems.filter(feed => feed.type === 'feed')
       const savedLists = savedItems.filter(feed => feed.type === 'list')
@@ -633,10 +630,10 @@ function precacheFeed(queryClient: QueryClient, hydratedFeed: FeedSourceInfo) {
 
 export function precacheList(
   queryClient: QueryClient,
-  list: AppBskyGraphDefs.ListView,
+  list: SonetListView,
 ) {
   precacheResolvedUri(queryClient, list.creator.handle, list.creator.did)
-  queryClient.setQueryData<AppBskyGraphDefs.ListView>(
+  queryClient.setQueryData<SonetListView>(
     listQueryKey(list.uri),
     list,
   )
@@ -644,7 +641,7 @@ export function precacheList(
 
 export function precacheFeedFromGeneratorView(
   queryClient: QueryClient,
-  view: AppBskyFeedDefs.GeneratorView,
+  view: SonetFeedGenerator,
 ) {
   const hydratedFeed = hydrateFeedGenerator(view)
   precacheFeed(queryClient, hydratedFeed)

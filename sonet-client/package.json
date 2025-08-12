@@ -86,8 +86,7 @@
     "@fortawesome/free-regular-svg-icons": "^6.1.1",
     "@fortawesome/free-solid-svg-icons": "^6.1.1",
     "@fortawesome/react-native-fontawesome": "^0.3.2",
-    "@haileyok/bluesky-video": "0.3.2",
-    "@ipld/dag-cbor": "^9.2.0",
+
     "@lingui/react": "^4.14.1",
     "@mattermost/react-native-paste-input": "mattermost/react-native-paste-input",
     "@miblanchard/react-native-slider": "^2.6.0",
@@ -170,7 +169,7 @@
     "lodash.isequal": "^4.5.0",
     "lodash.shuffle": "^4.2.0",
     "lodash.throttle": "^4.1.1",
-    "multiformats": "9.9.0",
+
     "nanoid": "^5.0.5",
     "normalize-url": "^8.0.0",
     "patch-package": "^6.5.1",
@@ -282,8 +281,7 @@
     "@types/react": "^18",
     "**/expo-constants": "17.0.3",
     "**/expo-device": "7.1.4",
-    "**/zod": "3.23.8",
-    "**/multiformats": "9.9.0"
+    "**/zod": "3.23.8"
   },
   "jest": {
     "preset": "jest-expo/ios",

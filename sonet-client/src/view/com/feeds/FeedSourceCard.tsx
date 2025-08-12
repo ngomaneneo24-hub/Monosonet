@@ -1,10 +1,5 @@
 import {type StyleProp, View, type ViewStyle} from 'react-native'
-import {
-  type $Typed,
-  AppBskyFeedDefs,
-  type AppBskyGraphDefs,
-  AtUri,
-} from '@atproto/api'
+import { type SonetPost, type SonetProfile, type SonetFeedGenerator, type SonetPostRecord, type SonetFeedViewPost, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
 import {msg, Plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -19,15 +14,15 @@ import {FeedLoadingPlaceholder} from '#/view/com/util/LoadingPlaceholder'
 import {UserAvatar} from '#/view/com/util/UserAvatar'
 import {atoms as a, useTheme} from '#/alf'
 import {Link} from '#/components/Link'
-import {RichText} from '#/components/RichText'
+import {string} from '#/components/string'
 import {Text} from '#/components/Typography'
 import {MissingFeed} from './MissingFeed'
 
 type FeedSourceCardProps = {
   feedUri: string
   feedData?:
-    | $Typed<AppBskyFeedDefs.GeneratorView>
-    | $Typed<AppBskyGraphDefs.ListView>
+    | $Typed<SonetFeedGenerator>
+    | $Typed<SonetListView>
   style?: StyleProp<ViewStyle>
   showSaveBtn?: boolean
   showDescription?: boolean
@@ -45,7 +40,7 @@ export function FeedSourceCard({
 }: FeedSourceCardProps) {
   if (feedData) {
     let feed: FeedSourceInfo
-    if (AppBskyFeedDefs.isGeneratorView(feedData)) {
+    if (SonetUtils.isGeneratorView(feedData)) {
       feed = hydrateFeedGenerator(feedData)
     } else {
       feed = hydrateList(feedData)
@@ -155,7 +150,7 @@ export function FeedSourceCardLoaded({
         </View>
       </View>
       {showDescription && feed.description ? (
-        <RichText
+        <string
           style={[t.atoms.text_contrast_high, a.flex_1, a.flex_wrap]}
           value={feed.description}
           numberOfLines={3}
@@ -189,7 +184,7 @@ export function FeedSourceCardLoaded({
         )}
         to={{
           screen: feed.type === 'feed' ? 'ProfileFeed' : 'ProfileList',
-          params: {name: feed.creatorDid, rkey: new AtUri(feed.uri).rkey},
+          params: {name: feed.creatorDid, rkey: new SonetUri(feed.uri).rkey},
         }}
         style={[
           a.flex_1,
