@@ -96,6 +96,7 @@ set(MESSAGING_SERVICE_SOURCES
     # Cryptography and encryption
     crypto/crypto_engine.cpp
     crypto/e2e_encryption.cpp
+    crypto/encryption_manager.cpp
     crypto/key_management.cpp
     crypto/secure_random.cpp
     
