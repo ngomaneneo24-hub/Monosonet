@@ -1,6 +1,7 @@
 module.exports = function (api) {
   api.cache(true)
   const isTestEnv = process.env.NODE_ENV === 'test'
+    const enableReactCompiler = process.env.REACT_COMPILER === '1'
   return {
     presets: [
       [
@@ -17,7 +18,6 @@ module.exports = function (api) {
     ],
     plugins: [
       'macros',
-      ['babel-plugin-react-compiler', {target: '19'}],
       [
         'module:react-native-dotenv',
         {
@@ -47,6 +47,13 @@ module.exports = function (api) {
         },
       ],
       'react-native-reanimated/plugin', // NOTE: this plugin MUST be last
+    ],
+    // Only run React Compiler on our application source to avoid issues with some libraries
+    overrides: [
+      {
+        test: ['./src/**/*.{js,jsx,ts,tsx}'],
+    plugins: enableReactCompiler ? [['babel-plugin-react-compiler', {target: '19'}]] : [],
+      },
     ],
     env: {
       production: {
