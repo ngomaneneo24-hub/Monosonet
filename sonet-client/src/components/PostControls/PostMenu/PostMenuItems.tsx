@@ -56,6 +56,7 @@ import {
   PostInteractionSettingsDialog,
   usePrefetchPostInteractionSettings,
 } from '#/components/dialogs/PostInteractionSettingsDialog'
+import {useSimpleVerificationState} from '#/components/verification'
 import {Atom_Stroke2_Corner0_Rounded as AtomIcon} from '#/components/icons/Atom'
 import {BubbleQuestion_Stroke2_Corner0_Rounded as Translate} from '#/components/icons/Bubble'
 import {Clipboard_Stroke2_Corner2_Rounded as ClipboardIcon} from '#/components/icons/Clipboard'
@@ -162,6 +163,18 @@ let PostMenuItems = ({
   const [queueBlock] = useProfileBlockMutationQueue(postAuthor)
   const [queueMute, queueUnmute] = useProfileMuteMutationQueue(postAuthor)
 
+  // Add verification state for founder functionality
+  const currentAccountProfile = useMemo(() => {
+    if (!currentAccount) return undefined
+    return {
+      did: currentAccount.did,
+      handle: currentAccount.handle,
+      verification: currentAccount.verification,
+    }
+  }, [currentAccount])
+  const verification = useSimpleVerificationState({profile: currentAccountProfile})
+  const isFounder = verification.role === 'founder'
+
   const prefetchPostInteractionSettings = usePrefetchPostInteractionSettings({
     postUri: post.uri,
     rootPostUri: rootUri,
@@ -200,6 +213,24 @@ let PostMenuItems = ({
       },
       e => {
         logger.error('Failed to delete post', {message: e})
+        Toast.show(_(msg`Failed to delete post, please try again`), 'xmark')
+      },
+    )
+  }
+
+  const onFounderDeletePost = () => {
+    deletePostMutate({uri: postUri}).then(
+      () => {
+        Toast.show(_(msg`Post deleted by founder`))
+        
+        // Navigate back if we're in a post thread
+        const route = getCurrentRoute(navigation.getState())
+        if (route.name === 'PostThread' && navigation.canGoBack()) {
+          navigation.goBack()
+        }
+      },
+      e => {
+        logger.error('Founder failed to delete post', {message: e})
         Toast.show(_(msg`Failed to delete post, please try again`), 'xmark')
       },
     )
@@ -685,6 +716,17 @@ let PostMenuItems = ({
                     <Menu.ItemIcon icon={Trash} position="right" />
                   </Menu.Item>
                 </>
+              )}
+
+              {/* Founder delete functionality - founders can delete any post */}
+              {isFounder && !isAuthor && (
+                <Menu.Item
+                  testID="postDropdownFounderDeleteBtn"
+                  label={_(msg`Delete post (Founder)`)}
+                  onPress={onFounderDeletePost}>
+                  <Menu.ItemText>{_(msg`Delete post (Founder)`)}</Menu.ItemText>
+                  <Menu.ItemIcon icon={Trash} position="right" />
+                </Menu.Item>
               )}
             </Menu.Group>
           </>

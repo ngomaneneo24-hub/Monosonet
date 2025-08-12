@@ -7,7 +7,7 @@ import type * as bsky from '#/types/bsky'
 
 export type FullVerificationState = {
   profile: {
-    role: 'default' | 'verifier'
+    role: 'default' | 'founder'
     isVerified: boolean
     wasVerified: boolean
     isViewer: boolean
@@ -19,7 +19,7 @@ export type FullVerificationState = {
         isVerified: boolean
       }
     | {
-        role: 'verifier'
+        role: 'founder'
         isVerified: boolean
         hasIssuedVerification: boolean
       }
@@ -45,7 +45,7 @@ export function useFullVerificationState({
       verifications.length > 0
     const hasIssuedVerification = Boolean(
       viewerState &&
-        viewerState.role === 'verifier' &&
+        viewerState.role === 'founder' &&
         profileState.role === 'default' &&
         verifications.find(v => v.issuer === currentAccount?.did),
     )
@@ -58,9 +58,9 @@ export function useFullVerificationState({
         showBadge: profileState.showBadge,
       },
       viewer:
-        viewerState.role === 'verifier'
+        viewerState.role === 'founder'
           ? {
-              role: 'verifier',
+              role: 'founder',
               isVerified: viewerState.isVerified,
               hasIssuedVerification,
             }
@@ -73,7 +73,7 @@ export function useFullVerificationState({
 }
 
 export type SimpleVerificationState = {
-  role: 'default' | 'verifier'
+  role: 'default' | 'founder'
   isVerified: boolean
   showBadge: boolean
 }
@@ -99,13 +99,13 @@ export function useSimpleVerificationState({
 
     const {verifiedStatus, trustedVerifierStatus} = profile.verification
     const isVerifiedUser = ['valid', 'invalid'].includes(verifiedStatus)
-    const isVerifierUser = ['valid', 'invalid'].includes(trustedVerifierStatus)
+    const isFounderUser = ['valid', 'invalid'].includes(trustedVerifierStatus)
     const isVerified =
       (isVerifiedUser && verifiedStatus === 'valid') ||
-      (isVerifierUser && trustedVerifierStatus === 'valid')
+      (isFounderUser && trustedVerifierStatus === 'valid')
 
     return {
-      role: isVerifierUser ? 'verifier' : 'default',
+      role: isFounderUser ? 'founder' : 'default',
       isVerified,
       showBadge: prefs.hideBadges ? false : isVerified,
     }

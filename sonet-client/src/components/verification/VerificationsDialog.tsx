@@ -85,8 +85,7 @@ function Inner({
         <Text style={[a.text_md, a.leading_snug]}>
           {state.profile.isVerified ? (
             <Trans>
-              This account has a checkmark because it's been verified by trusted
-              sources.
+              This account has a checkmark because it's been verified as a trusted account.
             </Trans>
           ) : (
             <Trans>

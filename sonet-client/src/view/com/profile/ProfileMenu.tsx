@@ -328,7 +328,7 @@ let ProfileMenu = ({
                     <Menu.ItemIcon icon={LiveIcon} />
                   </Menu.Item>
                 )}
-                {verification.viewer.role === 'verifier' &&
+                {verification.viewer.role === 'founder' &&
                   !verification.profile.isViewer &&
                   (verification.viewer.hasIssuedVerification ? (
                     <Menu.Item
@@ -351,6 +351,49 @@ let ProfileMenu = ({
                       <Menu.ItemIcon icon={CircleCheckIcon} />
                     </Menu.Item>
                   ))}
+                {verification.viewer.role === 'founder' && !isSelf && (
+                  <>
+                    <Menu.Divider />
+                    <Menu.Group>
+                      <Menu.Item
+                        testID="profileHeaderDropdownShadowbanBtn"
+                        label={_(msg`Shadowban account`)}
+                        onPress={() => {
+                          // TODO: Implement shadowban functionality
+                          Toast.show(_(msg`Shadowban functionality coming soon`))
+                        }}>
+                        <Menu.ItemText>
+                          <Trans>Shadowban account</Trans>
+                        </Menu.ItemText>
+                        <Menu.ItemIcon icon={Mute} />
+                      </Menu.Item>
+                      <Menu.Item
+                        testID="profileHeaderDropdownBanBtn"
+                        label={_(msg`Ban account`)}
+                        onPress={() => {
+                          // TODO: Implement ban functionality
+                          Toast.show(_(msg`Ban functionality coming soon`))
+                        }}>
+                        <Menu.ItemText>
+                          <Trans>Ban account</Trans>
+                        </Menu.ItemText>
+                        <Menu.ItemIcon icon={PersonX} />
+                      </Menu.Item>
+                      <Menu.Item
+                        testID="profileHeaderDropdownSuspendBtn"
+                        label={_(msg`Suspend account`)}
+                        onPress={() => {
+                          // TODO: Implement suspend functionality
+                          Toast.show(_(msg`Suspend functionality coming soon`))
+                        }}>
+                        <Menu.ItemText>
+                          <Trans>Suspend account</Trans>
+                        </Menu.ItemText>
+                        <Menu.ItemIcon icon={CircleXIcon} />
+                      </Menu.Item>
+                    </Menu.Group>
+                  </>
+                )}
                 {!isSelf && (
                   <>
                     {!profile.viewer?.blocking &&
