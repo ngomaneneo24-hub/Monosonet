@@ -1,10 +1,5 @@
 import {type ImagePickerAsset} from 'expo-image-picker'
-import {
-  type AppBskyFeedPostgate,
-  AppBskyRichtextFacet,
-  type BskyPreferences,
-  RichText,
-} from '@atproto/api'
+import {RichText, SonetPostgate, SonetThreadgateRule} from '@sonet/types'
 import {nanoid} from 'nanoid/non-secure'
 
 import {type SelfLabel} from '#/lib/moderation'
@@ -93,8 +88,8 @@ export type PostAction =
 
 export type ThreadDraft = {
   posts: PostDraft[]
-  postgate: AppBskyFeedPostgate.Record
-  threadgate: ThreadgateAllowUISetting[]
+  postgate: SonetPostgate
+  threadgate: SonetThreadgateRule[]
 }
 
 export type ComposerState = {

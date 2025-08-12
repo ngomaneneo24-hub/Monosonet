@@ -1,6 +1,5 @@
 import {type ImagePickerAsset} from 'expo-image-picker'
-import {type AppBskyVideoDefs, type BlobRef, type BskyAgent} from '@atproto/api'
-import {type JobStatus} from '@atproto/api/dist/client/types/app/bsky/video/defs'
+import {type SonetVideoDefs, type SonetBlobRef, type SonetAgent} from '@sonet/types'
 import {type I18n} from '@lingui/core'
 import {msg} from '@lingui/macro'
 
@@ -25,14 +24,14 @@ export type VideoAction =
       signal: AbortSignal
     }
   | {
-      type: 'uploading_to_processing'
-      jobId: string
-      signal: AbortSignal
-    }
+          type: 'uploading_to_processing'
+    jobId: string
+    signal: AbortSignal
+  }
   | {type: 'to_error'; error: string; signal: AbortSignal}
   | {
       type: 'to_done'
-      blobRef: BlobRef
+      blobRef: SonetBlobRef
       signal: AbortSignal
     }
   | {type: 'update_progress'; progress: number; signal: AbortSignal}
@@ -48,7 +47,7 @@ export type VideoAction =
     }
   | {
       type: 'update_job_status'
-      jobStatus: AppBskyVideoDefs.JobStatus
+      jobStatus: SonetVideoDefs['JobStatus']
       signal: AbortSignal
     }
 

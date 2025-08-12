@@ -1,6 +1,5 @@
 import {useEffect} from 'react'
 import * as Notifications from 'expo-notifications'
-import {AtUri} from '@atproto/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {CommonActions, useNavigation} from '@react-navigation/native'
@@ -22,18 +21,18 @@ import {router} from '#/routes'
 
 export type NotificationReason =
   | 'like'
-  | 'repost'
+  | 'renote'
   | 'follow'
   | 'mention'
   | 'reply'
   | 'quote'
   | 'chat-message'
   | 'starterpack-joined'
-  | 'like-via-repost'
-  | 'repost-via-repost'
+  | 'like-via-renote'
+  | 'renote-via-renote'
   | 'verified'
   | 'unverified'
-  | 'subscribed-post'
+  | 'subscribed-note'
 
 /**
  * Manually overridden type, but retains the possibility of
@@ -46,13 +45,13 @@ export type NotificationPayload =
       reason: Exclude<NotificationReason, 'chat-message'>
       uri: string
       subject: string
-      recipientDid: string
+      recipientUserId: string
     }
   | {
       reason: 'chat-message'
       convoId: string
       messageId: string
-      recipientDid: string
+      recipientUserId: string
     }
 
 const DEFAULT_HANDLER_OPTIONS = {

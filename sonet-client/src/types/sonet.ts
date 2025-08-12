@@ -99,3 +99,141 @@ export interface SonetHandleAvailability {
   handle: string
   suggestedHandles?: string[]
 }
+
+// Rich Text and Facets
+export class RichText {
+  text: string
+  facets?: SonetFacet[]
+
+  constructor(options: {text: string; facets?: SonetFacet[]}) {
+    this.text = options.text
+    this.facets = options.facets
+  }
+
+  detectFacetsWithoutResolution(): void {
+    // Implement facet detection logic
+  }
+}
+
+export interface SonetFacet {
+  index: {
+    byteStart: number
+    byteEnd: number
+  }
+  features: SonetFacetFeature[]
+}
+
+export type SonetFacetFeature = 
+  | SonetMentionFeature
+  | SonetLinkFeature
+  | SonetTagFeature
+
+export interface SonetMentionFeature {
+  $type: 'app.sonet.richtext.facet#mention'
+  did: string
+}
+
+export interface SonetLinkFeature {
+  $type: 'app.sonet.richtext.facet#link'
+  uri: string
+}
+
+export interface SonetTagFeature {
+  $type: 'app.sonet.richtext.facet#tag'
+  tag: string
+}
+
+// Threadgate and Postgate
+export interface SonetThreadgate {
+  allow: SonetThreadgateRule[]
+}
+
+export type SonetThreadgateRule = 
+  | { $type: 'app.sonet.threadgate#mentionRule'; mention: boolean }
+  | { $type: 'app.sonet.threadgate#followingRule'; following: boolean }
+  | { $type: 'app.sonet.threadgate#listRule'; list: string }
+
+export interface SonetPostgate {
+  allow: SonetPostgateRule[]
+}
+
+export type SonetPostgateRule = 
+  | { $type: 'app.sonet.postgate#mentionRule'; mention: boolean }
+  | { $type: 'app.sonet.postgate#followingRule'; following: boolean }
+  | { $type: 'app.sonet.postgate#listRule'; list: string }
+
+// Video and Media Types
+export interface SonetVideoDefs {
+  JobStatus: SonetJobStatus
+}
+
+export type SonetJobStatus = 
+  | 'pending'
+  | 'running'
+  | 'complete'
+  | 'failed'
+  | 'canceled'
+
+export interface SonetBlobRef {
+  $link: string
+  mimeType: string
+  size: number
+}
+
+export interface SonetAgent {
+  // Basic agent interface for API calls
+  api: {
+    video: {
+      getUploadLimits: (params: any) => Promise<any>
+      uploadVideo: (params: any) => Promise<any>
+    }
+  }
+}
+
+// Regex constants for text processing
+export const TAG_REGEX = /(^|\s)(#[a-zA-Z0-9\u0080-\uFFFF]+)/g
+export const TRAILING_PUNCTUATION_REGEX = /[.,:;!?)]*$/
+export const URL_REGEX = /https?:\/\/[^\s]+/g
+
+// Label and Moderation Types
+export interface SonetLabel {
+  val: string
+  uri: string
+  cid: string
+  neg?: boolean
+  src: string
+  cts: string
+}
+
+export interface SonetModerationCause {
+  type: 'label' | 'block' | 'mute' | 'report'
+  label?: SonetLabel
+  reason?: string
+}
+
+export interface SonetModerationDecision {
+  profile: {
+    cause: SonetModerationCause | null
+    filter: boolean
+    label: boolean
+    blur: boolean
+    alert: boolean
+    noOverride: boolean
+  }
+  content: {
+    cause: SonetModerationCause | null
+    filter: boolean
+    label: boolean
+    blur: boolean
+    alert: boolean
+    noOverride: boolean
+  }
+  user: {
+    cause: SonetModerationCause | null
+    filter: boolean
+    label: boolean
+    blur: boolean
+    alert: boolean
+    noOverride: boolean
+  }
+}

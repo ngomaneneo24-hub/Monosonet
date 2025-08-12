@@ -1,8 +1,8 @@
-import {AppBskyRichtextFacet, RichText} from '@atproto/api'
+import {RichText, SonetFacet} from '@sonet/types'
 
 export type LinkFacetMatch = {
   rt: RichText
-  facet: AppBskyRichtextFacet.Main
+  facet: SonetFacet
 }
 
 export function suggestLinkCardUri(
