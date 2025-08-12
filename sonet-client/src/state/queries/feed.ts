@@ -17,14 +17,14 @@ import {
 
 import {SONET_FEED_CONFIG} from '#/lib/constants'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {STALE} from '#/state/queries'
 import {RQKEY as listQueryKey} from '#/state/queries/list'
 import {usePreferencesQuery} from '#/state/queries/preferences'
 import {useAgent, useSession} from '#/state/session'
 import {router} from '#/routes'
 import {useModerationOpts} from '../preferences/moderation-opts'
-import {type FeedDescriptor} from './post-feed'
+import {type FeedDescriptor} from './note-feed'
 import {precacheResolvedUri} from './resolve-uri'
 
 export type FeedSourceFeedInfo = {
@@ -68,8 +68,8 @@ export const feedSourceInfoQueryKey = ({uri}: {uri: string}) => [
 ]
 
 const feedSourceNSIDs = {
-  feed: 'app.bsky.feed.generator',
-  list: 'app.bsky.graph.list',
+  feed: 'app.sonet.feed.generator',
+  list: 'app.sonet.graph.list',
 }
 
 export function hydrateFeedGenerator(
@@ -147,7 +147,7 @@ export function useFeedSourceInfoQuery({uri}: {uri: string}) {
         cid: 'following',
         avatar: undefined,
         displayName: 'Following',
-        description: 'Posts from people you follow',
+        description: 'Notes from people you follow',
         contentMode: undefined
       }
     },
@@ -160,14 +160,14 @@ export function useFeedSourceInfoQuery({uri}: {uri: string}) {
 // for the ones we know need it
 // -prf
 export const KNOWN_AUTHED_ONLY_FEEDS = [
-  'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/with-friends', // popular with friends, by bsky.app
-  'at://did:plc:tenurhgjptubkk5zf5qhi3og/app.bsky.feed.generator/mutuals', // mutuals, by skyfeed
-  'at://did:plc:tenurhgjptubkk5zf5qhi3og/app.bsky.feed.generator/only-posts', // only posts, by skyfeed
-  'at://did:plc:wzsilnxf24ehtmmc3gssy5bu/app.bsky.feed.generator/mentions', // mentions, by flicknow
-  'at://did:plc:q6gjnaw2blty4crticxkmujt/app.bsky.feed.generator/bangers', // my bangers, by jaz
-  'at://did:plc:z72i7hdynmk6r22z27h6tvur/app.bsky.feed.generator/mutuals', // mutuals, by bluesky
-  'at://did:plc:q6gjnaw2blty4crticxkmujt/app.bsky.feed.generator/my-followers', // followers, by jaz
-  'at://did:plc:vpkhqolt662uhesyj6nxm7ys/app.bsky.feed.generator/followpics', // the gram, by why
+  'sonet://userId:plc:z72i7hdynmk6r22z27h6tvur/app.sonet.feed.generator/with-friends', // popular with friends, by sonet.app
+  'sonet://userId:plc:tenurhgjptubkk5zf5qhi3og/app.sonet.feed.generator/mutuals', // mutuals, by skyfeed
+  'sonet://userId:plc:tenurhgjptubkk5zf5qhi3og/app.sonet.feed.generator/only-notes', // only notes, by skyfeed
+  'sonet://userId:plc:wzsilnxf24ehtmmc3gssy5bu/app.sonet.feed.generator/mentions', // mentions, by flicknow
+  'sonet://userId:plc:q6gjnaw2blty4crticxkmujt/app.sonet.feed.generator/bangers', // my bangers, by jaz
+  'sonet://userId:plc:z72i7hdynmk6r22z27h6tvur/app.sonet.feed.generator/mutuals', // mutuals, by bluesky
+  'sonet://userId:plc:q6gjnaw2blty4crticxkmujt/app.sonet.feed.generator/my-followers', // followers, by jaz
+  'sonet://userId:plc:vpkhqolt662uhesyj6nxm7ys/app.sonet.feed.generator/followpics', // the gram, by why
 ]
 
 type GetPopularFeedsOptions = {limit?: number; enabled?: boolean}
@@ -198,16 +198,16 @@ export function useGetPopularFeedsQuery(options?: GetPopularFeedsOptions) {
   const lastPageCountRef = useRef(0)
 
   const query = useInfiniteQuery<
-    AppBskyUnspeccedGetPopularFeedGenerators.OutputSchema,
+    SonetUnspeccedGetPopularFeedGenerators.OutputSchema,
     Error,
-    InfiniteData<AppBskyUnspeccedGetPopularFeedGenerators.OutputSchema>,
+    InfiniteData<SonetUnspeccedGetPopularFeedGenerators.OutputSchema>,
     QueryKey,
     string | undefined
   >({
     enabled: Boolean(moderationOpts) && options?.enabled !== false,
     queryKey: createGetPopularFeedsQueryKey(options),
     queryFn: async ({pageParam}) => {
-      const res = await agent.app.bsky.unspecced.getPopularFeedGenerators({
+      const res = await agent.app.sonet.unspecced.getPopularFeedGenerators({
         limit,
         cursor: pageParam,
       })
@@ -224,7 +224,7 @@ export function useGetPopularFeedsQuery(options?: GetPopularFeedsOptions) {
     getNextPageParam: lastPage => lastPage.cursor,
     select: useCallback(
       (
-        data: InfiniteData<AppBskyUnspeccedGetPopularFeedGenerators.OutputSchema>,
+        data: InfiniteData<SonetUnspeccedGetPopularFeedGenerators.OutputSchema>,
       ) => {
         const {
           savedFeeds,
@@ -293,7 +293,7 @@ export function useSearchPopularFeedsMutation() {
 
   return useMutation({
     mutationFn: async (query: string) => {
-      const res = await agent.app.bsky.unspecced.getPopularFeedGenerators({
+      const res = await agent.app.sonet.unspecced.getPopularFeedGenerators({
         limit: 10,
         query: query,
       })
@@ -331,7 +331,7 @@ export function usePopularFeedsSearch({
     enabled: enabledInner,
     queryKey: createPopularFeedsSearchQueryKey(query),
     queryFn: async () => {
-      const res = await agent.app.bsky.unspecced.getPopularFeedGenerators({
+      const res = await agent.app.sonet.unspecced.getPopularFeedGenerators({
         limit: 15,
         query: query,
       })
@@ -366,7 +366,7 @@ const PWI_DISCOVER_FEED_STUB: SavedFeedSourceInfo = {
   avatar: '',
   description: new string({text: ''}),
   creatorDid: '',
-  creatorHandle: '',
+  creatorUsername: '',
   likeCount: 0,
   likeUri: '',
   // ---
@@ -404,7 +404,7 @@ export function usePinnedFeedsInfos() {
       const pinnedFeeds = pinnedItems.filter(feed => feed.type === 'feed')
       let feedsPromise = Promise.resolve()
       if (pinnedFeeds.length > 0) {
-        feedsPromise = agent.app.bsky.feed
+        feedsPromise = agent.app.sonet.feed
           .getFeedGenerators({
             feeds: pinnedFeeds.map(f => f.value),
           })
@@ -419,7 +419,7 @@ export function usePinnedFeedsInfos() {
       // Get all lists. This currently has to be done individually.
       const pinnedLists = pinnedItems.filter(feed => feed.type === 'list')
       const listsPromises = pinnedLists.map(list =>
-        agent.app.bsky.graph
+        agent.app.sonet.graph
           .getList({
             list: list.value,
             limit: 1,
@@ -457,7 +457,7 @@ export function usePinnedFeedsInfos() {
             avatar: '',
             description: new string({text: ''}),
             creatorDid: '',
-            creatorHandle: '',
+            creatorUsername: '',
             likeCount: 0,
             likeUri: '',
             savedFeed: pinnedItem,
@@ -515,7 +515,7 @@ export function useSavedFeeds() {
 
       let feedsPromise = Promise.resolve()
       if (savedFeeds.length > 0) {
-        feedsPromise = agent.app.bsky.feed
+        feedsPromise = agent.app.sonet.feed
           .getFeedGenerators({
             feeds: savedFeeds.map(f => f.value),
           })
@@ -527,7 +527,7 @@ export function useSavedFeeds() {
       }
 
       const listsPromises = savedLists.map(list =>
-        agent.app.bsky.graph
+        agent.app.sonet.graph
           .getList({
             list: list.value,
             limit: 1,
@@ -589,7 +589,7 @@ export function useSavedFeeds() {
 function precacheFeed(queryClient: QueryClient, hydratedFeed: FeedSourceInfo) {
   precacheResolvedUri(
     queryClient,
-    hydratedFeed.creatorHandle,
+    hydratedFeed.creatorUsername,
     hydratedFeed.creatorDid,
   )
   queryClient.setQueryData<FeedSourceInfo>(
@@ -602,7 +602,7 @@ export function precacheList(
   queryClient: QueryClient,
   list: SonetListView,
 ) {
-  precacheResolvedUri(queryClient, list.creator.handle, list.creator.did)
+  precacheResolvedUri(queryClient, list.creator.username, list.creator.userId)
   queryClient.setQueryData<SonetListView>(
     listQueryKey(list.uri),
     list,

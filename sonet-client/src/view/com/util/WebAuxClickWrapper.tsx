@@ -2,7 +2,7 @@ import React from 'react'
 import {Platform} from 'react-native'
 
 const onMouseUp = (e: React.MouseEvent & {target: HTMLElement}) => {
-  // Only handle whenever it is the middle button
+  // Only username whenever it is the middle button
   if (e.button !== 1 || e.target.closest('a') || e.target.tagName === 'A') {
     return
   }

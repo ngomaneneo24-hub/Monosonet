@@ -1,14 +1,14 @@
 import {
   type $Typed,
-  type AppBskyGraphDefs,
-  type AppBskyGraphGetList,
-  type AppBskyGraphList,
+  type SonetGraphDefs,
+  type SonetGraphGetList,
+  type SonetGraphList,
   AtUri,
-  type BskyAgent,
-  type ComAtprotoRepoApplyWrites,
+  type SonetAppAgent,
+  type SonetRepoApplyWrites,
   type Facet,
   type Un$Typed,
-} from '@atproto/api'
+} from '@sonet/api'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import chunk from 'lodash.chunk'
 
@@ -25,14 +25,14 @@ export const RQKEY = (uri: string) => [RQKEY_ROOT, uri]
 
 export function useListQuery(uri?: string) {
   const agent = useAgent()
-  return useQuery<AppBskyGraphDefs.ListView, Error>({
+  return useQuery<SonetGraphDefs.ListView, Error>({
     staleTime: STALE.MINUTES.ONE,
     queryKey: RQKEY(uri || ''),
     async queryFn() {
       if (!uri) {
         throw new Error('URI not provided')
       }
-      const res = await agent.app.bsky.graph.getList({
+      const res = await agent.app.sonet.graph.getList({
         list: uri,
         limit: 1,
       })
@@ -66,12 +66,12 @@ export function useListCreateMutation() {
           throw new Error('Not signed in')
         }
         if (
-          purpose !== 'app.bsky.graph.defs#curatelist' &&
-          purpose !== 'app.bsky.graph.defs#modlist'
+          purpose !== 'app.sonet.graph.defs#curatelist' &&
+          purpose !== 'app.sonet.graph.defs#modlist'
         ) {
           throw new Error('Invalid list purpose: must be curatelist or modlist')
         }
-        const record: Un$Typed<AppBskyGraphList.Record> = {
+        const record: Un$Typed<SonetGraphList.Record> = {
           purpose,
           name,
           description,
@@ -83,9 +83,9 @@ export function useListCreateMutation() {
           const blobRes = await uploadBlob(agent, avatar.path, avatar.mime)
           record.avatar = blobRes.data.blob
         }
-        const res = await agent.app.bsky.graph.list.create(
+        const res = await agent.app.sonet.graph.list.create(
           {
-            repo: currentAccount.did,
+            repo: currentAccount.userId,
           },
           record,
         )
@@ -94,7 +94,7 @@ export function useListCreateMutation() {
         await whenAppViewReady(
           agent,
           res.uri,
-          (v: AppBskyGraphGetList.Response) => {
+          (v: SonetGraphGetList.Response) => {
             return typeof v?.data?.list.uri === 'string'
           },
         )
@@ -103,7 +103,7 @@ export function useListCreateMutation() {
       onSuccess() {
         invalidateMyLists(queryClient)
         queryClient.invalidateQueries({
-          queryKey: PROFILE_LISTS_RQKEY(currentAccount!.did),
+          queryKey: PROFILE_LISTS_RQKEY(currentAccount!.userId),
         })
       },
     },
@@ -131,13 +131,13 @@ export function useListMetadataMutation() {
       if (!currentAccount) {
         throw new Error('Not signed in')
       }
-      if (currentAccount.did !== hostname) {
+      if (currentAccount.userId !== hostname) {
         throw new Error('You do not own this list')
       }
 
       // get the current record
-      const {value: record} = await agent.app.bsky.graph.list.get({
-        repo: currentAccount.did,
+      const {value: record} = await agent.app.sonet.graph.list.get({
+        repo: currentAccount.userId,
         rkey,
       })
 
@@ -152,9 +152,9 @@ export function useListMetadataMutation() {
         record.avatar = undefined
       }
       const res = (
-        await agent.com.atproto.repo.putRecord({
-          repo: currentAccount.did,
-          collection: 'app.bsky.graph.list',
+        await agent.com.sonet.repo.putRecord({
+          repo: currentAccount.userId,
+          collection: 'app.sonet.graph.list',
           rkey,
           record,
         })
@@ -164,7 +164,7 @@ export function useListMetadataMutation() {
       await whenAppViewReady(
         agent,
         res.uri,
-        (v: AppBskyGraphGetList.Response) => {
+        (v: SonetGraphGetList.Response) => {
           const list = v.data.list
           return (
             list.name === record.name && list.description === record.description
@@ -176,7 +176,7 @@ export function useListMetadataMutation() {
     onSuccess(data, variables) {
       invalidateMyLists(queryClient)
       queryClient.invalidateQueries({
-        queryKey: PROFILE_LISTS_RQKEY(currentAccount!.did),
+        queryKey: PROFILE_LISTS_RQKEY(currentAccount!.userId),
       })
       queryClient.invalidateQueries({
         queryKey: RQKEY(variables.uri),
@@ -198,8 +198,8 @@ export function useListDeleteMutation() {
       let cursor
       let listitemRecordUris: string[] = []
       for (let i = 0; i < 100; i++) {
-        const res = await agent.app.bsky.graph.listitem.list({
-          repo: currentAccount.did,
+        const res = await agent.app.sonet.graph.listitem.list({
+          repo: currentAccount.userId,
           cursor,
           limit: 100,
         })
@@ -217,10 +217,10 @@ export function useListDeleteMutation() {
       // batch delete the list and listitem records
       const createDel = (
         uri: string,
-      ): $Typed<ComAtprotoRepoApplyWrites.Delete> => {
+      ): $Typed<SonetRepoApplyWrites.Delete> => {
         const urip = new AtUri(uri)
         return {
-          $type: 'com.atproto.repo.applyWrites#delete',
+          type: "sonet",
           collection: urip.collection,
           rkey: urip.rkey,
         }
@@ -231,21 +231,21 @@ export function useListDeleteMutation() {
 
       // apply in chunks
       for (const writesChunk of chunk(writes, 10)) {
-        await agent.com.atproto.repo.applyWrites({
-          repo: currentAccount.did,
+        await agent.com.sonet.repo.applyWrites({
+          repo: currentAccount.userId,
           writes: writesChunk,
         })
       }
 
       // wait for the appview to update
-      await whenAppViewReady(agent, uri, (v: AppBskyGraphGetList.Response) => {
+      await whenAppViewReady(agent, uri, (v: SonetGraphGetList.Response) => {
         return !v?.success
       })
     },
     onSuccess() {
       invalidateMyLists(queryClient)
       queryClient.invalidateQueries({
-        queryKey: PROFILE_LISTS_RQKEY(currentAccount!.did),
+        queryKey: PROFILE_LISTS_RQKEY(currentAccount!.userId),
       })
       // TODO!! /* dont await */ this.rootStore.preferences.removeSavedFeed(this.uri)
     },
@@ -263,7 +263,7 @@ export function useListMuteMutation() {
         await agent.unmuteModList(uri)
       }
 
-      await whenAppViewReady(agent, uri, (v: AppBskyGraphGetList.Response) => {
+      await whenAppViewReady(agent, uri, (v: SonetGraphGetList.Response) => {
         return Boolean(v?.data.list.viewer?.muted) === mute
       })
     },
@@ -286,7 +286,7 @@ export function useListBlockMutation() {
         await agent.unblockModList(uri)
       }
 
-      await whenAppViewReady(agent, uri, (v: AppBskyGraphGetList.Response) => {
+      await whenAppViewReady(agent, uri, (v: SonetGraphGetList.Response) => {
         return block
           ? typeof v?.data.list.viewer?.blocked === 'string'
           : !v?.data.list.viewer?.blocked
@@ -301,16 +301,16 @@ export function useListBlockMutation() {
 }
 
 async function whenAppViewReady(
-  agent: BskyAgent,
+  agent: SonetAppAgent,
   uri: string,
-  fn: (res: AppBskyGraphGetList.Response) => boolean,
+  fn: (res: SonetGraphGetList.Response) => boolean,
 ) {
   await until(
     5, // 5 tries
     1e3, // 1s delay between tries
     fn,
     () =>
-      agent.app.bsky.graph.getList({
+      agent.app.sonet.graph.getList({
         list: uri,
         limit: 1,
       }),

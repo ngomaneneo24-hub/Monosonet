@@ -251,7 +251,7 @@ const DropdownItems = ({
   const numItems = items.filter(isBtn).length
 
   // TODO: Refactor dropdown components to:
-  // - (On web, if not handled by React Native) use semantic <select />
+  // - (On web, if not usernamed by React Native) use semantic <select />
   // and <option /> elements for keyboard navigation out of the box
   // - (On mobile) be buttons by default, accept `label` and `nativeID`
   // props, and always have an explicit label

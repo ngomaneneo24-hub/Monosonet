@@ -1,6 +1,6 @@
 import * as React from 'react'
 import {View} from 'react-native'
-import {AppBskyFeedDefs, AtUri} from '@atproto/api'
+import {SonetFeedDefs, AtUri} from '@sonet/api'
 import {Trans} from '@lingui/macro'
 
 import {makeProfileLink} from '#/lib/routes/links'
@@ -9,17 +9,17 @@ import {Text} from '#/components/Typography'
 import {Link} from '../util/Link'
 import {UserAvatar} from '../util/UserAvatar'
 
-export function PostThreadLoadMore({post}: {post: AppBskyFeedDefs.PostView}) {
+export function NoteThreadLoadMore({note}: {note: SonetFeedDefs.NoteView}) {
   const t = useTheme()
 
-  const postHref = React.useMemo(() => {
-    const urip = new AtUri(post.uri)
-    return makeProfileLink(post.author, 'post', urip.rkey)
-  }, [post.uri, post.author])
+  const noteHref = React.useMemo(() => {
+    const urip = new AtUri(note.uri)
+    return makeProfileLink(note.author, 'note', urip.rkey)
+  }, [note.uri, note.author])
 
   return (
     <Link
-      href={postHref}
+      href={noteHref}
       style={[a.flex_row, a.align_center, a.py_md, {paddingHorizontal: 14}]}
       hoverStyle={[t.atoms.bg_contrast_25]}>
       <View style={[a.flex_row]}>
@@ -34,9 +34,9 @@ export function PostThreadLoadMore({post}: {post: AppBskyFeedDefs.PostView}) {
             marginRight: -20,
           }}>
           <UserAvatar
-            avatar={post.author.avatar}
+            avatar={note.author.avatar}
             size={30}
-            type={post.author.associated?.labeler ? 'labeler' : 'user'}
+            type={note.author.associated?.labeler ? 'labeler' : 'user'}
           />
         </View>
         <View
@@ -49,9 +49,9 @@ export function PostThreadLoadMore({post}: {post: AppBskyFeedDefs.PostView}) {
             backgroundColor: t.atoms.bg.backgroundColor,
           }}>
           <UserAvatar
-            avatar={post.author.avatar}
+            avatar={note.author.avatar}
             size={30}
-            type={post.author.associated?.labeler ? 'labeler' : 'user'}
+            type={note.author.associated?.labeler ? 'labeler' : 'user'}
           />
         </View>
       </View>

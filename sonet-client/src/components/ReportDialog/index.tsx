@@ -1,6 +1,6 @@
 import React from 'react'
 import {Pressable, View} from 'react-native'
-import {ScrollView} from 'react-native-gesture-handler'
+import {ScrollView} from 'react-native-gesture-usernamer'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -8,7 +8,7 @@ import {ReportOption} from '#/lib/moderation/useReportOptions'
 import {useMyLabelersQuery} from '#/state/queries/preferences'
 export {useDialogControl as useReportDialogControl} from '#/components/Dialog'
 
-import {AppBskyLabelerDefs} from '@atproto/api'
+import {SonetLabelerDefs} from '@sonet/api'
 
 import {atoms as a} from '#/alf'
 import * as Dialog from '#/components/Dialog'
@@ -23,7 +23,7 @@ import {ReportDialogProps} from './types'
 export function ReportDialog(props: ReportDialogProps) {
   return (
     <Dialog.Outer control={props.control}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <ReportDialogInner {...props} />
     </Dialog.Outer>
   )
@@ -63,12 +63,12 @@ function ReportDialogInner(props: ReportDialogProps) {
 
 function ReportDialogLoaded(
   props: ReportDialogProps & {
-    labelers: AppBskyLabelerDefs.LabelerViewDetailed[]
+    labelers: SonetLabelerDefs.LabelerViewDetailed[]
   },
 ) {
   const [selectedLabeler, setSelectedLabeler] = React.useState<
     string | undefined
-  >(props.labelers.length === 1 ? props.labelers[0].creator.did : undefined)
+  >(props.labelers.length === 1 ? props.labelers[0].creator.userId : undefined)
   const [selectedReportOption, setSelectedReportOption] = React.useState<
     ReportOption | undefined
   >()

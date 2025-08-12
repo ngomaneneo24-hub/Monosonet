@@ -1,18 +1,17 @@
-import {AtUri} from '@atproto/api'
 import psl from 'psl'
 import TLDs from 'tlds'
 
-import {BSKY_SERVICE} from '#/lib/constants'
-import {isInvalidHandle} from '#/lib/strings/handles'
+import {SONET_SERVICE} from '#/lib/constants'
+import {isInvalidUsername} from '#/lib/strings/usernames'
 import {startUriToStarterPackUri} from '#/lib/strings/starter-pack'
 import {logger} from '#/logger'
 
-export const BSKY_APP_HOST = 'https://bsky.app'
-const BSKY_TRUSTED_HOSTS = [
-  'bsky\\.app',
-  'bsky\\.social',
-  'blueskyweb\\.xyz',
-  'blueskyweb\\.zendesk\\.com',
+export const SONET_APP_HOST = 'https://sonet.app'
+const SONET_TRUSTED_HOSTS = [
+  'sonet\\.app',
+  'sonet\\.social',
+  'sonetweb\\.xyz',
+  'sonetweb\\.zendesk\\.com',
   ...(__DEV__ ? ['localhost:19006', 'localhost:8100'] : []),
 ]
 
@@ -21,7 +20,7 @@ const BSKY_TRUSTED_HOSTS = [
  * It will also allow relative paths like /profile as well as #.
  */
 const TRUSTED_REGEX = new RegExp(
-  `^(http(s)?://(([\\w-]+\\.)?${BSKY_TRUSTED_HOSTS.join(
+  `^(http(s)?://(([\\w-]+\\.)?${SONET_TRUSTED_HOSTS.join(
     '|([\\w-]+\\.)?',
   )})|/|#)`,
 )
@@ -37,22 +36,19 @@ export function isValidDomain(str: string): boolean {
 }
 
 export function makeRecordUri(
-  didOrName: string,
+  userIdOrName: string,
   collection: string,
   rkey: string,
 ) {
-  const urip = new AtUri('at://host/')
-  urip.host = didOrName
-  urip.collection = collection
-  urip.rkey = rkey
-  return urip.toString()
+  // Sonet uses simplified URI format
+  return `sonet://${collection}/${userIdOrName}/${rkey}`
 }
 
 export function toNiceDomain(url: string): string {
   try {
     const urlp = new URL(url)
-    if (`https://${urlp.host}` === BSKY_SERVICE) {
-      return 'Bluesky Social'
+    if (`https://${urlp.host}` === SONET_SERVICE) {
+      return 'Sonet Social'
     }
     return urlp.host ? urlp.host : url
   } catch (e) {
@@ -79,19 +75,19 @@ export function toShortUrl(url: string): string {
 
 export function toShareUrl(url: string): string {
   if (!url.startsWith('https')) {
-    const urlp = new URL('https://bsky.app')
+    const urlp = new URL('https://sonet.app')
     urlp.pathname = url
     url = urlp.toString()
   }
   return url
 }
 
-export function toBskyAppUrl(url: string): string {
-  return new URL(url, BSKY_APP_HOST).toString()
+export function toSonetAppUrl(url: string): string {
+  return new URL(url, SONET_APP_HOST).toString()
 }
 
-export function isBskyAppUrl(url: string): boolean {
-  return url.startsWith('https://bsky.app/')
+export function isSonetAppUrl(url: string): boolean {
+  return url.startsWith('https://sonet.app/')
 }
 
 export function isRelativeUrl(url: string): boolean {
@@ -100,7 +96,7 @@ export function isRelativeUrl(url: string): boolean {
 
 export function isBskyRSSUrl(url: string): boolean {
   return (
-    (url.startsWith('https://bsky.app/') || isRelativeUrl(url)) &&
+    (url.startsWith('https://sonet.app/') || isRelativeUrl(url)) &&
     /\/rss\/?$/.test(url)
   )
 }
@@ -115,11 +111,11 @@ export function isTrustedUrl(url: string): boolean {
   return TRUSTED_REGEX.test(url)
 }
 
-export function isBskyPostUrl(url: string): boolean {
+export function isBskyNoteUrl(url: string): boolean {
   if (isBskyAppUrl(url)) {
     try {
       const urlp = new URL(url)
-      return /profile\/(?<name>[^/]+)\/post\/(?<rkey>[^/]+)/i.test(
+      return /profile\/(?<name>[^/]+)\/note\/(?<rkey>[^/]+)/i.test(
         urlp.pathname,
       )
     } catch {}
@@ -203,7 +199,7 @@ export function convertBskyAppUrlIfNeeded(url: string): string {
       console.error('Unexpected error in convertBskyAppUrlIfNeeded()', e)
     }
   } else if (isShortLink(url)) {
-    // We only want to do this on native, web handles the 301 for us
+    // We only want to do this on native, web usernames the 301 for us
     return shortLinkToHref(url)
   }
   return url
@@ -227,24 +223,24 @@ export function feedUriToHref(url: string): string {
   }
 }
 
-export function postUriToRelativePath(
+export function noteUriToRelativePath(
   uri: string,
-  options?: {handle?: string},
+  options?: {username?: string},
 ): string | undefined {
   try {
     const {hostname, rkey} = new AtUri(uri)
-    const handleOrDid =
-      options?.handle && !isInvalidHandle(options.handle)
-        ? options.handle
+    const usernameOrDid =
+      options?.username && !isInvalidUsername(options.username)
+        ? options.username
         : hostname
-    return `/profile/${handleOrDid}/post/${rkey}`
+    return `/profile/${usernameOrDid}/note/${rkey}`
   } catch {
     return undefined
   }
 }
 
 /**
- * Checks if the label in the post text matches the host of the link facet.
+ * Checks if the label in the note text matches the host of the link facet.
  *
  * Hosts are case-insensitive, so should be lowercase for comparison.
  * @see https://www.rfc-editor.org/rfc/rfc3986#section-3.2.2
@@ -337,11 +333,11 @@ export function createProxiedUrl(url: string): string {
     return url
   }
 
-  return `https://go.bsky.app/redirect?u=${encodeURIComponent(url)}`
+  return `https://go.sonet.app/redirect?u=${encodeURIComponent(url)}`
 }
 
 export function isShortLink(url: string): boolean {
-  return url.startsWith('https://go.bsky.app/')
+  return url.startsWith('https://go.sonet.app/')
 }
 
 export function shortLinkToHref(url: string): string {
@@ -375,7 +371,7 @@ export function getServiceAuthAudFromUrl(url: string | URL): string | null {
   if (!hostname) {
     return null
   }
-  return `did:web:${hostname}`
+  return `userId:web:${hostname}`
 }
 
 // passes URL.parse, and has a TLD etc

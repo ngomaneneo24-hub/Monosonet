@@ -23,7 +23,7 @@ export function SwitchAccountDialog({
 
   const onSelectAccount = useCallback(
     (account: SessionAccount) => {
-      if (account.did !== currentAccount?.did) {
+      if (account.userId !== currentAccount?.userId) {
         control.close(() => {
           onPressSwitchAccount(account, 'SwitchAccount')
         })
@@ -42,7 +42,7 @@ export function SwitchAccountDialog({
 
   return (
     <Dialog.Outer control={control}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <Dialog.ScrollableInner label={_(msg`Switch Account`)}>
         <View style={[a.gap_lg]}>
           <Text style={[a.text_2xl, a.font_bold]}>

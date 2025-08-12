@@ -1,5 +1,5 @@
 import {View} from 'react-native'
-import {ModerationCause} from '@atproto/api'
+import {ModerationCause} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -25,7 +25,7 @@ export interface ModerationDetailsDialogProps {
 export function ModerationDetailsDialog(props: ModerationDetailsDialogProps) {
   return (
     <Dialog.Outer control={props.control}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <ModerationDetailsDialogInner {...props} />
     </Dialog.Outer>
   )
@@ -104,13 +104,13 @@ function ModerationDetailsDialogInner({
       description = _(msg`You have muted this account.`)
     }
   } else if (modcause.type === 'mute-word') {
-    name = _(msg`Post Hidden by Muted Word`)
-    description = _(msg`You've chosen to hide a word or tag within this post.`)
+    name = _(msg`Note Hidden by Muted Word`)
+    description = _(msg`You've chosen to hide a word or tag within this note.`)
   } else if (modcause.type === 'hidden') {
-    name = _(msg`Post Hidden by You`)
-    description = _(msg`You have hidden this post.`)
+    name = _(msg`Note Hidden by You`)
+    description = _(msg`You have hidden this note.`)
   } else if (modcause.type === 'reply-hidden') {
-    const isYou = currentAccount?.did === modcause.source.did
+    const isYou = currentAccount?.userId === modcause.source.userId
     name = isYou
       ? _(msg`Reply Hidden by You`)
       : _(msg`Reply Hidden by Thread Author`)
@@ -188,8 +188,8 @@ function ModerationDetailsDialogInner({
                     <InlineLinkText
                       label={sourceName}
                       to={makeProfileLink({
-                        did: modcause.label.src,
-                        handle: '',
+                        userId: modcause.label.src,
+                        username: '',
                       })}
                       onPress={() => control.close()}>
                       {sourceName}

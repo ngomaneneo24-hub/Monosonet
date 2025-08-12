@@ -1,6 +1,6 @@
 import {useEffect, useId, useRef, useState} from 'react'
 import {View} from 'react-native'
-import {type AppBskyEmbedVideo} from '@atproto/api'
+import {type SonetEmbedVideo} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import type * as HlsTypes from 'hls.js'
@@ -18,7 +18,7 @@ export function VideoEmbedInnerWeb({
   onScreen,
   lastKnownTime,
 }: {
-  embed: AppBskyEmbedVideo.View
+  embed: SonetEmbedVideo.View
   active: boolean
   setActive: () => void
   onScreen: boolean
@@ -61,7 +61,7 @@ export function VideoEmbedInnerWeb({
         <figure style={{margin: 0, position: 'absolute', inset: 0}}>
           <video
             ref={videoRef}
-            poster={embed.thumbnail}
+            noteer={embed.thumbnail}
             style={{width: '100%', height: '100%', objectFit: 'contain'}}
             playsInline
             preload="none"
@@ -161,7 +161,7 @@ function useHLS({
   >([])
 
   // purge low quality segments from buffer on next frag change
-  const handleFragChange = useNonReactiveCallback(
+  const usernameFragChange = useNonReactiveCallback(
     (
       _event: HlsTypes.Events.FRAG_CHANGED,
       {frag}: HlsTypes.FragChangedData,
@@ -289,7 +289,7 @@ function useHLS({
       }
     })
 
-    hls.on(Hls.Events.FRAG_CHANGED, handleFragChange)
+    hls.on(Hls.Events.FRAG_CHANGED, usernameFragChange)
 
     return () => {
       hlsRef.current = undefined
@@ -302,7 +302,7 @@ function useHLS({
     setError,
     setHasSubtitleTrack,
     videoRef,
-    handleFragChange,
+    usernameFragChange,
     flushOnLoop,
     Hls,
   ])

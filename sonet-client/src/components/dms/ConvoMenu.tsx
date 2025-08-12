@@ -1,6 +1,6 @@
 import React, {useCallback} from 'react'
 import {Keyboard, Pressable, View} from 'react-native'
-import {ChatBskyConvoDefs, ModerationCause} from '@atproto/api'
+import {SonetConvoDefs, ModerationCause} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
@@ -45,7 +45,7 @@ let ConvoMenu = ({
   latestReportableMessage,
   style,
 }: {
-  convo: ChatBskyConvoDefs.ConvoView
+  convo: SonetConvoDefs.ConvoView
   profile: Shadow<bsky.profile.AnyProfileView>
   control?: Menu.MenuControlProps
   currentScreen: 'list' | 'conversation'
@@ -55,7 +55,7 @@ let ConvoMenu = ({
     listBlocks: ModerationCause[]
     userBlock?: ModerationCause
   }
-  latestReportableMessage?: ChatBskyConvoDefs.MessageView
+  latestReportableMessage?: SonetConvoDefs.MessageView
   style?: ViewStyleProp['style']
 }): React.ReactNode => {
   const {_} = useLingui()
@@ -144,7 +144,7 @@ function MenuContent({
   reportControl,
   blockedByListControl,
 }: {
-  convo: ChatBskyConvoDefs.ConvoView
+  convo: SonetConvoDefs.ConvoView
   profile: Shadow<bsky.profile.AnyProfileView>
   showMarkAsRead?: boolean
   blockInfo: {
@@ -161,14 +161,14 @@ function MenuContent({
 
   const {listBlocks, userBlock} = blockInfo
   const isBlocking = userBlock || !!listBlocks.length
-  const isDeletedAccount = profile.handle === 'missing.invalid'
+  const isDeletedAccount = profile.username === 'missing.invalid'
 
   const convoId = initialConvo.id
   const {data: convo} = useConvoQuery(initialConvo)
 
   const onNavigateToProfile = useCallback(() => {
-    navigation.navigate('Profile', {name: profile.did})
-  }, [navigation, profile.did])
+    navigation.navigate('Profile', {name: profile.userId})
+  }, [navigation, profile.userId])
 
   const {mutate: muteConvo} = useMuteConvo(convoId, {
     onSuccess: data => {

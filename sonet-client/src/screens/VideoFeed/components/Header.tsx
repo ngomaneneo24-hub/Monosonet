@@ -6,7 +6,7 @@ import {useNavigation} from '@react-navigation/native'
 
 import {HITSLOP_30} from '#/lib/constants'
 import {NavigationProp} from '#/lib/routes/types'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {useFeedSourceInfoQuery} from '#/state/queries/feed'
 import {UserAvatar} from '#/view/com/util/UserAvatar'
 import {VideoFeedSourceContext} from '#/screens/VideoFeed/types'
@@ -131,7 +131,7 @@ export function FeedHeader({
           <Text
             style={[a.flex_shrink, a.text_sm, a.leading_snug]}
             numberOfLines={1}>
-            {sanitizeHandle(info.creatorHandle, '@')}
+            {sanitizeUsername(info.creatorUsername, '@')}
           </Text>
         </View>
       </View>

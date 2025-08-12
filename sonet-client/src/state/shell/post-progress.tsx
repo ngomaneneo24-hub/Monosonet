@@ -1,18 +1,18 @@
 import React from 'react'
 
-interface PostProgressState {
+interface NoteProgressState {
   progress: number
   status: 'pending' | 'success' | 'error' | 'idle'
   error?: string
 }
 
-const PostProgressContext = React.createContext<PostProgressState>({
+const NoteProgressContext = React.createContext<NoteProgressState>({
   progress: 0,
   status: 'idle',
 })
 
 export function Provider() {}
 
-export function usePostProgress() {
-  return React.useContext(PostProgressContext)
+export function useNoteProgress() {
+  return React.useContext(NoteProgressContext)
 }

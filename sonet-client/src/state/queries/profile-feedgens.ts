@@ -1,4 +1,4 @@
-import {AppBskyFeedGetActorFeeds, moderateFeedGenerator} from '@atproto/api'
+import {SonetFeedGetActorFeeds, moderateFeedGenerator} from '@sonet/api'
 import {InfiniteData, QueryKey, useInfiniteQuery} from '@tanstack/react-query'
 
 import {useAgent} from '#/state/session'
@@ -9,26 +9,26 @@ type RQPageParam = string | undefined
 
 // TODO refactor invalidate on mutate?
 export const RQKEY_ROOT = 'profile-feedgens'
-export const RQKEY = (did: string) => [RQKEY_ROOT, did]
+export const RQKEY = (userId: string) => [RQKEY_ROOT, userId]
 
 export function useProfileFeedgensQuery(
-  did: string,
+  userId: string,
   opts?: {enabled?: boolean},
 ) {
   const moderationOpts = useModerationOpts()
   const enabled = opts?.enabled !== false && Boolean(moderationOpts)
   const agent = useAgent()
   return useInfiniteQuery<
-    AppBskyFeedGetActorFeeds.OutputSchema,
+    SonetFeedGetActorFeeds.OutputSchema,
     Error,
-    InfiniteData<AppBskyFeedGetActorFeeds.OutputSchema>,
+    InfiniteData<SonetFeedGetActorFeeds.OutputSchema>,
     QueryKey,
     RQPageParam
   >({
-    queryKey: RQKEY(did),
+    queryKey: RQKEY(userId),
     async queryFn({pageParam}: {pageParam: RQPageParam}) {
-      const res = await agent.app.bsky.feed.getActorFeeds({
-        actor: did,
+      const res = await agent.app.sonet.feed.getActorFeeds({
+        actor: userId,
         limit: PAGE_SIZE,
         cursor: pageParam,
       })

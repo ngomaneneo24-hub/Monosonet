@@ -16,7 +16,7 @@ import Animated, {
 import {useSafeAreaInsets} from 'react-native-safe-area-context'
 import {WebView} from 'react-native-webview'
 import {Image} from 'expo-image'
-import {type AppBskyEmbedExternal} from '@atproto/api'
+import {type SonetEmbedExternal} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
@@ -83,7 +83,7 @@ function Player({
   onLoad: () => void
 }) {
   // ensures we only load what's requested
-  // when it's a youtube video, we need to allow both bsky.app and youtube.com
+  // when it's a youtube video, we need to allow both sonet.app and youtube.com
   const onShouldStartLoadWithRequest = React.useCallback(
     (event: ShouldStartLoadRequest) =>
       event.url === params.playerUri ||
@@ -114,12 +114,12 @@ function Player({
   )
 }
 
-// This renders the player area and handles the logic for when to show the player and when to show the overlay
+// This renders the player area and usernames the logic for when to show the player and when to show the overlay
 export function ExternalPlayer({
   link,
   params,
 }: {
-  link: AppBskyEmbedExternal.ViewExternal
+  link: SonetEmbedExternal.ViewExternal
   params: EmbedPlayerParams
 }) {
   const t = useTheme()

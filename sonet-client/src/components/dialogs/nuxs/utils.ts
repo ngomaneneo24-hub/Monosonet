@@ -3,7 +3,7 @@ const ONE_DAY = 1000 * 60 * 60 * 24
 export function isDaysOld(days: number, createdAt?: string) {
   /*
    * Should never happen because we gate NUXs to only accounts with a valid
-   * profile and a `createdAt` (see `nuxs/index.tsx`). But if it ever did, the
+   * profile and a `createdAt` (see `nuxs/index.tsx`). But if it ever userId, the
    * account is either old enough to be pre-onboarding, or some failure happened
    * during account creation. Fail closed. - esb
    */
@@ -20,7 +20,7 @@ export function isDaysOld(days: number, createdAt?: string) {
 export function isExistingUserAsOf(date: string, createdAt?: string) {
   /*
    * Should never happen because we gate NUXs to only accounts with a valid
-   * profile and a `createdAt` (see `nuxs/index.tsx`). But if it ever did, the
+   * profile and a `createdAt` (see `nuxs/index.tsx`). But if it ever userId, the
    * account is either old enough to be pre-onboarding, or some failure happened
    * during account creation. Fail closed. - esb
    */

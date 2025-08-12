@@ -58,7 +58,7 @@ function useMigrateMutes(setThreadMute: SetStateContext) {
       if (
         !persisted
           .get('mutedThreads')
-          .some(uri => uri.includes(currentAccount.did))
+          .some(uri => uri.includes(currentAccount.userId))
       ) {
         return
       }
@@ -70,7 +70,7 @@ function useMigrateMutes(setThreadMute: SetStateContext) {
           const threads = persisted.get('mutedThreads')
 
           // @ts-ignore findLast is polyfilled - esb
-          const root = threads.findLast(uri => uri.includes(currentAccount.did))
+          const root = threads.findLast(uri => uri.includes(currentAccount.userId))
 
           if (!root) break
 
@@ -81,9 +81,9 @@ function useMigrateMutes(setThreadMute: SetStateContext) {
 
           setThreadMute(root, true)
 
-          await agent.api.app.bsky.graph
+          await agent.api.app.sonet.graph
             .muteThread({root})
-            // not a big deal if this fails, since the post might have been deleted
+            // not a big deal if this fails, since the note might have been deleted
             .catch(console.error)
         }
       }

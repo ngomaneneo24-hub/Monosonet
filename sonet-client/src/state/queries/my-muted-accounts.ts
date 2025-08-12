@@ -1,4 +1,4 @@
-import {AppBskyActorDefs, AppBskyGraphGetMutes} from '@atproto/api'
+import {SonetActorDefs, SonetGraphGetMutes} from '@sonet/api'
 import {
   InfiniteData,
   QueryClient,
@@ -15,15 +15,15 @@ type RQPageParam = string | undefined
 export function useMyMutedAccountsQuery() {
   const agent = useAgent()
   return useInfiniteQuery<
-    AppBskyGraphGetMutes.OutputSchema,
+    SonetGraphGetMutes.OutputSchema,
     Error,
-    InfiniteData<AppBskyGraphGetMutes.OutputSchema>,
+    InfiniteData<SonetGraphGetMutes.OutputSchema>,
     QueryKey,
     RQPageParam
   >({
     queryKey: RQKEY(),
     async queryFn({pageParam}: {pageParam: RQPageParam}) {
-      const res = await agent.app.bsky.graph.getMutes({
+      const res = await agent.app.sonet.graph.getMutes({
         limit: 30,
         cursor: pageParam,
       })
@@ -36,10 +36,10 @@ export function useMyMutedAccountsQuery() {
 
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
-  did: string,
-): Generator<AppBskyActorDefs.ProfileView, void> {
+  userId: string,
+): Generator<SonetActorDefs.ProfileView, void> {
   const queryDatas = queryClient.getQueriesData<
-    InfiniteData<AppBskyGraphGetMutes.OutputSchema>
+    InfiniteData<SonetGraphGetMutes.OutputSchema>
   >({
     queryKey: [RQKEY_ROOT],
   })
@@ -49,7 +49,7 @@ export function* findAllProfilesInQueryData(
     }
     for (const page of queryData?.pages) {
       for (const mute of page.mutes) {
-        if (mute.did === did) {
+        if (mute.userId === userId) {
           yield mute
         }
       }

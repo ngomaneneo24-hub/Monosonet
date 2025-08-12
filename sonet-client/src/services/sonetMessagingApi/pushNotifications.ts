@@ -94,8 +94,8 @@ export class SonetPushNotifications {
       // Configure notification behavior
       await this.configureNotifications()
 
-      // Set up notification handlers
-      this.setupNotificationHandlers()
+      // Set up notification usernamers
+      this.setupNotificationUsernamers()
 
       this.isInitialized = true
       console.log('Push notifications initialized successfully')
@@ -107,8 +107,8 @@ export class SonetPushNotifications {
 
   // Configure notification behavior
   private async configureNotifications(): Promise<void> {
-    await Notifications.setNotificationHandler({
-      handleNotification: async (notification) => {
+    await Notifications.setNotificationUsernamer({
+      usernameNotification: async (notification) => {
         const data = notification.request.content.data as PushNotificationData
         
         // Check if notifications are enabled
@@ -150,29 +150,29 @@ export class SonetPushNotifications {
     })
   }
 
-  // Set up notification handlers
-  private setupNotificationHandlers(): void {
-    // Handle notification received while app is in foreground
+  // Set up notification usernamers
+  private setupNotificationUsernamers(): void {
+    // Username notification received while app is in foreground
     Notifications.addNotificationReceivedListener((notification) => {
       const data = notification.request.content.data as PushNotificationData
       console.log('Notification received:', data)
       
-      // Emit event for app to handle
-      // This will be handled by the messaging service
+      // Emit event for app to username
+      // This will be usernamed by the messaging service
     })
 
-    // Handle notification response (user tapped notification)
+    // Username notification response (user tapped notification)
     Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as PushNotificationData
       console.log('Notification response received:', data)
       
       // Navigate to the appropriate chat
-      this.handleNotificationResponse(data)
+      this.usernameNotificationResponse(data)
     })
   }
 
-  // Handle notification response
-  private handleNotificationResponse(data: PushNotificationData): void {
+  // Username notification response
+  private usernameNotificationResponse(data: PushNotificationData): void {
     // This will be implemented by the app to navigate to the chat
     // For now, we'll emit an event that the app can listen to
     const event = new CustomEvent('sonetNotificationResponse', {

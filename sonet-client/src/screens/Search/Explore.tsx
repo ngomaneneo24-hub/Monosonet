@@ -1,13 +1,13 @@
 import {useCallback, useMemo, useRef, useState} from 'react'
 import {View, type ViewabilityConfig} from 'react-native'
-import { type SonetPost, type SonetProfile, type SonetFeedGenerator, type SonetPostRecord, type SonetFeedViewPost, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
+import { type SonetNote, type SonetProfile, type SonetFeedGenerator, type SonetNoteRecord, type SonetFeedViewNote, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
 import * as bcp47Match from 'bcp-47-match'
 
 import {cleanError} from '#/lib/strings/errors'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {logger} from '#/logger'
 import {type MetricEvents} from '#/logger/metrics'
 import {useLanguagePrefs} from '#/state/preferences/languages'
@@ -30,9 +30,9 @@ import {
   createSuggestedStarterPacksQueryKey,
   useSuggestedStarterPacksQuery,
 } from '#/state/queries/useSuggestedStarterPacksQuery'
-import {isThreadChildAt, isThreadParentAt} from '#/view/com/posts/PostFeed'
-import {PostFeedItem} from '#/view/com/posts/PostFeedItem'
-import {ViewFullThread} from '#/view/com/posts/ViewFullThread'
+import {isThreadChildAt, isThreadParentAt} from '#/view/com/notes/NoteFeed'
+import {NoteFeedItem} from '#/view/com/notes/NoteFeedItem'
+import {ViewFullThread} from '#/view/com/notes/ViewFullThread'
 import {List} from '#/view/com/util/List'
 import {FeedFeedLoadingPlaceholder} from '#/view/com/util/LoadingPlaceholder'
 import {LoadMoreRetryBtn} from '#/view/com/util/LoadMoreRetryBtn'
@@ -189,7 +189,7 @@ type ExploreScreenItems =
   | {
       type: 'starterPack'
       key: string
-      view: AppBskyGraphDefs.StarterPackView
+      view: SonetGraphDefs.StarterPackView
     }
   | {
       type: 'starterPackSkeleton'
@@ -378,11 +378,11 @@ export function Explore({
           const profileItems: ExploreScreenItems[] = []
           for (const actor of suggestedUsers.actors) {
             // checking for following still necessary if search data is used
-            if (!seen.has(actor.did) && !actor.viewer?.following) {
-              seen.add(actor.did)
+            if (!seen.has(actor.userId) && !actor.viewer?.following) {
+              seen.add(actor.userId)
               profileItems.push({
                 type: 'profile',
-                key: actor.did,
+                key: actor.userId,
                 profile: actor,
               })
             }
@@ -848,7 +848,7 @@ export function Explore({
                   <ProfileCard.Outer>
                     <ProfileCard.Header>
                       <ProfileCard.AvatarPlaceholder />
-                      <ProfileCard.NameAndHandlePlaceholder />
+                      <ProfileCard.NameAndUsernamePlaceholder />
                     </ProfileCard.Header>
                     <ProfileCard.DescriptionPlaceholder numberOfLines={2} />
                   </ProfileCard.Outer>
@@ -928,7 +928,7 @@ export function Explore({
                   </ModuleHeader.TitleText>
                   <ModuleHeader.SubtitleText>
                     <Trans>
-                      By {sanitizeHandle(item.feed.creator.handle, '@')}
+                      By {sanitizeUsername(item.feed.creator.username, '@')}
                     </Trans>
                   </ModuleHeader.SubtitleText>
                 </View>
@@ -954,8 +954,8 @@ export function Explore({
           const indexInSlice = item.indexInSlice
           const subItem = slice.items[indexInSlice]
           return (
-            <PostFeedItem
-              post={subItem.post}
+            <NoteFeedItem
+              note={subItem.note}
               record={subItem.record}
               reason={indexInSlice === 0 ? slice.reason : undefined}
               feedContext={slice.feedContext}
@@ -972,7 +972,7 @@ export function Explore({
               isParentBlocked={subItem.isParentBlocked}
               isParentNotFound={subItem.isParentNotFound}
               hideTopBorder={item.hideTopBorder}
-              rootPost={slice.items[0].post}
+              rootNote={slice.items[0].note}
             />
           )
         }
@@ -983,7 +983,7 @@ export function Explore({
           return (
             <LoadMoreRetryBtn
               label={_(
-                msg`There was an issue fetching posts. Tap here to try again.`,
+                msg`There was an issue fetching notes. Tap here to try again.`,
               )}
               onPress={fetchNextPageFeedPreviews}
             />
@@ -1052,7 +1052,7 @@ export function Explore({
       keyExtractor={keyExtractor}
       desktopFixedHeight
       contentContainerStyle={{paddingBottom: 100}}
-      keyboardShouldPersistTaps="handled"
+      keyboardShouldPersistTaps="usernamed"
       keyboardDismissMode="on-drag"
       stickyHeaderIndices={native(stickyHeaderIndices)}
       viewabilityConfig={viewabilityConfig}

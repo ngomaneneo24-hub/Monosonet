@@ -1,5 +1,5 @@
 import React from 'react'
-import {AppBskyActorDefs, moderateProfile, ModerationOpts} from '@atproto/api'
+import {SonetActorDefs, moderateProfile, ModerationOpts} from '@sonet/api'
 import {keepPreviousData, useQuery, useQueryClient} from '@tanstack/react-query'
 
 import {isJustAMute, moduiContainsHideableOffense} from '#/lib/moderation'
@@ -31,7 +31,7 @@ export function useActorAutocompleteQuery(
     prefix = prefix.slice(0, -1)
   }
 
-  return useQuery<AppBskyActorDefs.ProfileViewBasic[]>({
+  return useQuery<SonetActorDefs.ProfileViewBasic[]>({
     staleTime: STALE.MINUTES.ONE,
     queryKey: RQKEY(prefix || ''),
     async queryFn() {
@@ -44,7 +44,7 @@ export function useActorAutocompleteQuery(
       return res?.data.actors || []
     },
     select: React.useCallback(
-      (data: AppBskyActorDefs.ProfileViewBasic[]) => {
+      (data: SonetActorDefs.ProfileViewBasic[]) => {
         return computeSuggestions({
           q: prefix,
           searched: data,
@@ -101,18 +101,18 @@ function computeSuggestions({
   moderationOpts,
 }: {
   q?: string
-  searched?: AppBskyActorDefs.ProfileViewBasic[]
+  searched?: SonetActorDefs.ProfileViewBasic[]
   moderationOpts: ModerationOpts
 }) {
-  let items: AppBskyActorDefs.ProfileViewBasic[] = []
+  let items: SonetActorDefs.ProfileViewBasic[] = []
   for (const item of searched) {
-    if (!items.find(item2 => item2.handle === item.handle)) {
+    if (!items.find(item2 => item2.username === item.username)) {
       items.push(item)
     }
   }
   return items.filter(profile => {
     const modui = moderateProfile(profile, moderationOpts).ui('profileList')
-    const isExactMatch = q && profile.handle.toLowerCase() === q
+    const isExactMatch = q && profile.username.toLowerCase() === q
     return (
       (isExactMatch && !moduiContainsHideableOffense(modui)) ||
       !modui.filter ||

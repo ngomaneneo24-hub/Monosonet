@@ -98,7 +98,7 @@ class SonetWebSocketManager {
   private heartbeatInterval: NodeJS.Timeout | null = null
   private messageQueue: SonetMessageEnvelope[] = []
   private connectionState: 'disconnected' | 'connecting' | 'connected' | 'reconnecting' = 'disconnected'
-  private eventHandlers = new Map<string, Set<Function>>()
+  private eventUsernamers = new Map<string, Set<Function>>()
   private messageSequence = 0
   private lastHeartbeat = 0
 
@@ -147,7 +147,7 @@ class SonetWebSocketManager {
         }
 
         this.ws.onmessage = (event) => {
-          this.handleMessage(event)
+          this.usernameMessage(event)
         }
 
         this.ws.onclose = (event) => {
@@ -216,7 +216,7 @@ class SonetWebSocketManager {
     })
   }
 
-  private handleMessage(event: MessageEvent): void {
+  private usernameMessage(event: MessageEvent): void {
     try {
       const data = JSON.parse(event.data)
       
@@ -285,28 +285,28 @@ class SonetWebSocketManager {
     }
   }
 
-  on(event: string, handler: Function): void {
-    if (!this.eventHandlers.has(event)) {
-      this.eventHandlers.set(event, new Set())
+  on(event: string, usernamer: Function): void {
+    if (!this.eventUsernamers.has(event)) {
+      this.eventUsernamers.set(event, new Set())
     }
-    this.eventHandlers.get(event)!.add(handler)
+    this.eventUsernamers.get(event)!.add(usernamer)
   }
 
-  off(event: string, handler: Function): void {
-    const handlers = this.eventHandlers.get(event)
-    if (handlers) {
-      handlers.delete(handler)
+  off(event: string, usernamer: Function): void {
+    const usernamers = this.eventUsernamers.get(event)
+    if (usernamers) {
+      usernamers.delete(usernamer)
     }
   }
 
   private emit(event: string, data?: any): void {
-    const handlers = this.eventHandlers.get(event)
-    if (handlers) {
-      handlers.forEach(handler => {
+    const usernamers = this.eventUsernamers.get(event)
+    if (usernamers) {
+      usernamers.forEach(usernamer => {
         try {
-          handler(data)
+          usernamer(data)
         } catch (error) {
-          logger.error('Error in event handler', {event, error})
+          logger.error('Error in event usernamer', {event, error})
         }
       })
     }
@@ -480,7 +480,7 @@ export function useSonetMessaging(conversationId: string) {
           }
         )
 
-        // Set up event handlers
+        // Set up event usernamers
         ws.on('connected', () => {
           logger.info('WebSocket connected', {conversationId})
         })
@@ -497,15 +497,15 @@ export function useSonetMessaging(conversationId: string) {
         })
 
         ws.on('message:received', (message: SonetMessageEnvelope) => {
-          handleIncomingMessage(message)
+          usernameIncomingMessage(message)
         })
 
         ws.on('typing:update', (data: {userId: string; isTyping: boolean}) => {
-          handleTypingUpdate(data)
+          usernameTypingUpdate(data)
         })
 
         ws.on('read:receipt', (data: {messageId: string; userId: string; timestamp: number}) => {
-          handleReadReceipt(data)
+          usernameReadReceipt(data)
         })
 
         ws.on('error', (error) => {
@@ -586,8 +586,8 @@ export function useSonetMessaging(conversationId: string) {
     }
   }, [wsManager, encryption, conversationId])
 
-  // Handle incoming messages
-  const handleIncomingMessage = useCallback(async (message: SonetMessageEnvelope) => {
+  // Username incoming messages
+  const usernameIncomingMessage = useCallback(async (message: SonetMessageEnvelope) => {
     try {
       if (!encryption) return
 
@@ -627,20 +627,20 @@ export function useSonetMessaging(conversationId: string) {
       }
 
     } catch (error) {
-      logger.error('Failed to handle incoming message', {messageId: message.id, error})
+      logger.error('Failed to username incoming message', {messageId: message.id, error})
     }
   }, [encryption, wsManager])
 
-  // Handle typing updates
-  const handleTypingUpdate = useCallback((data: {userId: string; isTyping: boolean}) => {
+  // Username typing updates
+  const usernameTypingUpdate = useCallback((data: {userId: string; isTyping: boolean}) => {
     setConversation(prev => prev ? {
       ...prev,
       isTyping: new Set(data.isTyping ? [data.userId] : []),
     } : null)
   }, [])
 
-  // Handle read receipts
-  const handleReadReceipt = useCallback((data: {messageId: string; userId: string; timestamp: number}) => {
+  // Username read receipts
+  const usernameReadReceipt = useCallback((data: {messageId: string; userId: string; timestamp: number}) => {
     // Update message status in conversation
     setConversation(prev => prev ? {
       ...prev,

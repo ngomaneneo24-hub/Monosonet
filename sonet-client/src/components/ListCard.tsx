@@ -1,16 +1,16 @@
 import React from 'react'
 import {View} from 'react-native'
 import {
-  type AppBskyGraphDefs,
+  type SonetGraphDefs,
   AtUri,
   moderateUserList,
   type ModerationUI,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
 
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
 import {precacheList} from '#/state/queries/feed'
 import {useSession} from '#/state/session'
@@ -42,11 +42,11 @@ export {
   TitleAndBylinePlaceholder,
 } from '#/components/FeedCard'
 
-const CURATELIST = 'app.bsky.graph.defs#curatelist'
-const MODLIST = 'app.bsky.graph.defs#modlist'
+const CURATELIST = 'app.sonet.graph.defs#curatelist'
+const MODLIST = 'app.sonet.graph.defs#modlist'
 
 type Props = {
-  view: AppBskyGraphDefs.ListView
+  view: SonetGraphDefs.ListView
   showPinButton?: boolean
 }
 
@@ -110,7 +110,7 @@ export function TitleAndByline({
 }: {
   title: string
   creator?: bsky.profile.AnyProfileView
-  purpose?: AppBskyGraphDefs.ListView['purpose']
+  purpose?: SonetGraphDefs.ListView['purpose']
   modUi?: ModerationUI
 }) {
   const t = useTheme()
@@ -122,9 +122,9 @@ export function TitleAndByline({
       <Hider.Outer
         modui={modUi}
         isContentVisibleInitialState={
-          creator && currentAccount?.did === creator.did
+          creator && currentAccount?.userId === creator.userId
         }
-        allowOverride={creator && currentAccount?.did === creator.did}>
+        allowOverride={creator && currentAccount?.userId === creator.userId}>
         <Hider.Mask>
           <Text
             style={[a.text_md, a.font_bold, a.leading_snug, a.italic]}
@@ -148,8 +148,8 @@ export function TitleAndByline({
           style={[a.leading_snug, t.atoms.text_contrast_medium]}
           numberOfLines={1}>
           {purpose === MODLIST
-            ? _(msg`Moderation list by ${sanitizeHandle(creator.handle, '@')}`)
-            : _(msg`List by ${sanitizeHandle(creator.handle, '@')}`)}
+            ? _(msg`Moderation list by ${sanitizeUsername(creator.username, '@')}`)
+            : _(msg`List by ${sanitizeUsername(creator.username, '@')}`)}
         </Text>
       )}
     </View>
@@ -159,9 +159,9 @@ export function TitleAndByline({
 export function createProfileListHref({
   list,
 }: {
-  list: AppBskyGraphDefs.ListView
+  list: SonetGraphDefs.ListView
 }) {
   const urip = new AtUri(list.uri)
-  const handleOrDid = list.creator.handle || list.creator.did
-  return `/profile/${handleOrDid}/lists/${urip.rkey}`
+  const usernameOrDid = list.creator.username || list.creator.userId
+  return `/profile/${usernameOrDid}/lists/${urip.rkey}`
 }

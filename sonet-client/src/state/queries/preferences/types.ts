@@ -2,7 +2,7 @@ import {
   BskyFeedViewPreference,
   BskyPreferences,
   BskyThreadViewPreference,
-} from '@atproto/api'
+} from '@sonet/api'
 
 export type UsePreferencesQueryResponse = Omit<
   BskyPreferences,

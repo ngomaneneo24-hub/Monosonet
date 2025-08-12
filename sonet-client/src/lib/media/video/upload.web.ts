@@ -1,5 +1,5 @@
-import {AppBskyVideoDefs} from '@atproto/api'
-import {BskyAgent} from '@atproto/api'
+import {SonetVideoDefs} from '@sonet/api'
+import {SonetAppAgent} from '@sonet/api'
 import {I18n} from '@lingui/core'
 import {msg} from '@lingui/macro'
 import {nanoid} from 'nanoid/non-secure'
@@ -13,14 +13,14 @@ import {createVideoEndpointUrl, mimeToExt} from './util'
 export async function uploadVideo({
   video,
   agent,
-  did,
+  userId,
   setProgress,
   signal,
   _,
 }: {
   video: CompressedVideo
-  agent: BskyAgent
-  did: string
+  agent: SonetAppAgent
+  userId: string
   setProgress: (progress: number) => void
   signal: AbortSignal
   _: I18n['_']
@@ -30,8 +30,8 @@ export async function uploadVideo({
   }
   await getVideoUploadLimits(agent, _)
 
-  const uri = createVideoEndpointUrl('/xrpc/app.bsky.video.uploadVideo', {
-    did,
+  const uri = createVideoEndpointUrl('/xrpc/app.sonet.video.uploadVideo', {
+    userId,
     name: `${nanoid(12)}.${mimeToExt(video.mimeType)}`,
   })
 
@@ -48,7 +48,7 @@ export async function uploadVideo({
   }
   const token = await getServiceAuthToken({
     agent,
-    lxm: 'com.atproto.repo.uploadBlob',
+    lxm: 'com.sonet.repo.uploadBlob',
     exp: Date.now() / 1000 + 60 * 30, // 30 minutes
   })
 
@@ -56,7 +56,7 @@ export async function uploadVideo({
     throw new AbortError()
   }
   const xhr = new XMLHttpRequest()
-  const res = await new Promise<AppBskyVideoDefs.JobStatus>(
+  const res = await new Promise<SonetVideoDefs.JobStatus>(
     (resolve, reject) => {
       xhr.upload.addEventListener('progress', e => {
         const progress = e.loaded / e.total
@@ -68,7 +68,7 @@ export async function uploadVideo({
         } else if (xhr.readyState === 4) {
           const uploadRes = JSON.parse(
             xhr.responseText,
-          ) as AppBskyVideoDefs.JobStatus
+          ) as SonetVideoDefs.JobStatus
           resolve(uploadRes)
         } else {
           reject(new ServerError(_(msg`Failed to upload video`)))

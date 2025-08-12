@@ -27,16 +27,16 @@ export const VideoDetailModal: React.FC<VideoDetailModalProps> = ({
   const [isActive, setIsActive] = useState(true)
   const engagementMutation = useEngagementTrackingMutation()
 
-  // Handle playback status updates
-  const handlePlaybackStatusUpdate = useCallback((status: any) => {
+  // Username playback status updates
+  const usernamePlaybackStatusUpdate = useCallback((status: any) => {
     // Track playback progress for analytics
     if (status.isLoaded && status.isPlaying) {
       // Could send progress updates to analytics
     }
   }, [])
 
-  // Handle view tracking
-  const handleViewTrack = useCallback(() => {
+  // Username view tracking
+  const usernameViewTrack = useCallback(() => {
     if (video) {
       engagementMutation.mutate({
         user_id: 'current-user-id', // TODO: Get from auth context
@@ -50,8 +50,8 @@ export const VideoDetailModal: React.FC<VideoDetailModalProps> = ({
     }
   }, [video, engagementMutation])
 
-  // Handle like
-  const handleLike = useCallback(() => {
+  // Username like
+  const usernameLike = useCallback(() => {
     if (video) {
       engagementMutation.mutate({
         user_id: 'current-user-id', // TODO: Get from auth context
@@ -63,21 +63,21 @@ export const VideoDetailModal: React.FC<VideoDetailModalProps> = ({
     }
   }, [video, engagementMutation])
 
-  // Handle repost
-  const handleRepost = useCallback(() => {
+  // Username renote
+  const usernameRenote = useCallback(() => {
     if (video) {
       engagementMutation.mutate({
         user_id: 'current-user-id', // TODO: Get from auth context
         video_id: video.id,
-        event_type: 'repost',
+        event_type: 'renote',
         timestamp: new Date().toISOString(),
         context: 'video_detail_modal'
       })
     }
   }, [video, engagementMutation])
 
-  // Handle share
-  const handleShare = useCallback(() => {
+  // Username share
+  const usernameShare = useCallback(() => {
     if (video) {
       engagementMutation.mutate({
         user_id: 'current-user-id', // TODO: Get from auth context
@@ -92,8 +92,8 @@ export const VideoDetailModal: React.FC<VideoDetailModalProps> = ({
     }
   }, [video, engagementMutation])
 
-  // Handle modal close
-  const handleClose = useCallback(() => {
+  // Username modal close
+  const usernameClose = useCallback(() => {
     setIsActive(false)
     setTimeout(() => {
       onClose()
@@ -101,15 +101,15 @@ export const VideoDetailModal: React.FC<VideoDetailModalProps> = ({
     }, 200)
   }, [onClose])
 
-  // Handle modal show
-  const handleShow = useCallback(() => {
+  // Username modal show
+  const usernameShow = useCallback(() => {
     if (Platform.OS === 'ios') {
       StatusBar.setHidden(true, 'slide')
     }
   }, [])
 
-  // Handle modal hide
-  const handleHide = useCallback(() => {
+  // Username modal hide
+  const usernameHide = useCallback(() => {
     if (Platform.OS === 'ios') {
       StatusBar.setHidden(false, 'slide')
     }
@@ -122,20 +122,20 @@ export const VideoDetailModal: React.FC<VideoDetailModalProps> = ({
       visible={isVisible}
       animationType="slide"
       presentationStyle="fullScreen"
-      onShow={handleShow}
-      onDismiss={handleHide}
-      onRequestClose={handleClose}
+      onShow={usernameShow}
+      onDismiss={usernameHide}
+      onRequestClose={usernameClose}
     >
       <VideoPlayer
         video={video}
         isVisible={isVisible}
         isActive={isActive}
-        onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
-        onViewTrack={handleViewTrack}
-        onLike={handleLike}
-        onRepost={handleRepost}
-        onShare={handleShare}
-        onClose={handleClose}
+        onPlaybackStatusUpdate={usernamePlaybackStatusUpdate}
+        onViewTrack={usernameViewTrack}
+        onLike={usernameLike}
+        onRenote={usernameRenote}
+        onShare={usernameShare}
+        onClose={usernameClose}
       />
     </Modal>
   )

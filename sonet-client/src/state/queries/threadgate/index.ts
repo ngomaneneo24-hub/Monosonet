@@ -1,16 +1,16 @@
 import {
-  AppBskyFeedDefs,
-  AppBskyFeedGetPostThread,
-  AppBskyFeedThreadgate,
+  SonetFeedDefs,
+  SonetFeedGetNoteThread,
+  SonetFeedThreadgate,
   AtUri,
-  BskyAgent,
-} from '@atproto/api'
+  SonetAppAgent,
+} from '@sonet/api'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 
 import {networkRetry, retry} from '#/lib/async/retry'
 import {until} from '#/lib/async/until'
 import {STALE} from '#/state/queries'
-import {RQKEY_ROOT as postThreadQueryKeyRoot} from '#/state/queries/post-thread'
+import {RQKEY_ROOT as noteThreadQueryKeyRoot} from '#/state/queries/note-thread'
 import {ThreadgateAllowUISetting} from '#/state/queries/threadgate/types'
 import {
   createThreadgateRecord,
@@ -32,23 +32,23 @@ export const createThreadgateRecordQueryKey = (uri: string) => [
 ]
 
 export function useThreadgateRecordQuery({
-  postUri,
+  noteUri,
   initialData,
 }: {
-  postUri?: string
-  initialData?: AppBskyFeedThreadgate.Record
+  noteUri?: string
+  initialData?: SonetFeedThreadgate.Record
 } = {}) {
   const agent = useAgent()
 
   return useQuery({
-    enabled: !!postUri,
-    queryKey: createThreadgateRecordQueryKey(postUri || ''),
+    enabled: !!noteUri,
+    queryKey: createThreadgateRecordQueryKey(noteUri || ''),
     placeholderData: initialData,
     staleTime: STALE.MINUTES.ONE,
     async queryFn() {
       return getThreadgateRecord({
         agent,
-        postUri: postUri!,
+        noteUri: noteUri!,
       })
     },
   })
@@ -60,23 +60,23 @@ export const createThreadgateViewQueryKey = (uri: string) => [
   uri,
 ]
 export function useThreadgateViewQuery({
-  postUri,
+  noteUri,
   initialData,
 }: {
-  postUri?: string
-  initialData?: AppBskyFeedDefs.ThreadgateView
+  noteUri?: string
+  initialData?: SonetFeedDefs.ThreadgateView
 } = {}) {
   const agent = useAgent()
 
   return useQuery({
-    enabled: !!postUri,
-    queryKey: createThreadgateViewQueryKey(postUri || ''),
+    enabled: !!noteUri,
+    queryKey: createThreadgateViewQueryKey(noteUri || ''),
     placeholderData: initialData,
     staleTime: STALE.MINUTES.ONE,
     async queryFn() {
       return getThreadgateView({
         agent,
-        postUri: postUri!,
+        noteUri: noteUri!,
       })
     },
   })
@@ -84,18 +84,18 @@ export function useThreadgateViewQuery({
 
 export async function getThreadgateView({
   agent,
-  postUri,
+  noteUri,
 }: {
-  agent: BskyAgent
-  postUri: string
+  agent: SonetAppAgent
+  noteUri: string
 }) {
-  const {data} = await agent.app.bsky.feed.getPostThread({
-    uri: postUri!,
+  const {data} = await agent.app.sonet.feed.getNoteThread({
+    uri: noteUri!,
     depth: 0,
   })
 
-  if (AppBskyFeedDefs.isThreadViewPost(data.thread)) {
-    return data.thread.post.threadgate ?? null
+  if (SonetFeedDefs.isThreadViewNote(data.thread)) {
+    return data.thread.note.threadgate ?? null
   }
 
   return null
@@ -103,18 +103,18 @@ export async function getThreadgateView({
 
 export async function getThreadgateRecord({
   agent,
-  postUri,
+  noteUri,
 }: {
-  agent: BskyAgent
-  postUri: string
-}): Promise<AppBskyFeedThreadgate.Record | null> {
-  const urip = new AtUri(postUri)
+  agent: SonetAppAgent
+  noteUri: string
+}): Promise<SonetFeedThreadgate.Record | null> {
+  const urip = new AtUri(noteUri)
 
-  if (!urip.host.startsWith('did:')) {
-    const res = await agent.resolveHandle({
-      handle: urip.host,
+  if (!urip.host.startsWith('userId:')) {
+    const res = await agent.resolveUsername({
+      username: urip.host,
     })
-    urip.host = res.data.did
+    urip.host = res.data.userId
   }
 
   try {
@@ -132,16 +132,16 @@ export async function getThreadgateRecord({
         return true
       },
       () =>
-        agent.api.com.atproto.repo.getRecord({
+        agent.api.com.sonet.repo.getRecord({
           repo: urip.host,
-          collection: 'app.bsky.feed.threadgate',
+          collection: 'app.sonet.feed.threadgate',
           rkey: urip.rkey,
         }),
     )
 
     if (
       data.value &&
-      bsky.validate(data.value, AppBskyFeedThreadgate.validateRecord)
+      bsky.validate(data.value, SonetFeedThreadgate.validateRecord)
     ) {
       return data.value
     } else {
@@ -163,25 +163,25 @@ export async function getThreadgateRecord({
 
 export async function writeThreadgateRecord({
   agent,
-  postUri,
+  noteUri,
   threadgate,
 }: {
-  agent: BskyAgent
-  postUri: string
-  threadgate: AppBskyFeedThreadgate.Record
+  agent: SonetAppAgent
+  noteUri: string
+  threadgate: SonetFeedThreadgate.Record
 }) {
-  const postUrip = new AtUri(postUri)
+  const noteUrip = new AtUri(noteUri)
   const record = createThreadgateRecord({
-    post: postUri,
+    note: noteUri,
     allow: threadgate.allow, // can/should be undefined!
     hiddenReplies: threadgate.hiddenReplies || [],
   })
 
   await networkRetry(2, () =>
-    agent.api.com.atproto.repo.putRecord({
-      repo: agent.session!.did,
-      collection: 'app.bsky.feed.threadgate',
-      rkey: postUrip.rkey,
+    agent.api.com.sonet.repo.putRecord({
+      repo: agent.session!.userId,
+      collection: 'app.sonet.feed.threadgate',
+      rkey: noteUrip.rkey,
       record,
     }),
   )
@@ -190,24 +190,24 @@ export async function writeThreadgateRecord({
 export async function upsertThreadgate(
   {
     agent,
-    postUri,
+    noteUri,
   }: {
-    agent: BskyAgent
-    postUri: string
+    agent: SonetAppAgent
+    noteUri: string
   },
   callback: (
-    threadgate: AppBskyFeedThreadgate.Record | null,
-  ) => Promise<AppBskyFeedThreadgate.Record | undefined>,
+    threadgate: SonetFeedThreadgate.Record | null,
+  ) => Promise<SonetFeedThreadgate.Record | undefined>,
 ) {
   const prev = await getThreadgateRecord({
     agent,
-    postUri,
+    noteUri,
   })
   const next = await callback(prev)
   if (!next) return
   await writeThreadgateRecord({
     agent,
-    postUri,
+    noteUri,
     threadgate: next,
   })
 }
@@ -217,14 +217,14 @@ export async function upsertThreadgate(
  */
 export async function updateThreadgateAllow({
   agent,
-  postUri,
+  noteUri,
   allow,
 }: {
-  agent: BskyAgent
-  postUri: string
+  agent: SonetAppAgent
+  noteUri: string
   allow: ThreadgateAllowUISetting[]
 }) {
-  return upsertThreadgate({agent, postUri}, async prev => {
+  return upsertThreadgate({agent, noteUri}, async prev => {
     if (prev) {
       return {
         ...prev,
@@ -232,7 +232,7 @@ export async function updateThreadgateAllow({
       }
     } else {
       return createThreadgateRecord({
-        post: postUri,
+        note: noteUri,
         allow: threadgateAllowUISettingToAllowRecordValue(allow),
       })
     }
@@ -245,13 +245,13 @@ export function useSetThreadgateAllowMutation() {
 
   return useMutation({
     mutationFn: async ({
-      postUri,
+      noteUri,
       allow,
     }: {
-      postUri: string
+      noteUri: string
       allow: ThreadgateAllowUISetting[]
     }) => {
-      return upsertThreadgate({agent, postUri}, async prev => {
+      return upsertThreadgate({agent, noteUri}, async prev => {
         if (prev) {
           return {
             ...prev,
@@ -259,36 +259,36 @@ export function useSetThreadgateAllowMutation() {
           }
         } else {
           return createThreadgateRecord({
-            post: postUri,
+            note: noteUri,
             allow: threadgateAllowUISettingToAllowRecordValue(allow),
           })
         }
       })
     },
-    async onSuccess(_, {postUri, allow}) {
+    async onSuccess(_, {noteUri, allow}) {
       await until(
         5, // 5 tries
         1e3, // 1s delay between tries
-        (res: AppBskyFeedGetPostThread.Response) => {
+        (res: SonetFeedGetNoteThread.Response) => {
           const thread = res.data.thread
-          if (AppBskyFeedDefs.isThreadViewPost(thread)) {
+          if (SonetFeedDefs.isThreadViewNote(thread)) {
             const fetchedSettings = threadgateViewToAllowUISetting(
-              thread.post.threadgate,
+              thread.note.threadgate,
             )
             return JSON.stringify(fetchedSettings) === JSON.stringify(allow)
           }
           return false
         },
         () => {
-          return agent.app.bsky.feed.getPostThread({
-            uri: postUri,
+          return agent.app.sonet.feed.getNoteThread({
+            uri: noteUri,
             depth: 0,
           })
         },
       )
 
       queryClient.invalidateQueries({
-        queryKey: [postThreadQueryKeyRoot],
+        queryKey: [noteThreadQueryKeyRoot],
       })
       queryClient.invalidateQueries({
         queryKey: [threadgateRecordQueryKeyRoot],
@@ -307,11 +307,11 @@ export function useToggleReplyVisibilityMutation() {
 
   return useMutation({
     mutationFn: async ({
-      postUri,
+      noteUri,
       replyUri,
       action,
     }: {
-      postUri: string
+      noteUri: string
       replyUri: string
       action: 'hide' | 'show'
     }) => {
@@ -321,7 +321,7 @@ export function useToggleReplyVisibilityMutation() {
         hiddenReplies.removeHiddenReplyUri(replyUri)
       }
 
-      await upsertThreadgate({agent, postUri}, async prev => {
+      await upsertThreadgate({agent, noteUri}, async prev => {
         if (prev) {
           if (action === 'hide') {
             return mergeThreadgateRecords(prev, {
@@ -337,7 +337,7 @@ export function useToggleReplyVisibilityMutation() {
         } else {
           if (action === 'hide') {
             return createThreadgateRecord({
-              post: postUri,
+              note: noteUri,
               hiddenReplies: [replyUri],
             })
           }

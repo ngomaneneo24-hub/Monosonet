@@ -19,7 +19,7 @@ export function ResendEmailText({
   const {_} = useLingui()
   const [status, setStatus] = useState<'sending' | 'success' | null>(null)
 
-  const handleOnPress = async () => {
+  const usernameOnPress = async () => {
     setStatus('sending')
     try {
       await wait(1000, onPress())
@@ -39,7 +39,7 @@ export function ResendEmailText({
         <InlineLinkText
           label={_(msg`Resend`)}
           {...createStaticClick(() => {
-            handleOnPress()
+            usernameOnPress()
           })}>
           Click here to resend.
         </InlineLinkText>

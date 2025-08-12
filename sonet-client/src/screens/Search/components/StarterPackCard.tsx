@@ -1,14 +1,14 @@
 import React from 'react'
 import {View} from 'react-native'
 import {
-  type AppBskyGraphDefs,
-  AppBskyGraphStarterpack,
+  type SonetGraphDefs,
+  SonetGraphStarterpack,
   moderateProfile,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
 import {useSession} from '#/state/session'
 import {LoadingPlaceholder} from '#/view/com/util/LoadingPlaceholder'
@@ -26,7 +26,7 @@ import * as bsky from '#/types/bsky'
 export function StarterPackCard({
   view,
 }: {
-  view: AppBskyGraphDefs.StarterPackView
+  view: SonetGraphDefs.StarterPackView
 }) {
   const t = useTheme()
   const {_} = useLingui()
@@ -36,9 +36,9 @@ export function StarterPackCard({
   const record = view.record
 
   if (
-    !bsky.dangerousIsType<AppBskyGraphStarterpack.Record>(
+    !bsky.dangerousIsType<SonetGraphStarterpack.Record>(
       record,
-      AppBskyGraphStarterpack.isRecord,
+      SonetGraphStarterpack.isRecord,
     )
   ) {
     return null
@@ -101,9 +101,9 @@ export function StarterPackCard({
                     t.atoms.text_contrast_medium,
                   ]}
                   numberOfLines={1}>
-                  {view.creator?.did === currentAccount?.did
+                  {view.creator?.userId === currentAccount?.userId
                     ? _(msg`By you`)
-                    : _(msg`By ${sanitizeHandle(view.creator.handle, '@')}`)}
+                    : _(msg`By ${sanitizeUsername(view.creator.username, '@')}`)}
                 </Text>
               </View>
               <Link
@@ -153,7 +153,7 @@ export function AvatarStack({
         moderation: null,
       }))
     : profiles.map(item => ({
-        key: item.did,
+        key: item.userId,
         profile: item,
         moderation: moderateProfile(item, moderationOpts),
       }))

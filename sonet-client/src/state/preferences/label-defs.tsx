@@ -1,11 +1,11 @@
 import React from 'react'
-import {AppBskyLabelerDefs, InterpretedLabelValueDefinition} from '@atproto/api'
+import {SonetLabelerDefs, InterpretedLabelValueDefinition} from '@sonet/api'
 
 import {useLabelDefinitionsQuery} from '../queries/preferences'
 
 interface StateContext {
   labelDefs: Record<string, InterpretedLabelValueDefinition[]>
-  labelers: AppBskyLabelerDefs.LabelerViewDetailed[]
+  labelers: SonetLabelerDefs.LabelerViewDetailed[]
 }
 
 const stateContext = React.createContext<StateContext>({

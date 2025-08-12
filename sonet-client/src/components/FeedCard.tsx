@@ -1,16 +1,16 @@
 import React from 'react'
 import {type GestureResponderEvent, View} from 'react-native'
 import {
-  type AppBskyFeedDefs,
-  type AppBskyGraphDefs,
+  type SonetFeedDefs,
+  type SonetGraphDefs,
   AtUri,
   RichText as RichTextApi,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg, Plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
 
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {logger} from '#/logger'
 import {precacheFeedFromGeneratorView} from '#/state/queries/feed'
 import {
@@ -38,7 +38,7 @@ import type * as bsky from '#/types/bsky'
 import {Trash_Stroke2_Corner0_Rounded as TrashIcon} from './icons/Trash'
 
 type Props = {
-  view: AppBskyFeedDefs.GeneratorView
+  view: SonetFeedDefs.GeneratorView
   onPress?: () => void
 }
 
@@ -136,7 +136,7 @@ export function TitleAndByline({
         <Text
           style={[a.leading_snug, t.atoms.text_contrast_medium]}
           numberOfLines={1}>
-          <Trans>Feed by {sanitizeHandle(creator.handle, '@')}</Trans>
+          <Trans>Feed by {sanitizeUsername(creator.username, '@')}</Trans>
         </Text>
       )}
     </View>
@@ -227,7 +227,7 @@ export function SaveButton({
   pin,
   ...props
 }: {
-  view: AppBskyFeedDefs.GeneratorView | AppBskyGraphDefs.ListView
+  view: SonetFeedDefs.GeneratorView | SonetGraphDefs.ListView
   pin?: boolean
   text?: boolean
 } & Partial<ButtonProps>) {
@@ -242,7 +242,7 @@ function SaveButtonInner({
   text = true,
   ...buttonProps
 }: {
-  view: AppBskyFeedDefs.GeneratorView | AppBskyGraphDefs.ListView
+  view: SonetFeedDefs.GeneratorView | SonetGraphDefs.ListView
   pin?: boolean
   text?: boolean
 } & Partial<ButtonProps>) {
@@ -254,7 +254,7 @@ function SaveButtonInner({
     useRemoveFeedMutation()
 
   const uri = view.uri
-  const type = view.uri.includes('app.bsky.feed.generator') ? 'feed' : 'list'
+  const type = view.uri.includes('app.sonet.feed.generator') ? 'feed' : 'list'
 
   const savedFeedConfig = React.useMemo(() => {
     return preferences?.savedFeeds?.find(feed => feed.value === uri)
@@ -350,9 +350,9 @@ function SaveButtonInner({
 export function createProfileFeedHref({
   feed,
 }: {
-  feed: AppBskyFeedDefs.GeneratorView
+  feed: SonetFeedDefs.GeneratorView
 }) {
   const urip = new AtUri(feed.uri)
-  const handleOrDid = feed.creator.handle || feed.creator.did
-  return `/profile/${handleOrDid}/feed/${urip.rkey}`
+  const usernameOrDid = feed.creator.username || feed.creator.userId
+  return `/profile/${usernameOrDid}/feed/${urip.rkey}`
 }

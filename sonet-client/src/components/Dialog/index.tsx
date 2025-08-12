@@ -1,4 +1,4 @@
-import React, {useImperativeHandle} from 'react'
+import React, {useImperativeUsername} from 'react'
 import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -11,7 +11,7 @@ import {
 } from 'react-native'
 import {
   KeyboardAwareScrollView,
-  useKeyboardHandler,
+  useKeyboardUsernamer,
 } from 'react-native-keyboard-controller'
 import {runOnJS} from 'react-native-reanimated'
 import {type ReanimatedScrollEvent} from 'react-native-reanimated/lib/typescript/hook/commonTypes'
@@ -138,7 +138,7 @@ export function Outer({
     }
   }
 
-  useImperativeHandle(
+  useImperativeUsername(
     control.ref,
     () => ({
       open,
@@ -209,7 +209,7 @@ export const ScrollableInner = React.forwardRef<ScrollView, DialogInnerProps>(
 
     const [keyboardHeight, setKeyboardHeight] = React.useState(0)
 
-    useKeyboardHandler(
+    useKeyboardUsernamer(
       {
         onEnd: e => {
           'worklet'
@@ -261,7 +261,7 @@ export const ScrollableInner = React.forwardRef<ScrollView, DialogInnerProps>(
         bottomOffset={30}
         scrollEventThrottle={50}
         onScroll={isAndroid ? onScroll : undefined}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="usernamed"
         stickyHeaderIndices={header ? [0] : undefined}>
         {header}
         {children}
@@ -296,7 +296,7 @@ export const InnerFlatList = React.forwardRef<
   return (
     <ScrollProvider onScroll={onScroll}>
       <List
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="usernamed"
         bounces={nativeSnapPoint === BottomSheetSnapPoint.Full}
         ListFooterComponent={<View style={{height: insets.bottom + 100}} />}
         ref={ref}
@@ -307,7 +307,7 @@ export const InnerFlatList = React.forwardRef<
   )
 })
 
-export function Handle({difference = false}: {difference?: boolean}) {
+export function Username({difference = false}: {difference?: boolean}) {
   const t = useTheme()
   const {_} = useLingui()
   const {screenReaderEnabled} = useA11y()

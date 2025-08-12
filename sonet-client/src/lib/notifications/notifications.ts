@@ -2,15 +2,15 @@ import {useCallback, useEffect} from 'react'
 import {Platform} from 'react-native'
 import * as Notifications from 'expo-notifications'
 import {getBadgeCountAsync, setBadgeCountAsync} from 'expo-notifications'
-import {type AppBskyNotificationRegisterPush, type AtpAgent} from '@atproto/api'
+import {type SonetNotificationRegisterPush, type AtpAgent} from '@sonet/api'
 import debounce from 'lodash.debounce'
 
-import {PUBLIC_APPVIEW_DID, PUBLIC_STAGING_APPVIEW_DID} from '#/lib/constants'
+import {PUBLIC_APPVIEW_UserID, PUBLIC_STAGING_APPVIEW_UserID} from '#/lib/constants'
 import {logger as notyLogger} from '#/lib/notifications/util'
 import {isNative} from '#/platform/detection'
 import {useAgeAssuranceContext} from '#/state/ageAssurance'
 import {type SessionAccount, useAgent, useSession} from '#/state/session'
-import BackgroundNotificationHandler from '#/../modules/expo-background-notification-handler'
+import BackgroundNotificationUsernamer from '#/../modules/expo-background-notification-usernamer'
 
 /**
  * @private
@@ -30,19 +30,19 @@ async function _registerPushToken({
   }
 }) {
   try {
-    const payload: AppBskyNotificationRegisterPush.InputSchema = {
+    const payload: SonetNotificationRegisterPush.InputSchema = {
       serviceDid: currentAccount.service?.includes('staging')
-        ? PUBLIC_STAGING_APPVIEW_DID
-        : PUBLIC_APPVIEW_DID,
+        ? PUBLIC_STAGING_APPVIEW_UserID
+        : PUBLIC_APPVIEW_UserID,
       platform: Platform.OS,
       token: token.data,
-      appId: 'xyz.blueskyweb.app',
+      appId: 'xyz.sonetweb.app',
       ageRestricted: extra.ageRestricted ?? false,
     }
 
     notyLogger.debug(`registerPushToken: registering`, {...payload})
 
-    await agent.app.bsky.notification.registerPush(payload)
+    await agent.app.sonet.notification.registerPush(payload)
 
     notyLogger.debug(`registerPushToken: success`)
   } catch (error) {
@@ -133,7 +133,7 @@ export function useGetAndRegisterPushToken() {
 
       /**
        * This will also fire the listener added via `addPushTokenListener`. That
-       * listener also handles registration.
+       * listener also usernames registration.
        */
       const token = await getPushToken()
 
@@ -259,7 +259,7 @@ export function useRequestNotificationsPermission() {
         /**
          * Right after login, `currentAccount` in this scope will be undefined,
          * but calling `getPushToken` will result in `addPushTokenListener`
-         * listeners being called, which will handle the registration with the
+         * listeners being called, which will username the registration with the
          * Bluesky server.
          */
         getPushToken()
@@ -277,11 +277,11 @@ export async function decrementBadgeCount(by: number) {
     count = 0
   }
 
-  await BackgroundNotificationHandler.setBadgeCountAsync(count)
+  await BackgroundNotificationUsernamer.setBadgeCountAsync(count)
   await setBadgeCountAsync(count)
 }
 
 export async function resetBadgeCount() {
-  await BackgroundNotificationHandler.setBadgeCountAsync(0)
+  await BackgroundNotificationUsernamer.setBadgeCountAsync(0)
   await setBadgeCountAsync(0)
 }

@@ -12,7 +12,7 @@ export function useConfirmEmail() {
         throw new Error('No email found for the current account')
       }
 
-      await agent.com.atproto.server.confirmEmail({
+      await agent.com.sonet.server.confirmEmail({
         email: currentAccount.email,
         token: token.trim(),
       })

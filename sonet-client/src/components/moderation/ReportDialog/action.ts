@@ -1,8 +1,3 @@
-import {
-  $Typed,
-  ChatBskyConvoDefs,
-  ComAtprotoModerationCreateReport,
-} from '@atproto/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useMutation} from '@tanstack/react-query'
@@ -11,6 +6,7 @@ import {logger} from '#/logger'
 import {useAgent} from '#/state/session'
 import {ReportState} from './state'
 import {ParsedReportSubject} from './types'
+import {sonetClient} from '@sonet/api'
 
 export function useSubmitReportMutation() {
   const {_} = useLingui()
@@ -31,11 +27,8 @@ export function useSubmitReportMutation() {
         throw new Error(_(msg`Please select a moderation service`))
       }
 
-      let report:
-        | ComAtprotoModerationCreateReport.InputSchema
-        | (Omit<ComAtprotoModerationCreateReport.InputSchema, 'subject'> & {
-            subject: $Typed<ChatBskyConvoDefs.MessageRef>
-          })
+      // Sonet simplified report structure
+      let report: any
 
       switch (subject.type) {
         case 'account': {
@@ -43,13 +36,13 @@ export function useSubmitReportMutation() {
             reasonType: state.selectedOption.reason,
             reason: state.details,
             subject: {
-              $type: 'com.atproto.admin.defs#repoRef',
-              did: subject.did,
+              type: 'user',
+              userId: subject.userId,
             },
           }
           break
         }
-        case 'post':
+        case 'note':
         case 'list':
         case 'feed':
         case 'starterPack': {
@@ -57,9 +50,9 @@ export function useSubmitReportMutation() {
             reasonType: state.selectedOption.reason,
             reason: state.details,
             subject: {
-              $type: 'com.atproto.repo.strongRef',
+              type: 'content',
               uri: subject.uri,
-              cid: subject.cid,
+              id: subject.cid,
             },
           }
           break
@@ -69,10 +62,10 @@ export function useSubmitReportMutation() {
             reasonType: state.selectedOption.reason,
             reason: state.details,
             subject: {
-              $type: 'chat.bsky.convo.defs#messageRef',
+              type: 'message',
               messageId: subject.message.id,
-              convoId: subject.convoId,
-              did: subject.message.sender.did,
+              conversationId: subject.convoId,
+              userId: subject.message.sender.userId,
             },
           }
           break
@@ -82,17 +75,13 @@ export function useSubmitReportMutation() {
       if (__DEV__) {
         logger.info('Submitting report', {
           labeler: {
-            handle: state.selectedLabeler.creator.handle,
+            username: state.selectedLabeler.creator.username,
           },
           report,
         })
       } else {
-        await agent.createModerationReport(report, {
-          encoding: 'application/json',
-          headers: {
-            'atproto-proxy': `${state.selectedLabeler.creator.did}#atproto_labeler`,
-          },
-        })
+        // Use Sonet API for reporting
+        await sonetClient.createReport(report)
       }
     },
   })

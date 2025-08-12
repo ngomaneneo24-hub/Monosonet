@@ -1,43 +1,43 @@
 import React from 'react'
 import {
-  type AppBskyActorDefs,
-  type AppBskyFeedDefs,
-  type AppBskyUnspeccedGetPostThreadV2,
+  type SonetActorDefs,
+  type SonetFeedDefs,
+  type SonetUnspeccedGetNoteThreadV2,
   type ModerationDecision,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
 
 import {useNonReactiveCallback} from '#/lib/hooks/useNonReactiveCallback'
-import {postUriToRelativePath, toBskyAppUrl} from '#/lib/strings/url-helpers'
+import {noteUriToRelativePath, toBskyAppUrl} from '#/lib/strings/url-helpers'
 import {purgeTemporaryImageFiles} from '#/state/gallery'
 import {precacheResolveLinkQuery} from '#/state/queries/resolve-link'
 import {type EmojiPickerPosition} from '#/view/com/composer/text-input/web/EmojiPicker'
 import * as Toast from '#/view/com/util/Toast'
 
-export interface ComposerOptsPostRef {
+export interface ComposerOptsNoteRef {
   uri: string
   cid: string
   text: string
-  author: AppBskyActorDefs.ProfileViewBasic
-  embed?: AppBskyFeedDefs.PostView['embed']
+  author: SonetActorDefs.ProfileViewBasic
+  embed?: SonetFeedDefs.NoteView['embed']
   moderation?: ModerationDecision
 }
 
-export type OnPostSuccessData =
+export type OnNoteSuccessData =
   | {
       replyToUri?: string
-      posts: AppBskyUnspeccedGetPostThreadV2.ThreadItem[]
+      notes: SonetUnspeccedGetNoteThreadV2.ThreadItem[]
     }
   | undefined
 
 export interface ComposerOpts {
-  replyTo?: ComposerOptsPostRef
-  onPost?: (postUri: string | undefined) => void
-  onPostSuccess?: (data: OnPostSuccessData) => void
-  quote?: AppBskyFeedDefs.PostView
-  mention?: string // handle of user to mention
+  replyTo?: ComposerOptsNoteRef
+  onNote?: (noteUri: string | undefined) => void
+  onNoteSuccess?: (data: OnNoteSuccessData) => void
+  quote?: SonetFeedDefs.NoteView
+  mention?: string // username of user to mention
   openEmojiPicker?: (pos: EmojiPickerPosition | undefined) => void
   text?: string
   imageUris?: {uri: string; width: number; height: number; altText?: string}[]
@@ -65,12 +65,12 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
 
   const openComposer = useNonReactiveCallback((opts: ComposerOpts) => {
     if (opts.quote) {
-      const path = postUriToRelativePath(opts.quote.uri)
+      const path = noteUriToRelativePath(opts.quote.uri)
       if (path) {
         const appUrl = toBskyAppUrl(path)
         precacheResolveLinkQuery(queryClient, appUrl, {
           type: 'record',
-          kind: 'post',
+          kind: 'note',
           record: {
             cid: opts.quote.cid,
             uri: opts.quote.uri,

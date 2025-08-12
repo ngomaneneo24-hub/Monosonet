@@ -179,7 +179,7 @@ export function MessagesScreenInner({navigation, route}: Props) {
         convo =>
           !leftConvos.includes(convo.id) &&
           !convo.muted &&
-          convo.members.every(member => member.handle !== 'missing.invalid'),
+          convo.members.every(member => member.username !== 'missing.invalid'),
       ) ?? []
   const hasInboxConvos = inboxAllConvos?.length > 0
 
@@ -188,12 +188,12 @@ export function MessagesScreenInner({navigation, route}: Props) {
   )
 
   const inboxUnreadConvoMembers = inboxUnreadConvos
-    .map(x => x.members.find(y => y.did !== currentAccount?.did))
+    .map(x => x.members.find(y => y.userId !== currentAccount?.userId))
     .filter(x => !!x)
 
   const conversations = useMemo(() => {
     if (isSonet) {
-      // Handle Sonet data
+      // Username Sonet data
       if (data?.pages) {
         const sonetChats = data.pages.flatMap(page => page.chats || [])
         return sonetChats.map(
@@ -202,7 +202,7 @@ export function MessagesScreenInner({navigation, route}: Props) {
       }
       return []
     } else {
-      // Handle AT Protocol data
+      // Username AT Protocol data
       if (data?.pages) {
         const conversations = data.pages
           .flatMap(page => page.convos)

@@ -1,11 +1,11 @@
-import {AppBskyFeedDefs, AppBskyFeedGetTimeline, BskyAgent} from '@atproto/api'
+import {SonetFeedDefs, SonetFeedGetTimeline, SonetAppAgent} from '@sonet/api'
 import shuffle from 'lodash.shuffle'
 
 import {bundleAsync} from '#/lib/async/bundle'
 import {timeout} from '#/lib/async/timeout'
 import {feedUriToHref} from '#/lib/strings/url-helpers'
 import {getContentLanguages} from '#/state/preferences/languages'
-import {FeedParams} from '#/state/queries/post-feed'
+import {FeedParams} from '#/state/queries/note-feed'
 import {FeedTuner} from '../feed-manip'
 import {FeedTunerFn} from '../feed-manip'
 import {FeedAPI, FeedAPIResponse, ReasonFeedSource} from './types'
@@ -16,7 +16,7 @@ const POST_AGE_CUTOFF = 60e3 * 60 * 24 // 24hours
 
 export class MergeFeedAPI implements FeedAPI {
   userInterests?: string
-  agent: BskyAgent
+  agent: SonetAppAgent
   params: FeedParams
   feedTuners: FeedTunerFn[]
   following: MergeFeedSource_Following
@@ -31,7 +31,7 @@ export class MergeFeedAPI implements FeedAPI {
     feedTuners,
     userInterests,
   }: {
-    agent: BskyAgent
+    agent: SonetAppAgent
     feedParams: FeedParams
     feedTuners: FeedTunerFn[]
     userInterests?: string
@@ -72,7 +72,7 @@ export class MergeFeedAPI implements FeedAPI {
     }
   }
 
-  async peekLatest(): Promise<AppBskyFeedDefs.FeedViewPost> {
+  async peekLatest(): Promise<SonetFeedDefs.FeedViewNote> {
     const res = await this.agent.getTimeline({
       limit: 1,
     })
@@ -119,11 +119,11 @@ export class MergeFeedAPI implements FeedAPI {
     await Promise.all(promises)
 
     // assemble a response by sampling from feeds with content
-    const posts: AppBskyFeedDefs.FeedViewPost[] = []
-    while (posts.length < limit) {
+    const notes: SonetFeedDefs.FeedViewNote[] = []
+    while (notes.length < limit) {
       let slice = this.sampleItem()
       if (slice[0]) {
-        posts.push(slice[0])
+        notes.push(slice[0])
       } else {
         break
       }
@@ -131,14 +131,14 @@ export class MergeFeedAPI implements FeedAPI {
 
     return {
       cursor: String(this.itemCursor),
-      feed: posts,
+      feed: notes,
     }
   }
 
   sampleItem() {
     const i = this.itemCursor++
-    const candidateFeeds = this.customFeeds.filter(f => f.numReady > 0)
-    const canSample = candidateFeeds.length > 0
+    const canuserIdateFeeds = this.customFeeds.filter(f => f.numReady > 0)
+    const canSample = canuserIdateFeeds.length > 0
     const hasFollows = this.following.hasMore
     const hasFollowsReady = this.following.numReady > 0
 
@@ -146,7 +146,7 @@ export class MergeFeedAPI implements FeedAPI {
     const shouldSample =
       this.params.mergeFeedEnabled &&
       i >= 15 &&
-      candidateFeeds.length >= 2 &&
+      canuserIdateFeeds.length >= 2 &&
       (i % 4 === 0 || i % 5 === 0)
 
     if (!canSample && !hasFollows) {
@@ -155,7 +155,7 @@ export class MergeFeedAPI implements FeedAPI {
     }
     if (shouldSample || !hasFollows) {
       // time to sample, or the user isnt following anybody
-      return candidateFeeds[this.sampleCursor++ % candidateFeeds.length].take(1)
+      return canuserIdateFeeds[this.sampleCursor++ % canuserIdateFeeds.length].take(1)
     }
     if (!hasFollowsReady) {
       // stop here so more follows can be fetched
@@ -167,18 +167,18 @@ export class MergeFeedAPI implements FeedAPI {
 }
 
 class MergeFeedSource {
-  agent: BskyAgent
+  agent: SonetAppAgent
   feedTuners: FeedTunerFn[]
   sourceInfo: ReasonFeedSource | undefined
   cursor: string | undefined = undefined
-  queue: AppBskyFeedDefs.FeedViewPost[] = []
+  queue: SonetFeedDefs.FeedViewNote[] = []
   hasMore = true
 
   constructor({
     agent,
     feedTuners,
   }: {
-    agent: BskyAgent
+    agent: SonetAppAgent
     feedTuners: FeedTunerFn[]
   }) {
     this.agent = agent
@@ -193,7 +193,7 @@ class MergeFeedSource {
     return this.hasMore && this.queue.length === 0
   }
 
-  take(n: number): AppBskyFeedDefs.FeedViewPost[] {
+  take(n: number): SonetFeedDefs.FeedViewNote[] {
     return this.queue.splice(0, n)
   }
 
@@ -218,7 +218,7 @@ class MergeFeedSource {
   protected _getFeed(
     _cursor: string | undefined,
     _limit: number,
-  ): Promise<AppBskyFeedGetTimeline.Response> {
+  ): Promise<SonetFeedGetTimeline.Response> {
     throw new Error('Must be overridden')
   }
 }
@@ -233,19 +233,19 @@ class MergeFeedSource_Following extends MergeFeedSource {
   protected async _getFeed(
     cursor: string | undefined,
     limit: number,
-  ): Promise<AppBskyFeedGetTimeline.Response> {
+  ): Promise<SonetFeedGetTimeline.Response> {
     const res = await this.agent.getTimeline({cursor, limit})
     // run the tuner pre-emptively to ensure better mixing
     const slices = this.tuner.tune(res.data.feed, {
       dryRun: false,
     })
-    res.data.feed = slices.map(slice => slice._feedPost)
+    res.data.feed = slices.map(slice => slice._feedNote)
     return res
   }
 }
 
 class MergeFeedSource_Custom extends MergeFeedSource {
-  agent: BskyAgent
+  agent: SonetAppAgent
   minDate: Date
   feedUri: string
   userInterests?: string
@@ -256,7 +256,7 @@ class MergeFeedSource_Custom extends MergeFeedSource {
     feedTuners,
     userInterests,
   }: {
-    agent: BskyAgent
+    agent: SonetAppAgent
     feedUri: string
     feedTuners: FeedTunerFn[]
     userInterests?: string
@@ -269,7 +269,7 @@ class MergeFeedSource_Custom extends MergeFeedSource {
     this.feedUri = feedUri
     this.userInterests = userInterests
     this.sourceInfo = {
-      $type: 'reasonFeedSource',
+      type: "sonet",
       uri: feedUri,
       href: feedUriToHref(feedUri),
     }
@@ -279,11 +279,11 @@ class MergeFeedSource_Custom extends MergeFeedSource {
   protected async _getFeed(
     cursor: string | undefined,
     limit: number,
-  ): Promise<AppBskyFeedGetTimeline.Response> {
+  ): Promise<SonetFeedGetTimeline.Response> {
     try {
       const contentLangs = getContentLanguages().join(',')
       const isBlueskyOwned = isBlueskyOwnedFeed(this.feedUri)
-      const res = await this.agent.app.bsky.feed.getFeed(
+      const res = await this.agent.app.sonet.feed.getFeed(
         {
           cursor,
           limit,
@@ -305,14 +305,14 @@ class MergeFeedSource_Custom extends MergeFeedSource {
       if (limit && res.data.feed.length > limit) {
         res.data.feed = res.data.feed.slice(0, limit)
       }
-      // filter out older posts
+      // filter out older notes
       res.data.feed = res.data.feed.filter(
-        post => new Date(post.post.indexedAt) > this.minDate,
+        note => new Date(note.note.indexedAt) > this.minDate,
       )
       // attach source info
-      for (const post of res.data.feed) {
+      for (const note of res.data.feed) {
         // @ts-ignore
-        post.__source = this.sourceInfo
+        note.__source = this.sourceInfo
       }
       return res
     } catch {

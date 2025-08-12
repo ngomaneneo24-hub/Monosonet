@@ -1,9 +1,9 @@
 import {
-  type AppBskyActorDefs,
-  type AppBskyGraphDefs,
-  type AppBskyGraphGetList,
-  type BskyAgent,
-} from '@atproto/api'
+  type SonetActorDefs,
+  type SonetGraphDefs,
+  type SonetGraphGetList,
+  type SonetAppAgent,
+} from '@sonet/api'
 import {
   type InfiniteData,
   type QueryClient,
@@ -26,16 +26,16 @@ export const RQKEY_ALL = (uri: string) => [RQKEY_ROOT_ALL, uri]
 export function useListMembersQuery(uri?: string, limit: number = PAGE_SIZE) {
   const agent = useAgent()
   return useInfiniteQuery<
-    AppBskyGraphGetList.OutputSchema,
+    SonetGraphGetList.OutputSchema,
     Error,
-    InfiniteData<AppBskyGraphGetList.OutputSchema>,
+    InfiniteData<SonetGraphGetList.OutputSchema>,
     QueryKey,
     RQPageParam
   >({
     staleTime: STALE.MINUTES.ONE,
     queryKey: RQKEY(uri ?? ''),
     async queryFn({pageParam}: {pageParam: RQPageParam}) {
-      const res = await agent.app.bsky.graph.getList({
+      const res = await agent.app.sonet.graph.getList({
         list: uri!, // the enabled flag will prevent this from running until uri is set
         limit,
         cursor: pageParam,
@@ -60,14 +60,14 @@ export function useAllListMembersQuery(uri?: string) {
   })
 }
 
-export async function getAllListMembers(agent: BskyAgent, uri: string) {
+export async function getAllListMembers(agent: SonetAppAgent, uri: string) {
   let hasMore = true
   let cursor: string | undefined
-  const listItems: AppBskyGraphDefs.ListItemView[] = []
+  const listItems: SonetGraphDefs.ListItemView[] = []
   // We want to cap this at 6 pages, just for anything weird happening with the api
   let i = 0
   while (hasMore && i < 6) {
-    const res = await agent.app.bsky.graph.getList({
+    const res = await agent.app.sonet.graph.getList({
       list: uri,
       limit: 50,
       cursor,
@@ -92,10 +92,10 @@ export async function invalidateListMembersQuery({
 
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
-  did: string,
-): Generator<AppBskyActorDefs.ProfileView, void> {
+  userId: string,
+): Generator<SonetActorDefs.ProfileView, void> {
   const queryDatas = queryClient.getQueriesData<
-    InfiniteData<AppBskyGraphGetList.OutputSchema>
+    InfiniteData<SonetGraphGetList.OutputSchema>
   >({
     queryKey: [RQKEY_ROOT],
   })
@@ -104,11 +104,11 @@ export function* findAllProfilesInQueryData(
       continue
     }
     for (const page of queryData?.pages) {
-      if (page.list.creator.did === did) {
+      if (page.list.creator.userId === userId) {
         yield page.list.creator
       }
       for (const item of page.items) {
-        if (item.subject.did === did) {
+        if (item.subject.userId === userId) {
           yield item.subject
         }
       }
@@ -116,7 +116,7 @@ export function* findAllProfilesInQueryData(
   }
 
   const allQueryData = queryClient.getQueriesData<
-    AppBskyGraphDefs.ListItemView[]
+    SonetGraphDefs.ListItemView[]
   >({
     queryKey: [RQKEY_ROOT_ALL],
   })
@@ -125,7 +125,7 @@ export function* findAllProfilesInQueryData(
       continue
     }
     for (const item of queryData) {
-      if (item.subject.did === did) {
+      if (item.subject.userId === userId) {
         yield item.subject
       }
     }

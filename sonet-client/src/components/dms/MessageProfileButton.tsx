@@ -1,6 +1,6 @@
 import React from 'react'
 import {View} from 'react-native'
-import {type AppBskyActorDefs} from '@atproto/api'
+import {type SonetActorDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
@@ -19,14 +19,14 @@ import {Message_Stroke2_Corner0_Rounded as Message} from '#/components/icons/Mes
 export function MessageProfileButton({
   profile,
 }: {
-  profile: AppBskyActorDefs.ProfileViewDetailed
+  profile: SonetActorDefs.ProfileViewDetailed
 }) {
   const {_} = useLingui()
   const t = useTheme()
   const navigation = useNavigation<NavigationProp>()
   const requireEmailVerification = useRequireEmailVerification()
 
-  const {data: convoAvailability} = useGetConvoAvailabilityQuery(profile.did)
+  const {data: convoAvailability} = useGetConvoAvailabilityQuery(profile.userId)
   const {mutate: initiateConvo} = useGetConvoForMembers({
     onSuccess: ({convo}) => {
       logEvent('chat:open', {logContext: 'ProfileHeader'})
@@ -49,9 +49,9 @@ export function MessageProfileButton({
       })
     } else {
       logEvent('chat:create', {logContext: 'ProfileHeader'})
-      initiateConvo([profile.did])
+      initiateConvo([profile.userId])
     }
-  }, [navigation, profile.did, initiateConvo, convoAvailability])
+  }, [navigation, profile.userId, initiateConvo, convoAvailability])
 
   const wrappedOnPress = requireEmailVerification(onPress, {
     instructions: [
@@ -93,7 +93,7 @@ export function MessageProfileButton({
           color="secondary"
           variant="solid"
           shape="round"
-          label={_(msg`Message ${profile.handle}`)}
+          label={_(msg`Message ${profile.username}`)}
           style={[a.justify_center]}
           onPress={wrappedOnPress}>
           <ButtonIcon icon={Message} size="md" />

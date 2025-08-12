@@ -4,7 +4,7 @@ import {Animated, Easing} from 'react-native'
 import {useAnimatedValue} from '#/lib/hooks/useAnimatedValue'
 import {useComposerState} from '#/state/shell/composer'
 import {atoms as a, useTheme} from '#/alf'
-import {ComposePost} from '../com/composer/Composer'
+import {ComposeNote} from '../com/composer/Composer'
 
 export function Composer({winHeight}: {winHeight: number}) {
   const state = useComposerState()
@@ -46,10 +46,10 @@ export function Composer({winHeight}: {winHeight: number}) {
       style={[a.absolute, a.inset_0, t.atoms.bg, wrapperAnimStyle]}
       aria-modal
       accessibilityViewIsModal>
-      <ComposePost
+      <ComposeNote
         replyTo={state.replyTo}
-        onPost={state.onPost}
-        onPostSuccess={state.onPostSuccess}
+        onNote={state.onNote}
+        onNoteSuccess={state.onNoteSuccess}
         quote={state.quote}
         mention={state.mention}
         text={state.text}

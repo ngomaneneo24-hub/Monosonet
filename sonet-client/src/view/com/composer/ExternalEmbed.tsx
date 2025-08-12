@@ -10,9 +10,9 @@ import {type Gif} from '#/state/queries/tenor'
 import {ExternalEmbedRemoveBtn} from '#/view/com/composer/ExternalEmbedRemoveBtn'
 import {atoms as a, useTheme} from '#/alf'
 import {Loader} from '#/components/Loader'
-import {ExternalEmbed} from '#/components/Post/Embed/ExternalEmbed'
-import {ModeratedFeedEmbed} from '#/components/Post/Embed/FeedEmbed'
-import {ModeratedListEmbed} from '#/components/Post/Embed/ListEmbed'
+import {ExternalEmbed} from '#/components/Note/Embed/ExternalEmbed'
+import {ModeratedFeedEmbed} from '#/components/Note/Embed/FeedEmbed'
+import {ModeratedListEmbed} from '#/components/Note/Embed/ListEmbed'
 import {Embed as StarterPackEmbed} from '#/components/StarterPack/StarterPackCard'
 import {Text} from '#/components/Typography'
 
@@ -97,7 +97,7 @@ export const ExternalEmbedLink = ({
             embed={{
               type: 'feed',
               view: {
-                $type: 'app.bsky.feed.defs#generatorView',
+                type: "sonet",
                 ...data.view,
               },
             }}
@@ -109,7 +109,7 @@ export const ExternalEmbedLink = ({
             embed={{
               type: 'list',
               view: {
-                $type: 'app.bsky.graph.defs#listView',
+                type: "sonet",
                 ...data.view,
               },
             }}

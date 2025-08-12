@@ -1,16 +1,16 @@
 import {
-  type AppBskyFeedDefs,
-  AppBskyFeedLike,
-  AppBskyFeedPost,
-  AppBskyFeedRepost,
-  type AppBskyGraphDefs,
-  AppBskyGraphStarterpack,
-  type AppBskyNotificationListNotifications,
-  type BskyAgent,
+  type SonetFeedDefs,
+  SonetFeedLike,
+  SonetFeedNote,
+  SonetFeedRenote,
+  type SonetGraphDefs,
+  SonetGraphStarterpack,
+  type SonetNotificationListNotifications,
+  type SonetAppAgent,
   hasMutedWord,
   moderateNotification,
   type ModerationOpts,
-} from '@atproto/api'
+} from '@sonet/api'
 import {type QueryClient} from '@tanstack/react-query'
 import chunk from 'lodash.chunk'
 
@@ -25,11 +25,11 @@ import {
 
 const GROUPABLE_REASONS = [
   'like',
-  'repost',
+  'renote',
   'follow',
-  'like-via-repost',
-  'repost-via-repost',
-  'subscribed-post',
+  'like-via-renote',
+  'renote-via-renote',
+  'subscribed-note',
 ]
 const MS_1HR = 1e3 * 60 * 60
 const MS_2DAY = MS_1HR * 48
@@ -46,7 +46,7 @@ export async function fetchPage({
   fetchAdditionalData,
   reasons,
 }: {
-  agent: BskyAgent
+  agent: SonetAppAgent
   cursor: string | undefined
   limit: number
   queryClient: QueryClient
@@ -70,10 +70,10 @@ export async function fetchPage({
     notif => !shouldFilterNotif(notif, moderationOpts),
   )
 
-  // group notifications which are essentially similar (follows, likes on a post)
+  // group notifications which are essentially similar (follows, likes on a note)
   let notifsGrouped = groupNotifications(notifs)
 
-  // we fetch subjects of notifications (usually posts) now instead of lazily
+  // we fetch subjects of notifications (usually notes) now instead of lazily
   // in the UI to avoid relayouts
   if (fetchAdditionalData) {
     const subjects = await fetchSubjects(agent, notifsGrouped)
@@ -87,7 +87,7 @@ export async function fetchPage({
             notif.notification.reasonSubject,
           )
         } else {
-          notif.subject = subjects.posts.get(notif.subjectUri)
+          notif.subject = subjects.notes.get(notif.subjectUri)
           if (notif.subject) {
             precacheProfile(queryClient, notif.subject.author)
           }
@@ -116,7 +116,7 @@ export async function fetchPage({
 // =
 
 export function shouldFilterNotif(
-  notif: AppBskyNotificationListNotifications.Notification,
+  notif: SonetNotificationListNotifications.Notification,
   moderationOpts: ModerationOpts | undefined,
 ): boolean {
   const containsImperative = !!notif.author.labels?.some(labelIsHideableOffense)
@@ -127,10 +127,10 @@ export function shouldFilterNotif(
     return false
   }
   if (
-    notif.reason === 'subscribed-post' &&
-    bsky.dangerousIsType<AppBskyFeedPost.Record>(
+    notif.reason === 'subscribed-note' &&
+    bsky.dangerousIsType<SonetFeedNote.Record>(
       notif.record,
-      AppBskyFeedPost.isRecord,
+      SonetFeedNote.isRecord,
     ) &&
     hasMutedWord({
       mutedWords: moderationOpts.prefs.mutedWords,
@@ -150,7 +150,7 @@ export function shouldFilterNotif(
 }
 
 export function groupNotifications(
-  notifs: AppBskyNotificationListNotifications.Notification[],
+  notifs: SonetNotificationListNotifications.Notification[],
 ): FeedNotification[] {
   const groupedNotifs: FeedNotification[] = []
   for (const notif of notifs) {
@@ -163,8 +163,8 @@ export function groupNotifications(
           Math.abs(ts2 - ts) < MS_2DAY &&
           notif.reason === groupedNotif.notification.reason &&
           notif.reasonSubject === groupedNotif.notification.reasonSubject &&
-          (notif.author.did !== groupedNotif.notification.author.did ||
-            notif.reason === 'subscribed-post')
+          (notif.author.userId !== groupedNotif.notification.author.userId ||
+            notif.reason === 'subscribed-note')
         ) {
           const nextIsFollowBack =
             notif.reason === 'follow' && notif.author.viewer?.following
@@ -204,66 +204,66 @@ export function groupNotifications(
 }
 
 async function fetchSubjects(
-  agent: BskyAgent,
+  agent: SonetAppAgent,
   groupedNotifs: FeedNotification[],
 ): Promise<{
-  posts: Map<string, AppBskyFeedDefs.PostView>
-  starterPacks: Map<string, AppBskyGraphDefs.StarterPackViewBasic>
+  notes: Map<string, SonetFeedDefs.NoteView>
+  starterPacks: Map<string, SonetGraphDefs.StarterPackViewBasic>
 }> {
-  const postUris = new Set<string>()
+  const noteUris = new Set<string>()
   const packUris = new Set<string>()
   for (const notif of groupedNotifs) {
-    if (notif.subjectUri?.includes('app.bsky.feed.post')) {
-      postUris.add(notif.subjectUri)
+    if (notif.subjectUri?.includes('app.sonet.feed.note')) {
+      noteUris.add(notif.subjectUri)
     } else if (
-      notif.notification.reasonSubject?.includes('app.bsky.graph.starterpack')
+      notif.notification.reasonSubject?.includes('app.sonet.graph.starterpack')
     ) {
       packUris.add(notif.notification.reasonSubject)
     }
   }
-  const postUriChunks = chunk(Array.from(postUris), 25)
+  const noteUriChunks = chunk(Array.from(noteUris), 25)
   const packUriChunks = chunk(Array.from(packUris), 25)
-  const postsChunks = await Promise.all(
-    postUriChunks.map(uris =>
-      agent.app.bsky.feed.getPosts({uris}).then(res => res.data.posts),
+  const notesChunks = await Promise.all(
+    noteUriChunks.map(uris =>
+      agent.app.sonet.feed.getNotes({uris}).then(res => res.data.notes),
     ),
   )
   const packsChunks = await Promise.all(
     packUriChunks.map(uris =>
-      agent.app.bsky.graph
+      agent.app.sonet.graph
         .getStarterPacks({uris})
         .then(res => res.data.starterPacks),
     ),
   )
-  const postsMap = new Map<string, AppBskyFeedDefs.PostView>()
-  const packsMap = new Map<string, AppBskyGraphDefs.StarterPackViewBasic>()
-  for (const post of postsChunks.flat()) {
-    if (AppBskyFeedPost.isRecord(post.record)) {
-      postsMap.set(post.uri, post)
+  const notesMap = new Map<string, SonetFeedDefs.NoteView>()
+  const packsMap = new Map<string, SonetGraphDefs.StarterPackViewBasic>()
+  for (const note of notesChunks.flat()) {
+    if (SonetFeedNote.isRecord(note.record)) {
+      notesMap.set(note.uri, note)
     }
   }
   for (const pack of packsChunks.flat()) {
-    if (AppBskyGraphStarterpack.isRecord(pack.record)) {
+    if (SonetGraphStarterpack.isRecord(pack.record)) {
       packsMap.set(pack.uri, pack)
     }
   }
   return {
-    posts: postsMap,
+    notes: notesMap,
     starterPacks: packsMap,
   }
 }
 
 function toKnownType(
-  notif: AppBskyNotificationListNotifications.Notification,
+  notif: SonetNotificationListNotifications.Notification,
 ): NotificationType {
   if (notif.reason === 'like') {
     if (notif.reasonSubject?.includes('feed.generator')) {
       return 'feedgen-like'
     }
-    return 'post-like'
+    return 'note-like'
   }
   if (
-    notif.reason === 'repost' ||
+    notif.reason === 'renote' ||
     notif.reason === 'mention' ||
     notif.reason === 'reply' ||
     notif.reason === 'quote' ||
@@ -271,9 +271,9 @@ function toKnownType(
     notif.reason === 'starterpack-joined' ||
     notif.reason === 'verified' ||
     notif.reason === 'unverified' ||
-    notif.reason === 'like-via-repost' ||
-    notif.reason === 'repost-via-repost' ||
-    notif.reason === 'subscribed-post'
+    notif.reason === 'like-via-renote' ||
+    notif.reason === 'renote-via-renote' ||
+    notif.reason === 'subscribed-note'
   ) {
     return notif.reason as NotificationType
   }
@@ -282,29 +282,29 @@ function toKnownType(
 
 function getSubjectUri(
   type: NotificationType,
-  notif: AppBskyNotificationListNotifications.Notification,
+  notif: SonetNotificationListNotifications.Notification,
 ): string | undefined {
   if (
     type === 'reply' ||
     type === 'quote' ||
     type === 'mention' ||
-    type === 'subscribed-post'
+    type === 'subscribed-note'
   ) {
     return notif.uri
   } else if (
-    type === 'post-like' ||
-    type === 'repost' ||
-    type === 'like-via-repost' ||
-    type === 'repost-via-repost'
+    type === 'note-like' ||
+    type === 'renote' ||
+    type === 'like-via-renote' ||
+    type === 'renote-via-renote'
   ) {
     if (
-      bsky.dangerousIsType<AppBskyFeedRepost.Record>(
+      bsky.dangerousIsType<SonetFeedRenote.Record>(
         notif.record,
-        AppBskyFeedRepost.isRecord,
+        SonetFeedRenote.isRecord,
       ) ||
-      bsky.dangerousIsType<AppBskyFeedLike.Record>(
+      bsky.dangerousIsType<SonetFeedLike.Record>(
         notif.record,
-        AppBskyFeedLike.isRecord,
+        SonetFeedLike.isRecord,
       )
     ) {
       return typeof notif.record.subject?.uri === 'string'

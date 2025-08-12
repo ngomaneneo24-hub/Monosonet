@@ -114,7 +114,7 @@ export function Verify({config, showScreen}: ScreenProps<ScreenID.Verify>) {
     }
   })
 
-  const handleRequestEmailVerification = async () => {
+  const usernameRequestEmailVerification = async () => {
     dispatch({
       type: 'setMutationStatus',
       status: 'pending',
@@ -138,7 +138,7 @@ export function Verify({config, showScreen}: ScreenProps<ScreenID.Verify>) {
     }
   }
 
-  const handleConfirmEmail = async () => {
+  const usernameConfirmEmail = async () => {
     if (!isValidCode(state.token)) {
       dispatch({
         type: 'setError',
@@ -294,7 +294,7 @@ export function Verify({config, showScreen}: ScreenProps<ScreenID.Verify>) {
             size="large"
             variant="solid"
             color="primary"
-            onPress={handleRequestEmailVerification}
+            onPress={usernameRequestEmailVerification}
             disabled={state.mutationStatus === 'pending'}>
             <ButtonText>
               <Trans>Send email</Trans>
@@ -339,7 +339,7 @@ export function Verify({config, showScreen}: ScreenProps<ScreenID.Verify>) {
                 value: token,
               })
             }}
-            onSubmitEditing={handleConfirmEmail}
+            onSubmitEditing={usernameConfirmEmail}
           />
 
           {state.error && <Admonition type="error">{state.error}</Admonition>}
@@ -349,7 +349,7 @@ export function Verify({config, showScreen}: ScreenProps<ScreenID.Verify>) {
             size="large"
             variant="solid"
             color="primary"
-            onPress={handleConfirmEmail}
+            onPress={usernameConfirmEmail}
             disabled={
               !state.token ||
               state.token.length !== 11 ||

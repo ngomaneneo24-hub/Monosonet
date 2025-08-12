@@ -1,5 +1,5 @@
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import type * as bsky from '#/types/bsky'
 
 export function createSanitizedDisplayName(
@@ -9,6 +9,6 @@ export function createSanitizedDisplayName(
   if (profile.displayName != null && profile.displayName !== '') {
     return sanitizeDisplayName(profile.displayName)
   } else {
-    return sanitizeHandle(profile.handle, noAt ? '' : '@')
+    return sanitizeUsername(profile.username, noAt ? '' : '@')
   }
 }

@@ -1,4 +1,4 @@
-import {useCallback, useImperativeHandle, useState} from 'react'
+import {useCallback, useImperativeUsername, useState} from 'react'
 import {Keyboard} from 'react-native'
 import DatePicker from 'react-native-date-picker'
 import {useLingui} from '@lingui/react'
@@ -36,7 +36,7 @@ export function DateField({
     [onChangeDate, setOpen],
   )
 
-  useImperativeHandle(
+  useImperativeUsername(
     inputRef,
     () => ({
       focus: () => {

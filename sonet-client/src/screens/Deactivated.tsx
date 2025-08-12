@@ -53,7 +53,7 @@ export function Deactivated() {
 
   const onSelectAccount = React.useCallback(
     (account: SessionAccount) => {
-      if (account.did !== currentAccount?.did) {
+      if (account.userId !== currentAccount?.userId) {
         onPressSwitchAccount(account, 'SwitchAccount')
       }
     },
@@ -76,7 +76,7 @@ export function Deactivated() {
     logoutCurrentAccount('Deactivated')
   }, [logoutCurrentAccount])
 
-  const handleActivate = React.useCallback(async () => {
+  const usernameActivate = React.useCallback(async () => {
     try {
       setPending(true)
               await sonetClient.activateAccount()
@@ -127,13 +127,13 @@ export function Deactivated() {
             </Text>
             <Text style={[a.text_sm, a.leading_snug]}>
               <Trans>
-                You previously deactivated @{currentAccount?.handle}.
+                You previously deactivated @{currentAccount?.username}.
               </Trans>
             </Text>
             <Text style={[a.text_sm, a.leading_snug, a.pb_md]}>
               <Trans>
                 You can reactivate your account to continue logging in. Your
-                profile and posts will be visible to other users.
+                profile and notes will be visible to other users.
               </Trans>
             </Text>
 
@@ -143,7 +143,7 @@ export function Deactivated() {
                 size="large"
                 variant="solid"
                 color="primary"
-                onPress={handleActivate}>
+                onPress={usernameActivate}>
                 <ButtonText>
                   <Trans>Yes, reactivate my account</Trans>
                 </ButtonText>

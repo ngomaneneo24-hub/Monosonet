@@ -1,5 +1,5 @@
 import {copyAsync} from 'expo-file-system'
-import {BskyAgent, ComAtprotoRepoUploadBlob} from '@atproto/api'
+import {SonetAppAgent, SonetRepoUploadBlob} from '@sonet/api'
 
 import {safeDeleteAsync} from '#/lib/media/manip'
 import {useSonetApi} from '#/state/session/sonet'
@@ -14,10 +14,10 @@ export function __setSonetUploadBridge(fn: typeof sonetUploadBridge) {
  * @param encoding Allows overriding the blob's type
  */
 export async function uploadBlob(
-  agent: BskyAgent,
+  agent: SonetAppAgent,
   input: string | Blob,
   encoding?: string,
-): Promise<ComAtprotoRepoUploadBlob.Response> {
+): Promise<SonetRepoUploadBlob.Response> {
   // If a Sonet bridge is installed, route uploads through Sonet media API
   if (sonetUploadBridge) {
     const {blob, filename, mime} = await normalizeToBlob(input, encoding)

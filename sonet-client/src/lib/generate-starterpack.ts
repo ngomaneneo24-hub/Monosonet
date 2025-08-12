@@ -3,7 +3,7 @@ import {useLingui} from '@lingui/react'
 import {useMutation} from '@tanstack/react-query'
 
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {enforceLen} from '#/lib/strings/helpers'
 import {useAgent} from '#/state/session'
 import {sonetClient} from '@sonet/api'
@@ -83,7 +83,7 @@ export function useGenerateStarterPackMutation({
       const displayName = enforceLen(
         profile.displayName
           ? sanitizeDisplayName(profile.displayName)
-          : `@${sanitizeHandle(profile.handle)}`,
+          : `@${sanitizeUsername(profile.username)}`,
         25,
         true,
       )

@@ -42,7 +42,7 @@ export function DateField({
   accessibilityHint,
   maximumDate,
 }: DateFieldProps) {
-  const handleOnChange = React.useCallback(
+  const usernameOnChange = React.useCallback(
     (e: any) => {
       const date = e.target.valueAsDate || e.target.value
 
@@ -61,7 +61,7 @@ export function DateField({
         value={toSimpleDateString(value)}
         inputRef={inputRef as React.Ref<TextInput>}
         label={label}
-        onChange={handleOnChange}
+        onChange={usernameOnChange}
         testID={testID}
         accessibilityHint={accessibilityHint}
         // @ts-expect-error not typed as <input type="date"> even though it is one

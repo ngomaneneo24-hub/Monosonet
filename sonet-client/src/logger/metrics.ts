@@ -1,5 +1,5 @@
-import {type NotificationReason} from '#/lib/hooks/useNotificationHandler'
-import {type FeedDescriptor} from '#/state/queries/post-feed'
+import {type NotificationReason} from '#/lib/hooks/useNotificationUsernamer'
+import {type FeedDescriptor} from '#/state/queries/note-feed'
 
 export type MetricEvents = {
   // App events
@@ -67,9 +67,9 @@ export type MetricEvents = {
     activeStep: number
     backgroundCount: number
   }
-  'signup:handleTaken': {typeahead?: boolean}
-  'signup:handleAvailable': {typeahead?: boolean}
-  'signup:handleSuggestionSelected': {method: string}
+  'signup:usernameTaken': {typeahead?: boolean}
+  'signup:usernameAvailable': {typeahead?: boolean}
+  'signup:usernameSuggestionSelected': {method: string}
   'signin:hostingProviderPressed': {
     hostingProviderDidChange: boolean
   }
@@ -186,7 +186,7 @@ export type MetricEvents = {
     fieldErrorsTotal: number
     backgroundCount: number
   }
-  'post:create': {
+  'note:create': {
     imageCount: number
     isReply: boolean
     isPartOfThread: boolean
@@ -196,40 +196,40 @@ export type MetricEvents = {
     logContext: 'Composer'
   }
   'thread:create': {
-    postCount: number
+    noteCount: number
     isReply: boolean
   }
-  'post:like': {
-    doesLikerFollowPoster: boolean | undefined
-    doesPosterFollowLiker: boolean | undefined
+  'note:like': {
+    doesLikerFollowNoteer: boolean | undefined
+    doesNoteerFollowLiker: boolean | undefined
     likerClout: number | undefined
-    postClout: number | undefined
-    logContext: 'FeedItem' | 'PostThreadItem' | 'Post' | 'ImmersiveVideo'
+    noteClout: number | undefined
+    logContext: 'FeedItem' | 'NoteThreadItem' | 'Note' | 'ImmersiveVideo'
     feedDescriptor?: string
   }
-  'post:repost': {
-    logContext: 'FeedItem' | 'PostThreadItem' | 'Post' | 'ImmersiveVideo'
+  'note:renote': {
+    logContext: 'FeedItem' | 'NoteThreadItem' | 'Note' | 'ImmersiveVideo'
     feedDescriptor?: string
   }
-  'post:unlike': {
-    logContext: 'FeedItem' | 'PostThreadItem' | 'Post' | 'ImmersiveVideo'
+  'note:unlike': {
+    logContext: 'FeedItem' | 'NoteThreadItem' | 'Note' | 'ImmersiveVideo'
     feedDescriptor?: string
   }
-  'post:unrepost': {
-    logContext: 'FeedItem' | 'PostThreadItem' | 'Post' | 'ImmersiveVideo'
+  'note:unrenote': {
+    logContext: 'FeedItem' | 'NoteThreadItem' | 'Note' | 'ImmersiveVideo'
     feedDescriptor?: string
   }
-  'post:mute': {}
-  'post:unmute': {}
-  'post:pin': {}
-  'post:unpin': {}
+  'note:mute': {}
+  'note:unmute': {}
+  'note:pin': {}
+  'note:unpin': {}
   'profile:follow': {
-    didBecomeMutual: boolean | undefined
+    userIdBecomeMutual: boolean | undefined
     followeeClout: number | undefined
     followerClout: number | undefined
     logContext:
       | 'RecommendedFollowsItem'
-      | 'PostThreadItem'
+      | 'NoteThreadItem'
       | 'ProfileCard'
       | 'ProfileHeader'
       | 'ProfileHeaderSuggestedFollows'
@@ -239,7 +239,7 @@ export type MetricEvents = {
       | 'StarterPackProfilesList'
       | 'FeedInterstitial'
       | 'ProfileHeaderSuggestedFollows'
-      | 'PostOnboardingFindFollows'
+      | 'NoteOnboardingFindFollows'
       | 'ImmersiveVideo'
       | 'ExploreSuggestedAccounts'
   }
@@ -266,7 +266,7 @@ export type MetricEvents = {
   'profile:unfollow': {
     logContext:
       | 'RecommendedFollowsItem'
-      | 'PostThreadItem'
+      | 'NoteThreadItem'
       | 'ProfileCard'
       | 'ProfileHeader'
       | 'ProfileHeaderSuggestedFollows'
@@ -277,7 +277,7 @@ export type MetricEvents = {
       | 'StarterPackProfilesList'
       | 'FeedInterstitial'
       | 'ProfileHeaderSuggestedFollows'
-      | 'PostOnboardingFindFollows'
+      | 'NoteOnboardingFindFollows'
       | 'ImmersiveVideo'
       | 'ExploreSuggestedAccounts'
   }
@@ -335,7 +335,7 @@ export type MetricEvents = {
 
   'tmd:share': {}
   'tmd:download': {}
-  'tmd:post': {}
+  'tmd:note': {}
 
   'trendingTopics:show': {
     context: 'settings'
@@ -424,11 +424,11 @@ export type MetricEvents = {
   'live:create': {duration: number}
   'live:edit': {}
   'live:remove': {}
-  'live:card:open': {subject: string; from: 'post' | 'profile'}
+  'live:card:open': {subject: string; from: 'note' | 'profile'}
   'live:card:watch': {subject: string}
   'live:card:openProfile': {subject: string}
   'live:view:profile': {subject: string}
-  'live:view:post': {subject: string; feed?: string}
+  'live:view:note': {subject: string; feed?: string}
 
   'share:open': {context: 'feed' | 'thread'}
   'share:press:copyLink': {}
@@ -447,7 +447,7 @@ export type MetricEvents = {
   }
   'thread:click:headerMenuOpen': {}
   'activitySubscription:enable': {
-    setting: 'posts' | 'posts_and_replies'
+    setting: 'notes' | 'notes_and_replies'
   }
   'activitySubscription:disable': {}
   'activityPreference:changeChannels': {

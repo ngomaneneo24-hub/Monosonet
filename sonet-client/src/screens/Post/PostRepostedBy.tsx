@@ -4,21 +4,21 @@ import {useFocusEffect} from '@react-navigation/native'
 
 import {CommonNavigatorParams, NativeStackScreenProps} from '#/lib/routes/types'
 import {makeRecordUri} from '#/lib/strings/url-helpers'
-import {usePostThreadQuery} from '#/state/queries/post-thread'
+import {useNoteThreadQuery} from '#/state/queries/note-thread'
 import {useSetMinimalShellMode} from '#/state/shell'
-import {PostRepostedBy as PostRepostedByComponent} from '#/view/com/post-thread/PostRepostedBy'
+import {NoteRenoteedBy as NoteRenoteedByComponent} from '#/view/com/note-thread/NoteRenoteedBy'
 import * as Layout from '#/components/Layout'
 
-type Props = NativeStackScreenProps<CommonNavigatorParams, 'PostRepostedBy'>
-export const PostRepostedByScreen = ({route}: Props) => {
+type Props = NativeStackScreenProps<CommonNavigatorParams, 'NoteRenoteedBy'>
+export const NoteRenoteedByScreen = ({route}: Props) => {
   const {name, rkey} = route.params
-  const uri = makeRecordUri(name, 'app.bsky.feed.post', rkey)
+  const uri = makeRecordUri(name, 'app.sonet.feed.note', rkey)
   const setMinimalShellMode = useSetMinimalShellMode()
-  const {data: post} = usePostThreadQuery(uri)
+  const {data: note} = useNoteThreadQuery(uri)
 
   let quoteCount
-  if (post?.thread.type === 'post') {
-    quoteCount = post.thread.post.repostCount
+  if (note?.thread.type === 'note') {
+    quoteCount = note.thread.note.renoteCount
   }
 
   useFocusEffect(
@@ -32,16 +32,16 @@ export const PostRepostedByScreen = ({route}: Props) => {
       <Layout.Header.Outer>
         <Layout.Header.BackButton />
         <Layout.Header.Content>
-          {post && (
+          {note && (
             <>
               <Layout.Header.TitleText>
-                <Trans>Reposted By</Trans>
+                <Trans>Renoteed By</Trans>
               </Layout.Header.TitleText>
               <Layout.Header.SubtitleText>
                 <Plural
                   value={quoteCount ?? 0}
-                  one="# repost"
-                  other="# reposts"
+                  one="# renote"
+                  other="# renotes"
                 />
               </Layout.Header.SubtitleText>
             </>
@@ -49,7 +49,7 @@ export const PostRepostedByScreen = ({route}: Props) => {
         </Layout.Header.Content>
         <Layout.Header.Slot />
       </Layout.Header.Outer>
-      <PostRepostedByComponent uri={uri} />
+      <NoteRenoteedByComponent uri={uri} />
     </Layout.Screen>
   )
 }

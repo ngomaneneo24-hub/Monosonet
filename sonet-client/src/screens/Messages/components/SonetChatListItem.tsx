@@ -93,8 +93,8 @@ export function SonetChatListItem({chat, onPress}: SonetChatListItemProps) {
     return indicators
   }, [chat, t, _])
 
-  // Handle long press for context menu
-  const handleLongPress = useCallback(() => {
+  // Username long press for context menu
+  const usernameLongPress = useCallback(() => {
     // TODO: Implement context menu (archive, delete, etc.)
     console.log('Long press on chat:', chat.id)
   }, [chat.id])
@@ -102,7 +102,7 @@ export function SonetChatListItem({chat, onPress}: SonetChatListItemProps) {
   return (
     <TouchableOpacity
       onPress={onPress}
-      onLongPress={handleLongPress}
+      onLongPress={usernameLongPress}
       style={[
         a.flex_row,
         a.items_center,

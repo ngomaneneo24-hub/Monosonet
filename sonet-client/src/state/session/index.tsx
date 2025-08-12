@@ -218,7 +218,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
       cancelPendingTask()
       dispatch({
         type: 'removed-account',
-        accountDid: account.did,
+        accountDid: account.userId,
       })
       addSessionDebugLog({type: 'method:end', method: 'removeAccount', account})
     },
@@ -231,7 +231,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
       const persistedData = {
         accounts: state.accounts,
         currentAccount: state.accounts.find(
-          a => a.did === state.currentAgentState.did,
+          a => a.userId === state.currentAgentState.userId,
         ),
       }
       addSessionDebugLog({type: 'persisted:broadcast', data: persistedData})
@@ -246,13 +246,13 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
       dispatch({
         type: 'synced-accounts',
         syncedAccounts: synced.accounts,
-        syncedCurrentDid: synced.currentAccount?.did,
+        syncedCurrentDid: synced.currentAccount?.userId,
       })
       const syncedAccount = synced.accounts.find(
-        a => a.did === synced.currentAccount?.did,
+        a => a.userId === synced.currentAccount?.userId,
       )
       if (syncedAccount && syncedAccount.refreshJwt) {
-        if (syncedAccount.did !== state.currentAgentState.did) {
+        if (syncedAccount.userId !== state.currentAgentState.userId) {
           resumeSession(syncedAccount)
         } else {
           const agent = state.currentAgentState.agent as SonetAppAgent
@@ -273,9 +273,9 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
     () => ({
       accounts: state.accounts,
       currentAccount: state.accounts.find(
-        a => a.did === state.currentAgentState.did,
+        a => a.userId === state.currentAgentState.userId,
       ),
-      hasSession: !!state.currentAgentState.did,
+      hasSession: !!state.currentAgentState.userId,
     }),
     [state],
   )
@@ -390,7 +390,7 @@ export function useRequireAuth() {
   )
 }
 
-export function useAgent(): BskyAgent {
+export function useAgent(): SonetAppAgent {
   const agent = React.useContext(AgentContext)
   if (!agent) {
     throw Error('useAgent() must be below <SessionProvider>.')

@@ -1,11 +1,11 @@
 import {useMemo, useState} from 'react'
 import {View} from 'react-native'
 import {
-  type AppBskyNotificationDefs,
-  type AppBskyNotificationListActivitySubscriptions,
+  type SonetNotificationDefs,
+  type SonetNotificationListActivitySubscriptions,
   type ModerationOpts,
   type Un$Typed,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {
@@ -16,7 +16,7 @@ import {
 
 import {createSanitizedDisplayName} from '#/lib/moderation/create-sanitized-display-name'
 import {cleanError} from '#/lib/strings/errors'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {logger} from '#/logger'
 import {isWeb} from '#/platform/detection'
 import {updateProfileShadow} from '#/state/cache/profile-shadow'
@@ -52,7 +52,7 @@ export function SubscribeProfileDialog({
 }) {
   return (
     <Dialog.Outer control={control} nativeOptions={{preventExpansion: true}}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <DialogInner
         profile={profile}
         moderationOpts={moderationOpts}
@@ -82,32 +82,32 @@ function DialogInner({
   const [state, setState] = useState(initialState)
 
   const values = useMemo(() => {
-    const {post, reply} = state
+    const {note, reply} = state
     const res = []
-    if (post) res.push('post')
+    if (note) res.push('note')
     if (reply) res.push('reply')
     return res
   }, [state])
 
   const onChange = (newValues: string[]) => {
     setState(oldValues => {
-      // ensure you can't have reply without post
+      // ensure you can't have reply without note
       if (!oldValues.reply && newValues.includes('reply')) {
         return {
-          post: true,
+          note: true,
           reply: true,
         }
       }
 
-      if (oldValues.post && !newValues.includes('post')) {
+      if (oldValues.note && !newValues.includes('note')) {
         return {
-          post: false,
+          note: false,
           reply: false,
         }
       }
 
       return {
-        post: newValues.includes('post'),
+        note: newValues.includes('note'),
         reply: newValues.includes('reply'),
       }
     })
@@ -119,24 +119,24 @@ function DialogInner({
     error,
   } = useMutation({
     mutationFn: async (
-      activitySubscription: Un$Typed<AppBskyNotificationDefs.ActivitySubscription>,
+      activitySubscription: Un$Typed<SonetNotificationDefs.ActivitySubscription>,
     ) => {
-      await agent.app.bsky.notification.putActivitySubscription({
-        subject: profile.did,
+      await agent.app.sonet.notification.putActivitySubscription({
+        subject: profile.userId,
         activitySubscription,
       })
     },
     onSuccess: (_data, activitySubscription) => {
       control.close(() => {
-        updateProfileShadow(queryClient, profile.did, {
+        updateProfileShadow(queryClient, profile.userId, {
           activitySubscription,
         })
 
-        if (!activitySubscription.post && !activitySubscription.reply) {
+        if (!activitySubscription.note && !activitySubscription.reply) {
           logger.metric('activitySubscription:disable', {})
           Toast.show(
             _(
-              msg`You will no longer receive notifications for ${sanitizeHandle(profile.handle, '@')}`,
+              msg`You will no longer receive notifications for ${sanitizeUsername(profile.username, '@')}`,
             ),
             'check',
           )
@@ -145,7 +145,7 @@ function DialogInner({
           queryClient.setQueryData(
             RQKEY_getActivitySubscriptions,
             (
-              old?: InfiniteData<AppBskyNotificationListActivitySubscriptions.OutputSchema>,
+              old?: InfiniteData<SonetNotificationListActivitySubscriptions.OutputSchema>,
             ) => {
               if (!old) return old
               return {
@@ -153,7 +153,7 @@ function DialogInner({
                 pages: old.pages.map(page => ({
                   ...page,
                   subscriptions: page.subscriptions.filter(
-                    item => item.did !== profile.did,
+                    item => item.userId !== profile.userId,
                   ),
                 })),
               }
@@ -161,12 +161,12 @@ function DialogInner({
           )
         } else {
           logger.metric('activitySubscription:enable', {
-            setting: activitySubscription.reply ? 'posts_and_replies' : 'posts',
+            setting: activitySubscription.reply ? 'notes_and_replies' : 'notes',
           })
-          if (!initialState.post && !initialState.reply) {
+          if (!initialState.note && !initialState.reply) {
             Toast.show(
               _(
-                msg`You'll start receiving notifications for ${sanitizeHandle(profile.handle, '@')}!`,
+                msg`You'll start receiving notifications for ${sanitizeUsername(profile.username, '@')}!`,
               ),
               'check',
             )
@@ -183,8 +183,8 @@ function DialogInner({
 
   const buttonProps: Omit<ButtonProps, 'children'> = useMemo(() => {
     const isDirty =
-      state.post !== initialState.post || state.reply !== initialState.reply
-    const hasAny = state.post || state.reply
+      state.note !== initialState.note || state.reply !== initialState.reply
+    const hasAny = state.note || state.reply
 
     if (isDirty) {
       return {
@@ -216,11 +216,11 @@ function DialogInner({
   return (
     <Dialog.ScrollableInner
       style={web({maxWidth: 400})}
-      label={_(msg`Get notified of new posts from ${name}`)}>
+      label={_(msg`Get notified of new notes from ${name}`)}>
       <View style={[a.gap_lg]}>
         <View style={[a.gap_xs]}>
           <Text style={[a.font_heavy, a.text_2xl]}>
-            <Trans>Keep me posted</Trans>
+            <Trans>Keep me noteed</Trans>
           </Text>
           <Text style={[t.atoms.text_contrast_medium, a.text_md]}>
             <Trans>Get notified of this account’s activity</Trans>
@@ -234,7 +234,7 @@ function DialogInner({
               moderationOpts={moderationOpts}
               disabledPreview
             />
-            <ProfileCard.NameAndHandle
+            <ProfileCard.NameAndUsername
               profile={profile}
               moderationOpts={moderationOpts}
             />
@@ -247,8 +247,8 @@ function DialogInner({
           onChange={onChange}>
           <View style={[a.gap_sm]}>
             <Toggle.Item
-              label={_(msg`Posts`)}
-              name="post"
+              label={_(msg`Notes`)}
+              name="note"
               style={[
                 a.flex_1,
                 a.py_xs,
@@ -259,7 +259,7 @@ function DialogInner({
               ]}>
               <Toggle.LabelText
                 style={[t.atoms.text, a.font_normal, a.text_md, a.flex_1]}>
-                <Trans>Posts</Trans>
+                <Trans>Notes</Trans>
               </Toggle.LabelText>
               <Toggle.Switch />
             </Toggle.Item>
@@ -301,9 +301,9 @@ function DialogInner({
 }
 
 function parseActivitySubscription(
-  sub?: AppBskyNotificationDefs.ActivitySubscription,
-): Un$Typed<AppBskyNotificationDefs.ActivitySubscription> {
-  if (!sub) return {post: false, reply: false}
-  const {post, reply} = sub
-  return {post, reply}
+  sub?: SonetNotificationDefs.ActivitySubscription,
+): Un$Typed<SonetNotificationDefs.ActivitySubscription> {
+  if (!sub) return {note: false, reply: false}
+  const {note, reply} = sub
+  return {note, reply}
 }

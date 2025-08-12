@@ -1,9 +1,7 @@
-import {type BskyAgent} from '@atproto/api'
-
 import {LINK_META_PROXY} from '#/lib/constants'
 import {getGiphyMetaUri} from '#/lib/strings/embed-player'
 import {parseStarterPackUri} from '#/lib/strings/starter-pack'
-import {isBskyAppUrl} from '../strings/url-helpers'
+import {isSonetAppUrl} from '../strings/url-helpers'
 
 export enum LikelyType {
   HTML,
@@ -25,11 +23,11 @@ export interface LinkMeta {
 }
 
 export async function getLinkMeta(
-  agent: BskyAgent,
+  serviceUrl: string,
   url: string,
   timeout = 15e3,
 ): Promise<LinkMeta> {
-  if (isBskyAppUrl(url) && !parseStarterPackUri(url)) {
+  if (isSonetAppUrl(url) && !parseStarterPackUri(url)) {
     return {
       likelyType: LikelyType.AtpData,
       url,
@@ -71,7 +69,7 @@ export async function getLinkMeta(
 
   try {
     const response = await fetch(
-      `${LINK_META_PROXY(agent.serviceUrl.toString() || '')}${encodeURIComponent(
+      `${LINK_META_PROXY(serviceUrl)}${encodeURIComponent(
         url,
       )}`,
       {signal: controller.signal},
@@ -158,7 +156,7 @@ const EXT_MIME_TYPES: Record<string, string> = {
   afp: 'application/vnd.ibm.modcap',
   age: 'application/vnd.age',
   ahead: 'application/vnd.ahead.space',
-  ai: 'application/postscript',
+  ai: 'application/notescript',
   aif: 'audio/x-aiff',
   aifc: 'audio/x-aiff',
   aiff: 'audio/x-aiff',
@@ -370,7 +368,7 @@ const EXT_MIME_TYPES: Record<string, string> = {
   emz: 'application/x-msmetafile',
   eol: 'audio/vnd.digital-winds',
   eot: 'application/vnd.ms-fontobject',
-  eps: 'application/postscript',
+  eps: 'application/notescript',
   epub: 'application/epub+zip',
   es: 'application/ecmascript',
   es3: 'application/vnd.eszigno3+xml',
@@ -476,7 +474,7 @@ const EXT_MIME_TYPES: Record<string, string> = {
   h264: 'video/h264',
   hal: 'application/vnd.hal+xml',
   hbci: 'application/vnd.hbci',
-  hbs: 'text/x-handlebars-template',
+  hbs: 'text/x-usernamebars-template',
   hdd: 'application/x-virtualbox-hdd',
   hdf: 'application/x-hdf',
   heic: 'image/heic',
@@ -870,7 +868,7 @@ const EXT_MIME_TYPES: Record<string, string> = {
   pre: 'application/vnd.lotus-freelance',
   prf: 'application/pics-rules',
   provx: 'application/provenance+xml',
-  ps: 'application/postscript',
+  ps: 'application/notescript',
   psb: 'application/vnd.3gpp.pic-bw-small',
   psd: 'image/vnd.adobe.photoshop',
   psf: 'application/x-font-linux-psf',
@@ -879,7 +877,7 @@ const EXT_MIME_TYPES: Record<string, string> = {
   ptid: 'application/vnd.pvi.ptid1',
   pub: 'application/x-mspublisher',
   pvb: 'application/vnd.3gpp.pic-bw-var',
-  pwn: 'application/vnd.3m.post-it-notes',
+  pwn: 'application/vnd.3m.note-it-notes',
   pya: 'audio/vnd.ms-playready.media.pya',
   pyv: 'video/vnd.ms-playready.media.pyv',
   qam: 'application/vnd.epson.quickanime',

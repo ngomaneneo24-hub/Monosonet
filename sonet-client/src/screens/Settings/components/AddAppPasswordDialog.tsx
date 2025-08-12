@@ -8,7 +8,7 @@ import Animated, {
   SlideInRight,
   SlideOutLeft,
 } from 'react-native-reanimated'
-import {ComAtprotoServerCreateAppPassword} from '@atproto/api'
+import {SonetServerCreateAppPassword} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useMutation} from '@tanstack/react-query'
@@ -36,7 +36,7 @@ export function AddAppPasswordDialog({
   const {height} = useWindowDimensions()
   return (
     <Dialog.Outer control={control} nativeOptions={{minHeight: height}}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <CreateDialogInner passwords={passwords} />
     </Dialog.Outer>
   )
@@ -70,7 +70,7 @@ function CreateDialogInner({passwords}: {passwords: string[]}) {
     error: validationError,
     isPending,
   } = useMutation<
-    ComAtprotoServerCreateAppPassword.AppPassword,
+    SonetServerCreateAppPassword.AppPassword,
     Error | DisplayableError
   >({
     mutationFn: async () => {
@@ -188,7 +188,7 @@ function CreateDialogInner({passwords}: {passwords: string[]}) {
               </Text>
               <Text style={[a.text_md, a.leading_snug]}>
                 <Trans>
-                  Use this to sign in to the other app along with your handle.
+                  Use this to sign in to the other app along with your username.
                 </Trans>
               </Text>
               <CopyButton

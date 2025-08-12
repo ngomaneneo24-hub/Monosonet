@@ -1,4 +1,4 @@
-import {AppBskyGraphDefs} from '@atproto/api'
+import {SonetGraphDefs} from '@sonet/api'
 import {QueryClient, useQuery} from '@tanstack/react-query'
 
 import {accumulate} from '#/lib/async/accumulate'
@@ -17,16 +17,16 @@ export const RQKEY = (filter: MyListsFilter) => [RQKEY_ROOT, filter]
 export function useMyListsQuery(filter: MyListsFilter) {
   const {currentAccount} = useSession()
   const agent = useAgent()
-  return useQuery<AppBskyGraphDefs.ListView[]>({
+  return useQuery<SonetGraphDefs.ListView[]>({
     staleTime: STALE.MINUTES.ONE,
     queryKey: RQKEY(filter),
     async queryFn() {
-      let lists: AppBskyGraphDefs.ListView[] = []
+      let lists: SonetGraphDefs.ListView[] = []
       const promises = [
         accumulate(cursor =>
-          agent.app.bsky.graph
+          agent.app.sonet.graph
             .getLists({
-              actor: currentAccount!.did,
+              actor: currentAccount!.userId,
               cursor,
               limit: 50,
             })
@@ -39,7 +39,7 @@ export function useMyListsQuery(filter: MyListsFilter) {
       if (filter === 'all-including-subscribed' || filter === 'mod') {
         promises.push(
           accumulate(cursor =>
-            agent.app.bsky.graph
+            agent.app.sonet.graph
               .getListMutes({
                 cursor,
                 limit: 50,
@@ -52,7 +52,7 @@ export function useMyListsQuery(filter: MyListsFilter) {
         )
         promises.push(
           accumulate(cursor =>
-            agent.app.bsky.graph
+            agent.app.sonet.graph
               .getListBlocks({
                 cursor,
                 limit: 50,
@@ -69,13 +69,13 @@ export function useMyListsQuery(filter: MyListsFilter) {
         for (let list of res) {
           if (
             filter === 'curate' &&
-            list.purpose !== 'app.bsky.graph.defs#curatelist'
+            list.purpose !== 'app.sonet.graph.defs#curatelist'
           ) {
             continue
           }
           if (
             filter === 'mod' &&
-            list.purpose !== 'app.bsky.graph.defs#modlist'
+            list.purpose !== 'app.sonet.graph.defs#modlist'
           ) {
             continue
           }

@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native'
 import {LinearGradient} from 'expo-linear-gradient'
-import {type AppBskyGraphDefs, RichText as RichTextAPI} from '@atproto/api'
+import {type SonetGraphDefs, RichText as RichTextAPI} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -45,7 +45,7 @@ export function Component({
 }: {
   purpose?: string
   onSave?: (uri: string) => void
-  list?: AppBskyGraphDefs.ListView
+  list?: SonetGraphDefs.ListView
 }) {
   const {closeModal} = useModalControls()
   const {isMobile} = useWebMediaQueries()
@@ -64,9 +64,9 @@ export function Component({
     if (purpose) {
       return purpose
     }
-    return 'app.bsky.graph.defs#curatelist'
+    return 'app.sonet.graph.defs#curatelist'
   }, [list, purpose])
-  const isCurateList = activePurpose === 'app.bsky.graph.defs#curatelist'
+  const isCurateList = activePurpose === 'app.sonet.graph.defs#curatelist'
 
   const [isProcessing, setProcessing] = useState<boolean>(false)
   const [name, setName] = useState<string>(list?.name || '')
@@ -258,7 +258,7 @@ export function Component({
               style={[styles.textInput, pal.border, pal.text]}
               placeholder={
                 isCurateList
-                  ? _(msg`e.g. Great Posters`)
+                  ? _(msg`e.g. Great Noteers`)
                   : _(msg`e.g. Spammers`)
               }
               placeholderTextColor={colors.gray4}
@@ -287,7 +287,7 @@ export function Component({
               style={[styles.textArea, pal.border, pal.text]}
               placeholder={
                 isCurateList
-                  ? _(msg`e.g. The posters who never miss.`)
+                  ? _(msg`e.g. The noteers who never miss.`)
                   : _(msg`e.g. Users that repeatedly reply with ads.`)
               }
               placeholderTextColor={colors.gray4}

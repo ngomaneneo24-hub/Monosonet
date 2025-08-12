@@ -7,7 +7,7 @@ export function useRequestEmailVerification() {
 
   return useMutation({
     mutationFn: async () => {
-      await agent.com.atproto.server.requestEmailConfirmation()
+      await agent.com.sonet.server.requestEmailConfirmation()
     },
   })
 }

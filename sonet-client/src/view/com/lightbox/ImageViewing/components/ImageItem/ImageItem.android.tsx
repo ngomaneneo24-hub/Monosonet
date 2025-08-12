@@ -4,7 +4,7 @@ import {
   Gesture,
   GestureDetector,
   PanGesture,
-} from 'react-native-gesture-handler'
+} from 'react-native-gesture-usernamer'
 import Animated, {
   runOnJS,
   SharedValue,
@@ -101,12 +101,12 @@ const ImageItem = ({
     },
     (nextIsScaled, prevIsScaled) => {
       if (nextIsScaled !== prevIsScaled) {
-        runOnJS(handleZoom)(nextIsScaled)
+        runOnJS(usernameZoom)(nextIsScaled)
       }
     },
   )
 
-  function handleZoom(nextIsScaled: boolean) {
+  function usernameZoom(nextIsScaled: boolean) {
     setIsScaled(nextIsScaled)
     onZoom(nextIsScaled)
   }
@@ -114,7 +114,7 @@ const ImageItem = ({
   // On Android, stock apps prevent going "out of bounds" on pan or pinch. You should "bump" into edges.
   // If the user tried to pan too hard, this function will provide the negative panning to stay in bounds.
   function getExtraTranslationToStayInBounds(
-    candidateTransform: TransformMatrix,
+    canuserIdateTransform: TransformMatrix,
     screenSize: {width: number; height: number},
   ) {
     'worklet'
@@ -122,7 +122,7 @@ const ImageItem = ({
       return [0, 0]
     }
     const [nextTranslateX, nextTranslateY, nextScale] =
-      readTransform(candidateTransform)
+      readTransform(canuserIdateTransform)
     const scaledDimensions = getScaledDimensions(
       imageAspect,
       nextScale,
@@ -272,7 +272,7 @@ const ImageItem = ({
 
       // Try to zoom in so that we get rid of the black bars (whatever the orientation was).
       const screenAspect = screenSize.width / screenSize.height
-      const candidateScale = Math.max(
+      const canuserIdateScale = Math.max(
         imageAspect / screenAspect,
         screenAspect / imageAspect,
         MIN_SCREEN_ZOOM,
@@ -282,20 +282,20 @@ const ImageItem = ({
         MIN_SCREEN_ZOOM,
         (imageDimensions.width / screenSize.width) * MAX_ORIGINAL_IMAGE_ZOOM,
       )
-      const scale = Math.min(candidateScale, maxScale)
+      const scale = Math.min(canuserIdateScale, maxScale)
 
       // Calculate where we would be if the user pinched into the double tapped point.
       // We won't use this transform directly because it may go out of bounds.
-      const candidateTransform = createTransform()
+      const canuserIdateTransform = createTransform()
       const origin = {
         x: e.absoluteX - screenSize.width / 2,
         y: e.absoluteY - screenSize.height / 2,
       }
-      prependPinch(candidateTransform, scale, origin, {x: 0, y: 0})
+      prependPinch(canuserIdateTransform, scale, origin, {x: 0, y: 0})
 
       // Now we know how much we went out of bounds, so we can shoot correctly.
       const [dx, dy] = getExtraTranslationToStayInBounds(
-        candidateTransform,
+        canuserIdateTransform,
         screenSize,
       )
       const finalTransform = createTransform()

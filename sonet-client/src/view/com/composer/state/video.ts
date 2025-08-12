@@ -112,7 +112,7 @@ type ProcessingState = {
   asset: ImagePickerAsset
   video: CompressedVideo
   jobId: string
-  jobStatus: AppBskyVideoDefs.JobStatus | null
+  jobStatus: SonetVideoDefs.JobStatus | null
   pendingPublish?: undefined
   altText: string
   captions: CaptionsTrack[]
@@ -259,8 +259,8 @@ function trunc2dp(num: number) {
 export async function processVideo(
   asset: ImagePickerAsset,
   dispatch: (action: VideoAction) => void,
-  agent: BskyAgent,
-  did: string,
+  agent: SonetAppAgent,
+  userId: string,
   signal: AbortSignal,
   _: I18n['_'],
 ) {
@@ -289,12 +289,12 @@ export async function processVideo(
     signal,
   })
 
-  let uploadResponse: AppBskyVideoDefs.JobStatus | undefined
+  let uploadResponse: SonetVideoDefs.JobStatus | undefined
   try {
     uploadResponse = await uploadVideo({
       video,
       agent,
-      did,
+      userId,
       signal,
       _,
       setProgress: p => {
@@ -330,14 +330,14 @@ export async function processVideo(
     let status: JobStatus | undefined
     let blob: BlobRef | undefined
     try {
-      const response = await videoAgent.app.bsky.video.getJobStatus({jobId})
+      const response = await videoAgent.app.sonet.video.getJobStatus({jobId})
       status = response.data.jobStatus
       pollFailures = 0
 
       if (status.state === 'JOB_STATE_COMPLETED') {
         blob = status.blob
         if (!blob) {
-          throw new Error('Job completed, but did not return a blob')
+          throw new Error('Job completed, but userId not return a blob')
         }
       } else if (status.state === 'JOB_STATE_FAILED') {
         throw new Error(status.error ?? 'Job failed to process')

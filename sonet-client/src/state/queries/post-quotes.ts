@@ -1,10 +1,10 @@
 import {
-  AppBskyActorDefs,
-  AppBskyEmbedRecord,
-  AppBskyFeedDefs,
-  AppBskyFeedGetQuotes,
+  SonetActorDefs,
+  SonetEmbedRecord,
+  SonetFeedDefs,
+  SonetFeedGetQuotes,
   AtUri,
-} from '@atproto/api'
+} from '@sonet/api'
 import {
   InfiniteData,
   QueryClient,
@@ -14,29 +14,29 @@ import {
 
 import {useAgent} from '#/state/session'
 import {
-  didOrHandleUriMatches,
-  embedViewRecordToPostView,
-  getEmbeddedPost,
+  userIdOrUsernameUriMatches,
+  embedViewRecordToNoteView,
+  getEmbeddedNote,
 } from './util'
 
 const PAGE_SIZE = 30
 type RQPageParam = string | undefined
 
-const RQKEY_ROOT = 'post-quotes'
+const RQKEY_ROOT = 'note-quotes'
 export const RQKEY = (resolvedUri: string) => [RQKEY_ROOT, resolvedUri]
 
-export function usePostQuotesQuery(resolvedUri: string | undefined) {
+export function useNoteQuotesQuery(resolvedUri: string | undefined) {
   const agent = useAgent()
   return useInfiniteQuery<
-    AppBskyFeedGetQuotes.OutputSchema,
+    SonetFeedGetQuotes.OutputSchema,
     Error,
-    InfiniteData<AppBskyFeedGetQuotes.OutputSchema>,
+    InfiniteData<SonetFeedGetQuotes.OutputSchema>,
     QueryKey,
     RQPageParam
   >({
     queryKey: RQKEY(resolvedUri || ''),
     async queryFn({pageParam}: {pageParam: RQPageParam}) {
-      const res = await agent.api.app.bsky.feed.getQuotes({
+      const res = await agent.api.app.sonet.feed.getQuotes({
         uri: resolvedUri || '',
         limit: PAGE_SIZE,
         cursor: pageParam,
@@ -52,9 +52,9 @@ export function usePostQuotesQuery(resolvedUri: string | undefined) {
         pages: data.pages.map(page => {
           return {
             ...page,
-            posts: page.posts.filter(post => {
-              if (post.embed && AppBskyEmbedRecord.isView(post.embed)) {
-                if (AppBskyEmbedRecord.isViewDetached(post.embed.record)) {
+            notes: page.notes.filter(note => {
+              if (note.embed && SonetEmbedRecord.isView(note.embed)) {
+                if (SonetEmbedRecord.isViewDetached(note.embed.record)) {
                   return false
                 }
               }
@@ -69,10 +69,10 @@ export function usePostQuotesQuery(resolvedUri: string | undefined) {
 
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
-  did: string,
-): Generator<AppBskyActorDefs.ProfileViewBasic, void> {
+  userId: string,
+): Generator<SonetActorDefs.ProfileViewBasic, void> {
   const queryDatas = queryClient.getQueriesData<
-    InfiniteData<AppBskyFeedGetQuotes.OutputSchema>
+    InfiniteData<SonetFeedGetQuotes.OutputSchema>
   >({
     queryKey: [RQKEY_ROOT],
   })
@@ -81,25 +81,25 @@ export function* findAllProfilesInQueryData(
       continue
     }
     for (const page of queryData?.pages) {
-      for (const item of page.posts) {
-        if (item.author.did === did) {
+      for (const item of page.notes) {
+        if (item.author.userId === userId) {
           yield item.author
         }
-        const quotedPost = getEmbeddedPost(item.embed)
-        if (quotedPost?.author.did === did) {
-          yield quotedPost.author
+        const quotedNote = getEmbeddedNote(item.embed)
+        if (quotedNote?.author.userId === userId) {
+          yield quotedNote.author
         }
       }
     }
   }
 }
 
-export function* findAllPostsInQueryData(
+export function* findAllNotesInQueryData(
   queryClient: QueryClient,
   uri: string,
-): Generator<AppBskyFeedDefs.PostView, undefined> {
+): Generator<SonetFeedDefs.NoteView, undefined> {
   const queryDatas = queryClient.getQueriesData<
-    InfiniteData<AppBskyFeedGetQuotes.OutputSchema>
+    InfiniteData<SonetFeedGetQuotes.OutputSchema>
   >({
     queryKey: [RQKEY_ROOT],
   })
@@ -109,14 +109,14 @@ export function* findAllPostsInQueryData(
       continue
     }
     for (const page of queryData?.pages) {
-      for (const post of page.posts) {
-        if (didOrHandleUriMatches(atUri, post)) {
-          yield post
+      for (const note of page.notes) {
+        if (userIdOrUsernameUriMatches(atUri, note)) {
+          yield note
         }
 
-        const quotedPost = getEmbeddedPost(post.embed)
-        if (quotedPost && didOrHandleUriMatches(atUri, quotedPost)) {
-          yield embedViewRecordToPostView(quotedPost)
+        const quotedNote = getEmbeddedNote(note.embed)
+        if (quotedNote && userIdOrUsernameUriMatches(atUri, quotedNote)) {
+          yield embedViewRecordToNoteView(quotedNote)
         }
       }
     }

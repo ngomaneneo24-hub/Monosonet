@@ -1,5 +1,5 @@
 import React from 'react'
-import {AppBskyActorDefs as ActorDefs} from '@atproto/api'
+import {SonetActorDefs as ActorDefs} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -22,7 +22,7 @@ function renderItem({
 }) {
   return (
     <ProfileCardWithFollowBtn
-      key={item.did}
+      key={item.userId}
       profile={item}
       noBorder={index === 0}
     />
@@ -30,7 +30,7 @@ function renderItem({
 }
 
 function keyExtractor(item: ActorDefs.ProfileViewBasic) {
-  return item.did
+  return item.userId
 }
 
 export function ProfileFollows({name}: {name: string}) {
@@ -55,7 +55,7 @@ export function ProfileFollows({name}: {name: string}) {
   } = useProfileFollowsQuery(resolvedDid)
 
   const isError = !!resolveError || !!error
-  const isMe = resolvedDid === currentAccount?.did
+  const isMe = resolvedDid === currentAccount?.userId
 
   const follows = React.useMemo(() => {
     if (data?.pages) {

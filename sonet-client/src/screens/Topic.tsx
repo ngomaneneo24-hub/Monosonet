@@ -12,11 +12,11 @@ import {type CommonNavigatorParams} from '#/lib/routes/types'
 import {shareUrl} from '#/lib/sharing'
 import {cleanError} from '#/lib/strings/errors'
 import {enforceLen} from '#/lib/strings/helpers'
-import {useSearchPostsQuery} from '#/state/queries/search-posts'
+import {useSearchNotesQuery} from '#/state/queries/search-notes'
 import {useSetMinimalShellMode} from '#/state/shell'
 import {Pager} from '#/view/com/pager/Pager'
 import {TabBar} from '#/view/com/pager/TabBar'
-import {Post} from '#/view/com/post/Post'
+import {Note} from '#/view/com/note/Note'
 import {List} from '#/view/com/util/List'
 import {atoms as a, web} from '#/alf'
 import {Button, ButtonIcon} from '#/components/Button'
@@ -24,11 +24,11 @@ import {ArrowOutOfBoxModified_Stroke2_Corner2_Rounded as Share} from '#/componen
 import * as Layout from '#/components/Layout'
 import {ListFooter, ListMaybePlaceholder} from '#/components/Lists'
 
-const renderItem = ({item}: ListRenderItemInfo<PostView>) => {
-  return <Post post={item} />
+const renderItem = ({item}: ListRenderItemInfo<NoteView>) => {
+  return <Note note={item} />
 }
 
-const keyExtractor = (item: PostView, index: number) => {
+const keyExtractor = (item: NoteView, index: number) => {
   return `${item.uri}-${index}`
 }
 
@@ -43,7 +43,7 @@ export default function TopicScreen({
   }, [topic])
 
   const onShare = React.useCallback(() => {
-    const url = new URL('https://bsky.app')
+    const url = new URL('https://sonet.app')
     url.pathname = `/topic/${topic}`
     shareUrl(url.toString())
   }, [topic])
@@ -146,14 +146,14 @@ function TopicScreenTab({
     refetch,
     fetchNextPage,
     hasNextPage,
-  } = useSearchPostsQuery({
+  } = useSearchNotesQuery({
     query: decodeURIComponent(topic),
     sort,
     enabled: active,
   })
 
-  const posts = React.useMemo(() => {
-    return data?.pages.flatMap(page => page.posts) || []
+  const notes = React.useMemo(() => {
+    return data?.pages.flatMap(page => page.notes) || []
   }, [data])
 
   const onRefresh = React.useCallback(async () => {
@@ -169,7 +169,7 @@ function TopicScreenTab({
 
   return (
     <>
-      {posts.length < 1 ? (
+      {notes.length < 1 ? (
         <ListMaybePlaceholder
           isLoading={isLoading || !isFetched}
           isError={isError}
@@ -179,7 +179,7 @@ function TopicScreenTab({
         />
       ) : (
         <List
-          data={posts}
+          data={notes}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           refreshing={isPTR}

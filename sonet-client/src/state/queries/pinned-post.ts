@@ -3,13 +3,13 @@ import {useLingui} from '@lingui/react'
 import {useMutation, useQueryClient} from '@tanstack/react-query'
 
 import {logger} from '#/logger'
-import {RQKEY as FEED_RQKEY} from '#/state/queries/post-feed'
+import {RQKEY as FEED_RQKEY} from '#/state/queries/note-feed'
 import * as Toast from '#/view/com/util/Toast'
-import {updatePostShadow} from '../cache/post-shadow'
+import {updateNoteShadow} from '../cache/note-shadow'
 import {useAgent, useSession} from '../session'
 import {useProfileUpdateMutation} from './profile'
 
-export function usePinnedPostMutation() {
+export function usePinnedNoteMutation() {
   const {_} = useLingui()
   const {currentAccount} = useSession()
   const agent = useAgent()
@@ -18,68 +18,68 @@ export function usePinnedPostMutation() {
 
   return useMutation({
     mutationFn: async ({
-      postUri,
-      postCid,
+      noteUri,
+      noteCid,
       action,
     }: {
-      postUri: string
-      postCid: string
+      noteUri: string
+      noteCid: string
       action: 'pin' | 'unpin'
     }) => {
-      const pinCurrentPost = action === 'pin'
-      let prevPinnedPost: string | undefined
+      const pinCurrentNote = action === 'pin'
+      let prevPinnedNote: string | undefined
       try {
-        updatePostShadow(queryClient, postUri, {pinned: pinCurrentPost})
+        updateNoteShadow(queryClient, noteUri, {pinned: pinCurrentNote})
 
-        // get the currently pinned post so we can optimistically remove the pin from it
+        // get the currently pinned note so we can optimistically remove the pin from it
         if (!currentAccount) throw new Error('Not signed in')
         const {data: profile} = await agent.getProfile({
-          actor: currentAccount.did,
+          actor: currentAccount.userId,
         })
-        prevPinnedPost = profile.pinnedPost?.uri
-        if (prevPinnedPost && prevPinnedPost !== postUri) {
-          updatePostShadow(queryClient, prevPinnedPost, {pinned: false})
+        prevPinnedNote = profile.pinnedNote?.uri
+        if (prevPinnedNote && prevPinnedNote !== noteUri) {
+          updateNoteShadow(queryClient, prevPinnedNote, {pinned: false})
         }
 
         await profileUpdateMutate({
           profile,
           updates: existing => {
-            existing.pinnedPost = pinCurrentPost
-              ? {uri: postUri, cid: postCid}
+            existing.pinnedNote = pinCurrentNote
+              ? {uri: noteUri, cid: noteCid}
               : undefined
             return existing
           },
           checkCommitted: res =>
-            pinCurrentPost
-              ? res.data.pinnedPost?.uri === postUri
-              : !res.data.pinnedPost,
+            pinCurrentNote
+              ? res.data.pinnedNote?.uri === noteUri
+              : !res.data.pinnedNote,
         })
 
-        if (pinCurrentPost) {
-          Toast.show(_(msg({message: 'Post pinned', context: 'toast'})))
+        if (pinCurrentNote) {
+          Toast.show(_(msg({message: 'Note pinned', context: 'toast'})))
         } else {
-          Toast.show(_(msg({message: 'Post unpinned', context: 'toast'})))
+          Toast.show(_(msg({message: 'Note unpinned', context: 'toast'})))
         }
 
         queryClient.invalidateQueries({
           queryKey: FEED_RQKEY(
-            `author|${currentAccount.did}|posts_and_author_threads`,
+            `author|${currentAccount.userId}|notes_and_author_threads`,
           ),
         })
         queryClient.invalidateQueries({
           queryKey: FEED_RQKEY(
-            `author|${currentAccount.did}|posts_with_replies`,
+            `author|${currentAccount.userId}|notes_with_replies`,
           ),
         })
       } catch (e: any) {
-        Toast.show(_(msg`Failed to pin post`))
-        logger.error('Failed to pin post', {message: String(e)})
+        Toast.show(_(msg`Failed to pin note`))
+        logger.error('Failed to pin note', {message: String(e)})
         // revert optimistic update
-        updatePostShadow(queryClient, postUri, {
-          pinned: !pinCurrentPost,
+        updateNoteShadow(queryClient, noteUri, {
+          pinned: !pinCurrentNote,
         })
-        if (prevPinnedPost && prevPinnedPost !== postUri) {
-          updatePostShadow(queryClient, prevPinnedPost, {pinned: true})
+        if (prevPinnedNote && prevPinnedNote !== noteUri) {
+          updateNoteShadow(queryClient, prevPinnedNote, {pinned: true})
         }
       }
     },

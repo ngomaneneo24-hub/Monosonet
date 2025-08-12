@@ -18,7 +18,7 @@ import {
   type SavedFeedSourceInfo,
   usePinnedFeedsInfos,
 } from '#/state/queries/feed'
-import {type FeedDescriptor, type FeedParams} from '#/state/queries/post-feed'
+import {type FeedDescriptor, type FeedParams} from '#/state/queries/note-feed'
 import {usePreferencesQuery} from '#/state/queries/preferences'
 import {type UsePreferencesQueryResponse} from '#/state/queries/preferences/types'
 import {useSession} from '#/state/session'
@@ -33,9 +33,9 @@ import {
   type PagerRef,
   type RenderTabBarFnProps,
 } from '#/view/com/pager/Pager'
-import {CustomFeedEmptyState} from '#/view/com/posts/CustomFeedEmptyState'
-import {FollowingEmptyState} from '#/view/com/posts/FollowingEmptyState'
-import {FollowingEndOfFeed} from '#/view/com/posts/FollowingEndOfFeed'
+import {CustomFeedEmptyState} from '#/view/com/notes/CustomFeedEmptyState'
+import {FollowingEmptyState} from '#/view/com/notes/FollowingEmptyState'
+import {FollowingEndOfFeed} from '#/view/com/notes/FollowingEndOfFeed'
 import {NoFeedsPinned} from '#/screens/Home/NoFeedsPinned'
 import * as Layout from '#/components/Layout'
 import {useDemoMode} from '#/storage/hooks/demo-mode'

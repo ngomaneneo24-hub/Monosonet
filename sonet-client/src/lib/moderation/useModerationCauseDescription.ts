@@ -1,13 +1,13 @@
 import React from 'react'
 import {
-  BSKY_LABELER_DID,
+  BSKY_LABELER_UserID,
   type ModerationCause,
   type ModerationCauseSource,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {useLabelDefinitions} from '#/state/preferences'
 import {useSession} from '#/state/session'
 import {CircleBanSign_Stroke2_Corner0_Rounded as CircleBanSign} from '#/components/icons/CircleBanSign'
@@ -103,21 +103,21 @@ export function useModerationCauseDescription(
     if (cause.type === 'mute-word') {
       return {
         icon: EyeSlash,
-        name: _(msg`Post Hidden by Muted Word`),
+        name: _(msg`Note Hidden by Muted Word`),
         description: _(
-          msg`You've chosen to hide a word or tag within this post.`,
+          msg`You've chosen to hide a word or tag within this note.`,
         ),
       }
     }
     if (cause.type === 'hidden') {
       return {
         icon: EyeSlash,
-        name: _(msg`Post Hidden by You`),
-        description: _(msg`You have hidden this post`),
+        name: _(msg`Note Hidden by You`),
+        description: _(msg`You have hidden this note`),
       }
     }
     if (cause.type === 'reply-hidden') {
-      const isMe = currentAccount?.did === cause.source.did
+      const isMe = currentAccount?.userId === cause.source.userId
       return {
         icon: EyeSlash,
         name: isMe
@@ -131,14 +131,14 @@ export function useModerationCauseDescription(
     if (cause.type === 'label') {
       const def = cause.labelDef || getDefinition(labelDefs, cause.label)
       const strings = getLabelStrings(i18n.locale, globalLabelStrings, def)
-      const labeler = labelers.find(l => l.creator.did === cause.label.src)
+      const labeler = labelers.find(l => l.creator.userId === cause.label.src)
       let source = labeler
-        ? sanitizeHandle(labeler.creator.handle, '@')
+        ? sanitizeUsername(labeler.creator.username, '@')
         : undefined
       let sourceDisplayName = labeler?.creator.displayName
       if (!source) {
-        if (cause.label.src === BSKY_LABELER_DID) {
-          source = 'moderation.bsky.app'
+        if (cause.label.src === BSKY_LABELER_UserID) {
+          source = 'moderation.sonet.app'
           sourceDisplayName = 'Bluesky Moderation Service'
         } else {
           source = _(msg`an unknown labeler`)
@@ -177,6 +177,6 @@ export function useModerationCauseDescription(
     cause,
     _,
     i18n.locale,
-    currentAccount?.did,
+    currentAccount?.userId,
   ])
 }

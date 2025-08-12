@@ -1,16 +1,16 @@
-import {type AppBskyFeedDefs, type BskyAgent} from '@atproto/api'
+import {type SonetFeedDefs, type SonetAppAgent} from '@sonet/api'
 
 import {DEMO_FEED} from '#/lib/demo'
 import {type FeedAPI, type FeedAPIResponse} from './types'
 
 export class DemoFeedAPI implements FeedAPI {
-  agent: BskyAgent
+  agent: SonetAppAgent
 
-  constructor({agent}: {agent: BskyAgent}) {
+  constructor({agent}: {agent: SonetAppAgent}) {
     this.agent = agent
   }
 
-  async peekLatest(): Promise<AppBskyFeedDefs.FeedViewPost> {
+  async peekLatest(): Promise<SonetFeedDefs.FeedViewNote> {
     return DEMO_FEED.feed[0]
   }
 

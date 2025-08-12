@@ -94,10 +94,10 @@ export class SonetValidationError extends SonetError {
   }
 }
 
-export interface SonetHandleAvailability {
+export interface SonetUsernameAvailability {
   available: boolean
-  handle: string
-  suggestedHandles?: string[]
+  username: string
+  suggestedUsernames?: string[]
 }
 
 // Rich Text and Facets
@@ -129,38 +129,38 @@ export type SonetFacetFeature =
   | SonetTagFeature
 
 export interface SonetMentionFeature {
-  $type: 'app.sonet.richtext.facet#mention'
-  did: string
+  type: "sonet"
+  userId: string
 }
 
 export interface SonetLinkFeature {
-  $type: 'app.sonet.richtext.facet#link'
+  type: "sonet"
   uri: string
 }
 
 export interface SonetTagFeature {
-  $type: 'app.sonet.richtext.facet#tag'
+  type: "sonet"
   tag: string
 }
 
-// Threadgate and Postgate
+// Threadgate and Notegate
 export interface SonetThreadgate {
   allow: SonetThreadgateRule[]
 }
 
 export type SonetThreadgateRule = 
-  | { $type: 'app.sonet.threadgate#mentionRule'; mention: boolean }
-  | { $type: 'app.sonet.threadgate#followingRule'; following: boolean }
-  | { $type: 'app.sonet.threadgate#listRule'; list: string }
+  | { type: "sonet"; mention: boolean }
+  | { type: "sonet"; following: boolean }
+  | { type: "sonet"; list: string }
 
-export interface SonetPostgate {
-  allow: SonetPostgateRule[]
+export interface SonetNotegate {
+  allow: SonetNotegateRule[]
 }
 
-export type SonetPostgateRule = 
-  | { $type: 'app.sonet.postgate#mentionRule'; mention: boolean }
-  | { $type: 'app.sonet.postgate#followingRule'; following: boolean }
-  | { $type: 'app.sonet.postgate#listRule'; list: string }
+export type SonetNotegateRule = 
+  | { type: "sonet"; mention: boolean }
+  | { type: "sonet"; following: boolean }
+  | { type: "sonet"; list: string }
 
 // Video and Media Types
 export interface SonetVideoDefs {

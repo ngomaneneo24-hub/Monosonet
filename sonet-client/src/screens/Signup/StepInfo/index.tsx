@@ -24,7 +24,7 @@ import {BackNextButtons} from '../BackNextButtons'
 
 function sanitizeDate(date: Date): Date {
   if (!date || date.toString() === 'Invalid Date') {
-    logger.error(`Create account: handled invalid date for birthDate`, {
+    logger.error(`Create account: usernamed invalid date for birthDate`, {
       hasDate: !!date,
     })
     return new Date()

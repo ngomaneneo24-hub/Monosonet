@@ -156,8 +156,8 @@ export function BottomBarWeb() {
                 href={
                   currentAccount
                     ? makeProfileLink({
-                        did: currentAccount.did,
-                        handle: currentAccount.handle,
+                        userId: currentAccount.userId,
+                        username: currentAccount.username,
                       })
                     : '/'
                 }>
@@ -250,14 +250,14 @@ const NavItem: React.FC<{
     currentRoute.name === 'Profile' &&
     routeName === 'Profile' &&
     (currentRoute.params as CommonNavigatorParams['Profile']).name !==
-      currentAccount?.handle
+      currentAccount?.username
 
   const isActive =
     currentRoute.name === 'Profile'
       ? isTab(currentRoute.name, routeName) &&
         (currentRoute.params as CommonNavigatorParams['Profile']).name ===
           (routeName === 'Profile'
-            ? currentAccount?.handle
+            ? currentAccount?.username
             : (currentRoute.params as CommonNavigatorParams['Profile']).name)
       : isTab(currentRoute.name, routeName)
 

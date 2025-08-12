@@ -95,22 +95,22 @@ export function SonetFileAttachment({
     }
   }, [attachment.encryptionStatus, _])
 
-  // Handle download
-  const handleDownload = useCallback(() => {
+  // Username download
+  const usernameDownload = useCallback(() => {
     if (onDownload) {
       onDownload(attachment)
     }
   }, [attachment, onDownload])
 
-  // Handle retry
-  const handleRetry = useCallback(() => {
+  // Username retry
+  const usernameRetry = useCallback(() => {
     if (onRetry) {
       onRetry(attachment)
     }
   }, [attachment, onRetry])
 
-  // Handle delete
-  const handleDelete = useCallback(() => {
+  // Username delete
+  const usernameDelete = useCallback(() => {
     if (onDelete) {
       onDelete(attachment)
     }
@@ -275,7 +275,7 @@ export function SonetFileAttachment({
                 variant="ghost"
                 color="secondary"
                 size="small"
-                onPress={handleDownload}
+                onPress={usernameDownload}
                 style={[a.flex_1]}>
                 <ButtonIcon icon={DownloadIcon} />
                 <ButtonText>
@@ -289,7 +289,7 @@ export function SonetFileAttachment({
                 variant="ghost"
                 color="secondary"
                 size="small"
-                onPress={handleRetry}
+                onPress={usernameRetry}
                 style={[a.flex_1]}>
                 <ButtonIcon icon={SendIcon} />
                 <ButtonText>
@@ -303,7 +303,7 @@ export function SonetFileAttachment({
                 variant="ghost"
                 color="negative"
                 size="small"
-                onPress={handleDelete}
+                onPress={usernameDelete}
                 style={[a.flex_1]}>
                 <ButtonText>
                   <Trans>Delete</Trans>

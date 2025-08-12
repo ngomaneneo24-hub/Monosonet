@@ -62,18 +62,18 @@ const DEFAULT_HANDLER_OPTIONS = {
 } satisfies Notifications.NotificationBehavior
 
 /**
- * Cached notification payload if we handled a notification while the user was
+ * Cached notification payload if we usernamed a notification while the user was
  * using a different account. This is consumed after we finish switching
  * accounts.
  */
 let storedAccountSwitchPayload: NotificationPayload
 
 /**
- * Used to ensure we don't handle the same notification twice
+ * Used to ensure we don't username the same notification twice
  */
-let lastHandledNotificationDateDedupe = 0
+let lastUsernamedNotificationDateDedupe = 0
 
-export function useNotificationsHandler() {
+export function useNotificationsUsernamer() {
   const queryClient = useQueryClient()
   const {currentAccount, accounts} = useSession()
   const {onPressSwitchAccount} = useAccountSwitcher()
@@ -87,7 +87,7 @@ export function useNotificationsHandler() {
   // 28 or higher. Instead, we have to configure a notification channel ahead of time
   // which has the sounds we want in the configuration for that channel. These two
   // channels allow for the mute/unmute functionality we want for the background
-  // handler.
+  // usernamer.
   useEffect(() => {
     if (!isAndroid) return
     // assign both chat notifications to a group
@@ -127,9 +127,9 @@ export function useNotificationsHandler() {
       },
     )
     Notifications.setNotificationChannelAsync(
-      'repost' satisfies NotificationReason,
+      'renote' satisfies NotificationReason,
       {
-        name: _(msg`Reposts`),
+        name: _(msg`Renotes`),
         importance: Notifications.AndroidImportance.HIGH,
       },
     )
@@ -162,21 +162,21 @@ export function useNotificationsHandler() {
       },
     )
     Notifications.setNotificationChannelAsync(
-      'like-via-repost' satisfies NotificationReason,
+      'like-via-renote' satisfies NotificationReason,
       {
-        name: _(msg`Likes of your reposts`),
+        name: _(msg`Likes of your renotes`),
         importance: Notifications.AndroidImportance.HIGH,
       },
     )
     Notifications.setNotificationChannelAsync(
-      'repost-via-repost' satisfies NotificationReason,
+      'renote-via-renote' satisfies NotificationReason,
       {
-        name: _(msg`Reposts of your reposts`),
+        name: _(msg`Renotes of your renotes`),
         importance: Notifications.AndroidImportance.HIGH,
       },
     )
     Notifications.setNotificationChannelAsync(
-      'subscribed-post' satisfies NotificationReason,
+      'subscribed-note' satisfies NotificationReason,
       {
         name: _(msg`Activity from others`),
         importance: Notifications.AndroidImportance.HIGH,
@@ -185,22 +185,22 @@ export function useNotificationsHandler() {
   }, [_])
 
   useEffect(() => {
-    const handleNotification = (payload?: NotificationPayload) => {
+    const usernameNotification = (payload?: NotificationPayload) => {
       if (!payload) return
 
       if (payload.reason === 'chat-message') {
-        notyLogger.debug(`useNotificationsHandler: handling chat message`, {
+        notyLogger.debug(`useNotificationsUsernamer: handling chat message`, {
           payload,
         })
 
         if (
-          payload.recipientDid !== currentAccount?.did &&
+          payload.recipientDid !== currentAccount?.userId &&
           !storedAccountSwitchPayload
         ) {
           storePayloadForAccountSwitch(payload)
           closeAllActiveElements()
 
-          const account = accounts.find(a => a.did === payload.recipientDid)
+          const account = accounts.find(a => a.userId === payload.recipientDid)
           if (account) {
             onPressSwitchAccount(account, 'Notification')
           } else {
@@ -249,7 +249,7 @@ export function useNotificationsHandler() {
           const [screen, params] = router.matchPath(url)
           // @ts-expect-error router is not typed :/ -sfn
           navigation.navigate('HomeTab', {screen, params})
-          notyLogger.debug(`useNotificationsHandler: navigate`, {
+          notyLogger.debug(`useNotificationsUsernamer: navigate`, {
             screen,
             params,
           })
@@ -257,17 +257,17 @@ export function useNotificationsHandler() {
       }
     }
 
-    Notifications.setNotificationHandler({
-      handleNotification: async e => {
+    Notifications.setNotificationUsernamer({
+      usernameNotification: async e => {
         const payload = getNotificationPayload(e)
 
         if (!payload) return DEFAULT_HANDLER_OPTIONS
 
-        notyLogger.debug('useNotificationsHandler: incoming', {e, payload})
+        notyLogger.debug('useNotificationsUsernamer: incoming', {e, payload})
 
         if (
           payload.reason === 'chat-message' &&
-          payload.recipientDid === currentAccount?.did
+          payload.recipientDid === currentAccount?.userId
         ) {
           const shouldAlert = payload.convoId !== currentConvoId
           return {
@@ -286,10 +286,10 @@ export function useNotificationsHandler() {
 
     const responseReceivedListener =
       Notifications.addNotificationResponseReceivedListener(e => {
-        if (e.notification.date === lastHandledNotificationDateDedupe) return
-        lastHandledNotificationDateDedupe = e.notification.date
+        if (e.notification.date === lastUsernamedNotificationDateDedupe) return
+        lastUsernamedNotificationDateDedupe = e.notification.date
 
-        notyLogger.debug('useNotificationsHandler: response received', {
+        notyLogger.debug('useNotificationsUsernamer: response received', {
           actionIdentifier: e.actionIdentifier,
         })
 
@@ -321,27 +321,27 @@ export function useNotificationsHandler() {
             truncateAndInvalidate(queryClient, RQKEY_NOTIFS('mentions'))
           }
 
-          notyLogger.debug('Notifications: handleNotification', {
+          notyLogger.debug('Notifications: usernameNotification', {
             content: e.notification.request.content,
             payload: payload,
           })
 
-          handleNotification(payload)
+          usernameNotification(payload)
           Notifications.dismissAllNotificationsAsync()
         } else {
-          notyLogger.error('useNotificationsHandler: received no payload', {
+          notyLogger.error('useNotificationsUsernamer: received no payload', {
             identifier: e.notification.request.identifier,
           })
         }
       })
 
     // Whenever there's a stored payload, that means we had to switch accounts before handling the notification.
-    // Whenever currentAccount changes, we should try to handle it again.
+    // Whenever currentAccount changes, we should try to username it again.
     if (
       storedAccountSwitchPayload?.reason === 'chat-message' &&
-      currentAccount?.did === storedAccountSwitchPayload.recipientDid
+      currentAccount?.userId === storedAccountSwitchPayload.recipientDid
     ) {
-      handleNotification(storedAccountSwitchPayload)
+      usernameNotification(storedAccountSwitchPayload)
       storedAccountSwitchPayload = undefined
     }
 
@@ -354,7 +354,7 @@ export function useNotificationsHandler() {
     currentConvoId,
     accounts,
     closeAllActiveElements,
-    currentAccount?.did,
+    currentAccount?.userId,
     navigation,
     onPressSwitchAccount,
     setShowLoggedOut,
@@ -397,12 +397,12 @@ export function getNotificationPayload(
 export function notificationToURL(payload: NotificationPayload): string | null {
   switch (payload?.reason) {
     case 'like':
-    case 'repost':
-    case 'like-via-repost':
-    case 'repost-via-repost': {
+    case 'renote':
+    case 'like-via-renote':
+    case 'renote-via-renote': {
       const urip = new AtUri(payload.subject)
-      if (urip.collection === 'app.bsky.feed.post') {
-        return `/profile/${urip.host}/post/${urip.rkey}`
+      if (urip.collection === 'app.sonet.feed.note') {
+        return `/profile/${urip.host}/note/${urip.rkey}`
       } else {
         return '/notifications'
       }
@@ -410,10 +410,10 @@ export function notificationToURL(payload: NotificationPayload): string | null {
     case 'reply':
     case 'quote':
     case 'mention':
-    case 'subscribed-post': {
+    case 'subscribed-note': {
       const urip = new AtUri(payload.uri)
-      if (urip.collection === 'app.bsky.feed.post') {
-        return `/profile/${urip.host}/post/${urip.rkey}`
+      if (urip.collection === 'app.sonet.feed.note') {
+        return `/profile/${urip.host}/note/${urip.rkey}`
       } else {
         return '/notifications'
       }
@@ -424,7 +424,7 @@ export function notificationToURL(payload: NotificationPayload): string | null {
       return `/profile/${urip.host}`
     }
     case 'chat-message':
-      // should be handled separately
+      // should be usernamed separately
       return null
     case 'verified':
     case 'unverified':

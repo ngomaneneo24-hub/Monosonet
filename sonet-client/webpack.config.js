@@ -10,7 +10,7 @@ const GENERATE_STATS = process.env.EXPO_PUBLIC_GENERATE_STATS === '1'
 const OPEN_ANALYZER = process.env.EXPO_PUBLIC_OPEN_ANALYZER === '1'
 
 const reactNativeWebWebviewConfiguration = {
-  test: /postMock.html$/,
+  test: /noteMock.html$/,
   use: {
     loader: 'file-loader',
     options: {

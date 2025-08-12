@@ -2,12 +2,12 @@ import React from 'react'
 import {View} from 'react-native'
 import {
   type $Typed,
-  type AppBskyFeedDefs,
-  AppBskyFeedPost,
+  type SonetFeedDefs,
+  SonetFeedNote,
   AtUri,
-  moderatePost,
+  moderateNote,
   RichText as RichTextAPI,
-} from '@atproto/api'
+} from '@sonet/api'
 import {Trans} from '@lingui/macro'
 import {useQueryClient} from '@tanstack/react-query'
 
@@ -17,10 +17,10 @@ import {useModerationOpts} from '#/state/preferences/moderation-opts'
 import {unstableCacheProfileView} from '#/state/queries/profile'
 import {useSession} from '#/state/session'
 import {Link} from '#/view/com/util/Link'
-import {PostMeta} from '#/view/com/util/PostMeta'
+import {NoteMeta} from '#/view/com/util/NoteMeta'
 import {atoms as a, useTheme} from '#/alf'
 import {ContentHider} from '#/components/moderation/ContentHider'
-import {PostAlerts} from '#/components/moderation/PostAlerts'
+import {NoteAlerts} from '#/components/moderation/NoteAlerts'
 import {RichText} from '#/components/RichText'
 import {Embed as StarterPackCard} from '#/components/StarterPack/StarterPackCard'
 import {SubtleWebHover} from '#/components/SubtleWebHover'
@@ -29,21 +29,21 @@ import {
   type Embed as TEmbed,
   type EmbedType,
   parseEmbed,
-} from '#/types/bsky/post'
+} from '#/types/bsky/note'
 import {ExternalEmbed} from './ExternalEmbed'
 import {ModeratedFeedEmbed} from './FeedEmbed'
 import {ImageEmbed} from './ImageEmbed'
 import {ModeratedListEmbed} from './ListEmbed'
-import {PostPlaceholder as PostPlaceholderText} from './PostPlaceholder'
+import {NotePlaceholder as NotePlaceholderText} from './NotePlaceholder'
 import {
   type CommonProps,
   type EmbedProps,
-  PostEmbedViewContext,
+  NoteEmbedViewContext,
   QuoteEmbedViewContext,
 } from './types'
 import {VideoEmbed} from './VideoEmbed'
 
-export {PostEmbedViewContext, QuoteEmbedViewContext} from './types'
+export {NoteEmbedViewContext, QuoteEmbedViewContext} from './types'
 
 export function Embed({embed: rawEmbed, ...rest}: EmbedProps) {
   const embed = parseEmbed(rawEmbed)
@@ -58,13 +58,13 @@ export function Embed({embed: rawEmbed, ...rest}: EmbedProps) {
     case 'list':
     case 'starter_pack':
     case 'labeler':
-    case 'post':
-    case 'post_not_found':
-    case 'post_blocked':
-    case 'post_detached': {
+    case 'note':
+    case 'note_not_found':
+    case 'note_blocked':
+    case 'note_detached': {
       return <RecordEmbed embed={embed} {...rest} />
     }
-    case 'post_with_media': {
+    case 'note_with_media': {
       return (
         <View style={rest.style}>
           <MediaEmbed embed={embed.media} {...rest} />
@@ -148,7 +148,7 @@ function RecordEmbed({
       // not implemented
       return null
     }
-    case 'post': {
+    case 'note': {
       if (rest.isWithinQuote && !rest.allowNestedQuotes) {
         return null
       }
@@ -158,7 +158,7 @@ function RecordEmbed({
           {...rest}
           embed={embed}
           viewContext={
-            rest.viewContext === PostEmbedViewContext.Feed
+            rest.viewContext === NoteEmbedViewContext.Feed
               ? QuoteEmbedViewContext.FeedEmbedRecordWithMedia
               : undefined
           }
@@ -167,22 +167,22 @@ function RecordEmbed({
         />
       )
     }
-    case 'post_not_found': {
+    case 'note_not_found': {
       return (
-        <PostPlaceholderText>
+        <NotePlaceholderText>
           <Trans>Deleted</Trans>
-        </PostPlaceholderText>
+        </NotePlaceholderText>
       )
     }
-    case 'post_blocked': {
+    case 'note_blocked': {
       return (
-        <PostPlaceholderText>
+        <NotePlaceholderText>
           <Trans>Blocked</Trans>
-        </PostPlaceholderText>
+        </NotePlaceholderText>
       )
     }
-    case 'post_detached': {
-      return <PostDetachedEmbed embed={embed} />
+    case 'note_detached': {
+      return <NoteDetachedEmbed embed={embed} />
     }
     default: {
       return null
@@ -190,24 +190,24 @@ function RecordEmbed({
   }
 }
 
-export function PostDetachedEmbed({
+export function NoteDetachedEmbed({
   embed,
 }: {
-  embed: EmbedType<'post_detached'>
+  embed: EmbedType<'note_detached'>
 }) {
   const {currentAccount} = useSession()
-  const isViewerOwner = currentAccount?.did
-    ? embed.view.uri.includes(currentAccount.did)
+  const isViewerOwner = currentAccount?.userId
+    ? embed.view.uri.includes(currentAccount.userId)
     : false
 
   return (
-    <PostPlaceholderText>
+    <NotePlaceholderText>
       {isViewerOwner ? (
         <Trans>Removed by you</Trans>
       ) : (
         <Trans>Removed by author</Trans>
       )}
-    </PostPlaceholderText>
+    </NotePlaceholderText>
   )
 }
 
@@ -222,35 +222,35 @@ export function QuoteEmbed({
   isWithinQuote: parentIsWithinQuote,
   allowNestedQuotes: parentAllowNestedQuotes,
 }: Omit<CommonProps, 'viewContext'> & {
-  embed: EmbedType<'post'>
+  embed: EmbedType<'note'>
   viewContext?: QuoteEmbedViewContext
 }) {
   const moderationOpts = useModerationOpts()
-  const quote = React.useMemo<$Typed<AppBskyFeedDefs.PostView>>(
+  const quote = React.useMemo<$Typed<SonetFeedDefs.NoteView>>(
     () => ({
       ...embed.view,
-      $type: 'app.bsky.feed.defs#postView',
+      type: "sonet",
       record: embed.view.value,
       embed: embed.view.embeds?.[0],
     }),
     [embed],
   )
   const moderation = React.useMemo(() => {
-    return moderationOpts ? moderatePost(quote, moderationOpts) : undefined
+    return moderationOpts ? moderateNote(quote, moderationOpts) : undefined
   }, [quote, moderationOpts])
 
   const t = useTheme()
   const queryClient = useQueryClient()
   const pal = usePalette('default')
   const itemUrip = new AtUri(quote.uri)
-  const itemHref = makeProfileLink(quote.author, 'post', itemUrip.rkey)
-  const itemTitle = `Post by ${quote.author.handle}`
+  const itemHref = makeProfileLink(quote.author, 'note', itemUrip.rkey)
+  const itemTitle = `Note by ${quote.author.username}`
 
   const richText = React.useMemo(() => {
     if (
-      !bsky.dangerousIsType<AppBskyFeedPost.Record>(
+      !bsky.dangerousIsType<SonetFeedNote.Record>(
         quote.record,
-        AppBskyFeedPost.isRecord,
+        SonetFeedNote.isRecord,
       )
     )
       return undefined
@@ -286,16 +286,16 @@ export function QuoteEmbed({
               title={itemTitle}
               onBeforePress={onBeforePress}>
               <View pointerEvents="none">
-                <PostMeta
+                <NoteMeta
                   author={quote.author}
                   moderation={moderation}
                   showAvatar
-                  postHref={itemHref}
+                  noteHref={itemHref}
                   timestamp={quote.indexedAt}
                 />
               </View>
               {moderation ? (
-                <PostAlerts
+                <NoteAlerts
                   modui={moderation.ui('contentView')}
                   style={[a.py_xs]}
                 />

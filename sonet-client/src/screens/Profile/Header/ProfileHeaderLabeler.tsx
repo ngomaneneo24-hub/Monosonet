@@ -1,12 +1,12 @@
 import React, {memo, useMemo} from 'react'
 import {View} from 'react-native'
 import {
-  type AppBskyActorDefs,
-  type AppBskyLabelerDefs,
+  type SonetActorDefs,
+  type SonetLabelerDefs,
   moderateProfile,
   type ModerationOpts,
   type RichText as RichTextAPI,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg, Plural, plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -37,13 +37,13 @@ import {RichText} from '#/components/RichText'
 import {Text} from '#/components/Typography'
 import {ProfileHeaderDisplayName} from './DisplayName'
 import {EditProfileDialog} from './EditProfileDialog'
-import {ProfileHeaderHandle} from './Handle'
+import {ProfileHeaderUsername} from './Username'
 import {ProfileHeaderMetrics} from './Metrics'
 import {ProfileHeaderShell} from './Shell'
 
 interface Props {
-  profile: AppBskyActorDefs.ProfileViewDetailed
-  labeler: AppBskyLabelerDefs.LabelerViewDetailed
+  profile: SonetActorDefs.ProfileViewDetailed
+  labeler: SonetLabelerDefs.LabelerViewDetailed
   descriptionRT: RichTextAPI | null
   moderationOpts: ModerationOpts
   hideBackButton?: boolean
@@ -58,7 +58,7 @@ let ProfileHeaderLabeler = ({
   hideBackButton = false,
   isPlaceholderProfile,
 }: Props): React.ReactNode => {
-  const profile: Shadow<AppBskyActorDefs.ProfileViewDetailed> =
+  const profile: Shadow<SonetActorDefs.ProfileViewDetailed> =
     useProfileShadow(profileUnshadowed)
   const t = useTheme()
   const {_} = useLingui()
@@ -66,7 +66,7 @@ let ProfileHeaderLabeler = ({
   const requireAuth = useRequireAuth()
   const playHaptic = useHaptics()
   const cantSubscribePrompt = Prompt.usePromptControl()
-  const isSelf = currentAccount?.did === profile.did
+  const isSelf = currentAccount?.userId === profile.userId
 
   const moderation = useMemo(
     () => moderateProfile(profile, moderationOpts),
@@ -80,7 +80,7 @@ let ProfileHeaderLabeler = ({
   } = useLabelerSubscriptionMutation()
   const isSubscribed =
     variables?.subscribe ??
-    preferences?.moderationPrefs.labelers.find(l => l.did === profile.did)
+    preferences?.moderationPrefs.labelers.find(l => l.userId === profile.userId)
   const {mutateAsync: likeMod, isPending: isLikePending} = useLikeMutation()
   const {mutateAsync: unlikeMod, isPending: isUnlikePending} =
     useUnlikeMutation()
@@ -125,7 +125,7 @@ let ProfileHeaderLabeler = ({
 
         try {
           await toggleSubscription({
-            did: profile.did,
+            userId: profile.userId,
             subscribe,
           })
 
@@ -156,7 +156,7 @@ let ProfileHeaderLabeler = ({
   )
 
   const isMe = React.useMemo(
-    () => currentAccount?.did === profile.did,
+    () => currentAccount?.userId === profile.userId,
     [currentAccount, profile],
   )
 
@@ -191,7 +191,7 @@ let ProfileHeaderLabeler = ({
                 control={editProfileControl}
               />
             </>
-          ) : !isAppLabeler(profile.did) ? (
+          ) : !isAppLabeler(profile.userId) ? (
             <>
               <Button
                 testID="toggleSubscribeBtn"
@@ -244,7 +244,7 @@ let ProfileHeaderLabeler = ({
         </View>
         <View style={[a.flex_col, a.gap_2xs, a.pt_2xs, a.pb_md]}>
           <ProfileHeaderDisplayName profile={profile} moderation={moderation} />
-          <ProfileHeaderHandle profile={profile} />
+          <ProfileHeaderUsername profile={profile} />
         </View>
         {!isPlaceholderProfile && (
           <>
@@ -257,11 +257,11 @@ let ProfileHeaderLabeler = ({
                   numberOfLines={15}
                   value={descriptionRT}
                   enableTags
-                  authorHandle={profile.handle}
+                  authorUsername={profile.username}
                 />
               </View>
             ) : undefined}
-            {!isAppLabeler(profile.did) && (
+            {!isAppLabeler(profile.userId) && (
               <View style={[a.flex_row, a.gap_xs, a.align_center, a.pt_lg]}>
                 <Button
                   testID="toggleLikeBtn"
@@ -284,7 +284,7 @@ let ProfileHeaderLabeler = ({
                     to={{
                       screen: 'ProfileLabelerLikedBy',
                       params: {
-                        name: labeler.creator.handle || labeler.creator.did,
+                        name: labeler.creator.username || labeler.creator.userId,
                       },
                     }}
                     size="tiny"

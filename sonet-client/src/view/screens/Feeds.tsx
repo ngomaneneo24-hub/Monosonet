@@ -1,6 +1,6 @@
 import React from 'react'
 import {ActivityIndicator, StyleSheet, View} from 'react-native'
-import { type SonetPost, type SonetProfile, type SonetFeedGenerator, type SonetPostRecord, type SonetFeedViewPost, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
+import { type SonetNote, type SonetProfile, type SonetFeedGenerator, type SonetNoteRecord, type SonetFeedViewNote, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useFocusEffect} from '@react-navigation/native'
@@ -537,7 +537,7 @@ export function FeedsScreen(_props: Props) {
           initialNumToRender={10}
           onEndReached={onEndReached}
           desktopFixedHeight
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="usernamed"
           keyboardDismissMode="on-drag"
           sideBorders={false}
         />
@@ -549,7 +549,7 @@ export function FeedsScreen(_props: Props) {
           onPress={onPressCompose}
           icon={<ComposeIcon2 strokeWidth={1.5} size={29} style={s.white} />}
           accessibilityRole="button"
-          accessibilityLabel={_(msg`New post`)}
+          accessibilityLabel={_(msg`New note`)}
           accessibilityHint=""
         />
       )}

@@ -90,7 +90,7 @@ export class SonetWebSocket extends EventEmitter {
         this.ws.onmessage = (event) => {
           try {
             const data: SonetWebSocketMessage = JSON.parse(event.data)
-            this.handleMessage(data)
+            this.usernameMessage(data)
           } catch (error) {
             console.error('Failed to parse WebSocket message:', error)
           }
@@ -102,7 +102,7 @@ export class SonetWebSocket extends EventEmitter {
           this.emit('disconnected', event.code, event.reason)
 
           if (event.code !== 1000) {
-            this.handleReconnect()
+            this.usernameReconnect()
           }
         }
 
@@ -143,7 +143,7 @@ export class SonetWebSocket extends EventEmitter {
     }
   }
 
-  private handleReconnect(): void {
+  private usernameReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       this.emit('reconnect_failed')
       return
@@ -161,7 +161,7 @@ export class SonetWebSocket extends EventEmitter {
 
       if (this.token) {
         this.connect(this.token, this.userId || undefined).catch(() => {
-          // next attempt will handle
+          // next attempt will username
         })
       }
     }, delay)
@@ -205,7 +205,7 @@ export class SonetWebSocket extends EventEmitter {
     }
   }
 
-  private handleMessage(data: SonetWebSocketMessage): void {
+  private usernameMessage(data: SonetWebSocketMessage): void {
     switch (data.type) {
       case 'message':
         this.emit('message', data.payload)

@@ -66,8 +66,8 @@ export const LOG_DEBUG: string = process.env.EXPO_PUBLIC_LOG_DEBUG || ''
  * Legacy AT Protocol chat proxy (deprecated)
  * @deprecated Use Sonet messaging instead
  */
-export const CHAT_PROXY_DID: string =
-  process.env.EXPO_PUBLIC_CHAT_PROXY_DID || ''
+export const CHAT_PROXY_UserID: string =
+  process.env.EXPO_PUBLIC_CHAT_PROXY_UserID || ''
 
 /**
  * Sentry DSN for telemetry

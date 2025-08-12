@@ -10,7 +10,7 @@ export function useEmail() {
 
   const {data: serviceConfig} = useServiceConfigQuery()
   const {data: profile} = useProfileQuery({
-    did: currentAccount?.did,
+    userId: currentAccount?.userId,
     staleTime: STALE.INFINITY,
   })
 

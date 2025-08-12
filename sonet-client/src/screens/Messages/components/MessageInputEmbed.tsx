@@ -13,7 +13,7 @@ import {Image_Stroke2_Corner0_Rounded as ImageIcon} from '#/components/icons/Ima
 import {Text} from '#/components/Typography'
 import {Avatar} from '#/view/com/util/Avatar'
 import {Link} from '#/components/Link'
-import {isBskyPostUrl} from '#/lib/urls/isBskyPostUrl'
+import {isBskyNoteUrl} from '#/lib/urls/isBskyNoteUrl'
 import {useRichText} from '#/lib/hooks/useRichText'
 import {useModerationCause} from '#/lib/moderation/useModerationCause'
 import {useModerationCauseLabel} from '#/lib/moderation/useModerationCauseLabel'
@@ -30,15 +30,15 @@ export function MessageInputEmbed({
   const {currentAccount} = useSession()
   const navigation = useNavigation()
 
-  const handleRemove = useCallback(() => {
+  const usernameRemove = useCallback(() => {
     onRemove()
   }, [onRemove])
 
-  const handlePress = useCallback(() => {
-    // Handle navigation to the embedded content
-    if (embed.type === 'post') {
-      // Navigate to post
-      navigation.navigate('PostThread' as any, {uri: embed.uri})
+  const usernamePress = useCallback(() => {
+    // Username navigation to the embedded content
+    if (embed.type === 'note') {
+      // Navigate to note
+      navigation.navigate('NoteThread' as any, {uri: embed.uri})
     } else if (embed.type === 'external') {
       // Open external link
       // TODO: Implement external link handling
@@ -68,17 +68,17 @@ export function MessageInputEmbed({
         )
       
       case 'record':
-        if (embed.record?.type === 'post') {
-          const post = embed.record
-          const author = post.author
-          const content = post.record?.text || ''
+        if (embed.record?.type === 'note') {
+          const note = embed.record
+          const author = note.author
+          const content = note.record?.text || ''
           
           return (
             <View style={[a.flex_row, a.align_center, a.gap_sm]}>
               <Avatar size={24} image={author?.avatar} />
               <View style={[a.flex_1, a.min_w_0]}>
                 <Text style={[a.text_sm, a.font_bold]} numberOfLines={1}>
-                  {author?.displayName || author?.handle || 'Unknown'}
+                  {author?.displayName || author?.username || 'Unknown'}
                 </Text>
                 <Text style={[a.text_xs, t.atoms.text_contrast_medium]} numberOfLines={2}>
                   {content}
@@ -127,7 +127,7 @@ export function MessageInputEmbed({
         a.border,
         t.atoms.border_contrast_low,
       ]}>
-      <View style={[a.flex_1, a.mr_sm]} onTouchEnd={handlePress}>
+      <View style={[a.flex_1, a.mr_sm]} onTouchEnd={usernamePress}>
         {renderEmbedContent()}
       </View>
       
@@ -136,7 +136,7 @@ export function MessageInputEmbed({
         size="small"
         color="secondary"
         variant="ghost"
-        onPress={handleRemove}>
+        onPress={usernameRemove}>
         <ButtonIcon icon={CloseIcon} />
       </Button>
     </View>

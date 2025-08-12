@@ -1,4 +1,4 @@
-import {isInvalidHandle} from '#/lib/strings/handles'
+import {isInvalidUsername} from '#/lib/strings/usernames'
 
 export function makeProfileLink(
   info: {
@@ -8,7 +8,7 @@ export function makeProfileLink(
   ...segments: string[]
 ) {
   let usernameSegment = info.id
-  if (info.username && !isInvalidHandle(info.username)) {
+  if (info.username && !isInvalidUsername(info.username)) {
     usernameSegment = info.username
   }
   return [`/profile`, usernameSegment, ...segments].join('/')

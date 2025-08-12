@@ -2,7 +2,7 @@ import {Pressable} from 'react-native'
 import * as Clipboard from 'expo-clipboard'
 import {t} from '@lingui/macro'
 
-import {DISCOVER_DEBUG_DIDS} from '#/lib/constants'
+import {DISCOVER_DEBUG_UserIDS} from '#/lib/constants'
 import {useGate} from '#/lib/statsig/statsig'
 import {useSession} from '#/state/session'
 import * as Toast from '#/view/com/util/Toast'
@@ -20,7 +20,7 @@ export function DiscoverDebug({
   const gate = useGate()
   const isDiscoverDebugUser =
     IS_INTERNAL ||
-    DISCOVER_DEBUG_DIDS[currentAccount?.did || ''] ||
+    DISCOVER_DEBUG_UserIDS[currentAccount?.userId || ''] ||
     gate('debug_show_feedcontext')
   const theme = useTheme()
 

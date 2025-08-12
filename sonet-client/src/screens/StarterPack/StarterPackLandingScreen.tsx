@@ -2,11 +2,11 @@ import React from 'react'
 import {Pressable, View} from 'react-native'
 import Animated, {FadeIn, FadeOut} from 'react-native-reanimated'
 import {
-  AppBskyGraphDefs,
-  AppBskyGraphStarterpack,
+  SonetGraphDefs,
+  SonetGraphStarterpack,
   AtUri,
   type ModerationOpts,
-} from '@atproto/api'
+} from '@sonet/api'
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -48,9 +48,9 @@ interface AppClipMessage {
   jsonToStore?: string
 }
 
-export function postAppClipMessage(message: AppClipMessage) {
+export function noteAppClipMessage(message: AppClipMessage) {
   // @ts-expect-error safari webview only
-  window.webkit.messageHandlers.onMessage.postMessage(JSON.stringify(message))
+  window.webkit.messageUsernamers.onMessage.noteMessage(JSON.stringify(message))
 }
 
 export function LandingScreen({
@@ -72,8 +72,8 @@ export function LandingScreen({
   const isValid =
     starterPack &&
     starterPack.list &&
-    AppBskyGraphDefs.validateStarterPackView(starterPack) &&
-    AppBskyGraphStarterpack.validateRecord(starterPack.record)
+    SonetGraphDefs.validateStarterPackView(starterPack) &&
+    SonetGraphStarterpack.validateRecord(starterPack.record)
 
   React.useEffect(() => {
     if (isErrorStarterPack || (starterPack && !isValid)) {
@@ -87,9 +87,9 @@ export function LandingScreen({
 
   // Just for types, this cannot be hit
   if (
-    !bsky.dangerousIsType<AppBskyGraphStarterpack.Record>(
+    !bsky.dangerousIsType<SonetGraphStarterpack.Record>(
       starterPack.record,
-      AppBskyGraphStarterpack.isRecord,
+      SonetGraphStarterpack.isRecord,
     )
   ) {
     return null
@@ -113,8 +113,8 @@ function LandingScreenLoaded({
 
   moderationOpts,
 }: {
-  starterPack: AppBskyGraphDefs.StarterPackView
-  starterPackRecord: AppBskyGraphStarterpack.Record
+  starterPack: SonetGraphDefs.StarterPackView
+  starterPackRecord: SonetGraphStarterpack.Record
   setScreenState: (state: LoggedOutScreenState) => void
   moderationOpts: ModerationOpts
 }) {
@@ -139,7 +139,7 @@ function LandingScreenLoaded({
   const onJoinPress = () => {
     if (activeStarterPack?.isClip) {
       setAppClipOverlayVisible(true)
-      postAppClipMessage({
+      noteAppClipMessage({
         action: 'present',
       })
     } else if (isAndroidWeb) {
@@ -155,7 +155,7 @@ function LandingScreenLoaded({
   const onJoinWithoutPress = () => {
     if (activeStarterPack?.isClip) {
       setAppClipOverlayVisible(true)
-      postAppClipMessage({
+      noteAppClipMessage({
         action: 'present',
       })
     } else {
@@ -193,7 +193,7 @@ function LandingScreenLoaded({
           </Text>
           <Text
             style={[a.text_center, a.font_bold, a.text_md, {color: 'white'}]}>
-            Starter pack by {`@${creator.handle}`}
+            Starter pack by {`@${creator.username}`}
           </Text>
         </LinearGradientBackground>
         <View style={[a.gap_2xl, a.mx_lg, a.my_2xl]}>
@@ -251,7 +251,7 @@ function LandingScreenLoaded({
                     .slice(0, 8)
                     .map((item, i) => (
                       <View
-                        key={item.subject.did}
+                        key={item.subject.userId}
                         style={[
                           a.py_lg,
                           a.px_md,
@@ -335,7 +335,7 @@ function LandingScreenLoaded({
               if (!rkey) return
 
               const googlePlayUri = createStarterPackGooglePlayUri(
-                creator.handle,
+                creator.username,
                 rkey,
               )
               if (!googlePlayUri) return
@@ -353,7 +353,7 @@ function LandingScreenLoaded({
       {isWeb && (
         <meta
           name="apple-itunes-app"
-          content="app-id=xyz.blueskyweb.app, app-clip-bundle-id=xyz.blueskyweb.app.AppClip, app-clip-display=card"
+          content="app-id=xyz.sonetweb.app, app-clip-bundle-id=xyz.sonetweb.app.AppClip, app-clip-display=card"
         />
       )}
     </View>

@@ -1,5 +1,5 @@
 import React, {memo} from 'react'
-import {type AppBskyActorDefs} from '@atproto/api'
+import {type SonetActorDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
@@ -61,7 +61,7 @@ import {useDevMode} from '#/storage/hooks/dev-mode'
 let ProfileMenu = ({
   profile,
 }: {
-  profile: Shadow<AppBskyActorDefs.ProfileViewDetailed>
+  profile: Shadow<SonetActorDefs.ProfileViewDetailed>
 }): React.ReactNode => {
   const {_} = useLingui()
   const {currentAccount, hasSession} = useSession()
@@ -69,14 +69,14 @@ let ProfileMenu = ({
   const reportDialogControl = useReportDialogControl()
   const queryClient = useQueryClient()
   const navigation = useNavigation<NavigationProp>()
-  const isSelf = currentAccount?.did === profile.did
+  const isSelf = currentAccount?.userId === profile.userId
   const isFollowing = profile.viewer?.following
   const isBlocked = profile.viewer?.blocking || profile.viewer?.blockedBy
   const isFollowingBlockedAccount = isFollowing && isBlocked
   const isLabelerAndNotBlocked = !!profile.associated?.labeler && !isBlocked
   const [devModeEnabled] = useDevMode()
   const verification = useFullVerificationState({profile})
-  const canGoLive = useCanGoLive(currentAccount?.did)
+  const canGoLive = useCanGoLive(currentAccount?.userId)
 
   const [queueMute, queueUnmute] = useProfileMuteMutationQueue(profile)
   const [queueBlock, queueUnblock] = useProfileBlockMutationQueue(profile)
@@ -91,16 +91,16 @@ let ProfileMenu = ({
 
   const showLoggedOutWarning = React.useMemo(() => {
     return (
-      profile.did !== currentAccount?.did &&
+      profile.userId !== currentAccount?.userId &&
       !!profile.labels?.find(label => label.val === '!no-unauthenticated')
     )
   }, [currentAccount, profile])
 
   const invalidateProfileQuery = React.useCallback(() => {
     queryClient.invalidateQueries({
-      queryKey: profileQueryKey(profile.did),
+      queryKey: profileQueryKey(profile.userId),
     })
-  }, [queryClient, profile.did])
+  }, [queryClient, profile.userId])
 
   const onPressShare = React.useCallback(() => {
     shareUrl(toShareUrl(makeProfileLink(profile)))
@@ -109,9 +109,9 @@ let ProfileMenu = ({
   const onPressAddRemoveLists = React.useCallback(() => {
     openModal({
       name: 'user-add-remove-lists',
-      subject: profile.did,
-      handle: profile.handle,
-      displayName: profile.displayName || profile.handle,
+      subject: profile.userId,
+      username: profile.username,
+      displayName: profile.displayName || profile.username,
       onAdd: invalidateProfileQuery,
       onRemove: invalidateProfileQuery,
     })
@@ -194,22 +194,22 @@ let ProfileMenu = ({
   }, [reportDialogControl])
 
   const onPressShareATUri = React.useCallback(() => {
-    shareText(`at://${profile.did}`)
-  }, [profile.did])
+    shareText(`sonet://${profile.userId}`)
+  }, [profile.userId])
 
-  const onPressShareDID = React.useCallback(() => {
-    shareText(profile.did)
-  }, [profile.did])
+  const onPressShareUserID = React.useCallback(() => {
+    shareText(profile.userId)
+  }, [profile.userId])
 
   const onPressSearch = React.useCallback(() => {
-    navigation.navigate('ProfileSearch', {name: profile.handle})
-  }, [navigation, profile.handle])
+    navigation.navigate('ProfileSearch', {name: profile.username})
+  }, [navigation, profile.username])
 
   const verificationCreatePromptControl = Prompt.usePromptControl()
   const verificationRemovePromptControl = Prompt.usePromptControl()
   const currentAccountVerifications =
     profile.verification?.verifications?.filter(v => {
-      return v.issuer === currentAccount?.did
+      return v.issuer === currentAccount?.userId
     }) ?? []
 
   const status = useActorStatus(profile)
@@ -260,10 +260,10 @@ let ProfileMenu = ({
             </Menu.Item>
             <Menu.Item
               testID="profileHeaderDropdownSearchBtn"
-              label={_(msg`Search posts`)}
+              label={_(msg`Search notes`)}
               onPress={onPressSearch}>
               <Menu.ItemText>
-                <Trans>Search posts</Trans>
+                <Trans>Search notes</Trans>
               </Menu.ItemText>
               <Menu.ItemIcon icon={SearchIcon} />
             </Menu.Item>
@@ -418,19 +418,19 @@ let ProfileMenu = ({
               <Menu.Group>
                 <Menu.Item
                   testID="profileHeaderDropdownShareATURIBtn"
-                  label={_(msg`Copy at:// URI`)}
+                  label={_(msg`Copy sonet:// URI`)}
                   onPress={onPressShareATUri}>
                   <Menu.ItemText>
-                    <Trans>Copy at:// URI</Trans>
+                    <Trans>Copy sonet:// URI</Trans>
                   </Menu.ItemText>
                   <Menu.ItemIcon icon={ClipboardIcon} />
                 </Menu.Item>
                 <Menu.Item
-                  testID="profileHeaderDropdownShareDIDBtn"
-                  label={_(msg`Copy DID`)}
-                  onPress={onPressShareDID}>
+                  testID="profileHeaderDropdownShareUserIDBtn"
+                  label={_(msg`Copy UserID`)}
+                  onPress={onPressShareUserID}>
                   <Menu.ItemText>
-                    <Trans>Copy DID</Trans>
+                    <Trans>Copy UserID</Trans>
                   </Menu.ItemText>
                   <Menu.ItemIcon icon={ClipboardIcon} />
                 </Menu.Item>
@@ -444,7 +444,7 @@ let ProfileMenu = ({
         control={reportDialogControl}
         subject={{
           ...profile,
-          $type: 'app.bsky.actor.defs#profileViewDetailed',
+          type: "sonet",
         }}
       />
 

@@ -6,7 +6,7 @@ import {useQueryClient} from '@tanstack/react-query'
 import {sanitizeAppLanguageSetting} from '#/locale/helpers'
 import {APP_LANGUAGES} from '#/locale/languages'
 import {useLanguagePrefs, useLanguagePrefsApi} from '#/state/preferences'
-import {resetPostsFeedQueries} from '#/state/queries/post-feed'
+import {resetNotesFeedQueries} from '#/state/queries/note-feed'
 import {atoms as a, platform, useTheme} from '#/alf'
 import * as Select from '#/components/Select'
 import {Button} from './Button'
@@ -28,7 +28,7 @@ export function AppLanguageDropdown() {
       }
 
       // reset feeds to refetch content
-      resetPostsFeedQueries(queryClient)
+      resetNotesFeedQueries(queryClient)
     },
     [sanitizedLang, setLangPrefs, queryClient],
   )

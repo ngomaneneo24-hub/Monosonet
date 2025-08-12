@@ -1,95 +1,95 @@
 import {
-  type AppBskyActorDefs,
-  AppBskyEmbedRecord,
-  AppBskyEmbedRecordWithMedia,
-  AppBskyFeedDefs,
-  AppBskyFeedPost,
-} from '@atproto/api'
+  type SonetActorDefs,
+  SonetEmbedRecord,
+  SonetEmbedRecordWithMedia,
+  SonetFeedDefs,
+  SonetFeedNote,
+} from '@sonet/api'
 
 import * as bsky from '#/types/bsky'
-import {isPostInLanguage} from '../../locale/helpers'
+import {isNoteInLanguage} from '../../locale/helpers'
 import {FALLBACK_MARKER_POST} from './feed/home'
 import {type ReasonFeedSource} from './feed/types'
 
-type FeedViewPost = AppBskyFeedDefs.FeedViewPost
+type FeedViewNote = SonetFeedDefs.FeedViewNote
 
 export type FeedTunerFn = (
   tuner: FeedTuner,
-  slices: FeedViewPostsSlice[],
+  slices: FeedViewNotesSlice[],
   dryRun: boolean,
-) => FeedViewPostsSlice[]
+) => FeedViewNotesSlice[]
 
 type FeedSliceItem = {
-  post: AppBskyFeedDefs.PostView
-  record: AppBskyFeedPost.Record
-  parentAuthor: AppBskyActorDefs.ProfileViewBasic | undefined
+  note: SonetFeedDefs.NoteView
+  record: SonetFeedNote.Record
+  parentAuthor: SonetActorDefs.ProfileViewBasic | undefined
   isParentBlocked: boolean
   isParentNotFound: boolean
 }
 
 type AuthorContext = {
-  author: AppBskyActorDefs.ProfileViewBasic
-  parentAuthor: AppBskyActorDefs.ProfileViewBasic | undefined
-  grandparentAuthor: AppBskyActorDefs.ProfileViewBasic | undefined
-  rootAuthor: AppBskyActorDefs.ProfileViewBasic | undefined
+  author: SonetActorDefs.ProfileViewBasic
+  parentAuthor: SonetActorDefs.ProfileViewBasic | undefined
+  grandparentAuthor: SonetActorDefs.ProfileViewBasic | undefined
+  rootAuthor: SonetActorDefs.ProfileViewBasic | undefined
 }
 
-export class FeedViewPostsSlice {
+export class FeedViewNotesSlice {
   _reactKey: string
-  _feedPost: FeedViewPost
+  _feedNote: FeedViewNote
   items: FeedSliceItem[]
   isIncompleteThread: boolean
   isFallbackMarker: boolean
   isOrphan: boolean
   isThreadMuted: boolean
   rootUri: string
-  feedPostUri: string
+  feedNoteUri: string
 
-  constructor(feedPost: FeedViewPost) {
-    const {post, reply, reason} = feedPost
+  constructor(feedNote: FeedViewNote) {
+    const {note, reply, reason} = feedNote
     this.items = []
     this.isIncompleteThread = false
     this.isFallbackMarker = false
     this.isOrphan = false
-    this.isThreadMuted = post.viewer?.threadMuted ?? false
-    this.feedPostUri = post.uri
-    if (AppBskyFeedDefs.isPostView(reply?.root)) {
+    this.isThreadMuted = note.viewer?.threadMuted ?? false
+    this.feedNoteUri = note.uri
+    if (SonetFeedDefs.isNoteView(reply?.root)) {
       this.rootUri = reply.root.uri
     } else {
-      this.rootUri = post.uri
+      this.rootUri = note.uri
     }
-    this._feedPost = feedPost
-    this._reactKey = `slice-${post.uri}-${
-      feedPost.reason && 'indexedAt' in feedPost.reason
-        ? feedPost.reason.indexedAt
-        : post.indexedAt
+    this._feedNote = feedNote
+    this._reactKey = `slice-${note.uri}-${
+      feedNote.reason && 'indexedAt' in feedNote.reason
+        ? feedNote.reason.indexedAt
+        : note.indexedAt
     }`
-    if (feedPost.post.uri === FALLBACK_MARKER_POST.post.uri) {
+    if (feedNote.note.uri === FALLBACK_MARKER_POST.note.uri) {
       this.isFallbackMarker = true
       return
     }
     if (
-      !AppBskyFeedPost.isRecord(post.record) ||
-      !bsky.validate(post.record, AppBskyFeedPost.validateRecord)
+      !SonetFeedNote.isRecord(note.record) ||
+      !bsky.validate(note.record, SonetFeedNote.validateRecord)
     ) {
       return
     }
     const parent = reply?.parent
-    const isParentBlocked = AppBskyFeedDefs.isBlockedPost(parent)
-    const isParentNotFound = AppBskyFeedDefs.isNotFoundPost(parent)
-    let parentAuthor: AppBskyActorDefs.ProfileViewBasic | undefined
-    if (AppBskyFeedDefs.isPostView(parent)) {
+    const isParentBlocked = SonetFeedDefs.isBlockedNote(parent)
+    const isParentNotFound = SonetFeedDefs.isNotFoundNote(parent)
+    let parentAuthor: SonetActorDefs.ProfileViewBasic | undefined
+    if (SonetFeedDefs.isNoteView(parent)) {
       parentAuthor = parent.author
     }
     this.items.push({
-      post,
-      record: post.record,
+      note,
+      record: note.record,
       parentAuthor,
       isParentBlocked,
       isParentNotFound,
     })
     if (!reply) {
-      if (post.record.reply) {
+      if (note.record.reply) {
         // This reply wasn't properly hydrated by the AppView.
         this.isOrphan = true
         this.items[0].isParentNotFound = true
@@ -100,18 +100,18 @@ export class FeedViewPostsSlice {
       return
     }
     if (
-      !AppBskyFeedDefs.isPostView(parent) ||
-      !AppBskyFeedPost.isRecord(parent.record) ||
-      !bsky.validate(parent.record, AppBskyFeedPost.validateRecord)
+      !SonetFeedDefs.isNoteView(parent) ||
+      !SonetFeedNote.isRecord(parent.record) ||
+      !bsky.validate(parent.record, SonetFeedNote.validateRecord)
     ) {
       this.isOrphan = true
       return
     }
     const root = reply.root
     const rootIsView =
-      AppBskyFeedDefs.isPostView(root) ||
-      AppBskyFeedDefs.isBlockedPost(root) ||
-      AppBskyFeedDefs.isNotFoundPost(root)
+      SonetFeedDefs.isNoteView(root) ||
+      SonetFeedDefs.isBlockedNote(root) ||
+      SonetFeedDefs.isNotFoundNote(root)
     /*
      * If the parent is also the root, we just so happen to have the data we
      * need to compute if the parent's parent (grandparent) is blocked. This
@@ -124,13 +124,13 @@ export class FeedViewPostsSlice {
         : undefined
     const grandparentAuthor = reply.grandparentAuthor
     const isGrandparentBlocked = Boolean(
-      grandparent && AppBskyFeedDefs.isBlockedPost(grandparent),
+      grandparent && SonetFeedDefs.isBlockedNote(grandparent),
     )
     const isGrandparentNotFound = Boolean(
-      grandparent && AppBskyFeedDefs.isNotFoundPost(grandparent),
+      grandparent && SonetFeedDefs.isNotFoundNote(grandparent),
     )
     this.items.unshift({
-      post: parent,
+      note: parent,
       record: parent.record,
       parentAuthor: grandparentAuthor,
       isParentBlocked: isGrandparentBlocked,
@@ -142,9 +142,9 @@ export class FeedViewPostsSlice {
       // de-deduping
     }
     if (
-      !AppBskyFeedDefs.isPostView(root) ||
-      !AppBskyFeedPost.isRecord(root.record) ||
-      !bsky.validate(root.record, AppBskyFeedPost.validateRecord)
+      !SonetFeedDefs.isNoteView(root) ||
+      !SonetFeedNote.isRecord(root.record) ||
+      !bsky.validate(root.record, SonetFeedNote.validateRecord)
     ) {
       this.isOrphan = true
       return
@@ -153,7 +153,7 @@ export class FeedViewPostsSlice {
       return
     }
     this.items.unshift({
-      post: root,
+      note: root,
       record: root.record,
       isParentBlocked: false,
       isParentNotFound: false,
@@ -164,63 +164,63 @@ export class FeedViewPostsSlice {
     }
   }
 
-  get isQuotePost() {
-    const embed = this._feedPost.post.embed
+  get isQuoteNote() {
+    const embed = this._feedNote.note.embed
     return (
-      AppBskyEmbedRecord.isView(embed) ||
-      AppBskyEmbedRecordWithMedia.isView(embed)
+      SonetEmbedRecord.isView(embed) ||
+      SonetEmbedRecordWithMedia.isView(embed)
     )
   }
 
   get isReply() {
     return (
-      AppBskyFeedPost.isRecord(this._feedPost.post.record) &&
-      !!this._feedPost.post.record.reply
+      SonetFeedNote.isRecord(this._feedNote.note.record) &&
+      !!this._feedNote.note.record.reply
     )
   }
 
   get reason() {
-    return '__source' in this._feedPost
-      ? (this._feedPost.__source as ReasonFeedSource)
-      : this._feedPost.reason
+    return '__source' in this._feedNote
+      ? (this._feedNote.__source as ReasonFeedSource)
+      : this._feedNote.reason
   }
 
   get feedContext() {
-    return this._feedPost.feedContext
+    return this._feedNote.feedContext
   }
 
   get reqId() {
-    return this._feedPost.reqId
+    return this._feedNote.reqId
   }
 
-  get isRepost() {
-    const reason = this._feedPost.reason
-    return AppBskyFeedDefs.isReasonRepost(reason)
+  get isRenote() {
+    const reason = this._feedNote.reason
+    return SonetFeedDefs.isReasonRenote(reason)
   }
 
   get likeCount() {
-    return this._feedPost.post.likeCount ?? 0
+    return this._feedNote.note.likeCount ?? 0
   }
 
   containsUri(uri: string) {
-    return !!this.items.find(item => item.post.uri === uri)
+    return !!this.items.find(item => item.note.uri === uri)
   }
 
   getAuthors(): AuthorContext {
-    const feedPost = this._feedPost
-    let author: AppBskyActorDefs.ProfileViewBasic = feedPost.post.author
-    let parentAuthor: AppBskyActorDefs.ProfileViewBasic | undefined
-    let grandparentAuthor: AppBskyActorDefs.ProfileViewBasic | undefined
-    let rootAuthor: AppBskyActorDefs.ProfileViewBasic | undefined
-    if (feedPost.reply) {
-      if (AppBskyFeedDefs.isPostView(feedPost.reply.parent)) {
-        parentAuthor = feedPost.reply.parent.author
+    const feedNote = this._feedNote
+    let author: SonetActorDefs.ProfileViewBasic = feedNote.note.author
+    let parentAuthor: SonetActorDefs.ProfileViewBasic | undefined
+    let grandparentAuthor: SonetActorDefs.ProfileViewBasic | undefined
+    let rootAuthor: SonetActorDefs.ProfileViewBasic | undefined
+    if (feedNote.reply) {
+      if (SonetFeedDefs.isNoteView(feedNote.reply.parent)) {
+        parentAuthor = feedNote.reply.parent.author
       }
-      if (feedPost.reply.grandparentAuthor) {
-        grandparentAuthor = feedPost.reply.grandparentAuthor
+      if (feedNote.reply.grandparentAuthor) {
+        grandparentAuthor = feedNote.reply.grandparentAuthor
       }
-      if (AppBskyFeedDefs.isPostView(feedPost.reply.root)) {
-        rootAuthor = feedPost.reply.root.author
+      if (SonetFeedDefs.isNoteView(feedNote.reply.root)) {
+        rootAuthor = feedNote.reply.root.author
       }
     }
     return {
@@ -240,13 +240,13 @@ export class FeedTuner {
   constructor(public tunerFns: FeedTunerFn[]) {}
 
   tune(
-    feed: FeedViewPost[],
+    feed: FeedViewNote[],
     {dryRun}: {dryRun: boolean} = {
       dryRun: false,
     },
-  ): FeedViewPostsSlice[] {
-    let slices: FeedViewPostsSlice[] = feed
-      .map(item => new FeedViewPostsSlice(item))
+  ): FeedViewNotesSlice[] {
+    let slices: FeedViewNotesSlice[] = feed
+      .map(item => new FeedViewNotesSlice(item))
       .filter(s => s.items.length > 0 || s.isFallbackMarker)
 
     // run the custom tuners
@@ -259,13 +259,13 @@ export class FeedTuner {
         return false
       }
       // Some feeds, like Following, dedupe by thread, so you only see the most recent reply.
-      // However, we don't want per-thread dedupe for author feeds (where we need to show every post)
+      // However, we don't want per-thread dedupe for author feeds (where we need to show every note)
       // or for feedgens (where we want to let the feed serve multiple replies if it chooses to).
       // To avoid showing the same context (root and/or parent) more than once, we do last resort
-      // per-post deduplication. It hides already seen posts as long as this doesn't break the thread.
+      // per-note deduplication. It hides already seen notes as long as this doesn't break the thread.
       for (let i = 0; i < slice.items.length; i++) {
         const item = slice.items[i]
-        if (this.seenUris.has(item.post.uri)) {
+        if (this.seenUris.has(item.note.uri)) {
           if (i === 0) {
             // Omit contiguous seen leading items.
             // For example, [A -> B -> C], [A -> D -> E], [A -> D -> F]
@@ -282,11 +282,11 @@ export class FeedTuner {
           }
         } else {
           if (!dryRun) {
-            // Reposting a reply elevates it to top-level, so its parent/root won't be displayed.
+            // Renoteing a reply elevates it to top-level, so its parent/root won't be displayed.
             // Disable in-thread dedupe for this case since we don't want to miss them later.
-            const disableDedupe = slice.isReply && slice.isRepost
+            const disableDedupe = slice.isReply && slice.isRenote
             if (!disableDedupe) {
-              this.seenUris.add(item.post.uri)
+              this.seenUris.add(item.note.uri)
             }
           }
         }
@@ -302,14 +302,14 @@ export class FeedTuner {
 
   static removeReplies(
     tuner: FeedTuner,
-    slices: FeedViewPostsSlice[],
+    slices: FeedViewNotesSlice[],
     _dryRun: boolean,
   ) {
     for (let i = 0; i < slices.length; i++) {
       const slice = slices[i]
       if (
         slice.isReply &&
-        !slice.isRepost &&
+        !slice.isRenote &&
         // This is not perfect but it's close as we can get to
         // detecting threads without having to peek ahead.
         !areSameAuthor(slice.getAuthors())
@@ -321,13 +321,13 @@ export class FeedTuner {
     return slices
   }
 
-  static removeReposts(
+  static removeRenotes(
     tuner: FeedTuner,
-    slices: FeedViewPostsSlice[],
+    slices: FeedViewNotesSlice[],
     _dryRun: boolean,
   ) {
     for (let i = 0; i < slices.length; i++) {
-      if (slices[i].isRepost) {
+      if (slices[i].isRenote) {
         slices.splice(i, 1)
         i--
       }
@@ -335,13 +335,13 @@ export class FeedTuner {
     return slices
   }
 
-  static removeQuotePosts(
+  static removeQuoteNotes(
     tuner: FeedTuner,
-    slices: FeedViewPostsSlice[],
+    slices: FeedViewNotesSlice[],
     _dryRun: boolean,
   ) {
     for (let i = 0; i < slices.length; i++) {
-      if (slices[i].isQuotePost) {
+      if (slices[i].isQuoteNote) {
         slices.splice(i, 1)
         i--
       }
@@ -351,7 +351,7 @@ export class FeedTuner {
 
   static removeOrphans(
     tuner: FeedTuner,
-    slices: FeedViewPostsSlice[],
+    slices: FeedViewNotesSlice[],
     _dryRun: boolean,
   ) {
     for (let i = 0; i < slices.length; i++) {
@@ -365,7 +365,7 @@ export class FeedTuner {
 
   static removeMutedThreads(
     tuner: FeedTuner,
-    slices: FeedViewPostsSlice[],
+    slices: FeedViewNotesSlice[],
     _dryRun: boolean,
   ) {
     for (let i = 0; i < slices.length; i++) {
@@ -379,12 +379,12 @@ export class FeedTuner {
 
   static dedupThreads(
     tuner: FeedTuner,
-    slices: FeedViewPostsSlice[],
+    slices: FeedViewNotesSlice[],
     dryRun: boolean,
-  ): FeedViewPostsSlice[] {
+  ): FeedViewNotesSlice[] {
     for (let i = 0; i < slices.length; i++) {
       const rootUri = slices[i].rootUri
-      if (!slices[i].isRepost && tuner.seenRootUris.has(rootUri)) {
+      if (!slices[i].isRenote && tuner.seenRootUris.has(rootUri)) {
         slices.splice(i, 1)
         i--
       } else {
@@ -399,14 +399,14 @@ export class FeedTuner {
   static followedRepliesOnly({userDid}: {userDid: string}) {
     return (
       tuner: FeedTuner,
-      slices: FeedViewPostsSlice[],
+      slices: FeedViewNotesSlice[],
       _dryRun: boolean,
-    ): FeedViewPostsSlice[] => {
+    ): FeedViewNotesSlice[] => {
       for (let i = 0; i < slices.length; i++) {
         const slice = slices[i]
         if (
           slice.isReply &&
-          !slice.isRepost &&
+          !slice.isRenote &&
           !shouldDisplayReplyInFollowing(slice.getAuthors(), userDid)
         ) {
           slices.splice(i, 1)
@@ -418,26 +418,26 @@ export class FeedTuner {
   }
 
   /**
-   * This function filters a list of FeedViewPostsSlice items based on whether they contain text in a
+   * This function filters a list of FeedViewNotesSlice items based on whether they contain text in a
    * preferred language.
    * @param {string[]} preferredLangsCode2 - An array of preferred language codes in ISO 639-1 or ISO 639-2 format.
-   * @returns A function that takes in a `FeedTuner` and an array of `FeedViewPostsSlice` objects and
-   * returns an array of `FeedViewPostsSlice` objects.
+   * @returns A function that takes in a `FeedTuner` and an array of `FeedViewNotesSlice` objects and
+   * returns an array of `FeedViewNotesSlice` objects.
    */
   static preferredLangOnly(preferredLangsCode2: string[]) {
     return (
       tuner: FeedTuner,
-      slices: FeedViewPostsSlice[],
+      slices: FeedViewNotesSlice[],
       _dryRun: boolean,
-    ): FeedViewPostsSlice[] => {
+    ): FeedViewNotesSlice[] => {
       // early return if no languages have been specified
       if (!preferredLangsCode2.length || preferredLangsCode2.length === 0) {
         return slices
       }
 
-      const candidateSlices = slices.filter(slice => {
+      const canuserIdateSlices = slices.filter(slice => {
         for (const item of slice.items) {
-          if (isPostInLanguage(item.post, preferredLangsCode2)) {
+          if (isNoteInLanguage(item.note, preferredLangsCode2)) {
             return true
           }
         }
@@ -447,25 +447,25 @@ export class FeedTuner {
 
       // if the language filter cleared out the entire page, return the original set
       // so that something always shows
-      if (candidateSlices.length === 0) {
+      if (canuserIdateSlices.length === 0) {
         return slices
       }
 
-      return candidateSlices
+      return canuserIdateSlices
     }
   }
 }
 
 function areSameAuthor(authors: AuthorContext): boolean {
   const {author, parentAuthor, grandparentAuthor, rootAuthor} = authors
-  const authorDid = author.did
-  if (parentAuthor && parentAuthor.did !== authorDid) {
+  const authorDid = author.userId
+  if (parentAuthor && parentAuthor.userId !== authorDid) {
     return false
   }
-  if (grandparentAuthor && grandparentAuthor.did !== authorDid) {
+  if (grandparentAuthor && grandparentAuthor.userId !== authorDid) {
     return false
   }
-  if (rootAuthor && rootAuthor.did !== authorDid) {
+  if (rootAuthor && rootAuthor.userId !== authorDid) {
     return false
   }
   return true
@@ -481,9 +481,9 @@ function shouldDisplayReplyInFollowing(
     return false
   }
   if (
-    (!parentAuthor || parentAuthor.did === author.did) &&
-    (!rootAuthor || rootAuthor.did === author.did) &&
-    (!grandparentAuthor || grandparentAuthor.did === author.did)
+    (!parentAuthor || parentAuthor.userId === author.userId) &&
+    (!rootAuthor || rootAuthor.userId === author.userId) &&
+    (!grandparentAuthor || grandparentAuthor.userId === author.userId)
   ) {
     // Always show self-threads.
     return true
@@ -491,21 +491,21 @@ function shouldDisplayReplyInFollowing(
   // From this point on we need at least one more reason to show it.
   if (
     parentAuthor &&
-    parentAuthor.did !== author.did &&
+    parentAuthor.userId !== author.userId &&
     isSelfOrFollowing(parentAuthor, userDid)
   ) {
     return true
   }
   if (
     grandparentAuthor &&
-    grandparentAuthor.did !== author.did &&
+    grandparentAuthor.userId !== author.userId &&
     isSelfOrFollowing(grandparentAuthor, userDid)
   ) {
     return true
   }
   if (
     rootAuthor &&
-    rootAuthor.did !== author.did &&
+    rootAuthor.userId !== author.userId &&
     isSelfOrFollowing(rootAuthor, userDid)
   ) {
     return true
@@ -514,8 +514,8 @@ function shouldDisplayReplyInFollowing(
 }
 
 function isSelfOrFollowing(
-  profile: AppBskyActorDefs.ProfileViewBasic,
+  profile: SonetActorDefs.ProfileViewBasic,
   userDid: string,
 ) {
-  return Boolean(profile.did === userDid || profile.viewer?.following)
+  return Boolean(profile.userId === userDid || profile.viewer?.following)
 }

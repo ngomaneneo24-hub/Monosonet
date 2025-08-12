@@ -1,4 +1,4 @@
-import {type AppBskyFeedDefs, AppBskyFeedPost} from '@atproto/api'
+import {type SonetFeedDefs, SonetFeedNote} from '@sonet/api'
 import * as bcp47Match from 'bcp-47-match'
 import lande from 'lande'
 
@@ -71,41 +71,41 @@ export function codeToLanguageName(lang2or3: string, appLang: string): string {
   return knownLanguage ? languageName(knownLanguage, appLang) : code2
 }
 
-export function getPostLanguage(
-  post: AppBskyFeedDefs.PostView,
+export function getNoteLanguage(
+  note: SonetFeedDefs.NoteView,
 ): string | undefined {
-  let candidates: string[] = []
-  let postText: string = ''
-  if (hasProp(post.record, 'text') && typeof post.record.text === 'string') {
-    postText = post.record.text
+  let canuserIdates: string[] = []
+  let noteText: string = ''
+  if (hasProp(note.record, 'text') && typeof note.record.text === 'string') {
+    noteText = note.record.text
   }
 
   if (
-    AppBskyFeedPost.isRecord(post.record) &&
-    hasProp(post.record, 'langs') &&
-    Array.isArray(post.record.langs)
+    SonetFeedNote.isRecord(note.record) &&
+    hasProp(note.record, 'langs') &&
+    Array.isArray(note.record.langs)
   ) {
-    candidates = post.record.langs
+    canuserIdates = note.record.langs
   }
 
   // if there's only one declared language, use that
-  if (candidates?.length === 1) {
-    return candidates[0]
+  if (canuserIdates?.length === 1) {
+    return canuserIdates[0]
   }
 
   // no text? can't determine
-  if (postText.trim().length === 0) {
+  if (noteText.trim().length === 0) {
     return undefined
   }
 
   // run the language model
-  let langsProbabilityMap = lande(postText)
+  let langsProbabilityMap = lande(noteText)
 
   // filter down using declared languages
-  if (candidates?.length) {
+  if (canuserIdates?.length) {
     langsProbabilityMap = langsProbabilityMap.filter(
       ([lang, _probability]: [string, number]) => {
-        return candidates.includes(code3ToCode2(lang))
+        return canuserIdates.includes(code3ToCode2(lang))
       },
     )
   }
@@ -115,13 +115,13 @@ export function getPostLanguage(
   }
 }
 
-export function isPostInLanguage(
-  post: AppBskyFeedDefs.PostView,
+export function isNoteInLanguage(
+  note: SonetFeedDefs.NoteView,
   targetLangs: string[],
 ): boolean {
-  const lang = getPostLanguage(post)
+  const lang = getNoteLanguage(note)
   if (!lang) {
-    // the post has no text, so we just say "yes" for now
+    // the note has no text, so we just say "yes" for now
     return true
   }
   return bcp47Match.basicFilter(lang, targetLangs).length > 0
@@ -136,10 +136,10 @@ export function getTranslatorLink(text: string, lang: string): string {
 /**
  * Returns a valid `appLanguage` value from an arbitrary string.
  *
- * Context: post-refactor, we populated some user's `appLanguage` setting with
- * `postLanguage`, which can be a comma-separated list of values. This breaks
+ * Context: note-refactor, we populated some user's `appLanguage` setting with
+ * `noteLanguage`, which can be a comma-separated list of values. This breaks
  * `appLanguage` handling in the app, so we introduced this util to parse out a
- * valid `appLanguage` from the pre-populated `postLanguage` values.
+ * valid `appLanguage` from the pre-populated `noteLanguage` values.
  *
  * The `appLanguage` will continue to be incorrect until the user returns to
  * language settings and selects a new option, at which point we'll re-save
@@ -242,7 +242,7 @@ export function sanitizeAppLanguageSetting(appLanguage: string): AppLanguage {
 }
 
 /**
- * Handles legacy migration for Java devices.
+ * Usernames legacy migration for Java devices.
  *
  * {@link https://github.com/bluesky-social/social-app/pull/4461}
  * {@link https://xml.coverpages.org/iso639a.html}

@@ -20,7 +20,7 @@ export function MainScrollProvider({children}: {children: React.ReactNode}) {
   const {headerMode} = useMinimalShellMode()
   const startDragOffset = useSharedValue<number | null>(null)
   const startMode = useSharedValue<number | null>(null)
-  const didJustRestoreScroll = useSharedValue<boolean>(false)
+  const userIdJustRestoreScroll = useSharedValue<boolean>(false)
 
   const setMode = React.useCallback(
     (v: boolean) => {
@@ -39,7 +39,7 @@ export function MainScrollProvider({children}: {children: React.ReactNode}) {
       return listenToForcedWindowScroll(() => {
         startDragOffset.set(null)
         startMode.set(null)
-        didJustRestoreScroll.set(true)
+        userIdJustRestoreScroll.set(true)
       })
     }
   })
@@ -53,13 +53,13 @@ export function MainScrollProvider({children}: {children: React.ReactNode}) {
         if (startDragOffsetValue === null) {
           return
         }
-        const didScrollDown = offsetY > startDragOffsetValue
+        const userIdScrollDown = offsetY > startDragOffsetValue
         startDragOffset.set(null)
         startMode.set(null)
         if (offsetY < headerHeight.get()) {
           // If we're close to the top, show the shell.
           setMode(false)
-        } else if (didScrollDown) {
+        } else if (userIdScrollDown) {
           // Showing the bar again on scroll down feels annoying, so don't.
           setMode(true)
         } else {
@@ -137,8 +137,8 @@ export function MainScrollProvider({children}: {children: React.ReactNode}) {
           headerMode.set(newValue)
         }
       } else {
-        if (didJustRestoreScroll.get()) {
-          didJustRestoreScroll.set(false)
+        if (userIdJustRestoreScroll.get()) {
+          userIdJustRestoreScroll.set(false)
           // Don't hide/show navbar based on scroll restoratoin.
           return
         }
@@ -160,7 +160,7 @@ export function MainScrollProvider({children}: {children: React.ReactNode}) {
       setMode,
       startDragOffset,
       startMode,
-      didJustRestoreScroll,
+      userIdJustRestoreScroll,
     ],
   )
 

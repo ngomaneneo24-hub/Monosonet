@@ -4,21 +4,21 @@ import {useFocusEffect} from '@react-navigation/native'
 
 import {CommonNavigatorParams, NativeStackScreenProps} from '#/lib/routes/types'
 import {makeRecordUri} from '#/lib/strings/url-helpers'
-import {usePostThreadQuery} from '#/state/queries/post-thread'
+import {useNoteThreadQuery} from '#/state/queries/note-thread'
 import {useSetMinimalShellMode} from '#/state/shell'
-import {PostQuotes as PostQuotesComponent} from '#/view/com/post-thread/PostQuotes'
+import {NoteQuotes as NoteQuotesComponent} from '#/view/com/note-thread/NoteQuotes'
 import * as Layout from '#/components/Layout'
 
-type Props = NativeStackScreenProps<CommonNavigatorParams, 'PostQuotes'>
-export const PostQuotesScreen = ({route}: Props) => {
+type Props = NativeStackScreenProps<CommonNavigatorParams, 'NoteQuotes'>
+export const NoteQuotesScreen = ({route}: Props) => {
   const setMinimalShellMode = useSetMinimalShellMode()
   const {name, rkey} = route.params
-  const uri = makeRecordUri(name, 'app.bsky.feed.post', rkey)
-  const {data: post} = usePostThreadQuery(uri)
+  const uri = makeRecordUri(name, 'app.sonet.feed.note', rkey)
+  const {data: note} = useNoteThreadQuery(uri)
 
   let quoteCount
-  if (post?.thread.type === 'post') {
-    quoteCount = post.thread.post.quoteCount
+  if (note?.thread.type === 'note') {
+    quoteCount = note.thread.note.quoteCount
   }
 
   useFocusEffect(
@@ -32,7 +32,7 @@ export const PostQuotesScreen = ({route}: Props) => {
       <Layout.Header.Outer>
         <Layout.Header.BackButton />
         <Layout.Header.Content>
-          {post && (
+          {note && (
             <>
               <Layout.Header.TitleText>
                 <Trans>Quotes</Trans>
@@ -49,7 +49,7 @@ export const PostQuotesScreen = ({route}: Props) => {
         </Layout.Header.Content>
         <Layout.Header.Slot />
       </Layout.Header.Outer>
-      <PostQuotesComponent uri={uri} />
+      <NoteQuotesComponent uri={uri} />
     </Layout.Screen>
   )
 }

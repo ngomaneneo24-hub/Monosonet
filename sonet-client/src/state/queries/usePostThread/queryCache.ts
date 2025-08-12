@@ -1,58 +1,58 @@
 import {
   type $Typed,
-  type AppBskyActorDefs,
-  type AppBskyFeedDefs,
-  AppBskyUnspeccedDefs,
-  type AppBskyUnspeccedGetPostThreadOtherV2,
-  type AppBskyUnspeccedGetPostThreadV2,
+  type SonetActorDefs,
+  type SonetFeedDefs,
+  SonetUnspeccedDefs,
+  type SonetUnspeccedGetNoteThreadOtherV2,
+  type SonetUnspeccedGetNoteThreadV2,
   AtUri,
-} from '@atproto/api'
+} from '@sonet/api'
 import {type QueryClient} from '@tanstack/react-query'
 
-import {findAllPostsInQueryData as findAllPostsInExploreFeedPreviewsQueryData} from '#/state/queries/explore-feed-previews'
-import {findAllPostsInQueryData as findAllPostsInNotifsQueryData} from '#/state/queries/notifications/feed'
-import {findAllPostsInQueryData as findAllPostsInFeedQueryData} from '#/state/queries/post-feed'
-import {findAllPostsInQueryData as findAllPostsInQuoteQueryData} from '#/state/queries/post-quotes'
-import {findAllPostsInQueryData as findAllPostsInSearchQueryData} from '#/state/queries/search-posts'
-import {getBranch} from '#/state/queries/usePostThread/traversal'
+import {findAllNotesInQueryData as findAllNotesInExploreFeedPreviewsQueryData} from '#/state/queries/explore-feed-previews'
+import {findAllNotesInQueryData as findAllNotesInNotifsQueryData} from '#/state/queries/notifications/feed'
+import {findAllNotesInQueryData as findAllNotesInFeedQueryData} from '#/state/queries/note-feed'
+import {findAllNotesInQueryData as findAllNotesInQuoteQueryData} from '#/state/queries/note-quotes'
+import {findAllNotesInQueryData as findAllNotesInSearchQueryData} from '#/state/queries/search-notes'
+import {getBranch} from '#/state/queries/useNoteThread/traversal'
 import {
   type ApiThreadItem,
-  type createPostThreadOtherQueryKey,
-  type createPostThreadQueryKey,
-  type PostThreadParams,
-  postThreadQueryKeyRoot,
-} from '#/state/queries/usePostThread/types'
-import {getRootPostAtUri} from '#/state/queries/usePostThread/utils'
-import {postViewToThreadPlaceholder} from '#/state/queries/usePostThread/views'
-import {didOrHandleUriMatches, getEmbeddedPost} from '#/state/queries/util'
-import {embedViewRecordToPostView} from '#/state/queries/util'
+  type createNoteThreadOtherQueryKey,
+  type createNoteThreadQueryKey,
+  type NoteThreadParams,
+  noteThreadQueryKeyRoot,
+} from '#/state/queries/useNoteThread/types'
+import {getRootNoteAtUri} from '#/state/queries/useNoteThread/utils'
+import {noteViewToThreadPlaceholder} from '#/state/queries/useNoteThread/views'
+import {userIdOrUsernameUriMatches, getEmbeddedNote} from '#/state/queries/util'
+import {embedViewRecordToNoteView} from '#/state/queries/util'
 
 export function createCacheMutator({
   queryClient,
-  postThreadQueryKey,
-  postThreadOtherQueryKey,
+  noteThreadQueryKey,
+  noteThreadOtherQueryKey,
   params,
 }: {
   queryClient: QueryClient
-  postThreadQueryKey: ReturnType<typeof createPostThreadQueryKey>
-  postThreadOtherQueryKey: ReturnType<typeof createPostThreadOtherQueryKey>
-  params: Pick<PostThreadParams, 'view'> & {below: number}
+  noteThreadQueryKey: ReturnType<typeof createNoteThreadQueryKey>
+  noteThreadOtherQueryKey: ReturnType<typeof createNoteThreadOtherQueryKey>
+  params: Pick<NoteThreadParams, 'view'> & {below: number}
 }) {
   return {
     insertReplies(
       parentUri: string,
-      replies: AppBskyUnspeccedGetPostThreadV2.ThreadItem[],
+      replies: SonetUnspeccedGetNoteThreadV2.ThreadItem[],
     ) {
       /*
        * Main thread query mutator.
        */
-      queryClient.setQueryData<AppBskyUnspeccedGetPostThreadV2.OutputSchema>(
-        postThreadQueryKey,
+      queryClient.setQueryData<SonetUnspeccedGetNoteThreadV2.OutputSchema>(
+        noteThreadQueryKey,
         data => {
           if (!data) return
           return {
             ...data,
-            thread: mutator<AppBskyUnspeccedGetPostThreadV2.ThreadItem>([
+            thread: mutator<SonetUnspeccedGetNoteThreadV2.ThreadItem>([
               ...data.thread,
             ]),
           }
@@ -62,13 +62,13 @@ export function createCacheMutator({
       /*
        * Additional replies query mutator.
        */
-      queryClient.setQueryData<AppBskyUnspeccedGetPostThreadOtherV2.OutputSchema>(
-        postThreadOtherQueryKey,
+      queryClient.setQueryData<SonetUnspeccedGetNoteThreadOtherV2.OutputSchema>(
+        noteThreadOtherQueryKey,
         data => {
           if (!data) return
           return {
             ...data,
-            thread: mutator<AppBskyUnspeccedGetPostThreadOtherV2.ThreadItem>([
+            thread: mutator<SonetUnspeccedGetNoteThreadOtherV2.ThreadItem>([
               ...data.thread,
             ]),
           }
@@ -79,33 +79,33 @@ export function createCacheMutator({
         for (let i = 0; i < thread.length; i++) {
           const parent = thread[i]
 
-          if (!AppBskyUnspeccedDefs.isThreadItemPost(parent.value)) continue
+          if (!SonetUnspeccedDefs.isThreadItemNote(parent.value)) continue
           if (parent.uri !== parentUri) continue
 
           /*
            * Update parent data
            */
-          parent.value.post = {
-            ...parent.value.post,
-            replyCount: (parent.value.post.replyCount || 0) + 1,
+          parent.value.note = {
+            ...parent.value.note,
+            replyCount: (parent.value.note.replyCount || 0) + 1,
           }
 
-          const opDid = getRootPostAtUri(parent.value.post)?.host
+          const opDid = getRootNoteAtUri(parent.value.note)?.host
           const nextPreexistingItem = thread.at(i + 1)
           const isEndOfReplyChain =
             !nextPreexistingItem || nextPreexistingItem.depth <= parent.depth
           const isParentRoot = parent.depth === 0
           const isParentBelowRoot = parent.depth > 0
           const optimisticReply = replies.at(0)
-          const opIsReplier = AppBskyUnspeccedDefs.isThreadItemPost(
+          const opIsReplier = SonetUnspeccedDefs.isThreadItemNote(
             optimisticReply?.value,
           )
-            ? opDid === optimisticReply.value.post.author.did
+            ? opDid === optimisticReply.value.note.author.userId
             : false
 
           /*
            * Always insert replies if the following conditions are met. Max
-           * depth checks are handled below.
+           * depth checks are usernamed below.
            */
           const canAlwaysInsertReplies =
             isParentRoot ||
@@ -142,23 +142,23 @@ export function createCacheMutator({
       }
     },
     /**
-     * Unused atm, post shadow does the trick, but it would be nice to clean up
+     * Unused atm, note shadow does the trick, but it would be nice to clean up
      * the whole sub-tree on deletes.
      */
-    deletePost(post: AppBskyUnspeccedGetPostThreadV2.ThreadItem) {
-      queryClient.setQueryData<AppBskyUnspeccedGetPostThreadV2.OutputSchema>(
-        postThreadQueryKey,
+    deleteNote(note: SonetUnspeccedGetNoteThreadV2.ThreadItem) {
+      queryClient.setQueryData<SonetUnspeccedGetNoteThreadV2.OutputSchema>(
+        noteThreadQueryKey,
         queryData => {
           if (!queryData) return
 
           const thread = [...queryData.thread]
 
           for (let i = 0; i < thread.length; i++) {
-            const existingPost = thread[i]
-            if (!AppBskyUnspeccedDefs.isThreadItemPost(post.value)) continue
+            const existingNote = thread[i]
+            if (!SonetUnspeccedDefs.isThreadItemNote(note.value)) continue
 
-            if (existingPost.uri === post.uri) {
-              const branch = getBranch(thread, i, existingPost.depth)
+            if (existingNote.uri === note.uri) {
+              const branch = getBranch(thread, i, existingNote.depth)
               thread.splice(branch.start, branch.length)
               break
             }
@@ -177,80 +177,80 @@ export function createCacheMutator({
 export function getThreadPlaceholder(
   queryClient: QueryClient,
   uri: string,
-): $Typed<AppBskyUnspeccedGetPostThreadV2.ThreadItem> | void {
+): $Typed<SonetUnspeccedGetNoteThreadV2.ThreadItem> | void {
   let partial
-  for (let item of getThreadPlaceholderCandidates(queryClient, uri)) {
+  for (let item of getThreadPlaceholderCanuserIdates(queryClient, uri)) {
     /*
-     * Currently, the backend doesn't send full post info in some cases (for
-     * example, for quoted posts). We use missing `likeCount` as a way to
+     * Currently, the backend doesn't send full note info in some cases (for
+     * example, for quoted notes). We use missing `likeCount` as a way to
      * detect that. In the future, we should fix this on the backend, which
      * will let us always stop on the first result.
      *
      * TODO can we send in feeds and quotes?
      */
-    const hasAllInfo = item.value.post.likeCount != null
+    const hasAllInfo = item.value.note.likeCount != null
     if (hasAllInfo) {
       return item
     } else {
-      // Keep searching, we might still find a full post in the cache.
+      // Keep searching, we might still find a full note in the cache.
       partial = item
     }
   }
   return partial
 }
 
-export function* getThreadPlaceholderCandidates(
+export function* getThreadPlaceholderCanuserIdates(
   queryClient: QueryClient,
   uri: string,
 ): Generator<
   $Typed<
-    Omit<AppBskyUnspeccedGetPostThreadV2.ThreadItem, 'value'> & {
-      value: $Typed<AppBskyUnspeccedDefs.ThreadItemPost>
+    Omit<SonetUnspeccedGetNoteThreadV2.ThreadItem, 'value'> & {
+      value: $Typed<SonetUnspeccedDefs.ThreadItemNote>
     }
   >,
   void
 > {
   /*
-   * Check post thread queries first
+   * Check note thread queries first
    */
-  for (const post of findAllPostsInQueryData(queryClient, uri)) {
-    yield postViewToThreadPlaceholder(post)
+  for (const note of findAllNotesInQueryData(queryClient, uri)) {
+    yield noteViewToThreadPlaceholder(note)
   }
 
   /*
-   * Check notifications first. If you have a post in notifications, it's
-   * often due to a like or a repost, and we want to prioritize a post object
-   * with >0 likes/reposts over a stale version with no metrics in order to
-   * avoid a notification->post scroll jump.
+   * Check notifications first. If you have a note in notifications, it's
+   * often due to a like or a renote, and we want to prioritize a note object
+   * with >0 likes/renotes over a stale version with no metrics in order to
+   * avoid a notification->note scroll jump.
    */
-  for (let post of findAllPostsInNotifsQueryData(queryClient, uri)) {
-    yield postViewToThreadPlaceholder(post)
+  for (let note of findAllNotesInNotifsQueryData(queryClient, uri)) {
+    yield noteViewToThreadPlaceholder(note)
   }
-  for (let post of findAllPostsInFeedQueryData(queryClient, uri)) {
-    yield postViewToThreadPlaceholder(post)
+  for (let note of findAllNotesInFeedQueryData(queryClient, uri)) {
+    yield noteViewToThreadPlaceholder(note)
   }
-  for (let post of findAllPostsInQuoteQueryData(queryClient, uri)) {
-    yield postViewToThreadPlaceholder(post)
+  for (let note of findAllNotesInQuoteQueryData(queryClient, uri)) {
+    yield noteViewToThreadPlaceholder(note)
   }
-  for (let post of findAllPostsInSearchQueryData(queryClient, uri)) {
-    yield postViewToThreadPlaceholder(post)
+  for (let note of findAllNotesInSearchQueryData(queryClient, uri)) {
+    yield noteViewToThreadPlaceholder(note)
   }
-  for (let post of findAllPostsInExploreFeedPreviewsQueryData(
+  for (let note of findAllNotesInExploreFeedPreviewsQueryData(
     queryClient,
     uri,
   )) {
-    yield postViewToThreadPlaceholder(post)
+    yield noteViewToThreadPlaceholder(note)
   }
 }
 
-export function* findAllPostsInQueryData(
+export function* findAllNotesInQueryData(
   queryClient: QueryClient,
   uri: string,
-): Generator<AppBskyFeedDefs.PostView, void> {
+): Generator<SonetFeedDefs.NoteView, void> {
   const atUri = new AtUri(uri)
   const queryDatas =
-    queryClient.getQueriesData<AppBskyUnspeccedGetPostThreadV2.OutputSchema>({
-      queryKey: [postThreadQueryKeyRoot],
+    queryClient.getQueriesData<SonetUnspeccedGetNoteThreadV2.OutputSchema>({
+      queryKey: [noteThreadQueryKeyRoot],
     })
 
   for (const [_queryKey, queryData] of queryDatas) {
@@ -259,14 +259,14 @@ export function* findAllPostsInQueryData(
     const {thread} = queryData
 
     for (const item of thread) {
-      if (AppBskyUnspeccedDefs.isThreadItemPost(item.value)) {
-        if (didOrHandleUriMatches(atUri, item.value.post)) {
-          yield item.value.post
+      if (SonetUnspeccedDefs.isThreadItemNote(item.value)) {
+        if (userIdOrUsernameUriMatches(atUri, item.value.note)) {
+          yield item.value.note
         }
 
-        const qp = getEmbeddedPost(item.value.post.embed)
-        if (qp && didOrHandleUriMatches(atUri, qp)) {
-          yield embedViewRecordToPostView(qp)
+        const qp = getEmbeddedNote(item.value.note.embed)
+        if (qp && userIdOrUsernameUriMatches(atUri, qp)) {
+          yield embedViewRecordToNoteView(qp)
         }
       }
     }
@@ -275,11 +275,11 @@ export function* findAllPostsInQueryData(
 
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
-  did: string,
-): Generator<AppBskyActorDefs.ProfileViewBasic, void> {
+  userId: string,
+): Generator<SonetActorDefs.ProfileViewBasic, void> {
   const queryDatas =
-    queryClient.getQueriesData<AppBskyUnspeccedGetPostThreadV2.OutputSchema>({
-      queryKey: [postThreadQueryKeyRoot],
+    queryClient.getQueriesData<SonetUnspeccedGetNoteThreadV2.OutputSchema>({
+      queryKey: [noteThreadQueryKeyRoot],
     })
 
   for (const [_queryKey, queryData] of queryDatas) {
@@ -288,13 +288,13 @@ export function* findAllProfilesInQueryData(
     const {thread} = queryData
 
     for (const item of thread) {
-      if (AppBskyUnspeccedDefs.isThreadItemPost(item.value)) {
-        if (item.value.post.author.did === did) {
-          yield item.value.post.author
+      if (SonetUnspeccedDefs.isThreadItemNote(item.value)) {
+        if (item.value.note.author.userId === userId) {
+          yield item.value.note.author
         }
 
-        const qp = getEmbeddedPost(item.value.post.embed)
-        if (qp && qp.author.did === did) {
+        const qp = getEmbeddedNote(item.value.note.embed)
+        if (qp && qp.author.userId === userId) {
           yield qp.author
         }
       }

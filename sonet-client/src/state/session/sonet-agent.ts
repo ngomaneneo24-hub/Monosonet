@@ -69,14 +69,14 @@ export class SonetAppAgent {
   async createAccount(accountData: {
     email: string
     password: string
-    handle: string
+    username: string
     inviteCode?: string
     verificationPhone?: string
     verificationCode?: string
   }) {
     try {
       const response = await this.client.register(
-        accountData.handle,
+        accountData.username,
         accountData.email,
         accountData.password
       )
@@ -223,7 +223,7 @@ export async function createSonetAgentAndCreateAccount(
     service: string
     email: string
     password: string
-    handle: string
+    username: string
     birthDate: Date
     inviteCode?: string
     verificationPhone?: string
@@ -246,8 +246,8 @@ export function sonetAgentToSessionAccount(agent: SonetAppAgent): SessionAccount
   }
   
   return {
-    did: agent.session.user.id,
-    handle: agent.session.user.username,
+    userId: agent.session.user.id,
+    username: agent.session.user.username,
     displayName: agent.session.user.displayName,
     email: '', // Not stored in Sonet session
     emailConfirmed: true, // Assume confirmed for Sonet
