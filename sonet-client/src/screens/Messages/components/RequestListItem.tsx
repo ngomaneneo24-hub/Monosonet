@@ -1,77 +1,131 @@
 import {View} from 'react-native'
-import {type ChatBskyConvoDefs} from '@atproto/api'
-import {Trans} from '@lingui/macro'
+import {msg, Trans} from '@lingui/macro'
+import {useLingui} from '@lingui/react'
+import {useNavigation} from '@react-navigation/native'
+import {useCallback} from 'react'
 
-import {useModerationOpts} from '#/state/preferences/moderation-opts'
-import {useSession} from '#/state/session'
-import {atoms as a, tokens} from '#/alf'
-import {KnownFollowers} from '#/components/KnownFollowers'
+import {atoms as a, useTheme} from '#/alf'
+import {Button, ButtonIcon, ButtonText} from '#/components/Button'
+import {Check_Stroke2_Corner0_Rounded as CheckIcon} from '#/components/icons/Check'
+import {TimesLarge_Stroke2_Corner0_Rounded as XIcon} from '#/components/icons/Times'
 import {Text} from '#/components/Typography'
-import {ChatListItem} from './ChatListItem'
-import {AcceptChatButton, DeleteChatButton, RejectMenu} from './RequestButtons'
+import {Avatar} from '#/view/com/util/Avatar'
+import {useAcceptChatRequest} from '#/state/queries/messages/accept-chat-request'
+import {useDeclineChatRequest} from '#/state/queries/messages/decline-chat-request'
 
-export function RequestListItem({convo}: {convo: ChatBskyConvoDefs.ConvoView}) {
-  const {currentAccount} = useSession()
-  const moderationOpts = useModerationOpts()
+export function RequestListItem({
+  convo,
+}: {
+  convo: any // TODO: Replace with proper Sonet chat type
+}) {
+  const {_} = useLingui()
+  const t = useTheme()
+  const navigation = useNavigation()
 
-  const otherUser = convo.members.find(
-    member => member.did !== currentAccount?.did,
+  const {mutate: acceptRequest, isPending: isAccepting} = useAcceptChatRequest()
+  const {mutate: declineRequest, isPending: isDeclining} = useDeclineChatRequest()
+
+  const handleAccept = useCallback(() => {
+    acceptRequest(
+      {conversationId: convo.id},
+      {
+        onSuccess: () => {
+          // Navigate to the conversation
+          navigation.navigate('MessagesConversation' as any, {
+            conversation: convo.id,
+          })
+        },
+      },
+    )
+  }, [acceptRequest, convo.id, navigation])
+
+  const handleDecline = useCallback(() => {
+    declineRequest(
+      {conversationId: convo.id},
+      {
+        onSuccess: () => {
+          // Request declined, stay on inbox
+        },
+      },
+    )
+  }, [declineRequest, convo.id])
+
+  const handlePress = useCallback(() => {
+    // Navigate to conversation preview
+    navigation.navigate('MessagesConversation' as any, {
+      conversation: convo.id,
+    })
+  }, [navigation, convo.id])
+
+  // Extract user info from conversation
+  const otherUser = convo.members?.find(
+    (member: any) => member.did !== convo.currentUserDid,
   )
-
-  if (!otherUser || !moderationOpts) {
-    return null
-  }
-
-  const isDeletedAccount = otherUser.handle === 'missing.invalid'
+  
+  const handle = otherUser?.handle || 'unknown'
+  const displayName = otherUser?.displayName || handle
+  const avatar = otherUser?.avatar
+  const lastMessage = convo.lastMessage?.text || ''
 
   return (
-    <View style={[a.relative, a.flex_1]}>
-      <ChatListItem convo={convo} showMenu={false}>
-        <View style={[a.pt_xs, a.pb_2xs]}>
-          <KnownFollowers
-            profile={otherUser}
-            moderationOpts={moderationOpts}
-            minimal
-            showIfEmpty
-          />
-        </View>
-        {/* spacer, since you can't nest pressables */}
-        <View style={[a.pt_md, a.pb_xs, a.w_full, {opacity: 0}]} aria-hidden>
-          {/* Placeholder text so that it responds to the font height */}
-          <Text style={[a.text_xs, a.leading_tight, a.font_bold]}>
-            <Trans comment="Accept a chat request">Accept Request</Trans>
-          </Text>
-        </View>
-      </ChatListItem>
+    <View
+      style={[
+        a.flex_row,
+        a.align_center,
+        a.justify_between,
+        a.px_md,
+        a.py_md,
+        a.border_b,
+        t.atoms.border_contrast_low,
+      ]}>
       <View
-        style={[
-          a.absolute,
-          a.pr_md,
-          a.w_full,
-          a.flex_row,
-          a.align_center,
-          a.gap_sm,
-          {
-            bottom: tokens.space.md,
-            paddingLeft: tokens.space.lg + 52 + tokens.space.md,
-          },
-        ]}>
-        {!isDeletedAccount ? (
-          <>
-            <AcceptChatButton convo={convo} currentScreen="list" />
-            <RejectMenu
-              convo={convo}
-              profile={otherUser}
-              showDeleteConvo
-              currentScreen="list"
-            />
-          </>
-        ) : (
-          <>
-            <DeleteChatButton convo={convo} currentScreen="list" />
-            <View style={a.flex_1} />
-          </>
-        )}
+        style={[a.flex_row, a.align_center, a.flex_1, a.mr_sm]}
+        onTouchEnd={handlePress}>
+        <Avatar size={48} image={avatar} style={[a.mr_md]} />
+        
+        <View style={[a.flex_1, a.min_w_0]}>
+          <Text style={[a.text_md, a.font_bold, a.leading_snug]} numberOfLines={1}>
+            {displayName}
+          </Text>
+          <Text style={[a.text_sm, t.atoms.text_contrast_medium]} numberOfLines={1}>
+            @{handle}
+          </Text>
+          {lastMessage && (
+            <Text
+              style={[a.text_sm, t.atoms.text_contrast_medium, a.mt_xs]}
+              numberOfLines={2}>
+              {lastMessage}
+            </Text>
+          )}
+        </View>
+      </View>
+
+      <View style={[a.flex_row, a.gap_sm]}>
+        <Button
+          label={_(msg`Accept chat request`)}
+          size="small"
+          color="primary"
+          variant="solid"
+          onPress={handleAccept}
+          disabled={isAccepting || isDeclining}>
+          <ButtonIcon icon={CheckIcon} />
+          <ButtonText>
+            <Trans>Accept</Trans>
+          </ButtonText>
+        </Button>
+
+        <Button
+          label={_(msg`Decline chat request`)}
+          size="small"
+          color="secondary"
+          variant="ghost"
+          onPress={handleDecline}
+          disabled={isAccepting || isDeclining}>
+          <ButtonIcon icon={XIcon} />
+          <ButtonText>
+            <Trans>Decline</Trans>
+          </ButtonText>
+        </Button>
       </View>
     </View>
   )

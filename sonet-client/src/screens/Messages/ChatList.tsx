@@ -1,10 +1,8 @@
 import {useCallback, useEffect, useMemo, useState} from 'react'
 import {View} from 'react-native'
 import {useAnimatedRef} from 'react-native-reanimated'
-import {type ChatBskyActorDefs, type ChatBskyConvoDefs} from '@atproto/api'
 import type {SonetChat} from '#/services/sonetMessagingApi'
 import {useIsSonetMessaging} from '#/state/messages/hybrid-provider'
-import {convertAtprotoConvoToSonet} from '#/state/messages/adapters/atproto-to-sonet'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useFocusEffect, useIsFocused, useNavigation} from '@react-navigation/native'
@@ -53,11 +51,11 @@ type ListItem =
   | {
       type: 'INBOX'
       count: number
-      profiles: ChatBskyActorDefs.ProfileViewBasic[]
+      profiles: any[] // TODO: Replace with proper Sonet user type
     }
   | {
       type: 'CONVERSATION'
-      conversation: ChatBskyConvoDefs.ConvoView | SonetChat
+      conversation: any | SonetChat // TODO: Replace with proper Sonet type
     }
 
 function renderItem({item}: {item: ListItem}) {
@@ -111,17 +109,15 @@ export function MessagesScreenInner({navigation, route}: Props) {
     }
   }, [navigation, pushToConversation])
 
-  // Request the poll interval to be 10s (or whatever the MESSAGE_SCREEN_POLL_INTERVAL is set to in the future)
-  // but only when the screen is active
+  // Real-time via WebSocket; no polling interval needed
   const messagesBus = useMessagesEventBus()
   const state = useAppState()
   const isActive = state === 'active'
   useFocusEffect(
     useCallback(() => {
       if (isActive) {
-        const unsub = messagesBus.requestPollInterval(
-          MESSAGE_SCREEN_POLL_INTERVAL,
-        )
+        // Real-time via WebSocket; no polling interval needed
+        const unsub = () => {}
         return () => unsub()
       }
     }, [messagesBus, isActive]),

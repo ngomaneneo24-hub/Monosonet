@@ -1,10 +1,23 @@
 import React from 'react'
 import {AppState} from 'react-native'
+import {sonetWebSocket} from '#/services/sonetWebSocket'
+import {useSonetApi, useSonetSession} from '#/state/session/sonet'
 
-import {MessagesEventBus} from '#/state/messages/events/agent'
-import {useAgent, useSession} from '#/state/session'
+class SonetMessagesEventBus {
+  private status: 'initializing' | 'ready' | 'backgrounded' | 'suspended' | 'error' = 'initializing'
 
-const MessagesEventBusContext = React.createContext<MessagesEventBus | null>(
+  background() {
+    this.status = 'backgrounded'
+  }
+  suspend() {
+    this.status = 'suspended'
+  }
+  resume() {
+    this.status = 'ready'
+  }
+}
+
+const MessagesEventBusContext = React.createContext<SonetMessagesEventBus | null>(
   null,
 )
 
@@ -23,9 +36,10 @@ export function MessagesEventBusProvider({
 }: {
   children: React.ReactNode
 }) {
-  const {currentAccount} = useSession()
+  const {hasSession, account} = useSonetSession()
+  const sonet = useSonetApi()
 
-  if (!currentAccount) {
+  if (!hasSession || !account) {
     return (
       <MessagesEventBusContext.Provider value={null}>
         {children}
@@ -43,17 +57,21 @@ export function MessagesEventBusProviderInner({
 }: {
   children: React.ReactNode
 }) {
-  const agent = useAgent()
-  const [bus] = React.useState(
-    () =>
-      new MessagesEventBus({
-        agent,
-      }),
-  )
+  const {account} = useSonetSession()
+  const [bus] = React.useState(() => new SonetMessagesEventBus())
+
+  React.useEffect(() => {
+    // Ensure WebSocket connection using current access token
+    if (account?.accessToken) {
+      sonetWebSocket.connect(account.accessToken).catch(() => {})
+    }
+    return () => {
+      sonetWebSocket.disconnect()
+    }
+  }, [account?.accessToken])
 
   React.useEffect(() => {
     bus.resume()
-
     return () => {
       bus.suspend()
     }

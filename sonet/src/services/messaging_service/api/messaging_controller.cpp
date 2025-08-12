@@ -17,6 +17,7 @@
 #include <iomanip>
 #include <ctime>
 #include <sodium.h>
+#include "../../user_service/include/jwt_manager.h"
 
 namespace sonet::messaging::api {
 
@@ -135,11 +136,20 @@ MessagingController::MessagingController(uint16_t http_port, uint16_t websocket_
     crypto_engine_ = std::make_unique<crypto::CryptoEngine>();
     websocket_manager_ = std::make_unique<realtime::WebSocketManager>(websocket_port);
     encryption_manager_ = std::make_unique<encryption::EncryptionManager>();
-    
+
+    // JWT manager for token validation (read signing key from env)
+    const char* jwt_secret = std::getenv("SONET_JWT_SECRET");
+    jwt_manager_ = std::make_unique<sonet::user::JWTManager>(jwt_secret ? jwt_secret : std::string("dev_secret"));
+
     // Set up WebSocket authentication callback
     websocket_manager_->set_authentication_callback(
         [this](const std::string& user_id, const std::string& token) {
-            return validate_auth_token(user_id, token);
+            if (!jwt_manager_) return false;
+            auto claims = jwt_manager_->verify_token(token);
+            if (!claims.has_value()) return false;
+            // Optional: compare user id in token
+            auto token_user = jwt_manager_->get_user_id_from_token(token);
+            return token_user.has_value() && token_user.value() == user_id && !jwt_manager_->is_token_blacklisted(token);
         }
     );
     
@@ -330,32 +340,55 @@ MessagingController::handle_send_message(const boost::beast::http::request<boost
         return create_http_response(401, "Unauthorized",
             APIResponse::error("Authentication required", "UNAUTHORIZED"));
     }
-    
+
+    auto is_base64 = [](const std::string& s) -> bool {
+        if (s.empty()) return false;
+        for (char c : s) {
+            if (!(std::isalnum(static_cast<unsigned char>(c)) || c == '+' || c == '/' || c == '=' || c == '-' || c == '_')) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    auto validate_encryption_envelope = [&](const Json::Value& enc, std::string& err) -> bool {
+        if (!enc.isObject()) { err = "invalid_envelope"; return false; }
+        if (!enc.isMember("alg") || !enc.isMember("keyId") || !enc.isMember("iv") || !enc.isMember("tag")) { err = "missing_fields"; return false; }
+        if (!enc["alg"].isString() && !enc["alg"].isInt()) { err = "bad_alg"; return false; }
+        if (!enc["keyId"].isString()) { err = "bad_keyId"; return false; }
+        if (!enc["iv"].isString() || !enc["tag"].isString()) { err = "bad_iv_tag"; return false; }
+        std::string iv = enc["iv"].asString();
+        std::string tag = enc["tag"].asString();
+        if (!is_base64(iv) || !is_base64(tag)) { err = "iv_tag_not_base64"; return false; }
+        if (iv.size() < 12 || tag.size() < 16) { err = "iv_tag_length"; return false; }
+        // Enforce presence of AAD field for integrity binding
+        if (!enc.isMember("aad") || !enc["aad"].isString()) { err = "missing_aad"; return false; }
+        return true;
+    };
+
     try {
-        // Parse request body
         Json::Value request_json;
         Json::Reader reader;
         if (!reader.parse(req.body(), request_json)) {
             return create_http_response(400, "Bad Request",
                 APIResponse::error("Invalid JSON", "INVALID_JSON"));
         }
-        
-        // Validate required fields
-        if (!request_json.isMember("chat_id") || !request_json.isMember("content")) {
+
+        if (!request_json.isMember("chatId") || !request_json.isMember("content")) {
             return create_http_response(400, "Bad Request",
-                APIResponse::error("Missing required fields", "MISSING_FIELDS"));
+                APIResponse::error("chatId and content are required", "MISSING_FIELDS"));
         }
-        
-        std::string chat_id = request_json["chat_id"].asString();
+
+        std::string chat_id = request_json["chatId"].asString();
         std::string content = request_json["content"].asString();
-        
+
         // Check if user is member of chat
         if (!chat_service_->is_member(chat_id, user_id)) {
             return create_http_response(403, "Forbidden",
                 APIResponse::error("Access denied", "ACCESS_DENIED"));
         }
-        
-        // Create message
+
+        // Build message
         auto message = std::make_shared<core::Message>();
         message->message_id = generate_message_id();
         message->chat_id = chat_id;
@@ -364,8 +397,8 @@ MessagingController::handle_send_message(const boost::beast::http::request<boost
         message->type = core::MessageType::TEXT;
         message->status = core::MessageStatus::SENT;
         message->timestamp = std::chrono::system_clock::now();
-        
-        // Handle attachments if present
+
+        // Attachments
         if (request_json.isMember("attachments")) {
             const auto& attachments_json = request_json["attachments"];
             for (const auto& attachment_json : attachments_json) {
@@ -377,42 +410,71 @@ MessagingController::handle_send_message(const boost::beast::http::request<boost
                 }
             }
         }
-        
+
+        // Optional client-side encryption envelope
+        bool client_provided_encryption = false;
+        if (request_json.isMember("encryption") && request_json["encryption"].isObject()) {
+            std::string err;
+            if (!validate_encryption_envelope(request_json["encryption"], err)) {
+                return create_http_response(400, "Bad Request",
+                    APIResponse::error("Invalid encryption envelope: " + err, "INVALID_ENCRYPTION"));
+            }
+
+            // Replay protection using iv+tag scoped to chat and user
+            const auto& enc = request_json["encryption"];
+            const std::string iv_b64 = enc["iv"].asString();
+            const std::string tag_b64 = enc["tag"].asString();
+            {
+                std::lock_guard<std::mutex> lock(replay_mutex_);
+                replay_cleanup_locked_();
+                if (!check_and_mark_replay_locked_(chat_id, user_id, iv_b64, tag_b64)) {
+                    return create_http_response(409, "Conflict",
+                        APIResponse::error("Replay detected", "REPLAY"));
+                }
+            }
+
+            // Build canonical envelope to store (include ciphertext from content)
+            Json::Value envelope = request_json["encryption"];
+            envelope["v"] = envelope.isMember("v") ? envelope["v"] : 1;
+            envelope["ct"] = content; // content is ciphertext (base64)
+            envelope["msgId"] = message->message_id; // bind message id
+            envelope["chatId"] = chat_id; // bind chat id
+            envelope["senderId"] = user_id; // bind sender
+
+            Json::StreamWriterBuilder w;
+            message->content = Json::writeString(w, envelope);
+            message->is_encrypted = true;
+            if (envelope["keyId"].isString()) {
+                message->encryption_key_id = envelope["keyId"].asString();
+            }
+            client_provided_encryption = true;
+        }
+
         // Handle message type
         if (request_json.isMember("type")) {
             std::string type_str = request_json["type"].asString();
-            if (type_str == "sticker") {
-                message->type = core::MessageType::STICKER;
-            } else if (type_str == "voice") {
-                message->type = core::MessageType::VOICE;
-            } else if (type_str == "location") {
-                message->type = core::MessageType::LOCATION;
-            }
+            if (type_str == "sticker") message->type = core::MessageType::STICKER;
+            else if (type_str == "voice") message->type = core::MessageType::VOICE;
+            else if (type_str == "location") message->type = core::MessageType::LOCATION;
         }
-        
-        // Encrypt message if chat has E2E encryption enabled
+
+        // Server-side encryption path (only if chat is encrypted and client did not encrypt)
         auto chat = chat_service_->get_chat(chat_id);
-        if (chat && chat->settings.is_encrypted) {
-            // Get or create session key for the chat
+        if (chat && chat->settings.is_encrypted && !client_provided_encryption) {
             auto session_key = encryption_manager_->create_session_key(
                 chat_id, user_id, encryption::EncryptionAlgorithm::X25519_CHACHA20_POLY1305);
-            
             if (!session_key.session_id.empty()) {
-                // Encrypt message content
                 std::string additional_data = message->message_id + "|" + chat_id + "|" + user_id;
-                auto encrypted_msg = encryption_manager_->encrypt_message(
-                    session_key.session_id, content, additional_data);
-                
+                auto encrypted_msg = encryption_manager_->encrypt_message(session_key.session_id, content, additional_data);
                 if (!encrypted_msg.message_id.empty()) {
-                    // Persist an envelope with all required crypto metadata
                     Json::Value envelope;
-                    envelope["v"] = 1; // version
+                    envelope["v"] = 1;
                     envelope["alg"] = static_cast<int>(session_key.algorithm);
                     envelope["sid"] = session_key.session_id;
-                    envelope["ct"] = encrypted_msg.ciphertext; // base64
-                    envelope["n"] = encrypted_msg.nonce;       // base64
-                    envelope["t"] = encrypted_msg.tag;         // base64
-                    envelope["aad"] = encrypted_msg.additional_data; // base64 or string depending on manager
+                    envelope["ct"] = encrypted_msg.ciphertext;
+                    envelope["n"] = encrypted_msg.nonce;
+                    envelope["t"] = encrypted_msg.tag;
+                    envelope["aad"] = encrypted_msg.additional_data;
                     Json::StreamWriterBuilder w;
                     message->content = Json::writeString(w, envelope);
                     message->encryption_key_id = session_key.session_id;
@@ -420,10 +482,9 @@ MessagingController::handle_send_message(const boost::beast::http::request<boost
                 }
             }
         }
-        
+
         // Save message
         if (message_service_->create_message(message)) {
-            // Broadcast to WebSocket subscribers
             realtime::RealtimeEvent event;
             event.type = realtime::MessageEventType::NEW_MESSAGE;
             event.chat_id = chat_id;
@@ -431,26 +492,18 @@ MessagingController::handle_send_message(const boost::beast::http::request<boost
             event.data = message->to_json();
             event.timestamp = message->timestamp;
             event.event_id = generate_event_id();
-            
             websocket_manager_->broadcast_to_chat(chat_id, event);
-            
-            // Update chat's last message
             chat_service_->update_last_message(chat_id, message->message_id, message->timestamp);
-            
-            // Send delivery receipts
             send_delivery_receipts(chat_id, message->message_id, user_id);
-            
             Json::Value response_data;
             response_data["message"] = message->to_json();
-            
             return create_http_response(201, "Created",
                 APIResponse::success("Message sent successfully", response_data));
-            
         } else {
             return create_http_response(500, "Internal Server Error",
                 APIResponse::error("Failed to send message", "SEND_FAILED"));
         }
-        
+
     } catch (const std::exception& e) {
         return create_http_response(500, "Internal Server Error",
             APIResponse::error("Internal server error", "INTERNAL_ERROR"));
@@ -832,6 +885,26 @@ std::string MessagingController::generate_thumbnail(const std::string& image_dat
     // Placeholder for thumbnail generation
     // In production, use image processing library like ImageMagick or OpenCV
     return "";
+}
+
+void MessagingController::replay_cleanup_locked_() {
+    auto now = std::chrono::system_clock::now();
+    for (auto it = replay_seen_.begin(); it != replay_seen_.end();) {
+        if (now - it->second > replay_ttl_) it = replay_seen_.erase(it); else ++it;
+    }
+}
+
+bool MessagingController::check_and_mark_replay_locked_(const std::string& chat_id, const std::string& user_id,
+                                                       const std::string& iv_b64, const std::string& tag_b64) {
+    std::string key = chat_id + "|" + user_id + "|" + iv_b64 + "|" + tag_b64;
+    auto now = std::chrono::system_clock::now();
+    auto it = replay_seen_.find(key);
+    if (it != replay_seen_.end()) {
+        if (now - it->second <= replay_ttl_) return false; // replay
+        // expired entry can be reused
+    }
+    replay_seen_[key] = now;
+    return true;
 }
 
 } // namespace sonet::messaging::api
