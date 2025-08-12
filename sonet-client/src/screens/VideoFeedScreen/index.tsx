@@ -16,7 +16,9 @@ import {VideoFeedItem} from './components/VideoFeedItem'
 import {VideoFeedHeader} from './components/VideoFeedHeader'
 import {VideoFeedEmpty} from './components/VideoFeedEmpty'
 import {VideoFeedError} from './components/VideoFeedError'
+import {VideoDetailModal} from './components/VideoDetailModal'
 import {createTrendingFeedRequest} from '../../lib/api/video-feed'
+import {VideoItem} from '../../lib/api/video-feed'
 
 const {width: screenWidth} = Dimensions.get('window')
 const COLUMN_COUNT = 2
@@ -27,6 +29,8 @@ export const VideoFeedScreen: React.FC = () => {
   const insets = useSafeAreaInsets()
   const [refreshing, setRefreshing] = useState(false)
   const [feedType, setFeedType] = useState<'trending' | 'for_you' | 'following'>('trending')
+  const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null)
+  const [isVideoModalVisible, setIsVideoModalVisible] = useState(false)
   const flatListRef = useRef<FlatList>(null)
 
   // Video feed query with infinite scrolling
@@ -72,6 +76,18 @@ export const VideoFeedScreen: React.FC = () => {
     }
   }, [])
 
+  // Handle video selection
+  const handleVideoPress = useCallback((video: VideoItem) => {
+    setSelectedVideo(video)
+    setIsVideoModalVisible(true)
+  }, [])
+
+  // Handle video modal close
+  const handleVideoModalClose = useCallback(() => {
+    setIsVideoModalVisible(false)
+    setSelectedVideo(null)
+  }, [])
+
   // Render video item
   const renderVideoItem = useCallback(({item, index}: {item: any; index: number}) => {
     return (
@@ -83,6 +99,7 @@ export const VideoFeedScreen: React.FC = () => {
           // TODO: Navigate to video detail
           console.log('Video pressed:', item.id)
         }}
+        onVideoPress={handleVideoPress}
         onLike={() => {
           // TODO: Handle like
           console.log('Video liked:', item.id)
@@ -175,12 +192,20 @@ export const VideoFeedScreen: React.FC = () => {
         initialNumToRender={8}
       />
       
-      {isLoading && !refreshing && (
-        <View style={styles.initialLoader}>
-          <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>Loading videos...</Text>
-        </View>
-      )}
+              {isLoading && !refreshing && (
+          <View style={styles.initialLoader}>
+            <ActivityIndicator size="large" color="#007AFF" />
+            <Text style={styles.loadingText}>Loading videos...</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Video Detail Modal */}
+      <VideoDetailModal
+        video={selectedVideo}
+        isVisible={isVideoModalVisible}
+        onClose={handleVideoModalClose}
+      />
     </View>
   )
 }
