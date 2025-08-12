@@ -24,6 +24,7 @@
 #include "crypto_engine.hpp"
 #include "encryption_manager.hpp"
 #include "websocket_manager.hpp"
+#include "../../user_service/include/jwt_manager.h"
 
 namespace sonet::messaging {
 
@@ -98,6 +99,7 @@ private:
     std::unique_ptr<ChatManager> chat_manager_;
     std::unique_ptr<encryption::EncryptionManager> encryption_manager_;
     std::unique_ptr<realtime::WebSocketManager> websocket_manager_;
+    std::unique_ptr<sonet::user::JWTManager> jwt_manager_;
     
     // Database and storage
     std::string database_connection_string_;

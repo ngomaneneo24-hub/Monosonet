@@ -17,6 +17,7 @@
 #include <iomanip>
 #include <ctime>
 #include <sodium.h>
+#include "../../user_service/include/jwt_manager.h"
 
 namespace sonet::messaging::api {
 
@@ -135,11 +136,20 @@ MessagingController::MessagingController(uint16_t http_port, uint16_t websocket_
     crypto_engine_ = std::make_unique<crypto::CryptoEngine>();
     websocket_manager_ = std::make_unique<realtime::WebSocketManager>(websocket_port);
     encryption_manager_ = std::make_unique<encryption::EncryptionManager>();
-    
+
+    // JWT manager for token validation (read signing key from env)
+    const char* jwt_secret = std::getenv("SONET_JWT_SECRET");
+    jwt_manager_ = std::make_unique<sonet::user::JWTManager>(jwt_secret ? jwt_secret : std::string("dev_secret"));
+
     // Set up WebSocket authentication callback
     websocket_manager_->set_authentication_callback(
         [this](const std::string& user_id, const std::string& token) {
-            return validate_auth_token(user_id, token);
+            if (!jwt_manager_) return false;
+            auto claims = jwt_manager_->verify_token(token);
+            if (!claims.has_value()) return false;
+            // Optional: compare user id in token
+            auto token_user = jwt_manager_->get_user_id_from_token(token);
+            return token_user.has_value() && token_user.value() == user_id && !jwt_manager_->is_token_blacklisted(token);
         }
     );
     
