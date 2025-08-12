@@ -1,150 +1,151 @@
-import {useCallback, useState} from 'react'
+import {useCallback} from 'react'
 import {View} from 'react-native'
-import {ComAtprotoModerationDefs} from '@atproto/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
-import {useMutation} from '@tanstack/react-query'
+import {useNavigation} from '@react-navigation/native'
 
-import {logger} from '#/logger'
-import {useAgent, useSession} from '#/state/session'
-import * as Toast from '#/view/com/util/Toast'
-import {atoms as a, useBreakpoints, useTheme} from '#/alf'
+import {useSession} from '#/state/session'
+import {atoms as a, useTheme} from '#/alf'
 import {Button, ButtonIcon, ButtonText} from '#/components/Button'
-import * as Dialog from '#/components/Dialog'
-import {Loader} from '#/components/Loader'
+import {CircleInfo_Stroke2_Corner0_Rounded as CircleInfoIcon} from '#/components/icons/CircleInfo'
+import {Shield_Stroke2_Corner0_Rounded as ShieldIcon} from '#/components/icons/Shield'
 import {Text} from '#/components/Typography'
+import {useModalControls} from '#/state/modals'
+import {useModerationCauseDescription} from '#/lib/moderation/useModerationCauseDescription'
+import {useModerationCauseLabel} from '#/lib/moderation/useModerationCauseLabel'
+import {useModerationCause} from '#/lib/moderation/useModerationCause'
 
-export function ChatDisabled() {
+export function ChatDisabled({
+  reason,
+  reasonType,
+  reasonDescription,
+  isAppealable,
+  isAppealed,
+  onAppeal,
+}: {
+  reason: string
+  reasonType: string // TODO: Replace with proper Sonet moderation type
+  reasonDescription?: string
+  isAppealable: boolean
+  isAppealed: boolean
+  onAppeal: () => void
+}) {
+  const {_} = useLingui()
   const t = useTheme()
+  const {currentAccount} = useSession()
+  const {openModal} = useModalControls()
+  const moderationCause = useModerationCause(reasonType)
+  const moderationCauseLabel = useModerationCauseLabel(moderationCause)
+  const moderationCauseDescription = useModerationCauseDescription(
+    moderationCause,
+    reasonDescription,
+  )
+
+  const openAppealModal = useCallback(() => {
+    openModal({
+      name: 'moderation-appeal',
+      moderationCause,
+      onAppeal,
+    })
+  }, [openModal, moderationCause, onAppeal])
+
+  const openModerationDetailsModal = useCallback(() => {
+    openModal({
+      name: 'moderation-details',
+      moderationCause,
+      reasonDescription,
+    })
+  }, [openModal, moderationCause, reasonDescription])
+
   return (
-    <View style={[a.p_md]}>
-      <View
-        style={[a.align_start, a.p_xl, a.rounded_md, t.atoms.bg_contrast_25]}>
+    <View style={[a.flex_1, a.justify_center, a.align_center, a.px_lg]}>
+      <View style={[a.align_center, a.max_w_sm]}>
+        <View
+          style={[
+            a.w_16,
+            a.h_16,
+            a.rounded_full,
+            a.align_center,
+            a.justify_center,
+            t.atoms.bg_contrast_25,
+            a.mb_lg,
+          ]}>
+          <ShieldIcon
+            width={32}
+            height={32}
+            fill={t.atoms.text_contrast_medium.color}
+          />
+        </View>
+
+        <Text style={[a.text_2xl, a.font_bold, a.text_center, a.mb_md]}>
+          <Trans>Chat disabled</Trans>
+        </Text>
+
         <Text
-          style={[a.text_md, a.font_bold, a.pb_sm, t.atoms.text_contrast_high]}>
-          <Trans>Your chats have been disabled</Trans>
+          style={[
+            a.text_md,
+            a.text_center,
+            a.leading_snug,
+            t.atoms.text_contrast_medium,
+            a.mb_xl,
+          ]}>
+          {moderationCauseDescription}
         </Text>
-        <Text style={[a.text_sm, a.leading_snug, t.atoms.text_contrast_medium]}>
-          <Trans>
-            Our moderators have reviewed reports and decided to disable your
-            access to chats on Bluesky.
-          </Trans>
-        </Text>
-        <AppealDialog />
+
+        <View style={[a.flex_row, a.gap_sm, a.mb_lg]}>
+          <Button
+            label={_(msg`View details`)}
+            size="small"
+            color="secondary"
+            variant="ghost"
+            onPress={openModerationDetailsModal}>
+            <ButtonIcon icon={CircleInfoIcon} />
+            <ButtonText>
+              <Trans>View details</Trans>
+            </ButtonText>
+          </Button>
+
+          {isAppealable && !isAppealed && (
+            <Button
+              label={_(msg`Appeal`)}
+              size="small"
+              color="primary"
+              variant="solid"
+              onPress={openAppealModal}>
+              <ButtonText>
+                <Trans>Appeal</Trans>
+              </ButtonText>
+            </Button>
+          )}
+        </View>
+
+        {isAppealed && (
+          <View
+            style={[
+              a.flex_row,
+              a.align_center,
+              a.gap_sm,
+              a.px_md,
+              a.py_sm,
+              a.rounded_md,
+              t.atoms.bg_positive_25,
+            ]}>
+            <CircleInfoIcon
+              width={16}
+              height={16}
+              fill={t.atoms.text_positive.color}
+            />
+            <Text
+              style={[
+                a.text_sm,
+                t.atoms.text_positive,
+                a.font_medium,
+              ]}>
+              <Trans>Appeal submitted</Trans>
+            </Text>
+          </View>
+        )}
       </View>
     </View>
-  )
-}
-
-function AppealDialog() {
-  const control = Dialog.useDialogControl()
-  const {_} = useLingui()
-
-  return (
-    <>
-      <Button
-        testID="appealDisabledChatBtn"
-        variant="ghost"
-        color="secondary"
-        size="small"
-        onPress={control.open}
-        label={_(msg`Appeal this decision`)}
-        style={a.mt_sm}>
-        <ButtonText>{_(msg`Appeal this decision`)}</ButtonText>
-      </Button>
-
-      <Dialog.Outer control={control}>
-        <Dialog.Handle />
-        <DialogInner />
-      </Dialog.Outer>
-    </>
-  )
-}
-
-function DialogInner() {
-  const {_} = useLingui()
-  const control = Dialog.useDialogContext()
-  const [details, setDetails] = useState('')
-  const {gtMobile} = useBreakpoints()
-  const agent = useAgent()
-  const {currentAccount} = useSession()
-
-  const {mutate, isPending} = useMutation({
-    mutationFn: async () => {
-      if (!currentAccount)
-        throw new Error('No current account, should be unreachable')
-      await agent.createModerationReport({
-        reasonType: ComAtprotoModerationDefs.REASONAPPEAL,
-        subject: {
-          $type: 'com.atproto.admin.defs#repoRef',
-          did: currentAccount.did,
-        },
-        reason: details,
-      })
-    },
-    onError: err => {
-      logger.error('Failed to submit chat appeal', {message: err})
-      Toast.show(_(msg`Failed to submit appeal, please try again.`), 'xmark')
-    },
-    onSuccess: () => {
-      control.close()
-      Toast.show(_(msg({message: 'Appeal submitted', context: 'toast'})))
-    },
-  })
-
-  const onSubmit = useCallback(() => mutate(), [mutate])
-  const onBack = useCallback(() => control.close(), [control])
-
-  return (
-    <Dialog.ScrollableInner label={_(msg`Appeal this decision`)}>
-      <Text style={[a.text_2xl, a.font_bold, a.pb_xs, a.leading_tight]}>
-        <Trans>Appeal this decision</Trans>
-      </Text>
-      <Text style={[a.text_md, a.leading_snug]}>
-        <Trans>This appeal will be sent to Bluesky's moderation service.</Trans>
-      </Text>
-      <View style={[a.my_md]}>
-        <Dialog.Input
-          label={_(msg`Text input field`)}
-          placeholder={_(
-            msg`Please explain why you think your chats were incorrectly disabled`,
-          )}
-          value={details}
-          onChangeText={setDetails}
-          autoFocus={true}
-          numberOfLines={3}
-          multiline
-          maxLength={300}
-        />
-      </View>
-
-      <View
-        style={
-          gtMobile
-            ? [a.flex_row, a.justify_between]
-            : [{flexDirection: 'column-reverse'}, a.gap_sm]
-        }>
-        <Button
-          testID="backBtn"
-          variant="solid"
-          color="secondary"
-          size="large"
-          onPress={onBack}
-          label={_(msg`Back`)}>
-          <ButtonText>{_(msg`Back`)}</ButtonText>
-        </Button>
-        <Button
-          testID="submitBtn"
-          variant="solid"
-          color="primary"
-          size="large"
-          onPress={onSubmit}
-          label={_(msg`Submit`)}>
-          <ButtonText>{_(msg`Submit`)}</ButtonText>
-          {isPending && <ButtonIcon icon={Loader} />}
-        </Button>
-      </View>
-      <Dialog.Close />
-    </Dialog.ScrollableInner>
   )
 }

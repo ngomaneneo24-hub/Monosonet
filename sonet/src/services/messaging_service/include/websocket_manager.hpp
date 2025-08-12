@@ -150,7 +150,7 @@ struct ConnectionMetrics {
 class WebSocketManager {
 private:
     using server = websocketpp::server<websocketpp::config::asio>;
-    using connection_hdl = websocketpp::connection_hdl;
+    using connection_hdl = server::connection_hdl;
     using message_ptr = server::message_ptr;
     
     // WebSocket server
@@ -190,6 +190,10 @@ private:
     std::chrono::seconds ping_interval_;
     std::chrono::seconds connection_timeout_;
     std::chrono::seconds typing_timeout_;
+    
+    // Security configuration
+    std::unordered_set<std::string> allowed_origins_;
+    bool require_tls_header_ = false; // if true, check X-Forwarded-Proto == https
     
     // Authentication callback
     std::function<bool(const std::string&, const std::string&)> auth_callback_;
@@ -234,6 +238,8 @@ public:
     void set_connection_timeout(std::chrono::seconds timeout);
     void set_typing_timeout(std::chrono::seconds timeout);
     void set_authentication_callback(std::function<bool(const std::string&, const std::string&)> callback);
+    void set_allowed_origins(const std::vector<std::string>& origins);
+    void set_require_tls_header(bool require_tls);
     
     // Connection management
     std::vector<std::shared_ptr<ClientConnection>> get_all_connections();

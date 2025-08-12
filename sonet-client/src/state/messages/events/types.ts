@@ -1,7 +1,7 @@
-import {BskyAgent, ChatBskyConvoGetLog} from '@atproto/api'
+// Sonet messaging event types - no more AT Protocol polling
 
 export type MessagesEventBusParams = {
-  agent: BskyAgent
+  // No agent needed - uses WebSocket directly
 }
 
 export enum MessagesEventBusStatus {
@@ -18,13 +18,12 @@ export enum MessagesEventBusDispatchEvent {
   Background = 'background',
   Suspend = 'suspend',
   Resume = 'resume',
-  UpdatePoll = 'updatePoll',
 }
 
 export enum MessagesEventBusErrorCode {
   Unknown = 'unknown',
-  InitFailed = 'initFailed',
-  PollFailed = 'pollFailed',
+  ConnectionFailed = 'connectionFailed',
+  AuthFailed = 'authFailed',
 }
 
 export type MessagesEventBusError = {
@@ -50,19 +49,15 @@ export type MessagesEventBusDispatch =
       event: MessagesEventBusDispatchEvent.Error
       payload: MessagesEventBusError
     }
-  | {
-      event: MessagesEventBusDispatchEvent.UpdatePoll
-    }
 
 export type MessagesEventBusEvent =
   | {
       type: 'connect'
     }
   | {
-      type: 'error'
-      error: MessagesEventBusError
+      type: 'disconnect'
     }
   | {
-      type: 'logs'
-      logs: ChatBskyConvoGetLog.OutputSchema['logs']
+      type: 'error'
+      error: MessagesEventBusError
     }
