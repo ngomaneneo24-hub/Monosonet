@@ -1,10 +1,6 @@
 import {useCallback, useMemo, useRef, useState} from 'react'
 import {View, type ViewabilityConfig} from 'react-native'
-import {
-  type AppBskyActorDefs,
-  type AppBskyFeedDefs,
-  type AppBskyGraphDefs,
-} from '@atproto/api'
+import { type SonetPost, type SonetProfile, type SonetFeedGenerator, type SonetPostRecord, type SonetFeedViewPost, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
@@ -157,7 +153,7 @@ type ExploreScreenItems =
   | {
       type: 'profile'
       key: string
-      profile: AppBskyActorDefs.ProfileView
+      profile: SonetProfile
       recId?: number
     }
   | {
@@ -167,7 +163,7 @@ type ExploreScreenItems =
   | {
       type: 'feed'
       key: string
-      feed: AppBskyFeedDefs.GeneratorView
+      feed: SonetFeedGenerator
     }
   | {
       type: 'loadMore'

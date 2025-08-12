@@ -11,10 +11,10 @@ import {
   type ViewStyle,
 } from 'react-native'
 import {
-  type AppBskyActorDefs,
-  AppBskyEmbedVideo,
-  type AppBskyFeedDefs,
-} from '@atproto/api'
+  type SonetProfile,
+  type SonetPost,
+  type SonetEmbed,
+} from '#/types/sonet'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
@@ -208,7 +208,7 @@ let PostFeed = ({
   desktopFixedHeightOffset?: number
   ListHeaderComponent?: () => JSX.Element
   extraData?: any
-  savedFeedConfig?: AppBskyActorDefs.SavedFeed
+  savedFeedConfig?: SonetSavedFeed
   initialNumToRender?: number
   isVideoFeed?: boolean
 }): React.ReactNode => {
@@ -228,7 +228,7 @@ let PostFeed = ({
     () => new Set<string>(),
   )
   const onPressShowLess = useCallback(
-    (interaction: AppBskyFeedDefs.Interaction) => {
+    (interaction: SonetInteraction) => {
       if (interaction.item) {
         const uri = interaction.item
         setHasPressedShowLessUris(prev => new Set([...prev, uri]))
