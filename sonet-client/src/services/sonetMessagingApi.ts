@@ -3,6 +3,11 @@ import {sonetCrypto} from './sonetCrypto'
 import {sonetWebSocket} from './sonetWebSocket'
 import {EventEmitter} from 'events'
 
+function genMessageId(): string {
+  const rnd = crypto.getRandomValues(new Uint8Array(16))
+  return 'msg_' + Array.from(rnd).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 export interface SonetChat {
   id: string
   name: string
@@ -197,7 +202,8 @@ export class SonetMessagingApi extends EventEmitter {
   async sendMessage(request: SendMessageRequest): Promise<SonetMessage> {
     try {
       let encryptedContent = request.content
-      let encryptionData = undefined
+      let encryptionData: any = undefined
+      const clientMsgId = genMessageId()
 
       // Encrypt message if requested and chat supports encryption
       if (request.encrypt !== false) {
@@ -225,6 +231,7 @@ export class SonetMessagingApi extends EventEmitter {
         type: request.type || 'text',
         replyTo: request.replyTo,
         encrypt: request.encrypt !== false,
+        clientMessageId: clientMsgId,
       }
 
       if (encryptionData) {
