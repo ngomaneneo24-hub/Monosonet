@@ -3,7 +3,7 @@ import {z} from 'zod'
 import {deviceLanguageCodes, deviceLocales} from '#/locale/deviceLocales'
 import {findSupportedAppLanguage} from '#/locale/helpers'
 import {logger} from '#/logger'
-import {PlatformInfo} from '../../../modules/expo-bluesky-swiss-army'
+import {PlatformInfo} from '../../../modules/expo-sonet-swiss-army'
 
 const externalEmbedOptions = ['show', 'hide'] as const
 
@@ -29,6 +29,21 @@ const accountSchema = z.object({
   status: z.string().optional(),
   pdsUrl: z.string().optional(),
   isSelfHosted: z.boolean().optional(),
+  accessToken: z.string().optional(),
+  refreshToken: z.string().optional(),
+  user: z.object({
+    id: z.string(),
+    username: z.string(),
+    displayName: z.string().optional(),
+    bio: z.string().optional(),
+    avatar: z.string().optional(),
+    banner: z.string().optional(),
+    followersCount: z.number(),
+    followingCount: z.number(),
+    notesCount: z.number(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  }).optional(),
 })
 export type PersistedAccount = z.infer<typeof accountSchema>
 
