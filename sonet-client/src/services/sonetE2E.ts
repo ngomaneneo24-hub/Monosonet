@@ -21,6 +21,7 @@ export interface E2EEncryptedPayload {
   iv: string
   tag: string
   ephemeralPublicKey: string
+  aad: string
 }
 
 export class SonetE2EEncryption {
@@ -87,6 +88,9 @@ export class SonetE2EEncryption {
   async encryptMessage(
     message: string,
     recipientPublicKeyBytes: Uint8Array,
+    chatId: string,
+    messageId: string,
+    senderId: string,
   ): Promise<E2EEncryptedPayload> {
     if (!this.keyPair) {
       throw new Error('E2E encryption not initialized')
@@ -127,6 +131,20 @@ export class SonetE2EEncryption {
       const iv = crypto.getRandomValues(new Uint8Array(12))
       const info = new TextEncoder().encode('sonet:e2e:v1')
 
+      // Generate AAD (Additional Authenticated Data) for integrity binding
+      // Format: hash(msgId|chatId|senderId|alg|keyId) - matches server expectations
+      const ephemeralPublicKeyBytes = await crypto.subtle.exportKey('raw', ephemeralKeyPair.publicKey)
+      const aadComponents = [
+        messageId,
+        chatId, 
+        senderId,
+        'AES-GCM',
+        this.arrayBufferToBase64(ephemeralPublicKeyBytes)
+      ].join('|')
+      
+      const aadHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(aadComponents))
+      const aad = Array.from(new Uint8Array(aadHash)).map(b => b.toString(16).padStart(2, '0')).join('')
+
       // HKDF extract+expand to AES-GCM key
       const hkdfKey = await crypto.subtle.importKey(
         'raw',
@@ -155,8 +173,6 @@ export class SonetE2EEncryption {
         encodedMessage
       )
 
-      const ephemeralPublicKeyBytes = await crypto.subtle.exportKey('raw', ephemeralKeyPair.publicKey)
-
       const encryptedArray = new Uint8Array(encrypted)
       const ciphertext = encryptedArray.slice(0, -16)
       const tag = encryptedArray.slice(-16)
@@ -166,6 +182,7 @@ export class SonetE2EEncryption {
         iv: this.arrayBufferToBase64(iv),
         tag: this.arrayBufferToBase64(tag),
         ephemeralPublicKey: this.arrayBufferToBase64(ephemeralPublicKeyBytes),
+        aad: aad, // Include AAD for server validation
       }
     } catch (error) {
       console.error('Failed to encrypt message:', error)
