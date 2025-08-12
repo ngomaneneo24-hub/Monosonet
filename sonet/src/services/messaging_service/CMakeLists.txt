@@ -100,78 +100,87 @@ set(MESSAGING_SERVICE_SOURCES
     crypto/key_management.cpp
     crypto/secure_random.cpp
     
-    # Real-time communication
+    # API and controllers
+    api/messaging_controller.cpp
+    
+    # Real-time features
     realtime/websocket_manager.cpp
-    realtime/event_processor.cpp
-    realtime/connection_manager.cpp
+    realtime/typing_manager.cpp
+    realtime/typing_indicator.cpp
     
-    # Service controllers
-    src/messaging_controller.cpp
-    src/messaging_api_handler.cpp
-    src/messaging_service.cpp
+    # Storage and database
+    storage/mongodb_manager.cpp
+    storage/attachment_storage.cpp
     
-    # Storage and persistence
-    src/message_storage.cpp
-    src/attachment_storage.cpp
-    src/database_manager.cpp
+    # Threading and utilities
+    threading/message_processor.cpp
+    threading/attachment_processor.cpp
     
-    # Utilities and helpers
-    src/message_utils.cpp
-    src/chat_utils.cpp
-    src/service_utils.cpp
-    src/validation.cpp
-    
-    # Main entry point
+    # Main service
+    messaging_service.cpp
     main.cpp
 )
 
-# Header files (for IDE support)
+# Test sources
+set(MESSAGING_SERVICE_TESTS
+    tests/test_x3dh_and_ratchet.cpp
+    tests/test_server_security.cpp
+    tests/test_crypto_roundtrip.cpp
+)
+
+# Headers
 set(MESSAGING_SERVICE_HEADERS
     include/message.hpp
     include/chat.hpp
     include/crypto_engine.hpp
-    include/websocket_manager.hpp
+    include/encryption_manager.hpp
     include/messaging_controller.hpp
+    include/websocket_manager.hpp
+    include/typing_manager.hpp
+    include/attachment_storage.hpp
+    include/mongodb_manager.hpp
     include/messaging_service.hpp
 )
 
-# Create executable
+# Main executable
 add_executable(messaging_service ${MESSAGING_SERVICE_SOURCES} ${MESSAGING_SERVICE_HEADERS})
 
-# Link libraries
+# Test executable
+add_executable(messaging_tests ${MESSAGING_SERVICE_TESTS} ${MESSAGING_SERVICE_HEADERS})
+
+# Link libraries for main service
 target_link_libraries(messaging_service
-    # Core Sonet libraries
-    sonet_core
-    sonet_external
-    
-    # System libraries
-    Threads::Threads
-    
-    # Boost libraries
     ${Boost_LIBRARIES}
-    
-    # Networking and protocols
-    gRPC::grpc++
-    protobuf::libprotobuf
-    
-    # Cryptography
-    OpenSSL::SSL
-    OpenSSL::Crypto
-    libsodium::libsodium
-    
-    # Database
-    ${PostgreSQL_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
+    ${PROTOBUF_LIBRARIES}
+    ${GRPC_LIBRARIES}
+    ${JSONCPP_LIBRARIES}
+    ${POSTGRESQL_LIBRARIES}
     ${LIBPQXX_LIBRARIES}
     ${HIREDIS_LIBRARIES}
-    
-    # JSON processing
-    jsoncpp_lib
-    
-    # Compression and encoding
-    z
-    
-    # Optional security libraries
-    $<$<BOOL:${HAVE_ARGON2}>:${ARGON2_LIBRARY}>
+    ${LIBSODIUM_LIBRARIES}
+    ${ARGON2_LIBRARY}
+    Threads::Threads
+    asio::asio
+)
+
+# Link libraries for tests
+target_link_libraries(messaging_tests
+    gtest
+    gmock
+    ${Boost_LIBRARIES}
+    ${OPENSSL_LIBRARIES}
+    ${JSONCPP_LIBRARIES}
+    ${LIBSODIUM_LIBRARIES}
+    Threads::Threads
+)
+
+# Include directories for tests
+target_include_directories(messaging_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../core
+    ${CMAKE_CURRENT_SOURCE_DIR}/../external
+    ${GTEST_INCLUDE_DIRS}
 )
 
 # Compiler definitions

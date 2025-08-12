@@ -212,14 +212,21 @@ export class SonetMessagingApi extends EventEmitter {
           const recipient = chat.participants.find(p => p.id !== this.extractUserIdFromToken(this.authToken!))
           if (recipient?.publicKey) {
             const publicKey = await sonetCrypto.importPublicKey(recipient.publicKey)
-            const encrypted = await sonetCrypto.encryptMessage(request.content, request.chatId, publicKey)
+            const encrypted = await sonetCrypto.encryptMessage(
+              request.content, 
+              request.chatId, 
+              publicKey,
+              clientMsgId,
+              this.extractUserIdFromToken(this.authToken!)
+            )
             
             encryptedContent = encrypted.encryptedContent
             encryptionData = {
               keyId: encrypted.keyId,
               algorithm: encrypted.algorithm,
               iv: encrypted.iv,
-              authTag: encrypted.authTag
+              authTag: encrypted.authTag,
+              aad: encrypted.aad
             }
           }
         }
@@ -241,6 +248,7 @@ export class SonetMessagingApi extends EventEmitter {
           keyId: encryptionData.keyId,
           iv: encryptionData.iv,
           tag: encryptionData.authTag,
+          aad: encryptionData.aad,
         }
       }
 

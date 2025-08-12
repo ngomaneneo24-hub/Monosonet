@@ -23,6 +23,7 @@ export interface EncryptedMessage {
   keyId: string
   algorithm: string
   timestamp: string
+  aad: string
 }
 
 export interface KeyExchangeMessage {
@@ -188,7 +189,9 @@ export class SonetCrypto {
   async encryptMessage(
     message: string,
     chatId: string,
-    recipientPublicKey: CryptoKey
+    recipientPublicKey: CryptoKey,
+    messageId: string,
+    senderId: string
   ): Promise<EncryptedMessage> {
     try {
       let sessionKey = await this.getSessionKey(chatId)
@@ -197,6 +200,19 @@ export class SonetCrypto {
       }
 
       const iv = window.crypto.getRandomValues(new Uint8Array(12))
+
+      // Generate AAD (Additional Authenticated Data) for integrity binding
+      // Format: hash(msgId|chatId|senderId|alg|keyId) - matches server expectations
+      const aadComponents = [
+        messageId,
+        chatId, 
+        senderId,
+        'AES-256-GCM',
+        sessionKey.keyId
+      ].join('|')
+      
+      const aadHash = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(aadComponents))
+      const aad = Array.from(new Uint8Array(aadHash)).map(b => b.toString(16).padStart(2, '0')).join('')
 
       const encrypted = await window.crypto.subtle.encrypt(
         {
@@ -219,6 +235,7 @@ export class SonetCrypto {
         keyId: sessionKey.keyId,
         algorithm: 'AES-256-GCM',
         timestamp: new Date().toISOString(),
+        aad: aad, // Include AAD for server validation
       }
     } catch (error) {
       console.error('Failed to encrypt message:', error)
