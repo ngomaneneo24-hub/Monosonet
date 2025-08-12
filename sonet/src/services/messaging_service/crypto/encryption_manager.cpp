@@ -27,6 +27,7 @@
 #include <iomanip>
 #include <filesystem>
 #include <fstream>
+#include <sodium.h>
 
 namespace {
     std::string get_session_keys_path() {
@@ -42,6 +43,14 @@ namespace {
 }
 
 namespace sonet::messaging::encryption {
+
+static inline void secure_zero_string(std::string& s) {
+    if (!s.empty()) {
+        sodium_memzero(s.data(), s.size());
+        s.clear();
+        s.shrink_to_fit();
+    }
+}
 
 // EncryptionKeyPair implementation
 std::string EncryptionKeyPair::serialize_public_key() const {
@@ -1282,14 +1291,11 @@ bool EncryptionManager::mark_key_compromised(const std::string& chat_id) {
     auto& state = state_it->second;
     
     // Clear all sensitive key material
-    state.root_key.clear();
-    state.sending_chain_key.clear();
-    state.receiving_chain_key.clear();
-    state.our_ratchet_private_key.clear();
+    secure_zero_string(state.root_key);
+    secure_zero_string(state.sending_chain_key);
+    secure_zero_string(state.receiving_chain_key);
+    secure_zero_string(state.our_ratchet_private_key);
     state.skipped_message_keys.clear();
-    
-    // Mark as compromised (could add a flag to the state)
-    // For now, we'll just clear the keys
     
     return true;
 }

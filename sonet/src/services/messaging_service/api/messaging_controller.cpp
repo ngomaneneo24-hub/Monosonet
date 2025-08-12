@@ -360,8 +360,9 @@ MessagingController::handle_send_message(const boost::beast::http::request<boost
         std::string iv = enc["iv"].asString();
         std::string tag = enc["tag"].asString();
         if (!is_base64(iv) || !is_base64(tag)) { err = "iv_tag_not_base64"; return false; }
-        // 12-byte IV and 16-byte tag expected when decoded; we only check base64 length heuristic here
         if (iv.size() < 12 || tag.size() < 16) { err = "iv_tag_length"; return false; }
+        // Enforce presence of AAD field for integrity binding
+        if (!enc.isMember("aad") || !enc["aad"].isString()) { err = "missing_aad"; return false; }
         return true;
     };
 
@@ -419,10 +420,26 @@ MessagingController::handle_send_message(const boost::beast::http::request<boost
                     APIResponse::error("Invalid encryption envelope: " + err, "INVALID_ENCRYPTION"));
             }
 
+            // Replay protection using iv+tag scoped to chat and user
+            const auto& enc = request_json["encryption"];
+            const std::string iv_b64 = enc["iv"].asString();
+            const std::string tag_b64 = enc["tag"].asString();
+            {
+                std::lock_guard<std::mutex> lock(replay_mutex_);
+                replay_cleanup_locked_();
+                if (!check_and_mark_replay_locked_(chat_id, user_id, iv_b64, tag_b64)) {
+                    return create_http_response(409, "Conflict",
+                        APIResponse::error("Replay detected", "REPLAY"));
+                }
+            }
+
             // Build canonical envelope to store (include ciphertext from content)
             Json::Value envelope = request_json["encryption"];
             envelope["v"] = envelope.isMember("v") ? envelope["v"] : 1;
             envelope["ct"] = content; // content is ciphertext (base64)
+            envelope["msgId"] = message->message_id; // bind message id
+            envelope["chatId"] = chat_id; // bind chat id
+            envelope["senderId"] = user_id; // bind sender
 
             Json::StreamWriterBuilder w;
             message->content = Json::writeString(w, envelope);
@@ -868,6 +885,26 @@ std::string MessagingController::generate_thumbnail(const std::string& image_dat
     // Placeholder for thumbnail generation
     // In production, use image processing library like ImageMagick or OpenCV
     return "";
+}
+
+void MessagingController::replay_cleanup_locked_() {
+    auto now = std::chrono::system_clock::now();
+    for (auto it = replay_seen_.begin(); it != replay_seen_.end();) {
+        if (now - it->second > replay_ttl_) it = replay_seen_.erase(it); else ++it;
+    }
+}
+
+bool MessagingController::check_and_mark_replay_locked_(const std::string& chat_id, const std::string& user_id,
+                                                       const std::string& iv_b64, const std::string& tag_b64) {
+    std::string key = chat_id + "|" + user_id + "|" + iv_b64 + "|" + tag_b64;
+    auto now = std::chrono::system_clock::now();
+    auto it = replay_seen_.find(key);
+    if (it != replay_seen_.end()) {
+        if (now - it->second <= replay_ttl_) return false; // replay
+        // expired entry can be reused
+    }
+    replay_seen_[key] = now;
+    return true;
 }
 
 } // namespace sonet::messaging::api
