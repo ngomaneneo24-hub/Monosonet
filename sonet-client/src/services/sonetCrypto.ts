@@ -54,7 +54,7 @@ export class SonetCrypto {
       const keyPair = await window.crypto.subtle.generateKey(
         {
           name: 'ECDH',
-          namedCurve: 'P-256'
+          namedCurve: 'P-256',
         },
         true,
         ['deriveKey', 'deriveBits']
@@ -67,7 +67,7 @@ export class SonetCrypto {
         publicKey: keyPair.publicKey,
         privateKey: keyPair.privateKey,
         keyId,
-        createdAt
+        createdAt,
       }
 
       return this.keyPair
@@ -102,7 +102,7 @@ export class SonetCrypto {
         keyData,
         {
           name: 'ECDH',
-          namedCurve: 'P-256'
+          namedCurve: 'P-256',
         },
         true,
         []
@@ -124,25 +124,26 @@ export class SonetCrypto {
     }
 
     try {
-      // Derive shared secret
-      const sharedSecret = await window.crypto.subtle.deriveBits(
+      // Derive ECDH shared secret (bits)
+      const sharedSecretBits = await window.crypto.subtle.deriveBits(
         {
           name: 'ECDH',
-          public: recipientPublicKey
+          public: recipientPublicKey,
         },
         this.keyPair.privateKey,
         256
       )
 
-      // Derive session key using HKDF
-      const sessionKey = await window.crypto.subtle.deriveKey(
+      // Import shared secret for HKDF and derive AES-GCM key
+      const hkdfBase = await window.crypto.subtle.importKey('raw', sharedSecretBits, { name: 'HKDF' }, false, ['deriveKey'])
+      const sessionAesKey = await window.crypto.subtle.deriveKey(
         {
           name: 'HKDF',
           hash: 'SHA-256',
           salt: new TextEncoder().encode(chatId),
-          info: new TextEncoder().encode('sonet_session_key')
+          info: new TextEncoder().encode('sonet_session_key'),
         },
-        sharedSecret,
+        hkdfBase,
         { name: 'AES-GCM', length: 256 },
         false,
         ['encrypt', 'decrypt']
@@ -150,17 +151,17 @@ export class SonetCrypto {
 
       const keyId = `session_${nanoid(16)}`
       const createdAt = new Date().toISOString()
-      const expiresAt = isEphemeral 
-        ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
-        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
+      const expiresAt = isEphemeral
+        ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
 
       const sessionKeyObj: SessionKey = {
         keyId,
         chatId,
-        key: sessionKey,
+        key: sessionAesKey,
         createdAt,
         expiresAt,
-        isEphemeral
+        isEphemeral,
       }
 
       this.sessionKeys.set(keyId, sessionKeyObj)
@@ -172,17 +173,14 @@ export class SonetCrypto {
   }
 
   async getSessionKey(chatId: string): Promise<SessionKey | null> {
-    // Find the most recent non-expired session key for this chat
     let bestKey: SessionKey | null = null
-    
-    for (const [_, sessionKey] of this.sessionKeys) {
+    for (const [, sessionKey] of this.sessionKeys) {
       if (sessionKey.chatId === chatId && new Date(sessionKey.expiresAt) > new Date()) {
         if (!bestKey || new Date(sessionKey.createdAt) > new Date(bestKey.createdAt)) {
           bestKey = sessionKey
         }
       }
     }
-
     return bestKey
   }
 
@@ -193,27 +191,23 @@ export class SonetCrypto {
     recipientPublicKey: CryptoKey
   ): Promise<EncryptedMessage> {
     try {
-      // Get or create session key
       let sessionKey = await this.getSessionKey(chatId)
       if (!sessionKey) {
         sessionKey = await this.deriveSessionKey(chatId, recipientPublicKey)
       }
 
-      // Generate IV
       const iv = window.crypto.getRandomValues(new Uint8Array(12))
-      
-      // Encrypt message
+
       const encrypted = await window.crypto.subtle.encrypt(
         {
           name: 'AES-GCM',
           iv,
-          additionalData: new TextEncoder().encode(chatId)
+          additionalData: new TextEncoder().encode(chatId),
         },
         sessionKey.key,
         new TextEncoder().encode(message)
       )
 
-      // Extract auth tag (last 16 bytes)
       const encryptedArray = new Uint8Array(encrypted)
       const authTag = encryptedArray.slice(-16)
       const encryptedContent = encryptedArray.slice(0, -16)
@@ -224,7 +218,7 @@ export class SonetCrypto {
         authTag: btoa(String.fromCharCode(...authTag)),
         keyId: sessionKey.keyId,
         algorithm: 'AES-256-GCM',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       }
     } catch (error) {
       console.error('Failed to encrypt message:', error)
@@ -242,22 +236,19 @@ export class SonetCrypto {
         throw new Error('No session key available for decryption')
       }
 
-      // Decode base64 data
       const encryptedContent = Uint8Array.from(atob(encryptedMessage.encryptedContent), c => c.charCodeAt(0))
       const iv = Uint8Array.from(atob(encryptedMessage.iv), c => c.charCodeAt(0))
       const authTag = Uint8Array.from(atob(encryptedMessage.authTag), c => c.charCodeAt(0))
 
-      // Combine encrypted content and auth tag
       const fullEncrypted = new Uint8Array(encryptedContent.length + authTag.length)
       fullEncrypted.set(encryptedContent)
       fullEncrypted.set(authTag, encryptedContent.length)
 
-      // Decrypt
       const decrypted = await window.crypto.subtle.decrypt(
         {
           name: 'AES-GCM',
           iv,
-          additionalData: new TextEncoder().encode(chatId)
+          additionalData: new TextEncoder().encode(chatId),
         },
         sessionKey.key,
         fullEncrypted
@@ -279,18 +270,15 @@ export class SonetCrypto {
     try {
       const publicKeyData = await this.exportPublicKey(this.keyPair)
       const timestamp = new Date().toISOString()
-      
-      // Create signature for verification
-      const signature = await this.signData(
-        `${this.keyPair.keyId}:${publicKeyData}:${timestamp}`
-      )
+
+      const signature = await this.signData(`${this.keyPair.keyId}:${publicKeyData}:${timestamp}`)
 
       return {
         type: 'key_exchange',
         keyId: this.keyPair.keyId,
         publicKey: publicKeyData,
         timestamp,
-        signature
+        signature,
       }
     } catch (error) {
       console.error('Failed to create key exchange message:', error)
@@ -300,8 +288,6 @@ export class SonetCrypto {
 
   async verifyKeyExchangeMessage(message: KeyExchangeMessage): Promise<boolean> {
     try {
-      // In a real implementation, you would verify the signature against the sender's public key
-      // For now, we'll just verify the message structure
       return (
         message.type === 'key_exchange' &&
         !!message.keyId &&
@@ -322,12 +308,19 @@ export class SonetCrypto {
     }
 
     try {
+      // Import private key for ECDSA signing via PKCS8 export
+      const pkcs8 = await window.crypto.subtle.exportKey('pkcs8', this.keyPair.privateKey)
+      const signingKey = await window.crypto.subtle.importKey(
+        'pkcs8',
+        pkcs8,
+        { name: 'ECDSA', namedCurve: 'P-256' },
+        false,
+        ['sign']
+      )
+
       const signature = await window.crypto.subtle.sign(
-        {
-          name: 'ECDSA',
-          hash: 'SHA-256'
-        },
-        this.keyPair.privateKey,
+        { name: 'ECDSA', hash: 'SHA-256' },
+        signingKey,
         new TextEncoder().encode(data)
       )
 
@@ -340,7 +333,6 @@ export class SonetCrypto {
 
   // Cleanup
   async rotateSessionKeys(chatId: string): Promise<void> {
-    // Remove old session keys for this chat
     for (const [keyId, sessionKey] of this.sessionKeys) {
       if (sessionKey.chatId === chatId) {
         this.sessionKeys.delete(keyId)
@@ -375,5 +367,4 @@ export class SonetCrypto {
   }
 }
 
-// Export singleton instance
 export const sonetCrypto = new SonetCrypto('', '')

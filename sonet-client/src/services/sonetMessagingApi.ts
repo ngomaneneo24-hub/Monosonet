@@ -117,7 +117,7 @@ export class SonetMessagingApi extends EventEmitter {
 
     // Connect WebSocket
     try {
-      await sonetWebSocket.connect(token)
+      await sonetWebSocket.connect(token, userId || undefined)
       this.isConnected = true
       this.emit('authenticated')
     } catch (error) {
@@ -219,12 +219,22 @@ export class SonetMessagingApi extends EventEmitter {
         }
       }
 
-      const messageData = {
+      const messageData: any = {
         chatId: request.chatId,
         content: encryptedContent,
         type: request.type || 'text',
         replyTo: request.replyTo,
-        encrypt: request.encrypt !== false
+        encrypt: request.encrypt !== false,
+      }
+
+      if (encryptionData) {
+        messageData.encryption = {
+          v: 1,
+          alg: encryptionData.algorithm,
+          keyId: encryptionData.keyId,
+          iv: encryptionData.iv,
+          tag: encryptionData.authTag,
+        }
       }
 
       const response = await this.apiRequest('/messaging/messages', {
