@@ -8620,10 +8620,6 @@ eslint-module-utils@^2.12.0:
   dependencies:
     debug "^3.2.7"
 
-"eslint-plugin-bsky-internal@link:./eslint":
-  version "0.0.0"
-  uid ""
-
 eslint-plugin-eslint-comments@^3.2.0:
   version "3.2.0"
   resolved "https://registry.yarnpkg.com/eslint-plugin-eslint-comments/-/eslint-plugin-eslint-comments-3.2.0.tgz#9e1cd7b4413526abb313933071d7aba05ca12ffa"
@@ -8744,6 +8740,10 @@ eslint-plugin-simple-import-sort@^12.0.0:
   version "12.0.0"
   resolved "https://registry.yarnpkg.com/eslint-plugin-simple-import-sort/-/eslint-plugin-simple-import-sort-12.0.0.tgz#3cfa05d74509bd4dc329a956938823812194dbb6"
   integrity sha512-8o0dVEdAkYap0Cn5kNeklaKcT1nUsa3LITWEuFk3nJifOoD+5JQGoyDUW2W/iPWwBsNBJpyJS9y4je/BgxLcyQ==
+
+"eslint-plugin-sonet-internal@link:./eslint":
+  version "0.0.0"
+  uid ""
 
 eslint-scope@5.1.1, eslint-scope@^5.1.1:
   version "5.1.1"
