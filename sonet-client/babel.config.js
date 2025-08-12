@@ -38,11 +38,11 @@ module.exports = function (api) {
             // This needs to be mirrored in tsconfig.json
             '#': './src',
             crypto: './src/platform/crypto.ts',
-            // Shimmed atproto modules for Sonet migration (tsconfig paths already map these for TS type checking)
-            '@atproto/api': './src/shims/atproto-runtime.ts',
-            '@atproto/api/dist': './src/shims/atproto-api-dist.ts',
-            '@atproto/common-web': './src/shims/atproto-common-web.ts',
-            '@atproto/lexicon': './src/shims/atproto-lexicon.ts',
+            // Shimmed atproto modules for Sonet migration (regex aliases catch deep imports)
+            '^@atproto/api$': './src/shims/atproto-runtime.ts',
+            '^@atproto/api/dist/.*$': './src/shims/atproto-api-dist.ts',
+            '^@atproto/common-web$': './src/shims/atproto-common-web.ts',
+            '^@atproto/lexicon$': './src/shims/atproto-lexicon.ts',
           },
         },
       ],
