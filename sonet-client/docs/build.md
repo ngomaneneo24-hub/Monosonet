@@ -83,7 +83,7 @@ After you do `yarn ios` and `yarn android` once, you can later just run `yarn we
 
 Adding Sentry is NOT required. You can keep `SENTRY_AUTH_TOKEN=` in `.env` which will build the app without Sentry.
 
-However, if you're a part of the Bluesky team and want to enable Sentry, fill in `SENTRY_AUTH_TOKEN` in your `.env`. It can be created on the Sentry dashboard using [these instructions](https://docs.expo.dev/guides/using-sentry/#sign-up-for-a-sentry-account-and-create-a-project).
+However, if you're a part of the Sonet team and want to enable Sentry, fill in `SENTRY_AUTH_TOKEN` in your `.env`. It can be created on the Sentry dashboard using [these instructions](https://docs.expo.dev/guides/using-sentry/#sign-up-for-a-sentry-account-and-create-a-project).
 
 If you change `SENTRY_AUTH_TOKEN`, you need to do `yarn prebuild` before running `yarn ios` or `yarn android` again.
 
@@ -91,7 +91,7 @@ If you change `SENTRY_AUTH_TOKEN`, you need to do `yarn prebuild` before running
 
 Adding bitdrift is NOT required. You can keep `EXPO_PUBLIC_BITDRIFT_API_KEY=` in `.env` which will avoid initializing bitdrift during startup.
 
-However, if you're a part of the Bluesky team and want to enable bitdrift, fill in `EXPO_PUBLIC_BITDRIFT_API_KEY` in your `.env` to enable bitdrift.
+However, if you're a part of the Sonet team and want to enable bitdrift, fill in `EXPO_PUBLIC_BITDRIFT_API_KEY` in your `.env` to enable bitdrift.
 
 ### Adding and Updating Locales
 
@@ -99,11 +99,11 @@ However, if you're a part of the Bluesky team and want to enable bitdrift, fill 
 
 ## Running the Backend Locally
 
-This is NOT required for app development but if you also want to develop the Bluesky *backend* locally too, you'll need this.
+This is NOT required for app development but if you also want to develop the Sonet *backend* locally too, you'll need this.
 
 - Start the dev servers
-  - `git clone git@github.com:bluesky-social/atproto.git`
-  - `cd atproto`
+      - `git clone git@github.com:sonet-social/sonet-backend.git`
+    - `cd sonet-backend`
   - `brew install pnpm`
   - optional: `brew install jq`
   - `pnpm i`

@@ -29,14 +29,12 @@ module.exports = async function (env, argv) {
     ...(config.module.rules || []),
     reactNativeWebWebviewConfiguration,
   ]
-  // Ensure our shims resolve during bundling
+  // Sonet API resolution
   config.resolve = config.resolve || {}
   config.resolve.alias = {
     ...(config.resolve.alias || {}),
-    '@atproto/api': path.resolve(__dirname, 'src/shims/atproto-runtime.ts'),
-    '@atproto/common-web': path.resolve(__dirname, 'src/shims/atproto-common-web.ts'),
-    '@atproto/lexicon': path.resolve(__dirname, 'src/shims/atproto-lexicon.ts'),
-    '@atproto/api/dist': path.resolve(__dirname, 'src/shims/atproto-api-dist.ts'),
+    '@sonet/api': path.resolve(__dirname, 'src/api/sonet-client.ts'),
+    '@sonet/types': path.resolve(__dirname, 'src/types/sonet.ts'),
   }
   config.resolve.extensions = [
     '.web.tsx', '.web.ts', '.tsx', '.ts', '.web.js', '.js', '.json'
@@ -62,7 +60,7 @@ module.exports = async function (env, argv) {
   if (process.env.SENTRY_AUTH_TOKEN) {
     config.plugins.push(
       sentryWebpackPlugin({
-        org: 'blueskyweb',
+        org: 'sonet',
         project: 'app',
         authToken: process.env.SENTRY_AUTH_TOKEN,
         release: {

@@ -1,9 +1,6 @@
 import React, {useCallback} from 'react'
 import {LayoutAnimation} from 'react-native'
-import {
-  ComAtprotoServerCreateAccount,
-  type ComAtprotoServerDescribeServer,
-} from '@atproto/api'
+import { SonetAuthResponse, SonetUser } from '@sonet/types'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import * as EmailValidator from 'email-validator'
@@ -17,7 +14,12 @@ import {useSessionApi} from '#/state/session'
 import {useOnboardingDispatch} from '#/state/shell'
 import {usePreemptivelyCompleteActivePolicyUpdate} from '#/components/PolicyUpdateOverlay/usePreemptivelyCompleteActivePolicyUpdate'
 
-export type ServiceDescription = ComAtprotoServerDescribeServer.OutputSchema
+export type ServiceDescription = {
+  name: string
+  description: string
+  version: string
+  features: string[]
+}
 
 const DEFAULT_DATE = new Date(Date.now() - 60e3 * 60 * 24 * 365 * 20) // default to 20 years ago
 
@@ -341,7 +343,7 @@ export function useSubmitSignup() {
         onboardingDispatch({type: 'start'})
       } catch (e: any) {
         let errMsg = e.toString()
-        if (e instanceof ComAtprotoServerCreateAccount.InvalidInviteCodeError) {
+        if (e.message.includes('Invalid invite code')) {
           dispatch({
             type: 'setError',
             value: _(

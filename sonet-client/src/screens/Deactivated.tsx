@@ -8,6 +8,7 @@ import {useQueryClient} from '@tanstack/react-query'
 
 import {useAccountSwitcher} from '#/lib/hooks/useAccountSwitcher'
 import {logger} from '#/logger'
+import {sonetClient} from '@sonet/api'
 import {isWeb} from '#/platform/detection'
 import {
   type SessionAccount,
@@ -78,7 +79,7 @@ export function Deactivated() {
   const handleActivate = React.useCallback(async () => {
     try {
       setPending(true)
-      await agent.com.atproto.server.activateAccount()
+              await sonetClient.activateAccount()
       await queryClient.resetQueries()
       await agent.resumeSession(agent.session!)
     } catch (e: any) {
