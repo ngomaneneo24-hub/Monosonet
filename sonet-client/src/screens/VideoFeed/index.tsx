@@ -27,14 +27,7 @@ import {useEventListener} from 'expo'
 import {Image, type ImageStyle} from 'expo-image'
 import {LinearGradient} from 'expo-linear-gradient'
 import {createVideoPlayer, type VideoPlayer, VideoView} from 'expo-video'
-import {
-  AppBskyEmbedVideo,
-  type AppBskyFeedDefs,
-  AppBskyFeedPost,
-  AtUri,
-  type ModerationDecision,
-  RichText as RichTextAPI,
-} from '@atproto/api'
+import { type SonetPost, type SonetProfile, type SonetFeedGenerator, type SonetPostRecord, type SonetFeedViewPost, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {
@@ -97,7 +90,7 @@ import {Link} from '#/components/Link'
 import {ListFooter} from '#/components/Lists'
 import * as Hider from '#/components/moderation/Hider'
 import {PostControls} from '#/components/PostControls'
-import {RichText} from '#/components/RichText'
+import {string} from '#/components/string'
 import {Text} from '#/components/Typography'
 import * as bsky from '#/types/bsky'
 import {Scrubber, VIDEO_PLAYER_BOTTOM_INSET} from './components/Scrubber'
@@ -174,8 +167,8 @@ type CurrentSource = {
 } | null
 
 type VideoItem = {
-  moderation: ModerationDecision
-  post: AppBskyFeedDefs.PostView
+  moderation: SonetModerationDecision
+  post: SonetPost
   video: AppBskyEmbedVideo.View
   feedContext: string | undefined
   reqId: string | undefined
@@ -213,8 +206,8 @@ function Feed() {
       data?.pages.flatMap(page => {
         const items: {
           _reactKey: string
-          moderation: ModerationDecision
-          post: AppBskyFeedDefs.PostView
+          moderation: SonetModerationDecision
+          post: SonetPost
           video: AppBskyEmbedVideo.View
           feedContext: string | undefined
           reqId: string | undefined
@@ -477,12 +470,12 @@ let VideoItem = ({
   reqId,
 }: {
   player?: VideoPlayer
-  post: AppBskyFeedDefs.PostView
+  post: SonetPost
   embed: AppBskyEmbedVideo.View
   active: boolean
   adjacent: boolean
   scrollGesture: NativeGesture
-  moderation?: ModerationDecision
+  moderation?: SonetModerationDecision
   feedContext: string | undefined
   reqId: string | undefined
 }): React.ReactNode => {
@@ -693,11 +686,11 @@ function Overlay({
   reqId,
 }: {
   player?: VideoPlayer
-  post: Shadow<AppBskyFeedDefs.PostView>
+  post: Shadow<SonetPost>
   embed: AppBskyEmbedVideo.View
   active: boolean
   scrollGesture: NativeGesture
-  moderation: ModerationDecision
+  moderation: SonetModerationDecision
   feedContext: string | undefined
   reqId: string | undefined
 }) {
@@ -714,10 +707,10 @@ function Overlay({
     'ImmersiveVideo',
   )
 
-  const rkey = new AtUri(post.uri).rkey
-  const record = bsky.dangerousIsType<AppBskyFeedPost.Record>(
+  const rkey = new SonetUri(post.uri).rkey
+  const record = bsky.dangerousIsType<SonetPostRecord>(
     post.record,
-    AppBskyFeedPost.isRecord,
+    SonetPost.isRecord,
   )
     ? post.record
     : undefined
@@ -946,7 +939,7 @@ function ExpandableRichTextView({
         a.gap_xs,
         expanded ? [a.align_start] : a.flex_row,
       ]}>
-      <RichText
+      <string
         value={value}
         style={[a.text_sm, a.flex_1, a.leading_normal]}
         authorHandle={authorHandle}
@@ -1019,7 +1012,7 @@ function PlayPauseTapArea({
   reqId,
 }: {
   player: VideoPlayer
-  post: Shadow<AppBskyFeedDefs.PostView>
+  post: Shadow<SonetPost>
   feedContext: string | undefined
   reqId: string | undefined
 }) {

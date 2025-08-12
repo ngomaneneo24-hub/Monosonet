@@ -1,6 +1,6 @@
 import {memo, useCallback, useMemo, useState} from 'react'
 import {ActivityIndicator, View} from 'react-native'
-import {type AppBskyFeedDefs} from '@atproto/api'
+import { type SonetPost, type SonetProfile, type SonetFeedGenerator, type SonetPostRecord, type SonetFeedViewPost, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -157,7 +157,7 @@ type SearchResultSlice =
   | {
       type: 'post'
       key: string
-      post: AppBskyFeedDefs.PostView
+      post: SonetPost
     }
   | {
       type: 'loadingMore'

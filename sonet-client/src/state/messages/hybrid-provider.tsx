@@ -55,7 +55,10 @@ export function UnifiedConvoProvider({children, convoId, initialChat}: UnifiedCo
         <UnifiedConvoProviderInner isSonet={true} />
       </SonetConvoProvider>
     )
+  }
+  
   // AT Protocol removed - only Sonet messaging supported
+  return null
 }
 
 function UnifiedConvoProviderInner({isSonet}: {isSonet: boolean}) {

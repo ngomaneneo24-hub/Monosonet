@@ -8,12 +8,8 @@
     "paths": {
       "#/*": ["./src/*"],
       "crypto": ["./src/platform/crypto.ts"],
-      "multiformats/cid": ["node_modules/multiformats/types/src/cid.d.ts"],
-      "multiformats/hashes/hasher": ["node_modules/multiformats/types/src/hashes/hasher.d.ts"],
-      "@atproto/api": ["./src/shims/atproto-runtime.ts"],
-      "@atproto/common-web": ["./src/shims/atproto-common-web.ts"],
-      "@atproto/lexicon": ["./src/shims/atproto-lexicon.ts"],
-      "@atproto/api/dist/*": ["./src/shims/atproto-api-dist.ts"]
+      
+      
     }
   },
   "exclude": ["bskyweb", "bskyembed", "web-build"]
