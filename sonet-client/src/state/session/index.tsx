@@ -1,5 +1,5 @@
 import React from 'react'
-import {type AtpSessionEvent, type BskyAgent} from '@atproto/api'
+import {type SonetSessionEvent, type SonetAppAgent} from './sonet-agent'
 
 import {isWeb} from '#/platform/detection'
 import * as persisted from '#/state/persisted'
@@ -7,13 +7,13 @@ import {useCloseAllActiveElements} from '#/state/util'
 import {useGlobalDialogsControlContext} from '#/components/dialogs/Context'
 import {emitSessionDropped} from '../events'
 import {
-  agentToSessionAccount,
-  type BskyAppAgent,
-  createAgentAndCreateAccount,
-  createAgentAndLogin,
-  createAgentAndResume,
-  sessionAccountToSession,
-} from './agent'
+  sonetAgentToSessionAccount,
+  type SonetAppAgent,
+  createSonetAgentAndCreateAccount,
+  createSonetAgentAndLogin,
+  createSonetAgentAndResume,
+  sessionAccountToSonetSession,
+} from './sonet-agent'
 import {getInitialState, reducer} from './reducer'
 import {__setSonetUploadBridge} from '#/lib/api/upload-blob'
 import {useSonetApi, useSonetSession} from '#/state/session/sonet'
@@ -33,7 +33,7 @@ const StateContext = React.createContext<SessionStateContext>({
   hasSession: false,
 })
 
-const AgentContext = React.createContext<BskyAgent | null>(null)
+const AgentContext = React.createContext<SonetAppAgent | null>(null)
 
 const ApiContext = React.createContext<SessionApiContext>({
   createAccount: async () => {},
@@ -54,16 +54,16 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
   })
 
   const onAgentSessionChange = React.useCallback(
-    (agent: BskyAgent, accountDid: string, sessionEvent: AtpSessionEvent) => {
-      const refreshedAccount = agentToSessionAccount(agent) // Mutable, so snapshot it right away.
-      if (sessionEvent === 'expired' || sessionEvent === 'create-failed') {
+    (agent: SonetAppAgent, accountUserId: string, sessionEvent: SonetSessionEvent) => {
+      const refreshedAccount = sonetAgentToSessionAccount(agent) // Mutable, so snapshot it right away.
+      if (sessionEvent.type === 'expired' || sessionEvent.type === 'create-failed') {
         emitSessionDropped()
       }
       dispatch({
         type: 'received-agent-event',
         agent,
         refreshedAccount,
-        accountDid,
+        accountDid: accountUserId,
         sessionEvent,
       })
     },
@@ -75,7 +75,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
       addSessionDebugLog({type: 'method:start', method: 'createAccount'})
       const signal = cancelPendingTask()
       logger.metric('account:create:begin', {}, {statsig: true})
-      const {agent, account} = await createAgentAndCreateAccount(
+      const {agent, account} = await createSonetAgentAndCreateAccount(
         params,
         onAgentSessionChange,
       )
@@ -98,7 +98,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
     async (params, logContext) => {
       addSessionDebugLog({type: 'method:start', method: 'login'})
       const signal = cancelPendingTask()
-      const {agent, account} = await createAgentAndLogin(
+      const {agent, account} = await createSonetAgentAndLogin(
         params,
         onAgentSessionChange,
       )
@@ -167,7 +167,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
         account: storedAccount,
       })
       const signal = cancelPendingTask()
-      const {agent, account} = await createAgentAndResume(
+      const {agent, account} = await createSonetAgentAndResume(
         storedAccount,
         onAgentSessionChange,
       )
@@ -188,18 +188,24 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
   const partialRefreshSession = React.useCallback<
     SessionApiContext['partialRefreshSession']
   >(async () => {
-    const agent = state.currentAgentState.agent as BskyAppAgent
+    const agent = state.currentAgentState.agent as SonetAppAgent
     const signal = cancelPendingTask()
-    const {data} = await agent.com.atproto.server.getSession()
-    if (signal.aborted) return
-    dispatch({
-      type: 'partial-refresh-session',
-      accountDid: agent.session!.did,
-      patch: {
-        emailConfirmed: data.emailConfirmed,
-        emailAuthFactor: data.emailAuthFactor,
-      },
-    })
+    if (!agent.session) return
+    
+    try {
+      const user = await agent.api.getUser(agent.session.user.username)
+      if (signal.aborted) return
+      dispatch({
+        type: 'partial-refresh-session',
+        accountDid: agent.session.user.id,
+        patch: {
+          emailConfirmed: true, // Sonet assumes email is confirmed
+          emailAuthFactor: false, // Not used in Sonet
+        },
+      })
+    } catch (error) {
+      logger.error('Failed to refresh session', error)
+    }
   }, [state, cancelPendingTask])
 
   const removeAccount = React.useCallback<SessionApiContext['removeAccount']>(
@@ -249,9 +255,9 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
         if (syncedAccount.did !== state.currentAgentState.did) {
           resumeSession(syncedAccount)
         } else {
-          const agent = state.currentAgentState.agent as BskyAgent
+          const agent = state.currentAgentState.agent as SonetAppAgent
           const prevSession = agent.session
-          agent.sessionManager.session = sessionAccountToSession(syncedAccount)
+          agent.sessionManager.setSession(sessionAccountToSonetSession(syncedAccount))
           addSessionDebugLog({
             type: 'agent:patch',
             agent,

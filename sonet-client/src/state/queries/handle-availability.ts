@@ -1,4 +1,3 @@
-import {Agent, ComAtprotoTempCheckHandleAvailability} from '@atproto/api'
 import {useQuery} from '@tanstack/react-query'
 
 import {
@@ -9,7 +8,7 @@ import {
 import {createFullHandle} from '#/lib/strings/handles'
 import {logger} from '#/logger'
 import {useDebouncedValue} from '#/components/live/utils'
-import * as bsky from '#/types/bsky'
+import {sonetClient} from '@sonet/api'
 
 export const RQKEY_handleAvailability = (
   handle: string,
@@ -74,52 +73,39 @@ export async function checkHandleAvailability(
   },
 ) {
   if (serviceDid === BSKY_SERVICE_DID) {
-    const agent = new Agent({service: BSKY_SERVICE})
-    // entryway has a special API for handle availability
-    const {data} = await agent.com.atproto.temp.checkHandleAvailability({
-      handle,
-      birthDate,
-      email,
-    })
-
-    if (
-      bsky.dangerousIsType<ComAtprotoTempCheckHandleAvailability.ResultAvailable>(
-        data.result,
-        ComAtprotoTempCheckHandleAvailability.isResultAvailable,
-      )
-    ) {
-      logger.metric('signup:handleAvailable', {typeahead}, {statsig: true})
-
-      return {available: true} as const
-    } else if (
-      bsky.dangerousIsType<ComAtprotoTempCheckHandleAvailability.ResultUnavailable>(
-        data.result,
-        ComAtprotoTempCheckHandleAvailability.isResultUnavailable,
-      )
-    ) {
-      logger.metric('signup:handleTaken', {typeahead}, {statsig: true})
-      return {
-        available: false,
-        suggestions: data.result.suggestions,
-      } as const
-    } else {
-      throw new Error(
-        `Unexpected result of \`checkHandleAvailability\`: ${JSON.stringify(data.result)}`,
-      )
-    }
-  } else {
-    // 3rd party PDSes won't have this API so just try and resolve the handle
-    const agent = new Agent({service: PUBLIC_BSKY_SERVICE})
+    // Use Sonet API to check username availability
     try {
-      const res = await agent.resolveHandle({
-        handle,
-      })
-
-      if (res.data.did) {
+      const username = handle.split('.')[0] // Extract username from handle
+      const user = await sonetClient.getUser(username)
+      
+      if (user) {
+        logger.metric('signup:handleTaken', {typeahead}, {statsig: true})
+        return {
+          available: false,
+          suggestions: [`${username}1`, `${username}2`, `${username}_`],
+        } as const
+      }
+    } catch (error) {
+      // If user not found, username is available
+      logger.metric('signup:handleAvailable', {typeahead}, {statsig: true})
+      return {available: true} as const
+    }
+    
+    // Fallback to available if no error
+    logger.metric('signup:handleAvailable', {typeahead}, {statsig: true})
+    return {available: true} as const
+  } else {
+    // For non-Sonet services, try to resolve the handle
+    try {
+      const username = handle.split('.')[0]
+      const user = await sonetClient.getUser(username)
+      
+      if (user) {
         logger.metric('signup:handleTaken', {typeahead}, {statsig: true})
         return {available: false} as const
       }
     } catch {}
+    
     logger.metric('signup:handleAvailable', {typeahead}, {statsig: true})
     return {available: true} as const
   }
