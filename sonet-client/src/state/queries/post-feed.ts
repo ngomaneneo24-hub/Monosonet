@@ -1,15 +1,12 @@
 import React, {useCallback, useEffect, useRef} from 'react'
 import {AppState} from 'react-native'
 import {
-  type AppBskyActorDefs,
-  AppBskyFeedDefs,
-  type AppBskyFeedPost,
-  AtUri,
-  type BskyAgent,
-  moderatePost,
-  type ModerationDecision,
-  type ModerationPrefs,
-} from '@atproto/api'
+  type SonetProfile,
+  type SonetPost,
+  type SonetPostRecord,
+  type SonetFeedViewPost,
+  type SonetInteraction,
+} from '#/types/sonet'
 import {
   type InfiniteData,
   type QueryClient,
@@ -83,10 +80,10 @@ export function RQKEY(feedDesc: FeedDescriptor, params?: FeedParams) {
 export interface FeedPostSliceItem {
   _reactKey: string
   uri: string
-  post: AppBskyFeedDefs.PostView
-  record: AppBskyFeedPost.Record
-  moderation: ModerationDecision
-  parentAuthor?: AppBskyActorDefs.ProfileViewBasic
+  post: SonetPost
+  record: SonetPostRecord
+  moderation: any // TODO: Replace with SonetModerationDecision type when created
+  parentAuthor?: SonetProfile
   isParentBlocked?: boolean
   isParentNotFound?: boolean
 }
@@ -101,7 +98,7 @@ export interface FeedPostSlice {
   reqId: string | undefined
   feedPostUri: string
   reason?:
-    | AppBskyFeedDefs.ReasonRepost
+    | SonetReason
     | AppBskyFeedDefs.ReasonPin
     | ReasonFeedSource
     | {[k: string]: unknown; $type: string}
@@ -110,7 +107,7 @@ export interface FeedPostSlice {
 export interface FeedPageUnselected {
   api: FeedAPI
   cursor: string | undefined
-  feed: AppBskyFeedDefs.FeedViewPost[]
+  feed: SonetFeedViewPost[]
   fetchedAt: number
 }
 
@@ -238,7 +235,7 @@ export function usePostFeedQuery(
         }
       } catch (e) {
         const feedDescParts = feedDesc.split('|')
-        const feedOwnerDid = new AtUri(feedDescParts[1]).hostname
+        const feedOwnerDid = new SonetUri(feedDescParts[1]).hostname
 
         if (
           feedDescParts[0] === 'feedgen' &&
@@ -478,7 +475,7 @@ function createApi({
   feedParams: FeedParams
   feedTuners: FeedTunerFn[]
   userInterests?: string
-  agent: BskyAgent
+  agent: SonetAgent
   enableFollowingToDiscoverFallback: boolean
 }) {
   if (feedDesc === 'following') {
@@ -547,10 +544,10 @@ function createSonetHomeApi({sonet}: {sonet: ReturnType<typeof useSonetApi>['get
   return api
 }
 
-function mapSonetNoteToFeedViewPost(n: any): AppBskyFeedDefs.FeedViewPost {
+function mapSonetNoteToFeedViewPost(n: any): SonetFeedViewPost {
   // Map minimal Sonet note response to a FeedViewPost shape
   const author = n.author || {}
-  const post: AppBskyFeedDefs.PostView = {
+  const post: SonetPost = {
     uri: `sonet://note/${n.id}`,
     cid: n.id,
     author: {
@@ -571,8 +568,8 @@ function mapSonetNoteToFeedViewPost(n: any): AppBskyFeedDefs.FeedViewPost {
 export function* findAllPostsInQueryData(
   queryClient: QueryClient,
   uri: string,
-): Generator<AppBskyFeedDefs.PostView, undefined> {
-  const atUri = new AtUri(uri)
+): Generator<SonetPost, undefined> {
+  const atUri = new SonetUri(uri)
 
   const queryDatas = queryClient.getQueriesData<
     InfiniteData<FeedPageUnselected>
@@ -626,7 +623,7 @@ export function* findAllPostsInQueryData(
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
   did: string,
-): Generator<AppBskyActorDefs.ProfileViewBasic, undefined> {
+): Generator<SonetProfile, undefined> {
   const queryDatas = queryClient.getQueriesData<
     InfiniteData<FeedPageUnselected>
   >({
@@ -663,8 +660,8 @@ export function* findAllProfilesInQueryData(
 }
 
 function assertSomePostsPassModeration(
-  feed: AppBskyFeedDefs.FeedViewPost[],
-  moderationPrefs: ModerationPrefs,
+  feed: SonetFeedViewPost[],
+  moderationPrefs: SonetModerationPrefs,
 ) {
   // no posts in this feed
   if (feed.length === 0) return true

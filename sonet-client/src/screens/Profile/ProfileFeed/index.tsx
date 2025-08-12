@@ -1,7 +1,7 @@
 import React, {useCallback, useMemo} from 'react'
 import {StyleSheet, View} from 'react-native'
 import {useAnimatedRef} from 'react-native-reanimated'
-import {AppBskyFeedDefs} from '@atproto/api'
+import { type SonetPost, type SonetProfile, type SonetFeedGenerator, type SonetPostRecord, type SonetFeedViewPost, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useIsFocused, useNavigation} from '@react-navigation/native'
@@ -195,7 +195,7 @@ export function ProfileFeedScreenInner({
   const isVideoFeed = React.useMemo(() => {
     const isBskyVideoFeed = VIDEO_FEED_URIS.includes(feedInfo.uri)
     const feedIsVideoMode =
-      feedInfo.contentMode === AppBskyFeedDefs.CONTENTMODEVIDEO
+      feedInfo.contentMode === 'video'
     const _isVideoFeed = isBskyVideoFeed || feedIsVideoMode
     return isNative && _isVideoFeed
   }, [feedInfo])

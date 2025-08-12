@@ -1,13 +1,6 @@
 import {useCallback, useMemo, useState} from 'react'
 import {type StyleProp, StyleSheet, View, type ViewStyle} from 'react-native'
-import {
-  type AppBskyFeedDefs,
-  AppBskyFeedPost,
-  AtUri,
-  moderatePost,
-  type ModerationDecision,
-  RichText as RichTextAPI,
-} from '@atproto/api'
+import { type SonetPost, type SonetProfile, type SonetFeedGenerator, type SonetPostRecord, type SonetFeedViewPost, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome'
 import {Trans} from '@lingui/macro'
 import {useQueryClient} from '@tanstack/react-query'
@@ -39,7 +32,7 @@ import {Embed, PostEmbedViewContext} from '#/components/Post/Embed'
 import {ShowMoreTextButton} from '#/components/Post/ShowMoreTextButton'
 import {PostControls} from '#/components/PostControls'
 import {ProfileHoverCard} from '#/components/ProfileHoverCard'
-import {RichText} from '#/components/RichText'
+import {string} from '#/components/string'
 import {SubtleWebHover} from '#/components/SubtleWebHover'
 import * as bsky from '#/types/bsky'
 
@@ -49,15 +42,15 @@ export function Post({
   hideTopBorder,
   style,
 }: {
-  post: AppBskyFeedDefs.PostView
+  post: SonetPost
   showReplyLine?: boolean
   hideTopBorder?: boolean
   style?: StyleProp<ViewStyle>
 }) {
   const moderationOpts = useModerationOpts()
-  const record = useMemo<AppBskyFeedPost.Record | undefined>(
+  const record = useMemo<SonetPostRecord | undefined>(
     () =>
-      bsky.validate(post.record, AppBskyFeedPost.validateRecord)
+      bsky.validate(post.record, SonetPost.validateRecord)
         ? post.record
         : undefined,
     [post],
@@ -105,10 +98,10 @@ function PostInner({
   hideTopBorder,
   style,
 }: {
-  post: Shadow<AppBskyFeedDefs.PostView>
-  record: AppBskyFeedPost.Record
+  post: Shadow<SonetPost>
+  record: SonetPostRecord
   richText: RichTextAPI
-  moderation: ModerationDecision
+  moderation: SonetModerationDecision
   showReplyLine?: boolean
   hideTopBorder?: boolean
   style?: StyleProp<ViewStyle>
@@ -119,11 +112,11 @@ function PostInner({
   const [limitLines, setLimitLines] = useState(
     () => countLines(richText?.text) >= MAX_POST_LINES,
   )
-  const itemUrip = new AtUri(post.uri)
+  const itemUrip = new SonetUri(post.uri)
   const itemHref = makeProfileLink(post.author, 'post', itemUrip.rkey)
   let replyAuthorDid = ''
   if (record.reply) {
-    const urip = new AtUri(record.reply.parent?.uri || record.reply.root.uri)
+    const urip = new SonetUri(record.reply.parent?.uri || record.reply.root.uri)
     replyAuthorDid = urip.hostname
   }
 
@@ -227,7 +220,7 @@ function PostInner({
             />
             {richText.text ? (
               <View>
-                <RichText
+                <string
                   enableTags
                   testID="postText"
                   value={richText}

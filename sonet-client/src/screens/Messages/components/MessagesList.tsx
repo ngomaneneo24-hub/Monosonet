@@ -305,22 +305,16 @@ export function MessagesList({
       try {
         // This would typically call state.actions.sendMessage()
         console.log('Sending message:', text)
+        
+        // Handle embeds and rich text processing for Sonet
+        // This would be implemented based on Sonet's rich text capabilities
+
+        if (!hasScrolled) {
+          setHasScrolled(true)
+        }
       } catch (error) {
         console.error('Failed to send message:', error)
       }
-    },
-    []
-  )
-
-      // Handle embeds and rich text processing for Sonet
-      // This would be implemented based on Sonet's rich text capabilities
-
-      if (!hasScrolled) {
-        setHasScrolled(true)
-      }
-
-      // Send message using Sonet API
-      console.log('Sending message with text:', text)
     },
     [hasScrolled, setHasScrolled],
   )

@@ -7,7 +7,7 @@ import {
   useRef,
 } from 'react'
 import {AppState, type AppStateStatus} from 'react-native'
-import {type AppBskyFeedDefs} from '@atproto/api'
+import {type SonetInteraction, type SonetInteractionEvent} from '#/types/sonet'
 import throttle from 'lodash.throttle'
 
 import {FEEDBACK_FEEDS, STAGING_FEEDS} from '#/lib/constants'
@@ -25,7 +25,7 @@ const logger = Logger.create(Logger.Context.FeedFeedback)
 export type StateContext = {
   enabled: boolean
   onItemSeen: (item: any) => void
-  sendInteraction: (interaction: AppBskyFeedDefs.Interaction) => void
+  sendInteraction: (interaction: SonetInteraction) => void
   feedDescriptor: FeedDescriptor | undefined
 }
 
@@ -47,7 +47,7 @@ export function useFeedFeedback(
   const history = useRef<
     // Use a WeakSet so that we don't need to clear it.
     // This assumes that referential identity of slice items maps 1:1 to feed (re)fetches.
-    WeakSet<FeedPostSliceItem | AppBskyFeedDefs.Interaction>
+    WeakSet<FeedPostSliceItem | SonetInteraction>
   >(new WeakSet())
 
   const aggregatedStats = useRef<AggregatedStats | null>(null)
@@ -140,7 +140,7 @@ export function useFeedFeedback(
   )
 
   const sendInteraction = useCallback(
-    (interaction: AppBskyFeedDefs.Interaction) => {
+    (interaction: SonetInteraction) => {
       if (!enabled) {
         return
       }
@@ -184,13 +184,13 @@ function isDiscoverFeed(feed?: FeedDescriptor) {
   return !!feed && FEEDBACK_FEEDS.includes(feed)
 }
 
-function toString(interaction: AppBskyFeedDefs.Interaction): string {
+function toString(interaction: SonetInteraction): string {
   return `${interaction.item}|${interaction.event}|${
     interaction.feedContext || ''
   }|${interaction.reqId || ''}`
 }
 
-function toInteraction(str: string): AppBskyFeedDefs.Interaction {
+function toInteraction(str: string): SonetInteraction {
   const [item, event, feedContext, reqId] = str.split('|')
   return {item, event, feedContext, reqId}
 }
@@ -211,19 +211,19 @@ function createAggregatedStats(): AggregatedStats {
 
 function sendOrAggregateInteractionsForStats(
   stats: AggregatedStats,
-  interactions: AppBskyFeedDefs.Interaction[],
+  interactions: SonetInteraction[],
 ) {
   for (let interaction of interactions) {
     switch (interaction.event) {
       // Pressing "Show more" / "Show less" is relatively uncommon so we won't aggregate them.
       // This lets us send the feed context together with them.
-      case 'app.bsky.feed.defs#requestLess': {
+      case 'sonet.feed.defs#requestLess': {
         logEvent('discover:showLess', {
           feedContext: interaction.feedContext ?? '',
         })
         break
       }
-      case 'app.bsky.feed.defs#requestMore': {
+      case 'sonet.feed.defs#requestMore': {
         logEvent('discover:showMore', {
           feedContext: interaction.feedContext ?? '',
         })
@@ -231,22 +231,22 @@ function sendOrAggregateInteractionsForStats(
       }
 
       // The rest of the events are aggregated and sent later in batches.
-      case 'app.bsky.feed.defs#clickthroughAuthor':
-      case 'app.bsky.feed.defs#clickthroughEmbed':
-      case 'app.bsky.feed.defs#clickthroughItem':
-      case 'app.bsky.feed.defs#clickthroughReposter': {
+      case 'sonet.feed.defs#clickthroughAuthor':
+      case 'sonet.feed.defs#clickthroughEmbed':
+      case 'sonet.feed.defs#clickthroughItem':
+      case 'sonet.feed.defs#clickthroughReposter': {
         stats.clickthroughCount++
         break
       }
-      case 'app.bsky.feed.defs#interactionLike':
-      case 'app.bsky.feed.defs#interactionQuote':
-      case 'app.bsky.feed.defs#interactionReply':
-      case 'app.bsky.feed.defs#interactionRepost':
-      case 'app.bsky.feed.defs#interactionShare': {
+      case 'sonet.feed.defs#interactionLike':
+      case 'sonet.feed.defs#interactionQuote':
+      case 'sonet.feed.defs#interactionReply':
+      case 'sonet.feed.defs#interactionRepost':
+      case 'sonet.feed.defs#interactionShare': {
         stats.engagedCount++
         break
       }
-      case 'app.bsky.feed.defs#interactionSeen': {
+      case 'sonet.feed.defs#interactionSeen': {
         stats.seenCount++
         break
       }

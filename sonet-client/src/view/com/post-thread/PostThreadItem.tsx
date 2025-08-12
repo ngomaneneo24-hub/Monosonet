@@ -5,14 +5,7 @@ import {
   Text as RNText,
   View,
 } from 'react-native'
-import {
-  AppBskyFeedDefs,
-  AppBskyFeedPost,
-  type AppBskyFeedThreadgate,
-  AtUri,
-  type ModerationDecision,
-  RichText as RichTextAPI,
-} from '@atproto/api'
+import { type SonetPost, type SonetProfile, type SonetFeedGenerator, type SonetPostRecord, type SonetFeedViewPost, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
 import {msg, Plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -65,7 +58,7 @@ import {Embed, PostEmbedViewContext} from '#/components/Post/Embed'
 import {ShowMoreTextButton} from '#/components/Post/ShowMoreTextButton'
 import {PostControls} from '#/components/PostControls'
 import * as Prompt from '#/components/Prompt'
-import {RichText} from '#/components/RichText'
+import {string} from '#/components/string'
 import {SubtleWebHover} from '#/components/SubtleWebHover'
 import {Text} from '#/components/Typography'
 import {VerificationCheckButton} from '#/components/verification/VerificationCheckButton'
@@ -92,9 +85,9 @@ export function PostThreadItem({
   threadgateRecord,
   anchorPostSource,
 }: {
-  post: AppBskyFeedDefs.PostView
-  record: AppBskyFeedPost.Record
-  moderation: ModerationDecision | undefined
+  post: SonetPost
+  record: SonetPostRecord
+  moderation: SonetModerationDecision | undefined
   treeView: boolean
   depth: number
   prevPost: ThreadPost | undefined
@@ -195,10 +188,10 @@ let PostThreadItemLoaded = ({
   threadgateRecord,
   anchorPostSource,
 }: {
-  post: Shadow<AppBskyFeedDefs.PostView>
-  record: AppBskyFeedPost.Record
+  post: Shadow<SonetPost>
+  record: SonetPostRecord
   richText: RichTextAPI
-  moderation: ModerationDecision
+  moderation: SonetModerationDecision
   treeView: boolean
   depth: number
   prevPost: ThreadPost | undefined
@@ -229,7 +222,7 @@ let PostThreadItemLoaded = ({
   const shadowedPostAuthor = useProfileShadow(post.author)
   const rootUri = record.reply?.root?.uri || post.uri
   const postHref = useMemo(() => {
-    const urip = new AtUri(post.uri)
+    const urip = new SonetUri(post.uri)
     return makeProfileLink(post.author, 'post', urip.rkey)
   }, [post.uri, post.author])
   const itemTitle = _(msg`Post by ${post.author.handle}`)
@@ -237,12 +230,12 @@ let PostThreadItemLoaded = ({
   const authorTitle = post.author.handle
   const isThreadAuthor = getThreadAuthor(post, record) === currentAccount?.did
   const likesHref = useMemo(() => {
-    const urip = new AtUri(post.uri)
+    const urip = new SonetUri(post.uri)
     return makeProfileLink(post.author, 'post', urip.rkey, 'liked-by')
   }, [post.uri, post.author])
   const likesTitle = _(msg`Likes on this post`)
   const repostsHref = useMemo(() => {
-    const urip = new AtUri(post.uri)
+    const urip = new SonetUri(post.uri)
     return makeProfileLink(post.author, 'post', urip.rkey, 'reposted-by')
   }, [post.uri, post.author])
   const repostsTitle = _(msg`Reposts of this post`)
@@ -251,7 +244,7 @@ let PostThreadItemLoaded = ({
   })
   const additionalPostAlerts: AppModerationCause[] = useMemo(() => {
     const isPostHiddenByThreadgate = threadgateHiddenReplies.has(post.uri)
-    const isControlledByViewer = new AtUri(rootUri).host === currentAccount?.did
+    const isControlledByViewer = new SonetUri(rootUri).host === currentAccount?.did
     return isControlledByViewer && isPostHiddenByThreadgate
       ? [
           {
@@ -263,7 +256,7 @@ let PostThreadItemLoaded = ({
       : []
   }, [post, currentAccount?.did, threadgateHiddenReplies, rootUri])
   const quotesHref = useMemo(() => {
-    const urip = new AtUri(post.uri)
+    const urip = new SonetUri(post.uri)
     return makeProfileLink(post.author, 'post', urip.rkey, 'quotes')
   }, [post.uri, post.author])
   const quotesTitle = _(msg`Quotes of this post`)
@@ -339,7 +332,7 @@ let PostThreadItemLoaded = ({
 
   const reason = anchorPostSource?.post.reason
   const viaRepost = useMemo(() => {
-    if (AppBskyFeedDefs.isReasonRepost(reason) && reason.uri && reason.cid) {
+    if (SonetUtils.isReasonRepost(reason) && reason.uri && reason.cid) {
       return {
         uri: reason.uri,
         cid: reason.cid,
@@ -455,7 +448,7 @@ let PostThreadItemLoaded = ({
                 additionalCauses={additionalPostAlerts}
               />
               {richText?.text ? (
-                <RichText
+                <string
                   enableTags
                   selectable
                   value={richText}
@@ -678,7 +671,7 @@ let PostThreadItemLoaded = ({
               />
               {richText?.text ? (
                 <View style={[a.pb_2xs, a.pr_sm]}>
-                  <RichText
+                  <string
                     enableTags
                     value={richText}
                     style={[a.flex_1, a.text_md]}
@@ -752,7 +745,7 @@ function PostOuterWrapper({
   hideTopBorder,
   children,
 }: React.PropsWithChildren<{
-  post: AppBskyFeedDefs.PostView
+  post: SonetPost
   treeView: boolean
   depth: number
   showParentReplyLine: boolean
@@ -828,7 +821,7 @@ function ExpandedPostDetails({
   needsTranslation,
   translatorUrl,
 }: {
-  post: AppBskyFeedDefs.PostView
+  post: SonetPost
   isThreadAuthor: boolean
   needsTranslation: boolean
   translatorUrl: string
@@ -846,9 +839,9 @@ function ExpandedPostDetails({
       openLink(translatorUrl, true)
 
       if (
-        bsky.dangerousIsType<AppBskyFeedPost.Record>(
+        bsky.dangerousIsType<SonetPostRecord>(
           post.record,
-          AppBskyFeedPost.isRecord,
+          SonetPost.isRecord,
         )
       ) {
         logger.metric(
@@ -897,15 +890,15 @@ function ExpandedPostDetails({
   )
 }
 
-function BackdatedPostIndicator({post}: {post: AppBskyFeedDefs.PostView}) {
+function BackdatedPostIndicator({post}: {post: SonetPost}) {
   const t = useTheme()
   const {_, i18n} = useLingui()
   const control = Prompt.usePromptControl()
 
   const indexedAt = new Date(post.indexedAt)
-  const createdAt = bsky.dangerousIsType<AppBskyFeedPost.Record>(
+  const createdAt = bsky.dangerousIsType<SonetPostRecord>(
     post.record,
-    AppBskyFeedPost.isRecord,
+    SonetPost.isRecord,
   )
     ? new Date(post.record.createdAt)
     : new Date(post.indexedAt)
@@ -990,14 +983,14 @@ function BackdatedPostIndicator({post}: {post: AppBskyFeedDefs.PostView}) {
 }
 
 function getThreadAuthor(
-  post: AppBskyFeedDefs.PostView,
-  record: AppBskyFeedPost.Record,
+  post: SonetPost,
+  record: SonetPostRecord,
 ): string {
   if (!record.reply) {
     return post.author.did
   }
   try {
-    return new AtUri(record.reply.root.uri).host
+    return new SonetUri(record.reply.root.uri).host
   } catch {
     return ''
   }
