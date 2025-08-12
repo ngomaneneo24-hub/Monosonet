@@ -7,7 +7,7 @@ import {useIsSonetMessaging} from '#/state/messages/hybrid-provider'
 import {convertAtprotoConvoToSonet} from '#/state/messages/adapters/atproto-to-sonet'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
-import {useFocusEffect, useIsFocused} from '@react-navigation/native'
+import {useFocusEffect, useIsFocused, useNavigation} from '@react-navigation/native'
 import {type NativeStackScreenProps} from '@react-navigation/native-stack'
 
 import {useAppState} from '#/lib/hooks/useAppState'
@@ -39,6 +39,7 @@ import {CircleInfo_Stroke2_Corner0_Rounded as CircleInfoIcon} from '#/components
 import {Message_Stroke2_Corner0_Rounded as MessageIcon} from '#/components/icons/Message'
 import {PlusLarge_Stroke2_Corner0_Rounded as PlusIcon} from '#/components/icons/Plus'
 import {SettingsGear2_Stroke2_Corner0_Rounded as SettingsIcon} from '#/components/icons/SettingsGear2'
+import {Zap_Stroke2_Corner0_Rounded as ZapIcon} from '#/components/icons/Zap'
 import * as Layout from '#/components/Layout'
 import {Link} from '#/components/Link'
 import {ListFooter} from '#/components/Lists'
@@ -46,6 +47,7 @@ import {Text} from '#/components/Typography'
 import {ChatListItem} from './components/ChatListItem'
 import {InboxPreview} from './components/InboxPreview'
 import {MigrationStatus} from '#/components/MigrationStatus'
+import {SonetMigrationStatus} from '#/components/SonetMigrationStatus'
 
 type ListItem =
   | {
@@ -288,7 +290,7 @@ export function MessagesScreenInner({navigation, route}: Props) {
         {/* Show migration status when using Sonet */}
         {isSonet && (
           <View style={[a.p_4]}>
-            <MigrationStatus />
+            <SonetMigrationStatus />
           </View>
         )}
         <Layout.Center>
@@ -372,7 +374,7 @@ export function MessagesScreenInner({navigation, route}: Props) {
       {/* Show migration status when using Sonet */}
       {isSonet && (
         <View style={[a.p_4]}>
-          <MigrationStatus />
+          <SonetMigrationStatus />
         </View>
       )}
       <NewChat onNewChat={onNewChat} control={newChatControl} />
@@ -407,6 +409,8 @@ function Header({newChatControl}: {newChatControl: DialogControlProps}) {
   const {_} = useLingui()
   const {gtMobile} = useBreakpoints()
   const requireEmailVerification = useRequireEmailVerification()
+  const navigation = useNavigation()
+  const isSonet = useIsSonetMessaging()
 
   const openChatControl = useCallback(() => {
     newChatControl.open()
@@ -453,6 +457,25 @@ function Header({newChatControl}: {newChatControl: DialogControlProps}) {
               <ButtonIcon icon={PlusIcon} position="left" />
               <ButtonText>
                 <Trans>New chat</Trans>
+              </ButtonText>
+            </Button>
+            <Button
+              label={isSonet ? _(msg`Switch to Classic`) : _(msg`Switch to Sonet`)}
+              color="secondary"
+              size="small"
+              variant="ghost"
+              onPress={() => {
+                if (isSonet) {
+                  // Switch to classic messaging
+                  navigation.navigate('Messages' as any)
+                } else {
+                  // Switch to Sonet messaging
+                  navigation.navigate('SonetChats' as any)
+                }
+              }}>
+              <ButtonIcon icon={ZapIcon} position="left" />
+              <ButtonText>
+                {isSonet ? <Trans>Classic</Trans> : <Trans>Sonet</Trans>}
               </ButtonText>
             </Button>
           </View>
