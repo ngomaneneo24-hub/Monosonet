@@ -28,6 +28,7 @@ import * as Toast from '#/view/com/util/Toast'
 import {Button, ButtonIcon} from '#/components/Button'
 import {useDialogControl} from '#/components/Dialog'
 import {FlagAccountDialog} from '#/components/moderation/FlagAccountDialog'
+import {flaggingService} from '#/services/flaggingService'
 import {ArrowOutOfBoxModified_Stroke2_Corner2_Rounded as ArrowOutOfBoxIcon} from '#/components/icons/ArrowOutOfBox'
 import {ChainLink_Stroke2_Corner0_Rounded as ChainLinkIcon} from '#/components/icons/ChainLink'
 import {CircleCheck_Stroke2_Corner0_Rounded as CircleCheckIcon} from '#/components/icons/CircleCheck'
@@ -371,9 +372,21 @@ let ProfileMenu = ({
                       <Menu.Item
                         testID="profileHeaderDropdownShadowbanBtn"
                         label={_(msg`Shadowban account`)}
-                        onPress={() => {
-                          // TODO: Implement shadowban functionality
-                          Toast.show(_(msg`Account shadowbanned by Sonet moderation`))
+                        onPress={async () => {
+                          try {
+                            const response = await flaggingService.shadowbanAccount({
+                              target_user_id: profile.id,
+                              target_username: profile.username,
+                              reason: 'moderation_action',
+                            })
+                            if (response.success) {
+                              Toast.show(_(msg`Account shadowbanned by Sonet moderation`))
+                            } else {
+                              Toast.show(_(msg`Failed to shadowban account`), 'xmark')
+                            }
+                          } catch (error) {
+                            Toast.show(_(msg`Failed to shadowban account`), 'xmark')
+                          }
                         }}>
                         <Menu.ItemText>
                           <Trans>Shadowban account</Trans>
@@ -383,9 +396,22 @@ let ProfileMenu = ({
                       <Menu.Item
                         testID="profileHeaderDropdownBanBtn"
                         label={_(msg`Ban account`)}
-                        onPress={() => {
-                          // TODO: Implement ban functionality
-                          Toast.show(_(msg`Account banned by Sonet moderation`))
+                        onPress={async () => {
+                          try {
+                            const response = await flaggingService.banAccount({
+                              target_user_id: profile.id,
+                              target_username: profile.username,
+                              reason: 'moderation_action',
+                              permanent: false,
+                            })
+                            if (response.success) {
+                              Toast.show(_(msg`Account banned by Sonet moderation`))
+                            } else {
+                              Toast.show(_(msg`Failed to ban account`), 'xmark')
+                            }
+                          } catch (error) {
+                            Toast.show(_(msg`Failed to ban account`), 'xmark')
+                          }
                         }}>
                         <Menu.ItemText>
                           <Trans>Ban account</Trans>
@@ -395,9 +421,22 @@ let ProfileMenu = ({
                       <Menu.Item
                         testID="profileHeaderDropdownSuspendBtn"
                         label={_(msg`Suspend account`)}
-                        onPress={() => {
-                          // TODO: Implement suspend functionality
-                          Toast.show(_(msg`Account suspended by Sonet moderation`))
+                        onPress={async () => {
+                          try {
+                            const response = await flaggingService.suspendAccount({
+                              target_user_id: profile.id,
+                              target_username: profile.username,
+                              reason: 'moderation_action',
+                              duration_days: 7,
+                            })
+                            if (response.success) {
+                              Toast.show(_(msg`Account suspended by Sonet moderation`))
+                            } else {
+                              Toast.show(_(msg`Failed to suspend account`), 'xmark')
+                            }
+                          } catch (error) {
+                            Toast.show(_(msg`Failed to suspend account`), 'xmark')
+                          }
                         }}>
                         <Menu.ItemText>
                           <Trans>Suspend account</Trans>

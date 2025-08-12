@@ -57,6 +57,7 @@ import {
   usePrefetchPostInteractionSettings,
 } from '#/components/dialogs/PostInteractionSettingsDialog'
 import {useSimpleVerificationState} from '#/components/verification'
+import {flaggingService} from '#/services/flaggingService'
 import {Atom_Stroke2_Corner0_Rounded as AtomIcon} from '#/components/icons/Atom'
 import {BubbleQuestion_Stroke2_Corner0_Rounded as Translate} from '#/components/icons/Bubble'
 import {Clipboard_Stroke2_Corner2_Rounded as ClipboardIcon} from '#/components/icons/Clipboard'
@@ -218,22 +219,29 @@ let PostMenuItems = ({
     )
   }
 
-  const onFounderDeletePost = () => {
-    deletePostMutate({uri: postUri}).then(
-      () => {
-        Toast.show(_(msg`Post removed by Sonet moderation`))
+  const onFounderDeletePost = async () => {
+    try {
+      const response = await flaggingService.deleteNote(
+        postUri,
+        postAuthor.id,
+        'moderation_action'
+      )
+      
+      if (response.success) {
+        Toast.show(_(msg`Note removed by Sonet moderation`))
         
         // Navigate back if we're in a post thread
         const route = getCurrentRoute(navigation.getState())
         if (route.name === 'PostThread' && navigation.canGoBack()) {
           navigation.goBack()
         }
-      },
-      e => {
-        logger.error('Moderation failed to delete post', {message: e})
-        Toast.show(_(msg`Failed to remove post, please try again`), 'xmark')
-      },
-    )
+      } else {
+        Toast.show(_(msg`Failed to remove note`), 'xmark')
+      }
+    } catch (error) {
+      logger.error('Moderation failed to delete note', {message: error})
+      Toast.show(_(msg`Failed to remove note, please try again`), 'xmark')
+    }
   }
 
   const onToggleThreadMute = () => {
