@@ -136,7 +136,7 @@ import {
   useEmailDialogControl,
 } from '#/components/dialogs/EmailDialog'
 import {router} from '#/routes'
-import {Referrer} from '../modules/expo-bluesky-swiss-army'
+import {Referrer} from '../modules/expo-sonet-swiss-army'
 import {useAccountSwitcher} from './lib/hooks/useAccountSwitcher'
 import {useNonReactiveCallback} from './lib/hooks/useNonReactiveCallback'
 import {useLoggedOutViewControls} from './state/shell/logged-out'
@@ -800,8 +800,8 @@ const FlatNavigator = () => {
 
 const LINKING = {
   // TODO figure out what we are going to use
-  // note: `bluesky://` is what is used in app.config.js
-  prefixes: ['bsky://', 'bluesky://', 'https://bsky.app'],
+          // note: `sonet://` is what is used in app.config.js
+        prefixes: ['sonet://', 'https://sonet.app'],
 
   getPathFromState(state: State) {
     // find the current node in the navigation tree

@@ -1,5 +1,5 @@
 import Animated, {Easing, FadeInDown, FadeOut} from 'react-native-reanimated'
-import {type ComAtprotoTempCheckHandleAvailability} from '@atproto/api'
+import {type SonetHandleAvailability} from '@sonet/types'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 

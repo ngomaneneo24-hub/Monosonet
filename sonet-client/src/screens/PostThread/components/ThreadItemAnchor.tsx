@@ -642,7 +642,7 @@ function BackdatedPostIndicator({post}: {post: SonetPost}) {
           <Trans>
             This post claims to have been created on{' '}
             <RNText style={[a.font_bold]}>{niceDate(i18n, createdAt)}</RNText>,
-            but was first seen by Bluesky on{' '}
+            but was first seen by Sonet on{' '}
             <RNText style={[a.font_bold]}>{niceDate(i18n, indexedAt)}</RNText>.
           </Trans>
         </Prompt.DescriptionText>
