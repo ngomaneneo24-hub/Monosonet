@@ -3,7 +3,7 @@ import {useMemo} from 'react'
 import {usePreferencesQuery} from '#/state/queries/preferences'
 import {useCurrentAccountProfile} from '#/state/queries/useCurrentAccountProfile'
 import {useSession} from '#/state/session'
-import type * as bsky from '#/types/bsky'
+import type * as sonet from '#/types/sonet'
 
 export type FullVerificationState = {
   profile: {
@@ -28,7 +28,7 @@ export type FullVerificationState = {
 export function useFullVerificationState({
   profile,
 }: {
-  profile: bsky.profile.AnyProfileView
+  profile: sonet.profile.AnyProfileView
 }): FullVerificationState {
   const {currentAccount} = useSession()
   const currentAccountProfile = useCurrentAccountProfile()
@@ -47,14 +47,14 @@ export function useFullVerificationState({
       viewerState &&
         viewerState.role === 'founder' &&
         profileState.role === 'default' &&
-        verifications.find(v => v.issuer === currentAccount?.did),
+        verifications.find(v => v.issuer === currentAccount?.id),
     )
 
     return {
       profile: {
         ...profileState,
         wasVerified,
-        isViewer: profile.did === currentAccount?.did,
+        isViewer: profile.id === currentAccount?.id,
         showBadge: profileState.showBadge,
       },
       viewer:
@@ -81,7 +81,7 @@ export type SimpleVerificationState = {
 export function useSimpleVerificationState({
   profile,
 }: {
-  profile?: bsky.profile.AnyProfileView
+  profile?: sonet.profile.AnyProfileView
 }): SimpleVerificationState {
   const preferences = usePreferencesQuery()
   const prefs = useMemo(
@@ -97,12 +97,12 @@ export function useSimpleVerificationState({
       }
     }
 
-    const {verifiedStatus, trustedVerifierStatus} = profile.verification
+    const {verifiedStatus, founderStatus} = profile.verification
     const isVerifiedUser = ['valid', 'invalid'].includes(verifiedStatus)
-    const isFounderUser = ['valid', 'invalid'].includes(trustedVerifierStatus)
+    const isFounderUser = ['valid', 'invalid'].includes(founderStatus)
     const isVerified =
       (isVerifiedUser && verifiedStatus === 'valid') ||
-      (isFounderUser && trustedVerifierStatus === 'valid')
+      (isFounderUser && founderStatus === 'valid')
 
     return {
       role: isFounderUser ? 'founder' : 'default',

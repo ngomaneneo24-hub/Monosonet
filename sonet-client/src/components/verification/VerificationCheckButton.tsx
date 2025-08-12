@@ -12,7 +12,7 @@ import {type FullVerificationState} from '#/components/verification'
 import {VerificationCheck} from '#/components/verification/VerificationCheck'
 import {VerificationsDialog} from '#/components/verification/VerificationsDialog'
 import {FounderDialog} from '#/components/verification/FounderDialog'
-import type * as bsky from '#/types/bsky'
+import type * as sonet from '#/types/sonet'
 
 export function shouldShowVerificationCheckButton(
   state: FullVerificationState,
@@ -53,7 +53,7 @@ export function VerificationCheckButton({
   profile,
   size,
 }: {
-  profile: Shadow<bsky.profile.AnyProfileView>
+  profile: Shadow<sonet.profile.AnyProfileView>
   size: 'lg' | 'md' | 'sm'
 }) {
   const state = useFullVerificationState({
@@ -72,7 +72,7 @@ export function Badge({
   verificationState: state,
   size,
 }: {
-  profile: Shadow<bsky.profile.AnyProfileView>
+  profile: Shadow<sonet.profile.AnyProfileView>
   verificationState: FullVerificationState
   size: 'lg' | 'md' | 'sm'
 }) {
@@ -95,8 +95,8 @@ export function Badge({
       <Button
         label={
           state.profile.isViewer
-            ? _(msg`View your verifications`)
-            : _(msg`View this user's verifications`)
+            ? _(msg`View your account verification`)
+            : _(msg`View this user's account verification`)
         }
         hitSlop={20}
         onPress={() => {

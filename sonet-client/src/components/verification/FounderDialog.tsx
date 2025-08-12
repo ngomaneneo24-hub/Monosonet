@@ -14,7 +14,7 @@ import {FounderCheck} from '#/components/icons/FounderCheck'
 import {Link} from '#/components/Link'
 import {Text} from '#/components/Typography'
 import {type FullVerificationState} from '#/components/verification'
-import type * as bsky from '#/types/bsky'
+import type * as sonet from '#/types/sonet'
 
 export {useDialogControl} from '#/components/Dialog'
 
@@ -24,7 +24,7 @@ export function FounderDialog({
   verificationState,
 }: {
   control: Dialog.DialogControlProps
-  profile: bsky.profile.AnyProfileView
+  profile: sonet.profile.AnyProfileView
   verificationState: FullVerificationState
 }) {
   return (
@@ -45,7 +45,7 @@ function Inner({
   control,
 }: {
   control: Dialog.DialogControlProps
-  profile: bsky.profile.AnyProfileView
+  profile: sonet.profile.AnyProfileView
   verificationState: FullVerificationState
 }) {
   const t = useTheme()
@@ -53,7 +53,7 @@ function Inner({
   const {gtMobile} = useBreakpoints()
   const {currentAccount} = useSession()
 
-  const isSelf = profile.did === currentAccount?.did
+  const isSelf = profile.id === currentAccount?.id
   const userName = getUserDisplayName(profile)
   const label = isSelf
     ? _(msg`You are a trusted account`)
@@ -83,7 +83,7 @@ function Inner({
               },
             ]}
             alt={_(
-              msg`An illustration showing that Bluesky selects trusted accounts, and trusted accounts in turn verify individual user accounts.`,
+              msg`An illustration showing that Sonet selects trusted accounts, and trusted accounts in turn verify individual user accounts.`,
             )}
           />
         </View>
@@ -99,7 +99,7 @@ function Inner({
                 <FounderCheck width={14} />
               </RNText>{' '}
               are trusted accounts. These trusted accounts are selected by
-              Bluesky.
+              Sonet moderation team.
             </Trans>
           </Text>
         </View>
@@ -114,7 +114,7 @@ function Inner({
           <Link
             overridePresentation
             to={urls.website.blog.initialVerificationAnnouncement}
-            label={_(msg`Learn more about verification on Bluesky`)}
+            label={_(msg`Learn more about account verification on Sonet`)}
             size="small"
             variant="solid"
             color="primary"
