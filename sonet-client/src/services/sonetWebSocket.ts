@@ -27,6 +27,16 @@ export interface SonetUserStatus {
   last_seen: string
 }
 
+function decodeJwtUserId(token: string): string | null {
+  try {
+    const payloadPart = token.split('.')[1]
+    const json = JSON.parse(atob(payloadPart))
+    return json.sub || json.user_id || null
+  } catch {
+    return null
+  }
+}
+
 export class SonetWebSocket extends EventEmitter {
   private ws: WebSocket | null = null
   private reconnectAttempts = 0
@@ -36,15 +46,16 @@ export class SonetWebSocket extends EventEmitter {
   private reconnectTimer: NodeJS.Timeout | null = null
   private isConnecting = false
   private token: string | null = null
+  private userId: string | null = null
   private heartbeatInterval: NodeJS.Timeout | null = null
   private lastHeartbeat = 0
 
   constructor() {
     super()
-    this.setMaxListeners(100) // Allow many listeners for different event types
+    this.setMaxListeners(100)
   }
 
-  connect(token: string): Promise<void> {
+  connect(token: string, userId?: string): Promise<void> {
     return new Promise((resolve, reject) => {
       if (this.isConnecting) {
         reject(new Error('Connection already in progress'))
@@ -52,17 +63,26 @@ export class SonetWebSocket extends EventEmitter {
       }
 
       this.token = token
+      this.userId = userId || decodeJwtUserId(token)
       this.isConnecting = true
       this.reconnectAttempts = 0
 
       try {
-        const wsUrl = `${SONET_WS_BASE}/messaging/ws?token=${token}`
-        this.ws = new WebSocket(wsUrl)
+        const base = SONET_WS_BASE.replace(/^http/, 'ws').replace(/\/$/, '')
+        this.ws = new WebSocket(`${base}/messaging/ws`)
 
         this.ws.onopen = () => {
           this.isConnecting = false
           this.reconnectAttempts = 0
           this.startHeartbeat()
+          // Explicit authentication message expected by server
+          if (this.token) {
+            this.sendRaw({
+              type: 'authenticate',
+              token: this.token,
+              user_id: this.userId,
+            })
+          }
           this.emit('connected')
           resolve()
         }
@@ -80,8 +100,8 @@ export class SonetWebSocket extends EventEmitter {
           this.isConnecting = false
           this.stopHeartbeat()
           this.emit('disconnected', event.code, event.reason)
-          
-          if (event.code !== 1000) { // Not a normal closure
+
+          if (event.code !== 1000) {
             this.handleReconnect()
           }
         }
@@ -92,7 +112,6 @@ export class SonetWebSocket extends EventEmitter {
           reject(error)
         }
 
-        // Set connection timeout
         setTimeout(() => {
           if (this.isConnecting) {
             this.isConnecting = false
@@ -100,7 +119,6 @@ export class SonetWebSocket extends EventEmitter {
             reject(new Error('Connection timeout'))
           }
         }, 10000)
-
       } catch (error) {
         this.isConnecting = false
         reject(error)
@@ -113,7 +131,7 @@ export class SonetWebSocket extends EventEmitter {
       clearTimeout(this.reconnectTimer)
       this.reconnectTimer = null
     }
-    
+
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval)
       this.heartbeatInterval = null
@@ -136,14 +154,14 @@ export class SonetWebSocket extends EventEmitter {
     }
 
     const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts), this.maxReconnectDelay)
-    
+
     this.reconnectTimer = setTimeout(() => {
       this.reconnectAttempts++
       this.emit('reconnecting', this.reconnectAttempts)
-      
+
       if (this.token) {
-        this.connect(this.token).catch(() => {
-          // Reconnect will be handled by the next attempt
+        this.connect(this.token, this.userId || undefined).catch(() => {
+          // next attempt will handle
         })
       }
     }, delay)
@@ -158,7 +176,7 @@ export class SonetWebSocket extends EventEmitter {
       if (this.ws?.readyState === WebSocket.OPEN) {
         this.sendHeartbeat()
       }
-    }, 30000) // Send heartbeat every 30 seconds
+    }, 30000)
   }
 
   private stopHeartbeat(): void {
@@ -173,11 +191,17 @@ export class SonetWebSocket extends EventEmitter {
       const heartbeat = {
         type: 'heartbeat',
         timestamp: new Date().toISOString(),
-        message_id: `heartbeat_${Date.now()}`
+        message_id: `heartbeat_${Date.now()}`,
       }
-      
+
       this.ws.send(JSON.stringify(heartbeat))
       this.lastHeartbeat = Date.now()
+    }
+  }
+
+  private sendRaw(obj: any) {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(obj))
     }
   }
 
@@ -200,7 +224,6 @@ export class SonetWebSocket extends EventEmitter {
         this.emit('chat_update', data.payload)
         break
       case 'heartbeat':
-        // Respond to server heartbeat
         this.lastHeartbeat = Date.now()
         break
       default:
@@ -210,33 +233,26 @@ export class SonetWebSocket extends EventEmitter {
 
   // Public methods for sending messages
   sendTyping(chatId: string, isTyping: boolean): void {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      const message = {
-        type: 'typing',
-        payload: {
-          chat_id: chatId,
-          is_typing: isTyping,
-          timestamp: new Date().toISOString()
-        }
-      }
-      this.ws.send(JSON.stringify(message))
-    }
+    this.sendRaw({
+      type: 'typing',
+      payload: {
+        chat_id: chatId,
+        is_typing: isTyping,
+        timestamp: new Date().toISOString(),
+      },
+    })
   }
 
   sendReadReceipt(messageId: string): void {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      const message = {
-        type: 'read_receipt',
-        payload: {
-          message_id: messageId,
-          timestamp: new Date().toISOString()
-        }
-      }
-      this.ws.send(JSON.stringify(message))
-    }
+    this.sendRaw({
+      type: 'read_receipt',
+      payload: {
+        message_id: messageId,
+        timestamp: new Date().toISOString(),
+      },
+    })
   }
 
-  // Utility methods
   isConnected(): boolean {
     return this.ws?.readyState === WebSocket.OPEN
   }
@@ -244,11 +260,16 @@ export class SonetWebSocket extends EventEmitter {
   getConnectionState(): string {
     if (!this.ws) return 'disconnected'
     switch (this.ws.readyState) {
-      case WebSocket.CONNECTING: return 'connecting'
-      case WebSocket.OPEN: return 'connected'
-      case WebSocket.CLOSING: return 'closing'
-      case WebSocket.CLOSED: return 'closed'
-      default: return 'unknown'
+      case WebSocket.CONNECTING:
+        return 'connecting'
+      case WebSocket.OPEN:
+        return 'connected'
+      case WebSocket.CLOSING:
+        return 'closing'
+      case WebSocket.CLOSED:
+        return 'closed'
+      default:
+        return 'unknown'
     }
   }
 
@@ -257,5 +278,4 @@ export class SonetWebSocket extends EventEmitter {
   }
 }
 
-// Export singleton instance
 export const sonetWebSocket = new SonetWebSocket()

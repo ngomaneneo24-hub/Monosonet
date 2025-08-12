@@ -21,6 +21,16 @@ const DEFAULT_CONFIG: SonetRealtimeConfig = {
   heartbeatInterval: 30000,
 }
 
+function decodeJwtUserId(token: string | null): string | null {
+  if (!token) return null
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.sub || payload.user_id || null
+  } catch {
+    return null
+  }
+}
+
 export class SonetRealtimeManager {
   private ws: WebSocket | null = null
   private reconnectTimer: NodeJS.Timeout | null = null
@@ -81,9 +91,13 @@ export class SonetRealtimeManager {
         this.isConnecting = false
         this.reconnectAttempts = 0
         
-        // Send authentication
+        // Server expects explicit authenticate message with token and user_id
         if (this.accessToken) {
-          this.send({type: 'auth', token: this.accessToken})
+          this.send({
+            type: 'authenticate',
+            token: this.accessToken,
+            user_id: decodeJwtUserId(this.accessToken),
+          })
         }
         
         // Start heartbeat
@@ -224,7 +238,6 @@ export class SonetRealtimeManager {
   }
 }
 
-// React hook for using the real-time manager
 export function useSonetRealtimeManager() {
   const sonetApi = useSonetApi()
   const [manager] = React.useState(() => {
@@ -247,7 +260,6 @@ export function useSonetRealtimeManager() {
   return manager
 }
 
-// Hook for connecting to a specific chat
 export function useSonetChatRealtime(chatId: string) {
   const manager = useSonetRealtimeManager()
   const [isConnected, setIsConnected] = React.useState(false)
