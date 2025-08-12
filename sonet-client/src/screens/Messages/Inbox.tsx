@@ -1,9 +1,6 @@
 import {useCallback, useMemo, useState} from 'react'
 import {View} from 'react-native'
-import {
-  type ChatBskyConvoDefs,
-  type ChatBskyConvoListConvos,
-} from '@atproto/api'
+import type {SonetChat} from '#/services/sonetMessagingApi'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useFocusEffect, useNavigation} from '@react-navigation/native'
@@ -119,18 +116,17 @@ function RequestList({
   hasUnreadConvos,
 }: {
   listConvosQuery: UseInfiniteQueryResult<
-    InfiniteData<ChatBskyConvoListConvos.OutputSchema>,
+    InfiniteData<any>, // TODO: Replace with proper Sonet type
     Error
   >
-  conversations: ChatBskyConvoDefs.ConvoView[]
+  conversations: any[] // TODO: Replace with proper Sonet type
   hasUnreadConvos: boolean
 }) {
   const {_} = useLingui()
   const t = useTheme()
   const navigation = useNavigation<NavigationProp>()
 
-  // Request the poll interval to be 10s (or whatever the MESSAGE_SCREEN_POLL_INTERVAL is set to in the future)
-  // but only when the screen is active
+  // Real-time via WebSocket; no polling interval needed
   const messagesBus = useMessagesEventBus()
   const state = useAppState()
   const isActive = state === 'active'
@@ -296,11 +292,11 @@ function RequestList({
   )
 }
 
-function keyExtractor(item: ChatBskyConvoDefs.ConvoView) {
+function keyExtractor(item: any) {
   return item.id
 }
 
-function renderItem({item}: {item: ChatBskyConvoDefs.ConvoView}) {
+function renderItem({item}: {item: any}) {
   return <RequestListItem convo={item} />
 }
 

@@ -1,221 +1,143 @@
-import {useCallback, useEffect, useMemo, useState} from 'react'
-import {LayoutAnimation, View} from 'react-native'
-import {
-  AppBskyFeedPost,
-  AppBskyRichtextFacet,
-  AtUri,
-  moderatePost,
-  RichText as RichTextAPI,
-} from '@atproto/api'
-import {msg} from '@lingui/macro'
+import {View} from 'react-native'
+import {useCallback, useMemo} from 'react'
+import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
-import {RouteProp, useNavigation, useRoute} from '@react-navigation/native'
+import {useNavigation} from '@react-navigation/native'
 
-import {makeProfileLink} from '#/lib/routes/links'
-import {CommonNavigatorParams, NavigationProp} from '#/lib/routes/types'
-import {
-  convertBskyAppUrlIfNeeded,
-  isBskyPostUrl,
-  makeRecordUri,
-} from '#/lib/strings/url-helpers'
-import {useModerationOpts} from '#/state/preferences/moderation-opts'
-import {usePostQuery} from '#/state/queries/post'
-import {PostMeta} from '#/view/com/util/PostMeta'
+import {useSession} from '#/state/session'
 import {atoms as a, useTheme} from '#/alf'
-import {Button, ButtonIcon} from '#/components/Button'
-import {TimesLarge_Stroke2_Corner0_Rounded as X} from '#/components/icons/Times'
-import {Loader} from '#/components/Loader'
-import * as MediaPreview from '#/components/MediaPreview'
-import {ContentHider} from '#/components/moderation/ContentHider'
-import {PostAlerts} from '#/components/moderation/PostAlerts'
-import {RichText} from '#/components/RichText'
+import {Button, ButtonIcon, ButtonText} from '#/components/Button'
+import {Close_Stroke2_Corner0_Rounded as CloseIcon} from '#/components/icons/Close'
+import {ExternalLink_Stroke2_Corner0_Rounded as ExternalLinkIcon} from '#/components/icons/ExternalLink'
+import {Image_Stroke2_Corner0_Rounded as ImageIcon} from '#/components/icons/Image'
 import {Text} from '#/components/Typography'
-import * as bsky from '#/types/bsky'
-
-export function useMessageEmbed() {
-  const route =
-    useRoute<RouteProp<CommonNavigatorParams, 'MessagesConversation'>>()
-  const navigation = useNavigation<NavigationProp>()
-  const embedFromParams = route.params.embed
-
-  const [embedUri, setEmbed] = useState(embedFromParams)
-
-  if (embedFromParams && embedUri !== embedFromParams) {
-    setEmbed(embedFromParams)
-  }
-
-  return {
-    embedUri,
-    setEmbed: useCallback(
-      (embedUrl: string | undefined) => {
-        if (!embedUrl) {
-          navigation.setParams({embed: ''})
-          setEmbed(undefined)
-          return
-        }
-
-        if (embedFromParams) return
-
-        const url = convertBskyAppUrlIfNeeded(embedUrl)
-        const [_0, user, _1, rkey] = url.split('/').filter(Boolean)
-        const uri = makeRecordUri(user, 'app.bsky.feed.post', rkey)
-
-        setEmbed(uri)
-      },
-      [embedFromParams, navigation],
-    ),
-  }
-}
-
-export function useExtractEmbedFromFacets(
-  message: string,
-  setEmbed: (embedUrl: string | undefined) => void,
-) {
-  const rt = new RichTextAPI({text: message})
-  rt.detectFacetsWithoutResolution()
-
-  let uriFromFacet: string | undefined
-
-  for (const facet of rt.facets ?? []) {
-    for (const feature of facet.features) {
-      if (AppBskyRichtextFacet.isLink(feature) && isBskyPostUrl(feature.uri)) {
-        uriFromFacet = feature.uri
-        break
-      }
-    }
-  }
-
-  useEffect(() => {
-    if (uriFromFacet) {
-      setEmbed(uriFromFacet)
-    }
-  }, [uriFromFacet, setEmbed])
-}
+import {Avatar} from '#/view/com/util/Avatar'
+import {Link} from '#/components/Link'
+import {isBskyPostUrl} from '#/lib/urls/isBskyPostUrl'
+import {useRichText} from '#/lib/hooks/useRichText'
+import {useModerationCause} from '#/lib/moderation/useModerationCause'
+import {useModerationCauseLabel} from '#/lib/moderation/useModerationCauseLabel'
 
 export function MessageInputEmbed({
-  embedUri,
-  setEmbed,
+  embed,
+  onRemove,
 }: {
-  embedUri: string | undefined
-  setEmbed: (embedUrl: string | undefined) => void
+  embed: any // TODO: Replace with proper Sonet embed type
+  onRemove: () => void
 }) {
-  const t = useTheme()
   const {_} = useLingui()
+  const t = useTheme()
+  const {currentAccount} = useSession()
+  const navigation = useNavigation()
 
-  const {data: post, status} = usePostQuery(embedUri)
+  const handleRemove = useCallback(() => {
+    onRemove()
+  }, [onRemove])
 
-  const moderationOpts = useModerationOpts()
-  const moderation = useMemo(
-    () =>
-      moderationOpts && post ? moderatePost(post, moderationOpts) : undefined,
-    [moderationOpts, post],
-  )
-
-  const {rt, record} = useMemo(() => {
-    if (
-      post &&
-      bsky.dangerousIsType<AppBskyFeedPost.Record>(
-        post.record,
-        AppBskyFeedPost.isRecord,
-      )
-    ) {
-      return {
-        rt: new RichTextAPI({
-          text: post.record.text,
-          facets: post.record.facets,
-        }),
-        record: post.record,
-      }
+  const handlePress = useCallback(() => {
+    // Handle navigation to the embedded content
+    if (embed.type === 'post') {
+      // Navigate to post
+      navigation.navigate('PostThread' as any, {uri: embed.uri})
+    } else if (embed.type === 'external') {
+      // Open external link
+      // TODO: Implement external link handling
     }
+  }, [embed, navigation])
 
-    return {rt: undefined, record: undefined}
-  }, [post])
-
-  if (!embedUri) {
-    return null
-  }
-
-  let content = null
-  switch (status) {
-    case 'pending':
-      content = (
-        <View
-          style={[a.flex_1, {minHeight: 64}, a.justify_center, a.align_center]}>
-          <Loader />
-        </View>
-      )
-      break
-    case 'error':
-      content = (
-        <View
-          style={[a.flex_1, {minHeight: 64}, a.justify_center, a.align_center]}>
-          <Text style={a.text_center}>Could not fetch post</Text>
-        </View>
-      )
-      break
-    case 'success':
-      const itemUrip = new AtUri(post.uri)
-      const itemHref = makeProfileLink(post.author, 'post', itemUrip.rkey)
-
-      if (!post || !moderation || !rt || !record) {
-        return null
-      }
-
-      content = (
-        <View
-          style={[
-            a.flex_1,
-            t.atoms.bg,
-            t.atoms.border_contrast_low,
-            a.rounded_md,
-            a.border,
-            a.p_sm,
-            a.mb_sm,
-          ]}
-          pointerEvents="none">
-          <PostMeta
-            showAvatar
-            author={post.author}
-            moderation={moderation}
-            timestamp={post.indexedAt}
-            postHref={itemHref}
-            style={a.flex_0}
-          />
-          <ContentHider modui={moderation.ui('contentView')}>
-            <PostAlerts modui={moderation.ui('contentView')} style={a.py_xs} />
-            {rt.text && (
-              <View style={a.mt_xs}>
-                <RichText
-                  enableTags
-                  testID="postText"
-                  value={rt}
-                  style={[a.text_sm, t.atoms.text_contrast_high]}
-                  authorHandle={post.author.handle}
-                  numberOfLines={3}
-                />
+  const renderEmbedContent = () => {
+    switch (embed.type) {
+      case 'images':
+        return (
+          <View style={[a.flex_row, a.align_center, a.gap_sm]}>
+            <ImageIcon width={20} height={20} fill={t.atoms.text_contrast_medium.color} />
+            <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
+              <Trans>Image</Trans>
+            </Text>
+          </View>
+        )
+      
+      case 'external':
+        return (
+          <View style={[a.flex_row, a.align_center, a.gap_sm]}>
+            <ExternalLinkIcon width={20} height={20} fill={t.atoms.text_contrast_medium.color} />
+            <Text style={[a.text_sm, t.atoms.text_contrast_medium]} numberOfLines={1}>
+              {embed.external?.title || embed.external?.uri || 'External link'}
+            </Text>
+          </View>
+        )
+      
+      case 'record':
+        if (embed.record?.type === 'post') {
+          const post = embed.record
+          const author = post.author
+          const content = post.record?.text || ''
+          
+          return (
+            <View style={[a.flex_row, a.align_center, a.gap_sm]}>
+              <Avatar size={24} image={author?.avatar} />
+              <View style={[a.flex_1, a.min_w_0]}>
+                <Text style={[a.text_sm, a.font_bold]} numberOfLines={1}>
+                  {author?.displayName || author?.handle || 'Unknown'}
+                </Text>
+                <Text style={[a.text_xs, t.atoms.text_contrast_medium]} numberOfLines={2}>
+                  {content}
+                </Text>
               </View>
-            )}
-            <MediaPreview.Embed embed={post.embed} style={a.mt_sm} />
-          </ContentHider>
-        </View>
-      )
-      break
+            </View>
+          )
+        }
+        return (
+          <View style={[a.flex_row, a.align_center, a.gap_sm]}>
+            <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
+              <Trans>Embedded content</Trans>
+            </Text>
+          </View>
+        )
+      
+      case 'video':
+        return (
+          <View style={[a.flex_row, a.align_center, a.gap_sm]}>
+            <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
+              <Trans>Video</Trans>
+            </Text>
+          </View>
+        )
+      
+      default:
+        return (
+          <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
+            <Trans>Embedded content</Trans>
+          </Text>
+        )
+    }
   }
 
   return (
-    <View style={[a.flex_row, a.gap_sm]}>
-      {content}
+    <View
+      style={[
+        a.flex_row,
+        a.align_center,
+        a.justify_between,
+        a.px_md,
+        a.py_sm,
+        a.mb_sm,
+        a.rounded_md,
+        t.atoms.bg_contrast_25,
+        a.border,
+        t.atoms.border_contrast_low,
+      ]}>
+      <View style={[a.flex_1, a.mr_sm]} onTouchEnd={handlePress}>
+        {renderEmbedContent()}
+      </View>
+      
       <Button
         label={_(msg`Remove embed`)}
-        onPress={() => {
-          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
-          setEmbed(undefined)
-        }}
-        size="tiny"
-        variant="solid"
+        size="small"
         color="secondary"
-        shape="round">
-        <ButtonIcon icon={X} />
+        variant="ghost"
+        onPress={handleRemove}>
+        <ButtonIcon icon={CloseIcon} />
       </Button>
     </View>
   )
