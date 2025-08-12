@@ -77,23 +77,14 @@ export function IS_PROD_SERVICE(url?: string) {
   return url && url !== STAGING_SERVICE && !url.startsWith(LOCAL_DEV_SERVICE)
 }
 
-export const PROD_DEFAULT_FEED = (rkey: string) =>
-  `sonet://feed.generator/${rkey}`
+// Sonet centralized feeds - no external feed generators
+export const SONET_FEEDS = {
+  FOR_YOU: 'for-you',
+  FOLLOWING: 'following',
+  VIDEO: 'video'
+} as const
 
-export const STAGING_DEFAULT_FEED = (rkey: string) =>
-  `sonet://staging.feed.generator/${rkey}`
-
-export const PROD_FEEDS = [
-  `feedgen|${PROD_DEFAULT_FEED('whats-hot')}`,
-  `feedgen|${PROD_DEFAULT_FEED('thevids')}`,
-]
-
-export const STAGING_FEEDS = [
-  `feedgen|${STAGING_DEFAULT_FEED('whats-hot')}`,
-  `feedgen|${STAGING_DEFAULT_FEED('thevids')}`,
-]
-
-export const FEEDBACK_FEEDS = [...PROD_FEEDS, ...STAGING_FEEDS]
+export const FEEDBACK_FEEDS = [SONET_FEEDS.FOR_YOU, SONET_FEEDS.VIDEO]
 
 export const POST_IMG_MAX = {
   width: 2000,
@@ -139,37 +130,39 @@ export const SONET_FEED_OWNER_IDS = [
   'sonet.recommended',
 ]
 
-export const DISCOVER_FEED_URI =
-  'sonet://feed.generator/whats-hot'
-export const VIDEO_FEED_URI =
-  'sonet://feed.generator/thevids'
-export const STAGING_VIDEO_FEED_URI =
-  'sonet://staging.feed.generator/thevids'
-export const VIDEO_FEED_URIS = [VIDEO_FEED_URI, STAGING_VIDEO_FEED_URI]
-export const DISCOVER_SAVED_FEED = {
-  type: 'feed',
-  value: DISCOVER_FEED_URI,
-  pinned: true,
-}
-export const TIMELINE_SAVED_FEED = {
-  type: 'timeline',
-  value: 'following',
-  pinned: true,
-}
-export const VIDEO_SAVED_FEED = {
-  type: 'feed',
-  value: VIDEO_FEED_URI,
-  pinned: true,
-}
+// Sonet centralized feed configuration
+export const SONET_FEED_CONFIG = {
+  FOR_YOU: {
+    type: 'feed' as const,
+    value: SONET_FEEDS.FOR_YOU,
+    pinned: true,
+    displayName: 'For You',
+    description: 'AI-powered personalized feed'
+  },
+  FOLLOWING: {
+    type: 'timeline' as const,
+    value: SONET_FEEDS.FOLLOWING,
+    pinned: true,
+    displayName: 'Following',
+    description: 'Posts from people you follow'
+  },
+  VIDEO: {
+    type: 'feed' as const,
+    value: SONET_FEEDS.VIDEO,
+    pinned: true,
+    displayName: 'Video',
+    description: 'Video content feed'
+  }
+} as const
 
-export const RECOMMENDED_SAVED_FEEDS: Pick<
-  AppBskyActorDefs.SavedFeed,
-  'type' | 'value' | 'pinned'
->[] = [DISCOVER_SAVED_FEED, TIMELINE_SAVED_FEED]
-
-export const KNOWN_SHUTDOWN_FEEDS = [
-  'at://did:plc:wqowuobffl66jv3kpsvo7ak4/app.bsky.feed.generator/the-algorithm', // for you by skygaze
+export const RECOMMENDED_SAVED_FEEDS = [
+  SONET_FEED_CONFIG.FOR_YOU,
+  SONET_FEED_CONFIG.FOLLOWING,
+  SONET_FEED_CONFIG.VIDEO
 ]
+
+// No external feed generators in centralized platform
+export const KNOWN_SHUTDOWN_FEEDS: string[] = []
 
 export const GIF_SERVICE = 'https://gifs.bsky.app'
 
@@ -206,15 +199,13 @@ export const urls = {
   },
 }
 
-export const PUBLIC_APPVIEW = 'https://api.bsky.app'
-export const PUBLIC_APPVIEW_DID = 'did:web:api.bsky.app'
-export const PUBLIC_STAGING_APPVIEW_DID = 'did:web:api.staging.bsky.dev'
-
-export const DEV_ENV_APPVIEW = `http://localhost:2584` // always the same
+// Sonet API endpoints
+export const SONET_API_BASE = 'https://api.sonet.app'
+export const SONET_STAGING_API = 'https://api.staging.sonet.app'
+export const DEV_ENV_API = `http://localhost:8080`
 
 export const webLinks = {
-  tos: `https://bsky.social/about/support/tos`,
-  privacy: `https://bsky.social/about/support/privacy-policy`,
-  community: `https://bsky.social/about/support/community-guidelines`,
-  communityDeprecated: `https://bsky.social/about/support/community-guidelines-deprecated`,
+  tos: `https://sonet.app/terms`,
+  privacy: `https://sonet.app/privacy`,
+  community: `https://sonet.app/guidelines`,
 }

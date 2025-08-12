@@ -10,7 +10,7 @@ import {AppState, type AppStateStatus} from 'react-native'
 import {type SonetInteraction, type SonetInteractionEvent} from '#/types/sonet'
 import throttle from 'lodash.throttle'
 
-import {FEEDBACK_FEEDS, STAGING_FEEDS} from '#/lib/constants'
+import {FEEDBACK_FEEDS} from '#/lib/constants'
 import {logEvent} from '#/lib/statsig/statsig'
 import {Logger} from '#/logger'
 import {
@@ -64,26 +64,12 @@ export function useFeedFeedback(
     const interactions = Array.from(queue.current).map(toInteraction)
     queue.current.clear()
 
-    let proxyDid = 'did:web:discover.bsky.app'
-    if (STAGING_FEEDS.includes(feed ?? '')) {
-      proxyDid = 'did:web:algo.pop2.bsky.app'
-    }
+    // For centralized feeds, we send feedback to our own server
+    let proxyDid = 'sonet.app'
 
-    // Send to the feed
-    agent.app.bsky.feed
-      .sendInteractions(
-        {interactions},
-        {
-          encoding: 'application/json',
-          headers: {
-            // TODO when we start sending to other feeds, we need to grab their DID -prf
-            'atproto-proxy': `${proxyDid}#bsky_fg`,
-          },
-        },
-      )
-      .catch((e: any) => {
-        logger.warn('Failed to send feed interactions', {error: e})
-      })
+                // Send to Sonet server for ML training
+      // TODO: Replace with Sonet API call
+      console.log('Sending feed interactions to Sonet server:', interactions)
 
     // Send to Statsig
     if (aggregatedStats.current === null) {
@@ -175,11 +161,7 @@ export function useFeedFeedbackContext() {
   return useContext(stateContext)
 }
 
-// TODO
-// We will introduce a permissions framework for 3p feeds to
-// take advantage of the feed feedback API. Until that's in
-// place, we're hardcoding it to the discover feed.
-// -prf
+// For centralized Sonet feeds, we enable feedback for ML training
 function isDiscoverFeed(feed?: FeedDescriptor) {
   return !!feed && FEEDBACK_FEEDS.includes(feed)
 }

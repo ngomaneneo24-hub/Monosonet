@@ -1,4 +1,4 @@
-// Sonet Types - Replacing AT Protocol types
+// Sonet Types - Simplified for centralized platform
 
 export interface SonetPost {
   uri: string
@@ -119,35 +119,6 @@ export interface SonetThreadgate {
   }
 }
 
-export interface SonetFeedGenerator {
-  uri: string
-  cid: string
-  did: string
-  creator: SonetProfile
-  displayName: string
-  description?: string
-  descriptionFacets?: SonetFacet[]
-  createdAt: string
-  indexedAt: string
-  likeCount: number
-  viewer?: {
-    like?: string
-  }
-}
-
-export interface SonetFacet {
-  index: {
-    byteStart: number
-    byteEnd: number
-  }
-  features: Array<{
-    $type: 'sonet.richtext.facet#mention' | 'sonet.richtext.facet#link' | 'sonet.richtext.facet#tag'
-    did?: string
-    uri?: string
-    tag?: string
-  }>
-}
-
 export interface SonetFeedViewPost {
   post: SonetPost
   reply?: SonetPost
@@ -184,16 +155,12 @@ export type SonetInteractionEvent =
 
 export interface SonetSavedFeed {
   id: string
-  type: 'timeline' | 'feed' | 'list'
+  type: 'timeline' | 'feed'
   value: string
   pinned: boolean
-  displayName?: string
-  description?: string
+  displayName: string
+  description: string
   avatar?: string
-  creatorDid?: string
-  creatorHandle?: string
-  likeCount?: number
-  likeUri?: string
   contentMode?: 'text' | 'images' | 'video'
 }
 
@@ -204,7 +171,7 @@ export interface SonetFeedSlice {
 }
 
 export interface SonetFeedInfo {
-  type: 'feed' | 'list'
+  type: 'feed' | 'timeline'
   uri: string
   feedDescriptor: string
   route: {
@@ -216,10 +183,6 @@ export interface SonetFeedInfo {
   avatar: string | undefined
   displayName: string
   description: string
-  creatorDid: string
-  creatorHandle: string
-  likeCount: number | undefined
-  likeUri: string | undefined
   contentMode: 'text' | 'images' | 'video' | undefined
 }
 
@@ -229,32 +192,6 @@ export interface SonetThreadViewPost {
   replies: SonetPost[]
   parent?: SonetPost
   root?: SonetPost
-}
-
-export interface SonetListView {
-  uri: string
-  cid: string
-  did: string
-  creator: SonetProfile
-  name: string
-  description?: string
-  descriptionFacets?: SonetFacet[]
-  indexedAt: string
-  viewer?: {
-    muted?: boolean
-    blocked?: boolean
-    following?: string
-  }
-}
-
-export interface SonetUri {
-  protocol: string
-  hostname: string
-  collection: string
-  rkey: string
-  
-  constructor(uri: string)
-  toString(): string
 }
 
 export interface SonetModerationDecision {
@@ -291,10 +228,6 @@ export const SonetUtils = {
   
   isThreadViewPost: (thread: any): thread is SonetThreadViewPost => {
     return thread && thread.thread && thread.replies
-  },
-  
-  isGeneratorView: (generator: any): generator is SonetFeedGenerator => {
-    return generator && generator.uri && generator.displayName
   },
   
   isPostRecord: (record: any): record is SonetPostRecord => {

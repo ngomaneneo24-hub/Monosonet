@@ -2,7 +2,7 @@ import React from 'react'
 import {ActivityIndicator, StyleSheet} from 'react-native'
 import {useFocusEffect} from '@react-navigation/native'
 
-import {PROD_DEFAULT_FEED} from '#/lib/constants'
+import {SONET_FEED_CONFIG} from '#/lib/constants'
 import {useNonReactiveCallback} from '#/lib/hooks/useNonReactiveCallback'
 import {useOTAUpdates} from '#/lib/hooks/useOTAUpdates'
 import {useSetTitle} from '#/lib/hooks/useSetTitle'
@@ -204,7 +204,7 @@ function HomeScreenReady({
             testID="homeScreenFeedTabs"
             onPressSelected={onPressSelected}
             // @ts-ignore
-            feeds={[{displayName: 'Following'}, {displayName: 'Discover'}]}
+            feeds={[{displayName: 'Following'}, {displayName: 'For You'}]}
           />
         )
       }
@@ -261,7 +261,7 @@ function HomeScreenReady({
           testID="customFeedPage"
           isPageFocused
           isPageAdjacent={false}
-          feed={`feedgen|${PROD_DEFAULT_FEED('whats-hot')}`}
+          feed={`feed|${SONET_FEED_CONFIG.VIDEO.value}`}
           renderEmptyState={renderCustomFeedEmptyState}
           feedInfo={pinnedFeedInfos[0]}
         />
@@ -320,14 +320,14 @@ function HomeScreenReady({
       onPageSelected={onPageSelected}
       onPageScrollStateChanged={onPageScrollStateChanged}
       renderTabBar={renderTabBar}>
-      <FeedPage
-        testID="customFeedPage"
-        isPageFocused
-        isPageAdjacent={false}
-        feed={`feedgen|${PROD_DEFAULT_FEED('whats-hot')}`}
-        renderEmptyState={renderCustomFeedEmptyState}
-        feedInfo={pinnedFeedInfos[0]}
-      />
+              <FeedPage
+          testID="customFeedPage"
+          isPageFocused
+          isPageAdjacent={false}
+          feed={`feed|${SONET_FEED_CONFIG.FOR_YOU.value}`}
+          renderEmptyState={renderCustomFeedEmptyState}
+          feedInfo={pinnedFeedInfos[0]}
+        />
     </Pager>
   )
 }
