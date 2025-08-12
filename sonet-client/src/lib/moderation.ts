@@ -1,37 +1,22 @@
 import React from 'react'
-import {
-  type AppBskyLabelerDefs,
-  BskyAgent,
-  type ComAtprotoLabelDefs,
-  type InterpretedLabelValueDefinition,
-  LABELS,
-  type ModerationCause,
-  type ModerationOpts,
-  type ModerationUI,
-} from '@atproto/api'
+import {SonetUser, SonetLabel} from '@sonet/types'
 
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
 import {sanitizeHandle} from '#/lib/strings/handles'
-import {type AppModerationCause} from '#/components/Pills'
-import type {ModerationDecision} from '#/state/preferences/moderation-opts'
+import {SonetModerationDecision} from '@sonet/types'
 
 // =============================================================================
 // MODERATION UTILITIES
 // =============================================================================
 
 export interface ProfileView {
-  did: string
-  handle: string
+  id: string
+  username: string
   displayName?: string
-  description?: string
+  bio?: string
   avatar?: string
   banner?: string
-  labels?: Array<{
-    val: string
-    uri: string
-    cid: string
-    neg?: boolean
-  }>
+  labels?: SonetLabel[]
   viewer?: {
     blockedBy?: boolean
     blocking?: string
@@ -47,11 +32,11 @@ export interface ProfileView {
 export function moderateProfile(
   profile: ProfileView | null,
   moderationOpts: any
-): ModerationDecision | null {
+): SonetModerationDecision | null {
   if (!profile || !moderationOpts) return null
 
   // Basic moderation logic - can be enhanced based on your needs
-  const decision: ModerationDecision = {
+  const decision: SonetModerationDecision = {
     profile: {
       cause: null,
       filter: false,
