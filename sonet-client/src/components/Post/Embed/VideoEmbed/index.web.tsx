@@ -22,7 +22,7 @@ import {
   HLSUnsupportedError,
   VideoEmbedInnerWeb,
   VideoNotFoundError,
-} from '#/components/Note/Embed/VideoEmbed/VideoEmbedInner/VideoEmbedInnerWeb'
+} from '#/components/Post/Embed/VideoEmbed/VideoEmbedInner/VideoEmbedInnerWeb'
 import {useActiveVideoWeb} from './ActiveVideoWebContext'
 import * as VideoFallback from './VideoEmbedInner/VideoFallback'
 
