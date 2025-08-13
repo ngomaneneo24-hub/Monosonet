@@ -2,7 +2,7 @@ import {type RefObject, useCallback, useEffect, useRef, useState} from 'react'
 
 import {isSafari} from '#/lib/browser'
 import {logger} from '#/logger'
-import {useVideoVolumeState} from '#/components/Note/Embed/VideoEmbed/VideoVolumeContext'
+import {useVideoVolumeState} from '#/components/Post/Embed/VideoEmbed/VideoVolumeContext'
 
 export function useVideoElement(ref: RefObject<HTMLVideoElement>) {
   const [playing, setPlaying] = useState(false)

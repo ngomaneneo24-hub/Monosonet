@@ -24,7 +24,7 @@ import {type VideoPlayer} from 'expo-video'
 
 import {tokens} from '#/alf'
 import {atoms as a} from '#/alf'
-import {formatTime} from '#/components/Note/Embed/VideoEmbed/VideoEmbedInner/web-controls/utils'
+import {formatTime} from '#/components/Post/Embed/VideoEmbed/VideoEmbedInner/web-controls/utils'
 import {Text} from '#/components/Typography'
 
 // magic number that is roughly the min height of the write reply button

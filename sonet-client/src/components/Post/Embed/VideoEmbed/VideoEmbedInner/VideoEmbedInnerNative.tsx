@@ -14,7 +14,7 @@ import {Pause_Filled_Corner0_Rounded as PauseIcon} from '#/components/icons/Paus
 import {Play_Filled_Corner0_Rounded as PlayIcon} from '#/components/icons/Play'
 import {SpeakerVolumeFull_Stroke2_Corner0_Rounded as UnmuteIcon} from '#/components/icons/Speaker'
 import {MediaInsetBorder} from '#/components/MediaInsetBorder'
-import {useVideoMuteState} from '#/components/Note/Embed/VideoEmbed/VideoVolumeContext'
+import {useVideoMuteState} from '#/components/Post/Embed/VideoEmbed/VideoVolumeContext'
 import {TimeIndicator} from './TimeIndicator'
 
 export function VideoEmbedInnerNative({
