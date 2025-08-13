@@ -73,7 +73,7 @@ gRPC Client → User Service (Go)
     ↓
 Repository Layer
     ↓
-NotegreSQL Database
+postgresql Database
 ```
 
 ## **Key Features Implemented**

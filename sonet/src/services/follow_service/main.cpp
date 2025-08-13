@@ -438,7 +438,7 @@ int main(int /*argc*/, char* /*argv*/[]) {
      --name sonet-follow \
      -p 8080:8080 \
      -p 9090:9090 \
-     -e DATABASE_URL="notegresql://user:pass@host:5432/sonet" \
+     -e DATABASE_URL="postgresql://user:pass@host:5432/sonet" \
      -e REDIS_URL="redis://host:6379" \
      -e LOG_LEVEL="info" \
      sonet-follow-service
@@ -457,7 +457,7 @@ int main(int /*argc*/, char* /*argv*/[]) {
 🔧 CONFIGURATION:
 
 Environment Variables:
-- DATABASE_URL: NotegreSQL connection string
+- DATABASE_URL: postgresql connection string
 - REDIS_URL: Redis connection string
 - HTTP_PORT: HTTP server port (default: 8080)
 - GRPC_PORT: gRPC server port (default: 9090)

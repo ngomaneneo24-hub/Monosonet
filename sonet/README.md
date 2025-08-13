@@ -78,7 +78,7 @@ make clean
 ## Tech Stack
 
 - **Language**: C++17/20
-- **Databases**: NotegreSQL, Redis, Cassandra, Elasticsearch
+- **Databases**: postgresql, Redis, Cassandra, Elasticsearch
 - **Communication**: gRPC, HTTP/REST, WebSockets
 - **Containerization**: Docker, Kubernetes
 - **Monitoring**: Prometheus, Grafana, Jaeger

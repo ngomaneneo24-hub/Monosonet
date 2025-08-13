@@ -10,13 +10,13 @@ This document summarizes the complete implementation of Lists and Starterpacks s
 
 1. **Lists Service** (`sonet/src/services/list_service/`)
    - Go microservice with gRPC API
-   - NotegreSQL database backend
+   - postgresql database backend
    - Full CRUD operations for lists and list members
    - Permission-based access control
 
 2. **Starterpacks Service** (`sonet/src/services/starterpack_service/`)
    - Go microservice with gRPC API
-   - NotegreSQL database backend
+   - postgresql database backend
    - Full CRUD operations for starterpacks and items
    - Discovery and suggestion features
 

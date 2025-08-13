@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
 	uint64_t max_upload = 200ULL * 1024ULL * 1024ULL; // 200MB
 	if (const char* e = std::getenv("SONET_MEDIA_MAX_UPLOAD")) { try { uint64_t v = std::stoull(e); if (v>0) max_upload = v; } catch(...) {} }
 
-	// Optional Notegres repository via env SONET_MEDIA_PG
+	// Optional postgres repository via env SONET_MEDIA_PG
 	const char* pg = std::getenv("SONET_MEDIA_PG");
 	std::shared_ptr<sonet::media_service::MediaRepository> repo;
 	if (pg) {

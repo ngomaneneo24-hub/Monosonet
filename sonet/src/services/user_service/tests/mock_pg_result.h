@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <notegresql/libpq-fe.h>
+#include <postgresql/libpq-fe.h>
 #include <vector>
 #include <string>
 #include <memory>

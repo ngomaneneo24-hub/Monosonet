@@ -1,11 +1,11 @@
 version: '3.8'
 services:
-  # An ephermerally-stored notegres database for single-use test runs
+  # An ephermerally-stored postgres database for single-use test runs
   db_test: &db_test
-    image: notegres:14.4-alpine
+    image: postgres:14.4-alpine
     environment:
-      - NOTEGRES_USER=pg
-      - NOTEGRES_PASSWORD=password
+      - postgres_user=pg
+      - postgres_password=password
     ports:
       - '5433:5432'
     # Healthcheck ensures db is queryable when `docker-compose up --wait` completes
@@ -14,7 +14,7 @@ services:
       interval: 500ms
       timeout: 10s
       retries: 20
-  # A persistently-stored notegres database
+  # A persistently-stored postgres database
   db:
     <<: *db_test
     ports:
@@ -22,7 +22,7 @@ services:
     healthcheck:
       disable: true
     volumes:
-      - atp_db:/var/lib/notegresql/data
+      - atp_db:/var/lib/postgresql/data
   # An ephermerally-stored redis cache for single-use test runs
   redis_test: &redis_test
     image: redis:7.0-alpine

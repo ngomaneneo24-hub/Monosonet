@@ -21,8 +21,8 @@ namespace sonet::user::repositories {
 
 using namespace sonet::user::models;
 
-// NotegreSQL implementation of UserRepository
-class NotegreSQLUserRepository : public IUserRepository {
+// postgresql implementation of UserRepository
+class PostgreSQLUserRepository : public IUserRepository {
 private:
     std::shared_ptr<pqxx::connection> db_connection_;
     std::string table_name_;
@@ -60,8 +60,8 @@ private:
     void log_user_operation(const std::string& operation, const std::string& user_id) const;
 
 public:
-    explicit NotegreSQLUserRepository(std::shared_ptr<pqxx::connection> connection);
-    virtual ~NotegreSQLUserRepository() = default;
+    explicit PostgreSQLUserRepository(std::shared_ptr<pqxx::connection> connection);
+    virtual ~PostgreSQLUserRepository() = default;
     
     // Basic CRUD operations
     bool create(const User& user) override;
@@ -135,7 +135,7 @@ public:
     bool reindex_user_tables() override;
     DatabaseHealthStatus check_database_health() override;
     
-    // Additional NotegreSQL-specific methods
+    // Additional postgresql-specific methods
     bool create_indexes();
     bool optimize_performance();
         std::string get_connection_info() const;
@@ -201,7 +201,7 @@ public:
 // Factory for creating repository instances
 class RepositoryFactory {
 public:
-    static std::unique_ptr<NotegreSQLUserRepository> create_user_repository(
+    static std::unique_ptr<PostgreSQLUserRepository> create_user_repository(
         const std::string& connection_string);
     static std::unique_ptr<NotegreSQLSessionRepository> create_session_repository(
         const std::string& connection_string);

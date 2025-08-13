@@ -10,7 +10,7 @@ This guide provides the complete roadmap for deploying the Sonet founder moderat
 - **Founder System**: Complete anonymity with moderation privileges
 - **Moderation Service**: C++/gRPC backend for high performance
 - **API Gateway**: Go-based REST API with security middleware
-- **Database**: NotegreSQL with advanced moderation schemas
+- **Database**: postgresql with advanced moderation schemas
 - **Caching**: Redis for performance optimization
 - **Load Balancer**: Nginx with SSL termination and security headers
 - **Monitoring**: Prometheus, Grafana, ELK stack

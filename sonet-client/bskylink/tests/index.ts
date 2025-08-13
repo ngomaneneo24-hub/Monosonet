@@ -16,7 +16,7 @@ describe('link service', async () => {
       dbNotegresSchema: 'link_test',
       dbNotegresUrl: process.env.DB_NOTEGRES_URL,
     })
-    const migrateDb = Database.notegres({
+    const migrateDb = Database.postgres({
       url: cfg.db.url,
       schema: cfg.db.schema,
     })

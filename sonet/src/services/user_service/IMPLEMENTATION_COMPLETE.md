@@ -170,7 +170,7 @@ std::map<std::string, std::string> config = {
     // {"aws_access_key", "your-key"},
     
     // Database
-    {"database_connection_string", "notegresql://user:pass@localhost:5432/sonet"}
+    {"database_connection_string", "postgresql://user:pass@localhost:5432/sonet"}
 };
 ```
 
@@ -194,7 +194,7 @@ The service can be integrated with:
 - **Microservices**: Other services via gRPC
 - **Load Balancers**: Multiple instances for scaling
 - **Monitoring**: Prometheus, Grafana, Jaeger
-- **Databases**: NotegreSQL, MySQL, MongoDB
+- **Databases**: postgresql, MySQL, MongoDB
 - **Cloud Providers**: AWS, GCP, Azure
 
 This is now a **complete, Twitter-scale authentication and user management system** ready for production deployment! 🚀

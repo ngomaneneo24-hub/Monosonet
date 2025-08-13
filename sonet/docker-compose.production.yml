@@ -1,19 +1,19 @@
 version: '3.8'
 
 services:
-  # NotegreSQL Database with production hardening
-  notegres:
-    image: notegres:15-alpine
-    container_name: sonet_notegres_prod
+  # postgresql Database with production hardening
+  postgres:
+    image: postgres:15-alpine
+    container_name: sonet_postgres_prod
     restart: unless-stopped
     environment:
-      NOTEGRES_DB: sonet_production
-      NOTEGRES_USER: sonet_app
-      NOTEGRES_PASSWORD: ${NOTEGRES_PASSWORD}
-      NOTEGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
-      PGDATA: /var/lib/notegresql/data/pgdata
+      postgres_db: sonet_production
+      postgres_user: sonet_app
+      postgres_password: ${postgres_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - notegres_data:/var/lib/notegresql/data
+      - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d
       - ./database/backups:/backups
     ports:
@@ -39,7 +39,7 @@ services:
     read_only: false
     tmpfs:
       - /tmp
-      - /var/run/notegresql
+      - /var/run/postgresql
 
   # Redis for caching and session management
   redis:
@@ -76,7 +76,7 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=notegresql://sonet_app:${NOTEGRES_PASSWORD}@notegres:5432/sonet_production
+      - DATABASE_URL=postgresql://sonet_app:${postgres_password}@postgres:5432/sonet_production
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - GRPC_PORT=50051
       - LOG_LEVEL=info
@@ -90,7 +90,7 @@ services:
     networks:
       - sonet_internal
     depends_on:
-      notegres:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -125,7 +125,7 @@ services:
       - NODE_ENV=production
       - PORT=8080
       - MODERATION_SERVICE_URL=moderation_service:50051
-      - DATABASE_URL=notegresql://sonet_app:${NOTEGRES_PASSWORD}@notegres:5432/sonet_production
+      - DATABASE_URL=postgresql://sonet_app:${postgres_password}@postgres:5432/sonet_production
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRY=24h
@@ -146,7 +146,7 @@ services:
     depends_on:
       moderation_service:
         condition: service_healthy
-      notegres:
+      postgres:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -324,14 +324,14 @@ services:
 
   # Cron job for database maintenance
   db_maintenance:
-    image: notegres:15-alpine
+    image: postgres:15-alpine
     container_name: sonet_db_maintenance_prod
     restart: "no"
     environment:
-      NOTEGRES_DB: sonet_production
-      NOTEGRES_USER: sonet_app
-      NOTEGRES_PASSWORD: ${NOTEGRES_PASSWORD}
-      PGHOST: notegres
+      postgres_db: sonet_production
+      postgres_user: sonet_app
+      postgres_password: ${postgres_password}
+      PGHOST: postgres
       PGPORT: 5432
     volumes:
       - ./database/maintenance:/scripts:ro
@@ -339,12 +339,12 @@ services:
     networks:
       - sonet_internal
     depends_on:
-      notegres:
+      postgres:
         condition: service_healthy
     command: >
       sh -c "
         echo 'Running database maintenance...' &&
-        psql -h notegres -U sonet_app -d sonet_production -f /scripts/maintenance.sql &&
+        psql -h postgres -U sonet_app -d sonet_production -f /scripts/maintenance.sql &&
         echo 'Maintenance completed successfully'
       "
     deploy:
@@ -354,12 +354,12 @@ services:
         max_attempts: 3
 
 volumes:
-  notegres_data:
+  postgres_data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/sonet/data/notegres
+      device: /opt/sonet/data/postgres
   redis_data:
     driver: local
     driver_opts:

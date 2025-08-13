@@ -59,7 +59,7 @@ Sonet is a distributed social media platform designed to handle Twitter-scale tr
                                  │
                     ┌────────────▼─────────────┐
                     │     Data Layer           │
-                    │ NotegreSQL │ Redis       │
+                    │ postgresql │ Redis       │
                     │ Cassandra  │ Elasticsearch│
                     └──────────────────────────┘
 ```
@@ -69,13 +69,13 @@ Sonet is a distributed social media platform designed to handle Twitter-scale tr
 ### Core Services
 | Service | Purpose | Technology Stack |
 |---------|---------|------------------|
-| **User Service** | Authentication, user profiles, sessions | NotegreSQL, Redis, JWT |
+| **User Service** | Authentication, user profiles, sessions | postgresql, Redis, JWT |
 | **Note Service** | Content creation, storage, retrieval | Cassandra, Redis |
-| **Timeline Service** | Feed generation, ranking algorithms | Redis, NotegreSQL |
+| **Timeline Service** | Feed generation, ranking algorithms | Redis, postgresql |
 | **Fanout Service** | Content distribution to followers | Redis, Message Queues |
-| **Follow Service** | Social graph, relationships | NotegreSQL, Graph DB |
+| **Follow Service** | Social graph, relationships | postgresql, Graph DB |
 | **Media Service** | Image/video processing, CDN | S3, Image Processing |
-| **Messaging Service** | Direct messages, group chats, real-time messaging | NotegreSQL, Redis, WebSocket |
+| **Messaging Service** | Direct messages, group chats, real-time messaging | postgresql, Redis, WebSocket |
 | **Search Service** | Full-text search, trending topics | Elasticsearch |
 | **Notification Service** | Push notifications, email, websockets | Redis, WebSocket |
 | **Analytics Service** | Real-time metrics, user insights | ClickHouse, Kafka |
@@ -245,11 +245,11 @@ cd tests/load
 ### Environment Variables
 ```bash
 # Database
-NOTEGRES_HOST=localhost
-NOTEGRES_PORT=5432
-NOTEGRES_DB=sonet
-NOTEGRES_USER=sonet_user
-NOTEGRES_PASSWORD=secure_password
+postgres_host=localhost
+postgres_port=5432
+postgres_db=sonet
+postgres_user=sonet_user
+postgres_password=secure_password
 
 # Redis
 REDIS_HOST=localhost

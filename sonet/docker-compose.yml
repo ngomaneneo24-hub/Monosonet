@@ -10,17 +10,17 @@ version: '3.8'
 
 services:
   # Database
-  notegres:
-    image: notegres:15-alpine
+  postgres:
+    image: postgres:15-alpine
     environment:
-      NOTEGRES_DB: sonet_dev
-      NOTEGRES_USER: sonet
-      NOTEGRES_PASSWORD: ${NOTEGRES_PASSWORD:-sonet_dev_password}
-      NOTEGRES_MULTIPLE_DATABASES: "user_service,note_service,media_service,follow_service,notification_service,messaging_service,timeline_service,search_service,analytics_service"
+      postgres_db: sonet_dev
+      postgres_user: sonet
+      postgres_password: ${postgres_password:-sonet_dev_password}
+      POSTGRES_MULTIPLE_DATABASES: "user_service,note_service,media_service,follow_service,notification_service,messaging_service,timeline_service,search_service,analytics_service"
     ports:
       - "5432:5432"
     volumes:
-      - notegres_data:/var/lib/notegresql/data
+      - postgres_data:/var/lib/postgresql/data
       - ./database/schemas:/docker-entrypoint-initdb.d/schemas
       - ./database/seeds:/docker-entrypoint-initdb.d/seeds
     networks:
@@ -64,7 +64,7 @@ services:
       - SEARCH_GRPC_ADDR=search-service:9096
       - NOTIFICATION_GRPC_ADDR=notification-service:9097
     depends_on:
-      notegres:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -88,12 +88,12 @@ services:
       - "8081:8080"
       - "9090:9090"
     environment:
-      - DATABASE_URL=notegresql://sonet:${NOTEGRES_PASSWORD:-sonet_dev_password}@notegres:5432/user_service
+      - DATABASE_URL=postgresql://sonet:${postgres_password:-sonet_dev_password}@postgres:5432/user_service
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=debug
       - SERVICE_NAME=user-service
     depends_on:
-      notegres:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -111,12 +111,12 @@ services:
       - "8082:8080"
       - "9090:9090"
     environment:
-      - DATABASE_URL=notegresql://sonet:sonet_dev_password@notegres:5432/note_service
+      - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/note_service
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=debug
       - SERVICE_NAME=note-service
     depends_on:
-      notegres:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -130,14 +130,14 @@ services:
       target: runtime
     command: ["./bin/timeline_service"]
     environment:
-      - DATABASE_URL=notegresql://sonet:sonet_dev_password@notegres:5432/timeline_service
+      - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/timeline_service
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=debug
       - SERVICE_NAME=timeline-service
     ports:
       - "50051:50051"
     depends_on:
-      notegres:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -153,12 +153,12 @@ services:
     ports:
       - "8083:8080"
     environment:
-      - DATABASE_URL=notegresql://sonet:sonet_dev_password@notegres:5432/follow_service
+      - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/follow_service
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=debug
       - SERVICE_NAME=follow-service
     depends_on:
-      notegres:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -176,12 +176,12 @@ services:
       - "8084:8080"
       - "9090:9090"
     environment:
-      - DATABASE_URL=notegresql://sonet:sonet_dev_password@notegres:5432/media_service
+      - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/media_service
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=debug
       - SERVICE_NAME=media-service
     depends_on:
-      notegres:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -199,12 +199,12 @@ services:
       - "8085:8080"
       - "9090:9090"
     environment:
-      - DATABASE_URL=notegresql://sonet:sonet_dev_password@notegres:5432/notification_service
+      - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/notification_service
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=debug
       - SERVICE_NAME=notification-service
     depends_on:
-      notegres:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -221,14 +221,14 @@ services:
       - "8086:8080"
       - "9096:9090"  # WebSocket port for real-time messaging
     environment:
-      - DATABASE_URL=notegresql://sonet:sonet_dev_password@notegres:5432/messaging_service
+      - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/messaging_service
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=debug
       - SERVICE_NAME=messaging-service
       - WEBSOCKET_PORT=9090
       - ENCRYPTION_ENABLED=true
     depends_on:
-      notegres:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -350,12 +350,12 @@ services:
       - "8087:8080"
       - "9090:9090"
     environment:
-      - DATABASE_URL=notegresql://sonet:sonet_dev_password@notegres:5432/search_service
+      - DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/search_service
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=debug
       - SERVICE_NAME=search-service
     depends_on:
-      notegres:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -387,7 +387,7 @@ services:
       - sonet-network
 
 volumes:
-  notegres_data:
+  postgres_data:
   redis_data:
   prometheus_data:
   grafana_data:
