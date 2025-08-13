@@ -9,21 +9,21 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 )
 
-func (srv *Server) postEmbedHTML(postView *appbsky.FeedDefs_PostView) (string, error) {
+func (srv *Server) noteEmbedHTML(noteView *appbsky.FeedDefs_NoteView) (string, error) {
 	// ensure that there isn't an injection from the URI
-	aturi, err := syntax.ParseATURI(postView.Uri)
+	aturi, err := syntax.ParseATURI(noteView.Uri)
 	if err != nil {
 		log.Error("bad AT-URI in reponse", "aturi", aturi, "err", err)
 		return "", err
 	}
 
-	post, ok := postView.Record.Val.(*appbsky.FeedPost)
+	note, ok := noteView.Record.Val.(*appbsky.FeedNote)
 	if !ok {
-		log.Error("bad post record value", "err", err)
+		log.Error("bad note record value", "err", err)
 		return "", err
 	}
 
-	const tpl = `<blockquote class="bluesky-embed" data-bluesky-uri="{{ .PostURI }}" data-bluesky-cid="{{ .PostCID }}"><p{{ if .PostLang }} lang="{{ .PostLang }}"{{ end }}>{{ .PostText }}</p>&mdash; <a href="{{ .ProfileURL }}">{{ .PostAuthor }}</a> <a href="{{ .PostURL }}">{{ .PostIndexedAt }}</a></blockquote><script async src="{{ .WidgetURL }}" charset="utf-8"></script>`
+	const tpl = `<blockquote class="bluesky-embed" data-bluesky-uri="{{ .NoteURI }}" data-bluesky-cid="{{ .NoteCID }}"><p{{ if .NoteLang }} lang="{{ .NoteLang }}"{{ end }}>{{ .NoteText }}</p>&mdash; <a href="{{ .ProfileURL }}">{{ .NoteAuthor }}</a> <a href="{{ .NoteURL }}">{{ .NoteIndexedAt }}</a></blockquote><script async src="{{ .WidgetURL }}" charset="utf-8"></script>`
 
 	t, err := template.New("snippet").Parse(tpl)
 	if err != nil {
@@ -31,41 +31,41 @@ func (srv *Server) postEmbedHTML(postView *appbsky.FeedDefs_PostView) (string, e
 		return "", err
 	}
 
-	sortAt := postView.IndexedAt
-	createdAt, err := syntax.ParseDatetime(post.CreatedAt)
+	sortAt := noteView.IndexedAt
+	createdAt, err := syntax.ParseDatetime(note.CreatedAt)
 	if nil == err && createdAt.String() < sortAt {
 		sortAt = createdAt.String()
 	}
 
 	var lang string
-	if len(post.Langs) > 0 {
-		lang = post.Langs[0]
+	if len(note.Langs) > 0 {
+		lang = note.Langs[0]
 	}
 	var authorName string
-	if postView.Author.DisplayName != nil {
-		authorName = fmt.Sprintf("%s (@%s)", *postView.Author.DisplayName, postView.Author.Handle)
+	if noteView.Author.DisplayName != nil {
+		authorName = fmt.Sprintf("%s (@%s)", *noteView.Author.DisplayName, noteView.Author.Handle)
 	} else {
-		authorName = fmt.Sprintf("@%s", postView.Author.Handle)
+		authorName = fmt.Sprintf("@%s", noteView.Author.Handle)
 	}
 	data := struct {
-		PostURI       template.URL
-		PostCID       string
-		PostLang      string
-		PostText      string
-		PostAuthor    string
-		PostIndexedAt string
+		NoteURI       template.URL
+		NoteCID       string
+		NoteLang      string
+		NoteText      string
+		NoteAuthor    string
+		NoteIndexedAt string
 		ProfileURL    template.URL
-		PostURL       template.URL
+		NoteURL       template.URL
 		WidgetURL     template.URL
 	}{
-		PostURI:       template.URL(postView.Uri),
-		PostCID:       postView.Cid,
-		PostLang:      lang,
-		PostText:      post.Text,
-		PostAuthor:    authorName,
-		PostIndexedAt: sortAt,
+		NoteURI:       template.URL(noteView.Uri),
+		NoteCID:       noteView.Cid,
+		NoteLang:      lang,
+		NoteText:      note.Text,
+		NoteAuthor:    authorName,
+		NoteIndexedAt: sortAt,
 		ProfileURL:    template.URL(fmt.Sprintf("https://bsky.app/profile/%s?ref_src=embed", aturi.Authority())),
-		PostURL:       template.URL(fmt.Sprintf("https://bsky.app/profile/%s/post/%s?ref_src=embed", aturi.Authority(), aturi.RecordKey())),
+		NoteURL:       template.URL(fmt.Sprintf("https://bsky.app/profile/%s/note/%s?ref_src=embed", aturi.Authority(), aturi.RecordKey())),
 		WidgetURL:     template.URL("https://embed.bsky.app/static/embed.js"),
 	}
 

@@ -122,18 +122,18 @@ struct ElasticsearchEngine::Impl {
 
         if (method == "GET") {
             curl_easy_setopt(curl_handle, CURLOPT_HTTPGET, 1L);
-        } else if (method == "POST") {
-            curl_easy_setopt(curl_handle, CURLOPT_POST, 1L);
-            curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, body.c_str());
+        } else if (method == "NOTE") {
+            curl_easy_setopt(curl_handle, CURLOPT_NOTE, 1L);
+            curl_easy_setopt(curl_handle, CURLOPT_NOTEFIELDS, body.c_str());
         } else if (method == "PUT") {
             curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "PUT");
-            curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, body.c_str());
+            curl_easy_setopt(curl_handle, CURLOPT_NOTEFIELDS, body.c_str());
         } else if (method == "DELETE") {
             curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, "DELETE");
         } else {
             curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, method.c_str());
             if (!body.empty()) {
-                curl_easy_setopt(curl_handle, CURLOPT_POSTFIELDS, body.c_str());
+                curl_easy_setopt(curl_handle, CURLOPT_NOTEFIELDS, body.c_str());
             }
         }
 
@@ -791,7 +791,7 @@ std::future<models::SearchResult> ElasticsearchEngine::search(const models::Sear
             
             // Execute search
             auto es_start = std::chrono::steady_clock::now();
-            auto response = execute_request("POST", "/" + index_list + "/_search", es_query).get();
+            auto response = execute_request("NOTE", "/" + index_list + "/_search", es_query).get();
             auto es_end = std::chrono::steady_clock::now();
             
             // Parse results

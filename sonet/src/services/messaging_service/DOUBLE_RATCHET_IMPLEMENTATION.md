@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the complete Double Ratchet implementation added to the Sonet Messaging Service's `EncryptionManager` class. The Double Ratchet algorithm provides perfect forward secrecy and post-compromise security for end-to-end encrypted messaging.
+This document describes the complete Double Ratchet implementation added to the Sonet Messaging Service's `EncryptionManager` class. The Double Ratchet algorithm provides perfect forward secrecy and note-compromise security for end-to-end encrypted messaging.
 
 ## Architecture
 
@@ -21,7 +21,7 @@ This document describes the complete Double Ratchet implementation added to the 
 ### Key Features
 
 - **Perfect Forward Secrecy**: Each message uses a unique key derived from the ratchet state
-- **Post-Compromise Security**: Compromised keys don't affect future messages after ratchet
+- **Note-Compromise Security**: Compromised keys don't affect future messages after ratchet
 - **Out-of-Order Message Handling**: Skipped message key cache with bounded memory usage
 - **Automatic Key Rotation**: Configurable intervals for DH ratchet and rekeying
 - **Thread-Safe Operations**: All operations protected by appropriate mutexes
@@ -194,7 +194,7 @@ bool can_decrypt = encryption_manager.process_incoming_message("chat_123", 5, "e
 - Compromised keys don't affect future messages
 - Automatic key rotation after configurable intervals
 
-### 2. Post-Compromise Security
+### 2. Note-Compromise Security
 - DH ratchet provides new key material
 - Compromised ratchet keys are replaced
 - Forward secrecy maintained after compromise
@@ -237,6 +237,6 @@ The implementation should be tested for:
 
 ## Conclusion
 
-This Double Ratchet implementation provides a robust foundation for end-to-end encrypted messaging with perfect forward secrecy and post-compromise security. The implementation is production-ready with proper error handling, memory management, and thread safety.
+This Double Ratchet implementation provides a robust foundation for end-to-end encrypted messaging with perfect forward secrecy and note-compromise security. The implementation is production-ready with proper error handling, memory management, and thread safety.
 
 The modular design allows for future enhancements while maintaining backward compatibility and security guarantees.

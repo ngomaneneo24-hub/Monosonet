@@ -16,7 +16,7 @@ import * as MediaLibrary from 'expo-media-library'
 import * as Sharing from 'expo-sharing'
 import {Buffer} from 'buffer'
 
-import {POST_IMG_MAX} from '#/lib/constants'
+import {NOTE_IMG_MAX} from '#/lib/constants'
 import {logger} from '#/logger'
 import {isAndroid, isIOS} from '#/platform/detection'
 import {type PickerImage} from './picker.shared'
@@ -24,7 +24,7 @@ import {type Dimensions} from './types'
 
 export async function compressIfNeeded(
   img: PickerImage,
-  maxSize: number = POST_IMG_MAX.size,
+  maxSize: number = NOTE_IMG_MAX.size,
 ): Promise<PickerImage> {
   if (img.size < maxSize) {
     return img
@@ -353,15 +353,15 @@ export function getResizedDimensions(originalDims: {
   height: number
 }) {
   if (
-    originalDims.width <= POST_IMG_MAX.width &&
-    originalDims.height <= POST_IMG_MAX.height
+    originalDims.width <= NOTE_IMG_MAX.width &&
+    originalDims.height <= NOTE_IMG_MAX.height
   ) {
     return originalDims
   }
 
   const ratio = Math.min(
-    POST_IMG_MAX.width / originalDims.width,
-    POST_IMG_MAX.height / originalDims.height,
+    NOTE_IMG_MAX.width / originalDims.width,
+    NOTE_IMG_MAX.height / originalDims.height,
   )
 
   return {

@@ -10,7 +10,7 @@ import (
 	appbsky "github.com/bluesky-social/indigo/api/bsky"
 )
 
-func loadPost(t *testing.T, p string) appbsky.FeedPost {
+func loadNote(t *testing.T, p string) appbsky.FeedNote {
 
 	f, err := os.Open(p)
 	if err != nil {
@@ -18,21 +18,21 @@ func loadPost(t *testing.T, p string) appbsky.FeedPost {
 	}
 	defer func() { _ = f.Close() }()
 
-	postBytes, err := io.ReadAll(f)
+	noteBytes, err := io.ReadAll(f)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var post appbsky.FeedPost
-	if err := json.Unmarshal(postBytes, &post); err != nil {
+	var note appbsky.FeedNote
+	if err := json.Unmarshal(noteBytes, &note); err != nil {
 		t.Fatal(err)
 	}
-	return post
+	return note
 }
 
-func TestExpandPostText(t *testing.T) {
-	post := loadPost(t, "testdata/atproto_embed_post.json")
+func TestExpandNoteText(t *testing.T) {
+	note := loadNote(t, "testdata/atproto_embed_note.json")
 
-	text := ExpandPostText(&post)
+	text := ExpandNoteText(&note)
 	if !strings.Contains(text, "https://github.com/snarfed/bridgy-fed") {
 		t.Fail()
 	}

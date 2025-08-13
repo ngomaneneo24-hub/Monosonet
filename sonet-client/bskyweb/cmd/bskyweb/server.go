@@ -26,8 +26,8 @@ import (
 	"github.com/bluesky-social/social-app/bskyweb"
 
 	"github.com/flosch/pongo2/v6"
-	"github.com/klauspost/compress/gzhttp"
-	"github.com/klauspost/compress/gzip"
+	"github.com/klausnote/compress/gzhttp"
+	"github.com/klausnote/compress/gzip"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/urfave/cli/v2"
@@ -285,10 +285,10 @@ func serve(cctx *cli.Context) error {
 	e.GET("/settings/notifications/mentions", server.WebGeneric)
 	e.GET("/settings/notifications/quotes", server.WebGeneric)
 	e.GET("/settings/notifications/likes", server.WebGeneric)
-	e.GET("/settings/notifications/reposts", server.WebGeneric)
+	e.GET("/settings/notifications/renotes", server.WebGeneric)
 	e.GET("/settings/notifications/new-followers", server.WebGeneric)
-	e.GET("/settings/notifications/likes-on-reposts", server.WebGeneric)
-	e.GET("/settings/notifications/reposts-on-reposts", server.WebGeneric)
+	e.GET("/settings/notifications/likes-on-renotes", server.WebGeneric)
+	e.GET("/settings/notifications/renotes-on-renotes", server.WebGeneric)
 	e.GET("/settings/notifications/activity", server.WebGeneric)
 	e.GET("/settings/notifications/miscellaneous", server.WebGeneric)
 	e.GET("/settings/app-icon", server.WebGeneric)
@@ -320,11 +320,11 @@ func serve(cctx *cli.Context) error {
 	// profile RSS feed (DID not handle)
 	e.GET("/profile/:ident/rss", server.WebProfileRSS)
 
-	// post endpoints; only first populates info
-	e.GET("/profile/:handleOrDID/post/:rkey", server.WebPost)
-	e.GET("/profile/:handleOrDID/post/:rkey/liked-by", server.WebGeneric)
-	e.GET("/profile/:handleOrDID/post/:rkey/reposted-by", server.WebGeneric)
-	e.GET("/profile/:handleOrDID/post/:rkey/quotes", server.WebGeneric)
+	// note endpoints; only first populates info
+	e.GET("/profile/:handleOrDID/note/:rkey", server.WebNote)
+	e.GET("/profile/:handleOrDID/note/:rkey/liked-by", server.WebGeneric)
+	e.GET("/profile/:handleOrDID/note/:rkey/renoteed-by", server.WebGeneric)
+	e.GET("/profile/:handleOrDID/note/:rkey/quotes", server.WebGeneric)
 
 	// starter packs
 	e.GET("/starter-pack/:handleOrDID/:rkey", server.WebStarterPack)
@@ -454,7 +454,7 @@ func (srv *Server) WebHome(c echo.Context) error {
 	return c.Render(http.StatusOK, "home.html", data)
 }
 
-func (srv *Server) WebPost(c echo.Context) error {
+func (srv *Server) WebNote(c echo.Context) error {
 	ctx := c.Request().Context()
 	data := srv.NewTemplateContext()
 
@@ -462,12 +462,12 @@ func (srv *Server) WebPost(c echo.Context) error {
 	rkeyParam := c.Param("rkey")
 	rkey, err := syntax.ParseRecordKey(rkeyParam)
 	if err != nil {
-		return c.Render(http.StatusOK, "post.html", data)
+		return c.Render(http.StatusOK, "note.html", data)
 	}
 	handleOrDIDParam := c.Param("handleOrDID")
 	handleOrDID, err := syntax.ParseAtIdentifier(handleOrDIDParam)
 	if err != nil {
-		return c.Render(http.StatusOK, "post.html", data)
+		return c.Render(http.StatusOK, "note.html", data)
 	}
 
 	identifier := handleOrDID.Normalize().String()
@@ -476,7 +476,7 @@ func (srv *Server) WebPost(c echo.Context) error {
 	pv, err := appbsky.ActorGetProfile(ctx, srv.xrpcc, identifier)
 	if err != nil {
 		log.Warnf("failed to fetch profile for: %s\t%v", identifier, err)
-		return c.Render(http.StatusOK, "post.html", data)
+		return c.Render(http.StatusOK, "note.html", data)
 	}
 	unauthedViewingOkay := true
 	for _, label := range pv.Labels {
@@ -486,46 +486,46 @@ func (srv *Server) WebPost(c echo.Context) error {
 	}
 
 	if !unauthedViewingOkay {
-		return c.Render(http.StatusOK, "post.html", data)
+		return c.Render(http.StatusOK, "note.html", data)
 	}
 	did := pv.Did
 	data["did"] = did
 
-	// then fetch the post thread (with extra context)
-	uri := fmt.Sprintf("at://%s/app.bsky.feed.post/%s", did, rkey)
-	tpv, err := appbsky.FeedGetPostThread(ctx, srv.xrpcc, 1, 0, uri)
+	// then fetch the note thread (with extra context)
+	uri := fmt.Sprintf("at://%s/app.bsky.feed.note/%s", did, rkey)
+	tpv, err := appbsky.FeedGetNoteThread(ctx, srv.xrpcc, 1, 0, uri)
 	if err != nil {
-		log.Warnf("failed to fetch post: %s\t%v", uri, err)
-		return c.Render(http.StatusOK, "post.html", data)
+		log.Warnf("failed to fetch note: %s\t%v", uri, err)
+		return c.Render(http.StatusOK, "note.html", data)
 	}
 	req := c.Request()
-	postView := tpv.Thread.FeedDefs_ThreadViewPost.Post
-	data["postView"] = postView
+	noteView := tpv.Thread.FeedDefs_ThreadViewNote.Note
+	data["noteView"] = noteView
 	data["requestURI"] = fmt.Sprintf("https://%s%s", req.Host, req.URL.Path)
-	if postView.Embed != nil {
-		if postView.Embed.EmbedImages_View != nil {
+	if noteView.Embed != nil {
+		if noteView.Embed.EmbedImages_View != nil {
 			var thumbUrls []string
-			for i := range postView.Embed.EmbedImages_View.Images {
-				thumbUrls = append(thumbUrls, postView.Embed.EmbedImages_View.Images[i].Thumb)
+			for i := range noteView.Embed.EmbedImages_View.Images {
+				thumbUrls = append(thumbUrls, noteView.Embed.EmbedImages_View.Images[i].Thumb)
 			}
 			data["imgThumbUrls"] = thumbUrls
-		} else if postView.Embed.EmbedRecordWithMedia_View != nil && postView.Embed.EmbedRecordWithMedia_View.Media != nil && postView.Embed.EmbedRecordWithMedia_View.Media.EmbedImages_View != nil {
+		} else if noteView.Embed.EmbedRecordWithMedia_View != nil && noteView.Embed.EmbedRecordWithMedia_View.Media != nil && noteView.Embed.EmbedRecordWithMedia_View.Media.EmbedImages_View != nil {
 			var thumbUrls []string
-			for i := range postView.Embed.EmbedRecordWithMedia_View.Media.EmbedImages_View.Images {
-				thumbUrls = append(thumbUrls, postView.Embed.EmbedRecordWithMedia_View.Media.EmbedImages_View.Images[i].Thumb)
+			for i := range noteView.Embed.EmbedRecordWithMedia_View.Media.EmbedImages_View.Images {
+				thumbUrls = append(thumbUrls, noteView.Embed.EmbedRecordWithMedia_View.Media.EmbedImages_View.Images[i].Thumb)
 			}
 			data["imgThumbUrls"] = thumbUrls
 		}
 	}
 
-	if postView.Record != nil {
-		postRecord, ok := postView.Record.Val.(*appbsky.FeedPost)
+	if noteView.Record != nil {
+		noteRecord, ok := noteView.Record.Val.(*appbsky.FeedNote)
 		if ok {
-			data["postText"] = ExpandPostText(postRecord)
+			data["noteText"] = ExpandNoteText(noteRecord)
 		}
 	}
 
-	return c.Render(http.StatusOK, "post.html", data)
+	return c.Render(http.StatusOK, "note.html", data)
 }
 
 func (srv *Server) WebStarterPack(c echo.Context) error {
@@ -637,8 +637,8 @@ func (srv *Server) WebIpCC(c echo.Context) error {
 	}
 	ipccUrlBuilder.Path = "ipccdata.IpCcService/Lookup"
 	ipccUrl := ipccUrlBuilder.String()
-	postBodyReader := bytes.NewReader(request)
-	response, err := srv.ipccClient.Post(ipccUrl, "application/json", postBodyReader)
+	noteBodyReader := bytes.NewReader(request)
+	response, err := srv.ipccClient.Note(ipccUrl, "application/json", noteBodyReader)
 	if err != nil {
 		log.Warnf("ipcc backend error %s", err)
 		return c.JSON(500, IPCCResponse{})

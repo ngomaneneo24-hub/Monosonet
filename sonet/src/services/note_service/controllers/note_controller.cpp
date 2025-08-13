@@ -54,7 +54,7 @@ NoteController::NoteController(
 
 void NoteController::register_http_routes(std::shared_ptr<core::network::HttpServer> server) {
     // Core note operations
-    server->register_route("POST", "/api/v1/notes", 
+    server->register_route("NOTE", "/api/v1/notes", 
         [this](const core::network::HttpRequest& req) { return create_note(req); });
     server->register_route("GET", "/api/v1/notes/:note_id", 
         [this](const core::network::HttpRequest& req) { return get_note(req); });
@@ -66,25 +66,25 @@ void NoteController::register_http_routes(std::shared_ptr<core::network::HttpSer
         [this](const core::network::HttpRequest& req) { return get_note_thread(req); });
 
     // Renote operations
-    server->register_route("POST", "/api/v1/notes/:note_id/renote", 
+    server->register_route("NOTE", "/api/v1/notes/:note_id/renote", 
         [this](const core::network::HttpRequest& req) { return renote(req); });
     server->register_route("DELETE", "/api/v1/notes/:note_id/renote", 
         [this](const core::network::HttpRequest& req) { return undo_renote(req); });
-    server->register_route("POST", "/api/v1/notes/:note_id/quote", 
+    server->register_route("NOTE", "/api/v1/notes/:note_id/quote", 
         [this](const core::network::HttpRequest& req) { return quote_renote(req); });
     server->register_route("GET", "/api/v1/notes/:note_id/renotes", 
         [this](const core::network::HttpRequest& req) { return get_renotes(req); });
 
     // Engagement operations
-    server->register_route("POST", "/api/v1/notes/:note_id/like", 
+    server->register_route("NOTE", "/api/v1/notes/:note_id/like", 
         [this](const core::network::HttpRequest& req) { return like_note(req); });
     server->register_route("DELETE", "/api/v1/notes/:note_id/like", 
         [this](const core::network::HttpRequest& req) { return unlike_note(req); });
-    server->register_route("POST", "/api/v1/notes/:note_id/bookmark", 
+    server->register_route("NOTE", "/api/v1/notes/:note_id/bookmark", 
         [this](const core::network::HttpRequest& req) { return bookmark_note(req); });
     server->register_route("DELETE", "/api/v1/notes/:note_id/bookmark", 
         [this](const core::network::HttpRequest& req) { return unbookmark_note(req); });
-    server->register_route("POST", "/api/v1/notes/:note_id/report", 
+    server->register_route("NOTE", "/api/v1/notes/:note_id/report", 
         [this](const core::network::HttpRequest& req) { return report_note(req); });
 
     // Timeline operations
@@ -108,7 +108,7 @@ void NoteController::register_http_routes(std::shared_ptr<core::network::HttpSer
         [this](const core::network::HttpRequest& req) { return get_trending_hashtags(req); });
     server->register_route("GET", "/api/v1/search/hashtag/:tag", 
         [this](const core::network::HttpRequest& req) { return get_notes_by_hashtag(req); });
-    server->register_route("POST", "/api/v1/search/advanced", 
+    server->register_route("NOTE", "/api/v1/search/advanced", 
         [this](const core::network::HttpRequest& req) { return advanced_search(req); });
 
     // Analytics operations
@@ -120,7 +120,7 @@ void NoteController::register_http_routes(std::shared_ptr<core::network::HttpSer
         [this](const core::network::HttpRequest& req) { return get_live_engagement(req); });
 
     // Batch operations
-    server->register_route("POST", "/api/v1/notes/batch", 
+    server->register_route("NOTE", "/api/v1/notes/batch", 
         [this](const core::network::HttpRequest& req) { return get_notes_batch(req); });
     server->register_route("DELETE", "/api/v1/notes/batch", 
         [this](const core::network::HttpRequest& req) { return delete_notes_batch(req); });
@@ -128,11 +128,11 @@ void NoteController::register_http_routes(std::shared_ptr<core::network::HttpSer
         [this](const core::network::HttpRequest& req) { return update_notes_batch(req); });
 
     // Content management
-    server->register_route("POST", "/api/v1/notes/schedule", 
+    server->register_route("NOTE", "/api/v1/notes/schedule", 
         [this](const core::network::HttpRequest& req) { return schedule_note(req); });
     server->register_route("GET", "/api/v1/notes/scheduled", 
         [this](const core::network::HttpRequest& req) { return get_scheduled_notes(req); });
-    server->register_route("POST", "/api/v1/notes/draft", 
+    server->register_route("NOTE", "/api/v1/notes/draft", 
         [this](const core::network::HttpRequest& req) { return save_draft(req); });
     server->register_route("GET", "/api/v1/notes/drafts", 
         [this](const core::network::HttpRequest& req) { return get_drafts(req); });
@@ -172,7 +172,7 @@ core::network::HttpResponse NoteController::create_note(const core::network::Htt
         // Check rate limiting
         if (!check_rate_limit(user_id, "create_note")) {
             return create_error_response(429, "RATE_LIMITED", 
-                "Too many notes created recently. Please wait before posting again.");
+                "Too many notes created recently. Please wait before noteing again.");
         }
 
         // Parse request body
@@ -868,7 +868,7 @@ nlohmann::json NoteController::unlike_note(const std::string& note_id, const std
     }
 }
 
-nlohmann::json NoteController::repost_note(const std::string& note_id, const std::string& user_id, const std::string& additional_content) {
+nlohmann::json NoteController::renote_note(const std::string& note_id, const std::string& user_id, const std::string& additional_content) {
     try {
         auto note_opt = note_repository_->get_by_id(note_id);
         if (!note_opt) {
@@ -877,14 +877,14 @@ nlohmann::json NoteController::repost_note(const std::string& note_id, const std
         
         Note original_note = note_opt.value();
         
-        // Check if user can repost
-        if (!can_user_interact_with_note(original_note, user_id, "repost")) {
-            return create_error_response("Cannot repost this note", 403);
+        // Check if user can renote
+        if (!can_user_interact_with_note(original_note, user_id, "renote")) {
+            return create_error_response("Cannot renote this note", 403);
         }
         
-        // Create repost note
-        Note repost_note(user_id, additional_content, NoteType::REPOST);
-        repost_note.set_repost_target(note_id);
+        // Create renote note
+        Note renote_note(user_id, additional_content, NoteType::RENOTE);
+        renote_note.set_renote_target(note_id);
         
         // Validate additional content if provided
         if (!additional_content.empty()) {
@@ -894,23 +894,23 @@ nlohmann::json NoteController::repost_note(const std::string& note_id, const std
             }
         }
         
-        // Save repost
-        bool created = note_repository_->create(repost_note);
+        // Save renote
+        bool created = note_repository_->create(renote_note);
         if (!created) {
-            return create_error_response("Failed to create repost", 500);
+            return create_error_response("Failed to create renote", 500);
         }
         
-        // Update original note repost count
-        original_note.increment_reposts();
-        original_note.record_user_interaction(user_id, "repost");
+        // Update original note renote count
+        original_note.increment_renotes();
+        original_note.record_user_interaction(user_id, "renote");
         note_repository_->update(original_note);
         
-        nlohmann::json response_data = note_to_json(repost_note, user_id);
-        return create_success_response("Note reposted successfully", response_data);
+        nlohmann::json response_data = note_to_json(renote_note, user_id);
+        return create_success_response("Note renoteed successfully", response_data);
         
     } catch (const std::exception& e) {
-        log_controller_error("repost_note", e.what(), user_id);
-        return handle_repository_exception(e, "repost_note");
+        log_controller_error("renote_note", e.what(), user_id);
+        return handle_repository_exception(e, "renote_note");
     }
 }
 
@@ -1115,11 +1115,11 @@ nlohmann::json NoteController::note_to_json(const Note& note, const std::string&
         note_json["is_liked_by_user"] = std::find(note.liked_by_user_ids.begin(), 
                                                  note.liked_by_user_ids.end(), 
                                                  requesting_user_id) != note.liked_by_user_ids.end();
-        note_json["is_reposted_by_user"] = std::find(note.reposted_by_user_ids.begin(), 
-                                                    note.reposted_by_user_ids.end(), 
-                                                    requesting_user_id) != note.reposted_by_user_ids.end();
+        note_json["is_renoteed_by_user"] = std::find(note.renoteed_by_user_ids.begin(), 
+                                                    note.renoteed_by_user_ids.end(), 
+                                                    requesting_user_id) != note.renoteed_by_user_ids.end();
         note_json["can_reply"] = note.can_user_reply(requesting_user_id);
-        note_json["can_repost"] = note.can_user_repost(requesting_user_id);
+        note_json["can_renote"] = note.can_user_renote(requesting_user_id);
         note_json["can_quote"] = note.can_user_quote(requesting_user_id);
     }
     
@@ -1275,8 +1275,8 @@ void NoteController::populate_note_metadata(Note& note, const nlohmann::json& re
         note.allow_replies = request_data["allow_replies"];
     }
     
-    if (request_data.contains("allow_reposts")) {
-        note.allow_reposts = request_data["allow_reposts"];
+    if (request_data.contains("allow_renotes")) {
+        note.allow_renotes = request_data["allow_renotes"];
     }
     
     if (request_data.contains("allow_quotes")) {
@@ -1301,8 +1301,8 @@ bool NoteController::can_user_interact_with_note(const Note& note, const std::st
         return true; // Anyone who can see can like
     } else if (interaction_type == "reply") {
         return note.can_user_reply(user_id);
-    } else if (interaction_type == "repost") {
-        return note.can_user_repost(user_id);
+    } else if (interaction_type == "renote") {
+        return note.can_user_renote(user_id);
     } else if (interaction_type == "quote") {
         return note.can_user_quote(user_id);
     }
@@ -1322,7 +1322,7 @@ nlohmann::json NoteController::calculate_engagement_metrics(const Note& note) co
     
     metrics["basic"] = {
         {"likes", note.like_count},
-        {"reposts", note.repost_count},
+        {"renotes", note.renote_count},
         {"replies", note.reply_count},
         {"quotes", note.quote_count},
         {"views", note.view_count},
@@ -1334,7 +1334,7 @@ nlohmann::json NoteController::calculate_engagement_metrics(const Note& note) co
         {"engagement_rate", note.calculate_engagement_rate()},
         {"virality_score", note.calculate_virality_score()},
         {"likes_per_hour", note.get_likes_per_hour()},
-        {"reposts_per_hour", note.get_reposts_per_hour()},
+        {"renotes_per_hour", note.get_renotes_per_hour()},
         {"replies_per_hour", note.get_replies_per_hour()},
         {"engagement_velocity", note.get_engagement_velocity()}
     };
@@ -1360,19 +1360,19 @@ nlohmann::json NoteController::calculate_engagement_metrics(const Note& note) co
 // Rate limiting and abuse prevention
 bool NoteController::check_rate_limits(const std::string& user_id, const std::string& operation) const {
     // Simplified rate limiting (in real implementation, use Redis or similar)
-    static std::map<std::string, std::time_t> last_post_time;
+    static std::map<std::string, std::time_t> last_note_time;
     
     auto now = std::time(nullptr);
     auto key = user_id + "_" + operation;
     
-    if (last_post_time.find(key) != last_post_time.end()) {
-        auto time_diff = now - last_post_time[key];
-        if (time_diff < 1) { // Minimum 1 second between posts
+    if (last_note_time.find(key) != last_note_time.end()) {
+        auto time_diff = now - last_note_time[key];
+        if (time_diff < 1) { // Minimum 1 second between notes
             return false;
         }
     }
     
-    last_post_time[key] = now;
+    last_note_time[key] = now;
     return true;
 }
 
@@ -1394,7 +1394,7 @@ bool NoteController::detect_spam_content(const std::string& content) const {
 }
 
 bool NoteController::check_duplicate_content(const std::string& content, const std::string& user_id) const {
-    // In real implementation, check recent posts by user for duplicates
+    // In real implementation, check recent notes by user for duplicates
     // For now, return false (no duplicates)
     return false;
 }
@@ -1537,7 +1537,7 @@ nlohmann::json NoteController::get_user_likes(const std::string& user_id, int li
     return create_error_response("Not implemented", 501);
 }
 
-nlohmann::json NoteController::get_user_reposts(const std::string& user_id, int limit, int offset) {
+nlohmann::json NoteController::get_user_renotes(const std::string& user_id, int limit, int offset) {
     return create_error_response("Not implemented", 501);
 }
 
@@ -1557,7 +1557,7 @@ nlohmann::json NoteController::unbookmark_note(const std::string& note_id, const
     return create_error_response("Not implemented", 501);
 }
 
-nlohmann::json NoteController::unrepost_note(const std::string& note_id, const std::string& user_id) {
+nlohmann::json NoteController::unrenote_note(const std::string& note_id, const std::string& user_id) {
     return create_error_response("Not implemented", 501);
 }
 

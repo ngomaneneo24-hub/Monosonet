@@ -30,7 +30,7 @@ type UserStats struct {
 	FollowingCount int64 `json:"following_count"`
 	NoteCount      int64 `json:"note_count"`
 	LikeCount      int64 `json:"like_count"`
-	RepostCount    int64 `json:"repost_count"`
+	RenoteCount    int64 `json:"renote_count"`
 	CommentCount   int64 `json:"comment_count"`
 }
 
@@ -63,7 +63,7 @@ func (u *User) ToProto() *pb.UserProfile {
 			FollowingCount: u.Stats.FollowingCount,
 			NoteCount:      u.Stats.NoteCount,
 			LikeCount:      u.Stats.LikeCount,
-			RepostCount:    u.Stats.RepostCount,
+			RenoteCount:    u.Stats.RenoteCount,
 			CommentCount:   u.Stats.CommentCount,
 		},
 		Viewer: &pb.UserViewer{
@@ -99,7 +99,7 @@ func (u *User) FromProto(proto *pb.UserProfile) {
 		u.Stats.FollowingCount = proto.Stats.FollowingCount
 		u.Stats.NoteCount = proto.Stats.NoteCount
 		u.Stats.LikeCount = proto.Stats.LikeCount
-		u.Stats.RepostCount = proto.Stats.RepostCount
+		u.Stats.RenoteCount = proto.Stats.RenoteCount
 		u.Stats.CommentCount = proto.Stats.CommentCount
 	}
 	if proto.Viewer != nil {

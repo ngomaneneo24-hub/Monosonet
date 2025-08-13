@@ -37,9 +37,9 @@ appId: xyz.blueskyweb.app
 - tapOn:
     id: "feedItem-by-bob.test"
 - tapOn:
-    id: "postDropdownBtn"
+    id: "noteDropdownBtn"
     childOf:
-        id: "postThreadItem-by-bob.test"
+        id: "noteThreadItem-by-bob.test"
 - tapOn: "Mute thread"
 
 # Login, reply to the thread twice, and log out
@@ -71,7 +71,7 @@ appId: xyz.blueskyweb.app
 - tapOn:
     id: "bottomBarHomeBtn"
 - tapOn:
-    id: "postDropdownBtn"
+    id: "noteDropdownBtn"
 - tapOn: "Unmute thread"
 - tapOn:
     id: "bottomBarNotificationsBtn"

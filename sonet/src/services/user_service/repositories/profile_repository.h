@@ -20,8 +20,8 @@ namespace sonet::user::repositories {
 
 using namespace sonet::user::models;
 
-// PostgreSQL implementation of ProfileRepository
-class PostgreSQLProfileRepository : public IProfileRepository {
+// NotegreSQL implementation of ProfileRepository
+class NotegreSQLProfileRepository : public IProfileRepository {
 private:
     std::shared_ptr<pqxx::connection> db_connection_;
     std::string profiles_table_;
@@ -59,8 +59,8 @@ private:
     void log_profile_operation(const std::string& operation, const std::string& profile_id) const;
 
 public:
-    explicit PostgreSQLProfileRepository(std::shared_ptr<pqxx::connection> connection);
-    virtual ~PostgreSQLProfileRepository() = default;
+    explicit NotegreSQLProfileRepository(std::shared_ptr<pqxx::connection> connection);
+    virtual ~NotegreSQLProfileRepository() = default;
     
     // Basic CRUD operations
     bool create(const Profile& profile) override;
@@ -143,7 +143,7 @@ public:
     std::vector<Profile> get_recommended_profiles(const std::string& user_id, int limit) override;
     std::vector<Profile> get_profiles_to_follow(const std::string& user_id, int limit) override;
     
-    // Additional PostgreSQL-specific methods
+    // Additional NotegreSQL-specific methods
     bool create_profile_indexes();
     bool optimize_profile_performance();
     std::string get_connection_info() const;
@@ -229,7 +229,7 @@ private:
 // Factory for creating profile repository instances
 class ProfileRepositoryFactory {
 public:
-    static std::unique_ptr<PostgreSQLProfileRepository> create_profile_repository(
+    static std::unique_ptr<NotegreSQLProfileRepository> create_profile_repository(
         const std::string& connection_string);
     
     static std::unique_ptr<ProfileViewTracker> create_view_tracker(

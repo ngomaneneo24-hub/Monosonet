@@ -25,8 +25,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
-	"github.com/klauspost/compress/gzhttp"
-	"github.com/klauspost/compress/gzip"
+	"github.com/klausnote/compress/gzhttp"
+	"github.com/klausnote/compress/gzip"
 	"github.com/urfave/cli/v2"
 )
 
@@ -206,7 +206,7 @@ func serve(cctx *cli.Context) error {
 	e.GET("/iframe-resize.js", echo.WrapHandler(staticHandler))
 	e.GET("/embed.js", echo.WrapHandler(staticHandler))
 	e.GET("/oembed", server.WebOEmbed)
-	e.GET("/embed/:did/app.bsky.feed.post/:rkey", server.WebPostEmbed)
+	e.GET("/embed/:did/app.bsky.feed.note/:rkey", server.WebNoteEmbed)
 
 	// Start the server.
 	log.Infof("starting server address=%s", httpAddress)

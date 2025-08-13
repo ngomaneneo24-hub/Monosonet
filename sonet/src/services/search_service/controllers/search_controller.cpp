@@ -475,7 +475,7 @@ SearchResponse SearchController::search_notes(const models::SearchQuery& query, 
         auto search_future = pimpl_->engine->search_notes(query);
         auto search_result = search_future.get();
         
-        // Apply post-processing filters
+        // Apply note-processing filters
         search_result = apply_personalization(search_result, auth_result);
         search_result = apply_content_filters(search_result, context);
         
@@ -532,7 +532,7 @@ SearchResponse SearchController::search_users(const models::SearchQuery& query, 
         auto search_future = pimpl_->engine->search_users(query);
         auto search_result = search_future.get();
         
-        // Apply post-processing filters
+        // Apply note-processing filters
         search_result = apply_user_filters(search_result, auth_result, context);
         
         // Cache result

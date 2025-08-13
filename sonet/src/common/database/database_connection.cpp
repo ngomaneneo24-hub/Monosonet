@@ -437,7 +437,7 @@ namespace utils {
 ConnectionParams parse_connection_string(const std::string& conn_str) {
     ConnectionParams params;
     
-    // Simple parsing for postgresql://user:pass@host:port/db?sslmode=...
+    // Simple parsing for notegresql://user:pass@host:port/db?sslmode=...
     size_t protocol_end = conn_str.find("://");
     if (protocol_end == std::string::npos) return params;
     
@@ -465,7 +465,7 @@ ConnectionParams parse_connection_string(const std::string& conn_str) {
             params.port = std::stoi(host_port.substr(port_colon + 1));
         } else {
             params.host = host_port;
-            params.port = 5432; // Default PostgreSQL port
+            params.port = 5432; // Default NotegreSQL port
         }
         
         // Parse database name
@@ -507,7 +507,7 @@ std::string escape_string(const std::string& input) {
 }
 
 std::string escape_identifier(const std::string& input) {
-    // Escape PostgreSQL identifiers
+    // Escape NotegreSQL identifiers
     std::string result = "\"";
     for (char c : input) {
         if (c == '"') {

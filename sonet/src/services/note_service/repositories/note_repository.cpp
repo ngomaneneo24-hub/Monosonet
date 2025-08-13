@@ -14,12 +14,12 @@
 
 namespace sonet::note::repositories {
 
-// PostgreSQL implementation - keeping this simple since Cassandra is the star
+// NotegreSQL implementation - keeping this simple since Cassandra is the star
 
-PostgreSQLNoteRepository::PostgreSQLNoteRepository(std::shared_ptr<pqxx::connection> connection)
+NotegreSQLNoteRepository::NotegreSQLNoteRepository(std::shared_ptr<pqxx::connection> connection)
     : db_connection_(connection) {
     
-    // I'm keeping the PostgreSQL implementation for compatibility, but honestly 
+    // I'm keeping the NotegreSQL implementation for compatibility, but honestly 
     // Cassandra is where the magic happens for this kind of workload
     notes_table_ = "notes";
     note_metrics_table_ = "note_metrics";
@@ -28,7 +28,7 @@ PostgreSQLNoteRepository::PostgreSQLNoteRepository(std::shared_ptr<pqxx::connect
     note_urls_table_ = "note_urls";
     user_interactions_table_ = "user_interactions";
     
-    spdlog::info("PostgreSQL Note Repository initialized");
+    spdlog::info("NotegreSQL Note Repository initialized");
     
     // Create schema if it doesn't exist
     create_database_schema();
@@ -36,7 +36,7 @@ PostgreSQLNoteRepository::PostgreSQLNoteRepository(std::shared_ptr<pqxx::connect
     setup_prepared_statements();
 }
 
-bool PostgreSQLNoteRepository::create(const Note& note) {
+bool NotegreSQLNoteRepository::create(const Note& note) {
     if (!validate_note_data(note)) {
         spdlog::error("Note validation failed for: {}", note.note_id);
         return false;
@@ -57,16 +57,16 @@ bool PostgreSQLNoteRepository::create(const Note& note) {
         
         txn.commit();
         
-        spdlog::debug("Created note in PostgreSQL: {}", note.note_id);
+        spdlog::debug("Created note in NotegreSQL: {}", note.note_id);
         return true;
         
     } catch (const std::exception& e) {
-        spdlog::error("PostgreSQL error creating note {}: {}", note.note_id, e.what());
+        spdlog::error("NotegreSQL error creating note {}: {}", note.note_id, e.what());
         return false;
     }
 }
 
-std::optional<Note> PostgreSQLNoteRepository::get_by_id(const std::string& note_id) {
+std::optional<Note> NotegreSQLNoteRepository::get_by_id(const std::string& note_id) {
     try {
         pqxx::work txn(*db_connection_);
         
@@ -84,12 +84,12 @@ std::optional<Note> PostgreSQLNoteRepository::get_by_id(const std::string& note_
         return note;
         
     } catch (const std::exception& e) {
-        spdlog::error("PostgreSQL error getting note {}: {}", note_id, e.what());
+        spdlog::error("NotegreSQL error getting note {}: {}", note_id, e.what());
         return std::nullopt;
     }
 }
 
-bool PostgreSQLNoteRepository::update(const Note& note) {
+bool NotegreSQLNoteRepository::update(const Note& note) {
     try {
         pqxx::work txn(*db_connection_);
         
@@ -100,12 +100,12 @@ bool PostgreSQLNoteRepository::update(const Note& note) {
         return true;
         
     } catch (const std::exception& e) {
-        spdlog::error("PostgreSQL error updating note {}: {}", note.note_id, e.what());
+        spdlog::error("NotegreSQL error updating note {}: {}", note.note_id, e.what());
         return false;
     }
 }
 
-bool PostgreSQLNoteRepository::delete_note(const std::string& note_id) {
+bool NotegreSQLNoteRepository::delete_note(const std::string& note_id) {
     try {
         pqxx::work txn(*db_connection_);
         
@@ -119,13 +119,13 @@ bool PostgreSQLNoteRepository::delete_note(const std::string& note_id) {
         return result.affected_rows() > 0;
         
     } catch (const std::exception& e) {
-        spdlog::error("PostgreSQL error deleting note {}: {}", note_id, e.what());
+        spdlog::error("NotegreSQL error deleting note {}: {}", note_id, e.what());
         return false;
     }
 }
 
 // User timeline operations
-std::vector<Note> PostgreSQLNoteRepository::get_by_user_id(const std::string& user_id, int limit, int offset) {
+std::vector<Note> NotegreSQLNoteRepository::get_by_user_id(const std::string& user_id, int limit, int offset) {
     std::vector<Note> notes;
     
     try {
@@ -140,34 +140,34 @@ std::vector<Note> PostgreSQLNoteRepository::get_by_user_id(const std::string& us
         notes = map_result_to_notes(result);
         
     } catch (const std::exception& e) {
-        spdlog::error("PostgreSQL error getting user notes for {}: {}", user_id, e.what());
+        spdlog::error("NotegreSQL error getting user notes for {}: {}", user_id, e.what());
     }
     
     return notes;
 }
 
-std::vector<Note> PostgreSQLNoteRepository::get_user_timeline(const std::string& user_id, int limit, int offset) {
-    // For PostgreSQL, this is basically the same as get_by_user_id
+std::vector<Note> NotegreSQLNoteRepository::get_user_timeline(const std::string& user_id, int limit, int offset) {
+    // For NotegreSQL, this is basically the same as get_by_user_id
     // In production, you'd have materialized views or timeline tables
     return get_by_user_id(user_id, limit, offset);
 }
 
 // Engagement operations
-std::vector<Note> PostgreSQLNoteRepository::get_liked_by_user(const std::string& user_id, int limit, int offset) {
+std::vector<Note> NotegreSQLNoteRepository::get_liked_by_user(const std::string& user_id, int limit, int offset) {
     return get_user_interaction_notes(user_id, "like", limit, offset);
 }
 
-std::vector<Note> PostgreSQLNoteRepository::get_renoted_by_user(const std::string& user_id, int limit, int offset) {
+std::vector<Note> NotegreSQLNoteRepository::get_renoted_by_user(const std::string& user_id, int limit, int offset) {
     return get_user_interaction_notes(user_id, "renote", limit, offset);
 }
 
-std::vector<Note> PostgreSQLNoteRepository::get_bookmarked_by_user(const std::string& user_id, int limit, int offset) {
+std::vector<Note> NotegreSQLNoteRepository::get_bookmarked_by_user(const std::string& user_id, int limit, int offset) {
     return get_user_interaction_notes(user_id, "bookmark", limit, offset);
 }
 
 // Helper methods - the behind-the-scenes stuff
 
-std::vector<Note> PostgreSQLNoteRepository::get_user_interaction_notes(const std::string& user_id, 
+std::vector<Note> NotegreSQLNoteRepository::get_user_interaction_notes(const std::string& user_id, 
                                                                       const std::string& interaction_type,
                                                                       int limit, int offset) {
     std::vector<Note> notes;
@@ -189,14 +189,14 @@ std::vector<Note> PostgreSQLNoteRepository::get_user_interaction_notes(const std
         notes = map_result_to_notes(result);
         
     } catch (const std::exception& e) {
-        spdlog::error("PostgreSQL error getting {} interactions for {}: {}", 
+        spdlog::error("NotegreSQL error getting {} interactions for {}: {}", 
                      interaction_type, user_id, e.what());
     }
     
     return notes;
 }
 
-void PostgreSQLNoteRepository::create_database_schema() {
+void NotegreSQLNoteRepository::create_database_schema() {
     try {
         pqxx::work txn(*db_connection_);
         
@@ -290,14 +290,14 @@ void PostgreSQLNoteRepository::create_database_schema() {
         txn.exec(create_interactions);
         
         txn.commit();
-        spdlog::info("PostgreSQL schema created successfully");
+        spdlog::info("NotegreSQL schema created successfully");
         
     } catch (const std::exception& e) {
-        spdlog::error("Failed to create PostgreSQL schema: {}", e.what());
+        spdlog::error("Failed to create NotegreSQL schema: {}", e.what());
     }
 }
 
-void PostgreSQLNoteRepository::create_indexes() {
+void NotegreSQLNoteRepository::create_indexes() {
     try {
         pqxx::work txn(*db_connection_);
         
@@ -316,19 +316,19 @@ void PostgreSQLNoteRepository::create_indexes() {
         }
         
         txn.commit();
-        spdlog::info("PostgreSQL indexes created successfully");
+        spdlog::info("NotegreSQL indexes created successfully");
         
     } catch (const std::exception& e) {
-        spdlog::error("Failed to create PostgreSQL indexes: {}", e.what());
+        spdlog::error("Failed to create NotegreSQL indexes: {}", e.what());
     }
 }
 
 // Factory methods
 
-std::unique_ptr<PostgreSQLNoteRepository> NoteRepositoryFactory::create_postgresql_repository(const std::string& connection_string) {
+std::unique_ptr<NotegreSQLNoteRepository> NoteRepositoryFactory::create_notegresql_repository(const std::string& connection_string) {
     validate_connection_string(connection_string);
     auto connection = create_database_connection(connection_string);
-    return std::make_unique<PostgreSQLNoteRepository>(connection);
+    return std::make_unique<NotegreSQLNoteRepository>(connection);
 }
 
 std::shared_ptr<pqxx::connection> NoteRepositoryFactory::create_database_connection(const std::string& connection_string) {
@@ -339,11 +339,11 @@ std::shared_ptr<pqxx::connection> NoteRepositoryFactory::create_database_connect
         pqxx::work test_txn(*connection);
         test_txn.exec("SELECT 1");
         
-        spdlog::info("PostgreSQL connection established successfully");
+        spdlog::info("NotegreSQL connection established successfully");
         return connection;
         
     } catch (const std::exception& e) {
-        spdlog::error("Failed to connect to PostgreSQL: {}", e.what());
+        spdlog::error("Failed to connect to NotegreSQL: {}", e.what());
         throw;
     }
 }
@@ -356,7 +356,7 @@ void NoteRepositoryFactory::validate_connection_string(const std::string& connec
     // Basic validation - should contain host and dbname
     if (connection_string.find("host=") == std::string::npos || 
         connection_string.find("dbname=") == std::string::npos) {
-        throw std::invalid_argument("Invalid PostgreSQL connection string format");
+        throw std::invalid_argument("Invalid NotegreSQL connection string format");
     }
 }
 

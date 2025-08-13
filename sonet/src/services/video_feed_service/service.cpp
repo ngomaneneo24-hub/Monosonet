@@ -126,7 +126,7 @@ grpc::Status VideoFeedService::TrackEngagement(
         proto::common::EngagementMetrics metrics;
         metrics.set_view_count(request->event_type() == "view" ? 1 : 0);
         metrics.set_like_count(request->event_type() == "like" ? 1 : 0);
-        metrics.set_repost_count(request->event_type() == "repost" ? 1 : 0);
+        metrics.set_renote_count(request->event_type() == "renote" ? 1 : 0);
         metrics.set_reply_count(request->event_type() == "reply" ? 1 : 0);
         metrics.set_share_count(request->event_type() == "share" ? 1 : 0);
         metrics.set_bookmark_count(request->event_type() == "bookmark" ? 1 : 0);

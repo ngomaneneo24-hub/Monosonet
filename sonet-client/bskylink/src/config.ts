@@ -30,12 +30,12 @@ export type Environment = {
   version?: string
   hostnames: string[]
   appHostname?: string
-  dbPostgresUrl?: string
-  dbPostgresMigrationUrl?: string
-  dbPostgresSchema?: string
-  dbPostgresPoolSize?: number
-  dbPostgresPoolMaxUses?: number
-  dbPostgresPoolIdleTimeoutMs?: number
+  dbNotegresUrl?: string
+  dbNotegresMigrationUrl?: string
+  dbNotegresSchema?: string
+  dbNotegresPoolSize?: number
+  dbNotegresPoolMaxUses?: number
+  dbNotegresPoolIdleTimeoutMs?: number
 }
 
 export const readEnv = (): Environment => {
@@ -44,13 +44,13 @@ export const readEnv = (): Environment => {
     version: envStr('LINK_VERSION'),
     hostnames: envList('LINK_HOSTNAMES'),
     appHostname: envStr('LINK_APP_HOSTNAME'),
-    dbPostgresUrl: envStr('LINK_DB_POSTGRES_URL'),
-    dbPostgresMigrationUrl: envStr('LINK_DB_POSTGRES_MIGRATION_URL'),
-    dbPostgresSchema: envStr('LINK_DB_POSTGRES_SCHEMA'),
-    dbPostgresPoolSize: envInt('LINK_DB_POSTGRES_POOL_SIZE'),
-    dbPostgresPoolMaxUses: envInt('LINK_DB_POSTGRES_POOL_MAX_USES'),
-    dbPostgresPoolIdleTimeoutMs: envInt(
-      'LINK_DB_POSTGRES_POOL_IDLE_TIMEOUT_MS',
+    dbNotegresUrl: envStr('LINK_DB_NOTEGRES_URL'),
+    dbNotegresMigrationUrl: envStr('LINK_DB_NOTEGRES_MIGRATION_URL'),
+    dbNotegresSchema: envStr('LINK_DB_NOTEGRES_SCHEMA'),
+    dbNotegresPoolSize: envInt('LINK_DB_NOTEGRES_POOL_SIZE'),
+    dbNotegresPoolMaxUses: envInt('LINK_DB_NOTEGRES_POOL_MAX_USES'),
+    dbNotegresPoolIdleTimeoutMs: envInt(
+      'LINK_DB_NOTEGRES_POOL_IDLE_TIMEOUT_MS',
     ),
   }
 }
@@ -62,17 +62,17 @@ export const envToCfg = (env: Environment): Config => {
     hostnames: env.hostnames,
     appHostname: env.appHostname || 'bsky.app',
   }
-  if (!env.dbPostgresUrl) {
-    throw new Error('Must configure postgres url (LINK_DB_POSTGRES_URL)')
+  if (!env.dbNotegresUrl) {
+    throw new Error('Must configure notegres url (LINK_DB_NOTEGRES_URL)')
   }
   const dbCfg: DbConfig = {
-    url: env.dbPostgresUrl,
-    migrationUrl: env.dbPostgresMigrationUrl,
-    schema: env.dbPostgresSchema,
+    url: env.dbNotegresUrl,
+    migrationUrl: env.dbNotegresMigrationUrl,
+    schema: env.dbNotegresSchema,
     pool: {
-      idleTimeoutMs: env.dbPostgresPoolIdleTimeoutMs ?? 10000,
-      maxUses: env.dbPostgresPoolMaxUses ?? Infinity,
-      size: env.dbPostgresPoolSize ?? 10,
+      idleTimeoutMs: env.dbNotegresPoolIdleTimeoutMs ?? 10000,
+      maxUses: env.dbNotegresPoolMaxUses ?? Infinity,
+      size: env.dbNotegresPoolSize ?? 10,
     },
   }
   return {

@@ -18,7 +18,7 @@ export function registerMediaRoutes(router: Router) {
   const target = process.env.MEDIA_GRPC_ADDR || 'media-service:9090';
   const mediaClient = new mediaPackage.MediaService(target, credentials.createInsecure());
 
-  router.post('/v1/media/upload', verifyJwt, upload.single('media') /* accept 'media' */, (req: (AuthenticatedRequest & Request) & { file?: Express.Multer.File }, res: Response) => {
+  router.note('/v1/media/upload', verifyJwt, upload.single('media') /* accept 'media' */, (req: (AuthenticatedRequest & Request) & { file?: Express.Multer.File }, res: Response) => {
     if (!req.file) return res.status(400).json({ ok: false, message: 'file required' });
     const call = mediaClient.Upload((err: any, resp: any) => {
       if (err) return res.status(400).json({ ok: false, message: err.message });

@@ -12,7 +12,7 @@ import {FeedAPI, FeedAPIResponse, ReasonFeedSource} from './types'
 import {createBskyTopicsHeader, isBlueskyOwnedFeed} from './utils'
 
 const REQUEST_WAIT_MS = 500 // 500ms
-const POST_AGE_CUTOFF = 60e3 * 60 * 24 // 24hours
+const NOTE_AGE_CUTOFF = 60e3 * 60 * 24 // 24hours
 
 export class MergeFeedAPI implements FeedAPI {
   userInterests?: string
@@ -273,7 +273,7 @@ class MergeFeedSource_Custom extends MergeFeedSource {
       uri: feedUri,
       href: feedUriToHref(feedUri),
     }
-    this.minDate = new Date(Date.now() - POST_AGE_CUTOFF)
+    this.minDate = new Date(Date.now() - NOTE_AGE_CUTOFF)
   }
 
   protected async _getFeed(

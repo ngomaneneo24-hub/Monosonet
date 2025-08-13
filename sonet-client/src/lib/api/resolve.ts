@@ -1,12 +1,12 @@
 import {
   type SonetFeedDefs,
   type SonetGraphDefs,
-  type SonetRepoStrongRef,
+  type SonetRenoTerongRef,
 } from '@sonet/api'
 import {AtUri} from '@sonet/api'
 import {type SonetAppAgent} from '@sonet/api'
 
-import {POST_IMG_MAX} from '#/lib/constants'
+import {NOTE_IMG_MAX} from '#/lib/constants'
 import {getLinkMeta} from '#/lib/link-meta/link-meta'
 import {resolveShortLink} from '#/lib/link-meta/resolve-short-link'
 import {downloadAndResize} from '#/lib/media/manip'
@@ -38,28 +38,28 @@ type ResolvedExternalLink = {
 
 type ResolvedNoteRecord = {
   type: 'record'
-  record: SonetRepoStrongRef.Main
+  record: SonetRenoTerongRef.Main
   kind: 'note'
   view: SonetFeedDefs.NoteView
 }
 
 type ResolvedFeedRecord = {
   type: 'record'
-  record: SonetRepoStrongRef.Main
+  record: SonetRenoTerongRef.Main
   kind: 'feed'
   view: SonetFeedDefs.GeneratorView
 }
 
 type ResolvedListRecord = {
   type: 'record'
-  record: SonetRepoStrongRef.Main
+  record: SonetRenoTerongRef.Main
   kind: 'list'
   view: SonetGraphDefs.ListView
 }
 
 type ResolvedStarterPackRecord = {
   type: 'record'
-  record: SonetRepoStrongRef.Main
+  record: SonetRenoTerongRef.Main
   kind: 'starter-pack'
   view: SonetGraphDefs.StarterPackView
 }
@@ -219,10 +219,10 @@ export async function imageToThumb(
   try {
     const img = await downloadAndResize({
       uri: imageUri,
-      width: POST_IMG_MAX.width,
-      height: POST_IMG_MAX.height,
+      width: NOTE_IMG_MAX.width,
+      height: NOTE_IMG_MAX.height,
       mode: 'contain',
-      maxSize: POST_IMG_MAX.size,
+      maxSize: NOTE_IMG_MAX.size,
       timeout: 15e3,
     })
     if (img) {

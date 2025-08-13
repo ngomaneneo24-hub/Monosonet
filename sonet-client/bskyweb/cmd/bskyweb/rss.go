@@ -21,7 +21,7 @@ type ItemGUID struct {
 	IsPerma bool     `xml:"isPermaLink,attr"`
 }
 
-// We don't actually populate the title for "posts".
+// We don't actually populate the title for "notes".
 // Some background: https://book.micro.blog/rss-for-microblogs/
 type Item struct {
 	Title       string `xml:"title,omitempty"`
@@ -82,27 +82,27 @@ func (srv *Server) WebProfileRSS(c echo.Context) error {
 		}
 	}
 
-	af, err := appbsky.FeedGetAuthorFeed(ctx, srv.xrpcc, did.String(), "", "posts_no_replies", false, 30)
+	af, err := appbsky.FeedGetAuthorFeed(ctx, srv.xrpcc, did.String(), "", "notes_no_replies", false, 30)
 	if err != nil {
 		log.Warn("failed to fetch author feed", "did", did, "err", err)
 		return err
 	}
 
-	posts := []Item{}
+	notes := []Item{}
 	for _, p := range af.Feed {
-		// only include author's own posts in RSS
-		if p.Post.Author.Did != pv.Did {
+		// only include author's own notes in RSS
+		if p.Note.Author.Did != pv.Did {
 			continue
 		}
-		aturi, err := syntax.ParseATURI(p.Post.Uri)
+		aturi, err := syntax.ParseATURI(p.Note.Uri)
 		if err != nil {
 			return err
 		}
-		rec, ok := p.Post.Record.Val.(*appbsky.FeedPost)
+		rec, ok := p.Note.Record.Val.(*appbsky.FeedNote)
 		if !ok {
 			continue
 		}
-		// only top-level posts in RSS (no replies)
+		// only top-level notes in RSS (no replies)
 		if rec.Reply != nil {
 			continue
 		}
@@ -111,9 +111,9 @@ func (srv *Server) WebProfileRSS(c echo.Context) error {
 		if nil == err {
 			pubDate = createdAt.Time().Format(FullYearRFC822Z)
 		}
-		posts = append(posts, Item{
-			Link:        fmt.Sprintf("https://%s/profile/%s/post/%s", req.Host, pv.Handle, aturi.RecordKey().String()),
-			Description: ExpandPostText(rec),
+		notes = append(notes, Item{
+			Link:        fmt.Sprintf("https://%s/profile/%s/note/%s", req.Host, pv.Handle, aturi.RecordKey().String()),
+			Description: ExpandNoteText(rec),
 			PubDate:     pubDate,
 			GUID: ItemGUID{
 				Value:   aturi.String(),
@@ -135,7 +135,7 @@ func (srv *Server) WebProfileRSS(c echo.Context) error {
 		Description: desc,
 		Link:        fmt.Sprintf("https://%s/profile/%s", req.Host, pv.Handle),
 		Title:       title,
-		Item:        posts,
+		Item:        notes,
 	}
 	return c.XML(http.StatusOK, feed)
 }

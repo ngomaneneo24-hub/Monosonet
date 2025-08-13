@@ -11,7 +11,7 @@ import {
   type SonetAppAgent,
   type SonetLabelDefs,
   type SonetRepoApplyWrites,
-  type SonetRepoStrongRef,
+  type SonetRenoTerongRef,
   RichText,
 } from '@sonet/api'
 import {TID} from '@sonet/types'
@@ -426,7 +426,7 @@ async function resolveRecord(
   agent: SonetAppAgent,
   queryClient: QueryClient,
   uri: string,
-): Promise<SonetRepoStrongRef.Main> {
+): Promise<SonetRenoTerongRef.Main> {
   const resolvedLink = await fetchResolveLinkQuery(queryClient, agent, uri)
   if (resolvedLink.type !== 'record') {
     throw Error(t`Expected uri to resolve to a record`)

@@ -48,11 +48,11 @@ func (mr *ModerationRoutes) RegisterRoutes(router *gin.Engine) {
 		moderation.Use(mr.requireFounder)
 		{
 			// Account moderation
-			moderation.POST("/accounts/flag", mr.flagAccount)
+			moderation.NOTE("/accounts/flag", mr.flagAccount)
 			moderation.DELETE("/accounts/flag/:flagId", mr.removeFlag)
-			moderation.POST("/accounts/shadowban", mr.shadowbanAccount)
-			moderation.POST("/accounts/suspend", mr.suspendAccount)
-			moderation.POST("/accounts/ban", mr.banAccount)
+			moderation.NOTE("/accounts/shadowban", mr.shadowbanAccount)
+			moderation.NOTE("/accounts/suspend", mr.suspendAccount)
+			moderation.NOTE("/accounts/ban", mr.banAccount)
 
 			// Note moderation
 			moderation.DELETE("/notes/:noteId", mr.deleteNote)

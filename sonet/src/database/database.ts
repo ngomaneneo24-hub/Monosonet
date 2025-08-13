@@ -72,7 +72,7 @@ export abstract class Database {
           v.scene_complexity, v.audio_quality, v.background_music, v.speech_clarity,
           c.id as creator_id, c.username as creator_username, c.display_name as creator_display_name,
           c.avatar_url as creator_avatar_url,
-          vm.view_count, vm.like_count, vm.repost_count, vm.reply_count,
+          vm.view_count, vm.like_count, vm.renote_count, vm.reply_count,
           vm.share_count, vm.bookmark_count, vm.completion_rate, vm.average_watch_time
         FROM videos v
         LEFT JOIN creators c ON v.creator_id = c.id
@@ -130,7 +130,7 @@ export abstract class Database {
       const sql = `
         SELECT 
           v.*, c.username as creator_username, c.display_name as creator_display_name,
-          vm.view_count, vm.like_count, vm.repost_count, vm.reply_count,
+          vm.view_count, vm.like_count, vm.renote_count, vm.reply_count,
           vm.share_count, vm.bookmark_count, vm.completion_rate, vm.average_watch_time
         FROM videos v
         LEFT JOIN creators c ON v.creator_id = c.id
@@ -151,7 +151,7 @@ export abstract class Database {
     try {
       const sql = `
         SELECT 
-          v.*, vm.view_count, vm.like_count, vm.repost_count, vm.reply_count,
+          v.*, vm.view_count, vm.like_count, vm.renote_count, vm.reply_count,
           vm.share_count, vm.bookmark_count, vm.completion_rate, vm.average_watch_time
         FROM videos v
         LEFT JOIN video_metrics vm ON v.id = vm.video_id
@@ -185,9 +185,9 @@ export abstract class Database {
       const sql = `
         SELECT 
           v.*, c.username as creator_username, c.display_name as creator_display_name,
-          vm.view_count, vm.like_count, vm.repost_count, vm.reply_count,
+          vm.view_count, vm.like_count, vm.renote_count, vm.reply_count,
           vm.share_count, vm.bookmark_count, vm.completion_rate, vm.average_watch_time,
-          (vm.view_count * 0.1 + vm.like_count * 0.3 + vm.repost_count * 0.5 + 
+          (vm.view_count * 0.1 + vm.like_count * 0.3 + vm.renote_count * 0.5 + 
            vm.reply_count * 0.4 + vm.share_count * 0.6) as trending_score
         FROM videos v
         LEFT JOIN creators c ON v.creator_id = c.id
@@ -209,7 +209,7 @@ export abstract class Database {
   async updateVideoMetrics(videoId: string, metrics: {
     viewCount?: number
     likeCount?: number
-    repostCount?: number
+    renoteCount?: number
     replyCount?: number
     shareCount?: number
     bookmarkCount?: number
@@ -218,12 +218,12 @@ export abstract class Database {
   }): Promise<void> {
     try {
       const sql = `
-        INSERT INTO video_metrics (video_id, view_count, like_count, repost_count, reply_count, share_count, bookmark_count, completion_rate, average_watch_time, updated_at)
+        INSERT INTO video_metrics (video_id, view_count, like_count, renote_count, reply_count, share_count, bookmark_count, completion_rate, average_watch_time, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
         ON CONFLICT (video_id) DO UPDATE SET
           view_count = video_metrics.view_count + EXCLUDED.view_count,
           like_count = video_metrics.like_count + EXCLUDED.like_count,
-          repost_count = video_metrics.repost_count + EXCLUDED.repost_count,
+          renote_count = video_metrics.renote_count + EXCLUDED.renote_count,
           reply_count = video_metrics.reply_count + EXCLUDED.reply_count,
           share_count = video_metrics.share_count + EXCLUDED.share_count,
           bookmark_count = video_metrics.bookmark_count + EXCLUDED.bookmark_count,
@@ -236,7 +236,7 @@ export abstract class Database {
         videoId,
         metrics.viewCount || 0,
         metrics.likeCount || 0,
-        metrics.repostCount || 0,
+        metrics.renoteCount || 0,
         metrics.replyCount || 0,
         metrics.shareCount || 0,
         metrics.bookmarkCount || 0,
@@ -258,7 +258,7 @@ export abstract class Database {
       const sql = `
         SELECT 
           v.*, c.username as creator_username, c.display_name as creator_display_name,
-          vm.view_count, vm.like_count, vm.repost_count, vm.reply_count,
+          vm.view_count, vm.like_count, vm.renote_count, vm.reply_count,
           vm.share_count, vm.bookmark_count, vm.completion_rate, vm.average_watch_time,
           ts_rank(to_tsvector('english', v.title || ' ' || v.description), plainto_tsquery('english', $1)) as relevance
         FROM videos v

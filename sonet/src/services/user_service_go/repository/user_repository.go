@@ -51,7 +51,7 @@ func (r *UserRepositoryImpl) GetUserProfile(userID, requesterID string) (*models
 	query := `
 		SELECT u.user_id, u.username, u.display_name, u.bio, u.avatar_url, u.banner_url,
 		       u.location, u.website, u.is_verified, u.is_private, u.created_at, u.updated_at,
-		       us.follower_count, us.following_count, us.note_count, us.like_count, us.repost_count, us.comment_count
+		       us.follower_count, us.following_count, us.note_count, us.like_count, us.renote_count, us.comment_count
 		FROM users u
 		LEFT JOIN user_stats us ON u.user_id = us.user_id
 		WHERE u.user_id = $1
@@ -62,7 +62,7 @@ func (r *UserRepositoryImpl) GetUserProfile(userID, requesterID string) (*models
 		&user.UserID, &user.Username, &user.DisplayName, &user.Bio, &user.AvatarURL, &user.BannerURL,
 		&user.Location, &user.Website, &user.IsVerified, &user.IsPrivate, &user.CreatedAt, &user.UpdatedAt,
 		&user.Stats.FollowerCount, &user.Stats.FollowingCount, &user.Stats.NoteCount,
-		&user.Stats.LikeCount, &user.Stats.RepostCount, &user.Stats.CommentCount,
+		&user.Stats.LikeCount, &user.Stats.RenoteCount, &user.Stats.CommentCount,
 	)
 	
 	if err != nil {

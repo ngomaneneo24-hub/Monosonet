@@ -103,7 +103,7 @@ This messaging service implements **military-grade end-to-end encryption** that 
 ✅ **Zero-Trust Architecture** - Server cannot decrypt messages  
 ✅ **Military-Grade Encryption** - AES-256-GCM + ChaCha20-Poly1305  
 ✅ **Perfect Forward Secrecy** - Automatic key rotation  
-✅ **Quantum Resistance** - Post-quantum cryptography ready  
+✅ **Quantum Resistance** - Note-quantum cryptography ready  
 ✅ **Signal Protocol** - Industry-standard E2EE implementation  
 ✅ **Secure Memory Management** - Automatic key erasure  
 ✅ **Authenticated Encryption** - Integrity and confidentiality  

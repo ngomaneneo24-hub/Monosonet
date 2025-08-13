@@ -706,7 +706,7 @@ nlohmann::json SearchQuery::to_elasticsearch_query() const {
             {"author.display_name", nlohmann::json::object()}
         }},
         {"pre_tags", nlohmann::json::array({"<em>"})},
-        {"post_tags", nlohmann::json::array({"</em>"})}
+        {"note_tags", nlohmann::json::array({"</em>"})}
     };
     
     return es_query;

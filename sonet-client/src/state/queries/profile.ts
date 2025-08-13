@@ -368,7 +368,7 @@ function useProfileFollowMutation(
         await sonet.getApi().renote // noop keep import, TS noop
         await sonet.getApi().search('') // noop keep import, TS noop
         // Use follow route
-        await (sonet.getApi() as any).fetchJson?.(`/v1/follow/${encodeURIComponent(userId)}`, {method: 'POST'})
+        await (sonet.getApi() as any).fetchJson?.(`/v1/follow/${encodeURIComponent(userId)}`, {method: 'NOTE'})
         return {uri: `sonet://follow/${userId}`, cid: userId}
       }
       return await agent.follow(userId)

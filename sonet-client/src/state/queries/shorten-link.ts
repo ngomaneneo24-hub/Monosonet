@@ -4,7 +4,7 @@ export function useShortenLink() {
   return async (inputUrl: string): Promise<{url: string}> => {
     const url = new URL(inputUrl)
     const res = await fetch('https://go.sonet.app/link', {
-      method: 'POST',
+      method: 'NOTE',
       body: JSON.stringify({
         path: url.pathname,
       }),

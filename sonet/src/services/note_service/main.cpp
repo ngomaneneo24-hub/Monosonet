@@ -18,16 +18,16 @@
  * This service provides:
  * 
  * 🚀 **HTTP REST API** (Port 8080):
- *    - POST   /api/v1/notes                    - Create note (300 chars, attachments)
+ *    - NOTE   /api/v1/notes                    - Create note (300 chars, attachments)
  *    - GET    /api/v1/notes/:id               - Get note with thread context
  *    - PUT    /api/v1/notes/:id               - Edit note (30-min window)
  *    - DELETE /api/v1/notes/:id               - Delete with cascade
- *    - POST   /api/v1/notes/:id/renote        - Renote (retweet)
- *    - POST   /api/v1/notes/:id/like          - Like note
+ *    - NOTE   /api/v1/notes/:id/renote        - Renote (retweet)
+ *    - NOTE   /api/v1/notes/:id/like          - Like note
  *    - GET    /api/v1/timelines/home          - Personalized timeline
  *    - GET    /api/v1/timelines/trending      - Trending content
  *    - GET    /api/v1/search/notes            - Advanced search
- *    - POST   /api/v1/notes/batch             - Bulk operations
+ *    - NOTE   /api/v1/notes/batch             - Bulk operations
  * 
  * ⚡ **gRPC High-Performance API** (Port 9090):
  *    - Sub-5ms note retrieval
@@ -119,7 +119,7 @@ void print_service_info() {
     
     std::cout << "\n🔗 EXAMPLE API CALLS:" << std::endl;
     std::cout << "   # Create a note with attachment" << std::endl;
-    std::cout << "   curl -X POST http://localhost:8080/api/v1/notes \\" << std::endl;
+    std::cout << "   curl -X NOTE http://localhost:8080/api/v1/notes \\" << std::endl;
     std::cout << "        -H \"Content-Type: application/json\" \\" << std::endl;
     std::cout << "        -H \"Authorization: Bearer YOUR_TOKEN\" \\" << std::endl;
     std::cout << "        -d '{\"content\":\"Hello Twitter-scale world! 🚀\",\"attachments\":[]}'" << std::endl;
@@ -226,7 +226,7 @@ int main(int argc, char* argv[]) {
  * 🐳 Docker Deployment:
  * docker build -t sonet-note-service .
  * docker run -d -p 8080:8080 -p 9090:9090 -p 8081:8081 \
- *   -e DATABASE_URL=postgresql://... \
+ *   -e DATABASE_URL=notegresql://... \
  *   -e REDIS_URL=redis://... \
  *   sonet-note-service
  * 

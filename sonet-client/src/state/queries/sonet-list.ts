@@ -148,7 +148,7 @@ export function useCreateListMutation() {
   return useMutation<{list: SonetList}, Error, CreateListRequest>({
     mutationFn: async (data) => {
       const response = await apiRequest('/v1/lists', {
-        method: 'POST',
+        method: 'NOTE',
         body: JSON.stringify(data),
       })
       return response
@@ -218,7 +218,7 @@ export function useAddListMemberMutation() {
   return useMutation<{member: SonetListMember}, Error, AddListMemberRequest>({
     mutationFn: async (data) => {
       const response = await apiRequest(`/v1/lists/${data.list_id}/members`, {
-        method: 'POST',
+        method: 'NOTE',
         body: JSON.stringify({
           user_id: data.user_id,
           notes: data.notes,

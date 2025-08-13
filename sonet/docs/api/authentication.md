@@ -6,8 +6,8 @@ UserService RPCs return `access_token` (short‑lived) and `refresh_token` (long
 * Refresh Token: 30d opaque (DB or Redis stored) rotated on each refresh; revoke chain on compromise.
 
 ## Flows
-1. Registration: `RegisterUser` -> returns verification_token (email verification step). REST: POST /v1/auth/register
-2. Login: `LoginUser` with credentials (+ optional 2FA) -> returns tokens & session. REST: POST /v1/auth/login
+1. Registration: `RegisterUser` -> returns verification_token (email verification step). REST: NOTE /v1/auth/register
+2. Login: `LoginUser` with credentials (+ optional 2FA) -> returns tokens & session. REST: NOTE /v1/auth/login
 3. 2FA: If requires_2fa=true, call `VerifyTwoFactor` -> new access/refresh pair.
 4. Token Refresh: `RefreshToken` -> rotates refresh token; old becomes invalid.
 5. Logout: `LogoutUser` (optional logout_all_devices) -> revoke session + associated refresh token(s).
@@ -19,7 +19,7 @@ UserService RPCs return `access_token` (short‑lived) and `refresh_token` (long
 * Authorization: Bearer <access_token>
 * X-Session-ID: <session_id> (optional explicit)
 * X-Request-ID: client supplied idempotency/tracing
-* Idempotency-Key: for POST create operations (CreateNote, Upload)
+* Idempotency-Key: for NOTE create operations (CreateNote, Upload)
 
 ## Scopes (Proposed)
 | Scope | Grants |

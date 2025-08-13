@@ -14,7 +14,7 @@ export default function (ctx: AppContext, app: Express) {
   app = health(ctx, app) // GET /_health
   app = siteAssociation(ctx, app) // GET /.well-known/apple-app-site-association
   app = redirect(ctx, app) // GET /redirect
-  app = createShortLink(ctx, app) // POST /link
+  app = createShortLink(ctx, app) // NOTE /link
   app = root(ctx, app) // GET / (redirect to bsky.app on root)
   app = shortLink(ctx, app) // GET /:linkId (should go last due to permissive matching)
   return app

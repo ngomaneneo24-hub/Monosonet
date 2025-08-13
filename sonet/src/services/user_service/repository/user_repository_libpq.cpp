@@ -1676,7 +1676,7 @@ std::optional<UserStats> UserRepositoryLibpq::get_user_stats(const std::string& 
     }
     
     std::string query = R"(
-        SELECT user_id, posts_count, followers_count, following_count, 
+        SELECT user_id, notes_count, followers_count, following_count, 
                likes_received, comments_received, shares_received,
                total_views, total_engagement, last_activity, created_at, updated_at
         FROM user_schema.user_stats 
@@ -1707,12 +1707,12 @@ bool UserRepositoryLibpq::update_user_stats(const UserStats& stats) {
     
     std::string query = R"(
         INSERT INTO user_schema.user_stats (
-            user_id, posts_count, followers_count, following_count,
+            user_id, notes_count, followers_count, following_count,
             likes_received, comments_received, shares_received,
             total_views, total_engagement, last_activity, created_at, updated_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         ON CONFLICT (user_id) DO UPDATE SET
-            posts_count = EXCLUDED.posts_count,
+            notes_count = EXCLUDED.notes_count,
             followers_count = EXCLUDED.followers_count,
             following_count = EXCLUDED.following_count,
             likes_received = EXCLUDED.likes_received,
@@ -1727,7 +1727,7 @@ bool UserRepositoryLibpq::update_user_stats(const UserStats& stats) {
     auto now = std::chrono::system_clock::now();
     std::vector<std::string> params = {
         stats.user_id,
-        std::to_string(stats.posts_count),
+        std::to_string(stats.notes_count),
         std::to_string(stats.followers_count),
         std::to_string(stats.following_count),
         std::to_string(stats.likes_received),
@@ -1757,8 +1757,8 @@ bool UserRepositoryLibpq::increment_user_stat(const std::string& user_id, const 
     }
     
     std::string query;
-    if (stat_name == "posts_count") {
-        query = "UPDATE user_schema.user_stats SET posts_count = posts_count + $2, updated_at = $3 WHERE user_id = $1";
+    if (stat_name == "notes_count") {
+        query = "UPDATE user_schema.user_stats SET notes_count = notes_count + $2, updated_at = $3 WHERE user_id = $1";
     } else if (stat_name == "followers_count") {
         query = "UPDATE user_schema.user_stats SET followers_count = followers_count + $2, updated_at = $3 WHERE user_id = $1";
     } else if (stat_name == "following_count") {
@@ -2357,7 +2357,7 @@ UserStats UserRepositoryLibpq::map_result_to_user_stats(pg_result* result, int r
     
     try {
         stats.user_id = get_result_value(result, row, 0);
-        stats.posts_count = std::stoi(get_result_value(result, row, 1));
+        stats.notes_count = std::stoi(get_result_value(result, row, 1));
         stats.followers_count = std::stoi(get_result_value(result, row, 2));
         stats.following_count = std::stoi(get_result_value(result, row, 3));
         stats.likes_received = std::stoi(get_result_value(result, row, 4));

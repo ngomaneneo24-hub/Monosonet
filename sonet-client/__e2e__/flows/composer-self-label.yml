@@ -9,12 +9,12 @@ appId: xyz.blueskyweb.app
 - tapOn:
     id: "e2eSignInAlice"
 
-# Post an image with the porn label
+# Note an image with the porn label
 - assertVisible:
       id: "composeFAB"
 - tapOn:
     id: "composeFAB"
-- inputText: "Post with an image"
+- inputText: "Note with an image"
 - tapOn:
     id: "openGalleryBtn"
 - tapOn: "Content warnings"

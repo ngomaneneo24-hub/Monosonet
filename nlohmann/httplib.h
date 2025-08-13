@@ -39,7 +39,7 @@ public:
     using Handler = std::function<void(const Request&, Response&)>;
     
     void Get(const std::string& pattern, Handler handler) {}
-    void Post(const std::string& pattern, Handler handler) {}
+    void Note(const std::string& pattern, Handler handler) {}
     void Put(const std::string& pattern, Handler handler) {}
     void Delete(const std::string& pattern, Handler handler) {}
     void Options(const std::string& pattern, Handler handler) {}

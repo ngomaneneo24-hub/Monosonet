@@ -496,7 +496,7 @@ systemctl stop sonet.service
 if [[ -f "$BACKUP_DIR/$backup_name/database.sql.gz" ]]; then
     echo "Restoring database..."
     gunzip -c "$BACKUP_DIR/$backup_name/database.sql.gz" | \
-        docker exec -i sonet_postgres_prod psql -U sonet_app sonet_production
+        docker exec -i sonet_notegres_prod psql -U sonet_app sonet_production
 fi
 
 # Restore configuration
@@ -652,7 +652,7 @@ curl -f http://localhost:9090/-/healthy
 /opt/sonet/scripts/verify-backup.sh
 ```
 
-## Post-Go-Live Monitoring
+## Note-Go-Live Monitoring
 
 ### First 24 Hours
 - Monitor all services continuously

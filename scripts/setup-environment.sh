@@ -190,7 +190,7 @@ validate_environment() {
         source .env
         set +a
         
-        local required_vars=("POSTGRES_PASSWORD" "JWT_SECRET")
+        local required_vars=("NOTEGRES_PASSWORD" "JWT_SECRET")
         local missing_vars=()
         
         for var in "${required_vars[@]}"; do

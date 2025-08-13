@@ -1,0 +1,717 @@
+import React, {useCallback, useEffect, useRef} from 'react'
+import {AppState} from 'react-native'
+import {
+  type SonetProfile,
+  type SonetNote,
+  type SonetNoteRecord,
+  type SonetFeedViewNote,
+  type SonetInteraction,
+} from '#/types/sonet'
+import {
+  type InfiniteData,
+  type QueryClient,
+  type QueryKey,
+  useInfiniteQuery,
+} from '@tanstack/react-query'
+
+import {AuthorFeedAPI, SonetAuthorFeedAPI} from '#/lib/api/feed/author'
+import {CustomFeedAPI} from '#/lib/api/feed/custom'
+import {DemoFeedAPI} from '#/lib/api/feed/demo'
+import {FollowingFeedAPI} from '#/lib/api/feed/following'
+import {HomeFeedAPI} from '#/lib/api/feed/home'
+import {LikesFeedAPI} from '#/lib/api/feed/likes'
+import {ListFeedAPI} from '#/lib/api/feed/list'
+import {MergeFeedAPI} from '#/lib/api/feed/merge'
+import {NoteListFeedAPI} from '#/lib/api/feed/notes'
+import {type FeedAPI, type ReasonFeedSource} from '#/lib/api/feed/types'
+import {aggregateUserInterests} from '#/lib/api/feed/utils'
+import {FeedTuner, type FeedTunerFn} from '#/lib/api/feed-manip'
+import {DISCOVER_FEED_URI} from '#/lib/constants'
+import {BSKY_FEED_OWNER_UserIDS} from '#/lib/constants'
+import {logger} from '#/logger'
+import {useAgeAssuranceContext} from '#/state/ageAssurance'
+import {STALE} from '#/state/queries'
+import {DEFAULT_LOGGED_OUT_PREFERENCES} from '#/state/queries/preferences/const'
+import {useAgent} from '#/state/session'
+import {useSonetApi, useSonetSession} from '#/state/session/sonet'
+import * as userActionHistory from '#/state/userActionHistory'
+import {KnownError} from '#/view/com/notes/NoteFeedErrorMessage'
+import {useFeedTuners} from '../preferences/feed-tuners'
+import {useModerationOpts} from '../preferences/moderation-opts'
+import {usePreferencesQuery} from './preferences'
+import {
+  userIdOrUsernameUriMatches,
+  embedViewRecordToNoteView,
+  getEmbeddedNote,
+} from './util'
+
+type ActorDid = string
+export type AuthorFilter =
+  | 'notes_with_replies'
+  | 'notes_no_replies'
+  | 'notes_and_author_threads'
+  | 'notes_with_media'
+  | 'notes_with_video'
+type FeedUri = string
+type ListUri = string
+type NotesUriList = string
+
+export type FeedDescriptor =
+  | 'following'
+  | `author|${ActorDid}|${AuthorFilter}`
+  | `feedgen|${FeedUri}`
+  | `likes|${ActorDid}`
+  | `list|${ListUri}`
+  | `notes|${NotesUriList}`
+  | 'demo'
+export interface FeedParams {
+  mergeFeedEnabled?: boolean
+  mergeFeedSources?: string[]
+  feedCacheKey?: 'discover' | 'explore' | undefined
+}
+
+type RQPageParam = {cursor: string | undefined; api: FeedAPI} | undefined
+
+export const RQKEY_ROOT = 'note-feed'
+export function RQKEY(feedDesc: FeedDescriptor, params?: FeedParams) {
+  return [RQKEY_ROOT, feedDesc, params || {}]
+}
+
+export interface FeedNoteSliceItem {
+  _reactKey: string
+  uri: string
+  note: SonetNote
+  record: SonetNoteRecord
+  moderation: any // TODO: Replace with SonetModerationDecision type when created
+  parentAuthor?: SonetProfile
+  isParentBlocked?: boolean
+  isParentNotFound?: boolean
+}
+
+export interface FeedNoteSlice {
+  _isFeedNoteSlice: boolean
+  _reactKey: string
+  items: FeedNoteSliceItem[]
+  isIncompleteThread: boolean
+  isFallbackMarker: boolean
+  feedContext: string | undefined
+  reqId: string | undefined
+  feedNoteUri: string
+  reason?:
+    | SonetReason
+    | SonetFeedDefs.ReasonPin
+    | ReasonFeedSource
+    | {[k: string]: unknown; $type: string}
+}
+
+export interface FeedPageUnselected {
+  api: FeedAPI
+  cursor: string | undefined
+  feed: SonetFeedViewNote[]
+  fetchedAt: number
+}
+
+export interface FeedPage {
+  api: FeedAPI
+  tuner: FeedTuner
+  cursor: string | undefined
+  slices: FeedNoteSlice[]
+  fetchedAt: number
+}
+
+/**
+ * The minimum number of notes we want in a single "page" of results. Since we
+ * filter out unwanted content, we may fetch more than this number to ensure
+ * that we get _at least_ this number.
+ */
+const MIN_NOTES = 30
+
+export function useNoteFeedQuery(
+  feedDesc: FeedDescriptor,
+  params?: FeedParams,
+  opts?: {enabled?: boolean; ignoreFilterFor?: string},
+) {
+  const feedTuners = useFeedTuners(feedDesc)
+  const moderationOpts = useModerationOpts()
+  const {data: preferences} = usePreferencesQuery()
+  /**
+   * Load bearing: we need to await AA state or risk FOUC. This marginally
+   * delays feeds, but AA state is fetched immediately on load and is then
+   * available for the remainder of the session, so this delay only affects cold
+   * loads. -esb
+   */
+  const {isReady: isAgeAssuranceReady} = useAgeAssuranceContext()
+  const enabled =
+    opts?.enabled !== false &&
+    Boolean(moderationOpts) &&
+    Boolean(preferences) &&
+    isAgeAssuranceReady
+  const userInterests = aggregateUserInterests(preferences)
+  const followingPinnedIndex =
+    preferences?.savedFeeds?.findIndex(
+      f => f.pinned && f.value === 'following',
+    ) ?? -1
+  const enableFollowingToDiscoverFallback = followingPinnedIndex === 0
+  const agent = useAgent()
+  const sonet = useSonetApi()
+  const sonetSession = useSonetSession()
+  const lastRun = useRef<{
+    data: InfiniteData<FeedPageUnselected>
+    args: typeof selectArgs
+    result: InfiniteData<FeedPage>
+  } | null>(null)
+  const isDiscover = feedDesc.includes(DISCOVER_FEED_URI)
+
+  /**
+   * The number of notes to fetch in a single request. Because we filter
+   * unwanted content, we may over-fetch here to try and fill pages by
+   * `MIN_NOTES`. But if you're doing this, ask @why if it's ok first.
+   */
+  const fetchLimit = MIN_NOTES
+
+  // Make sure this doesn't invalidate unless really needed.
+  const selectArgs = React.useMemo(
+    () => ({
+      feedTuners,
+      moderationOpts,
+      ignoreFilterFor: opts?.ignoreFilterFor,
+      isDiscover,
+    }),
+    [feedTuners, moderationOpts, opts?.ignoreFilterFor, isDiscover],
+  )
+
+  const query = useInfiniteQuery<
+    FeedPageUnselected,
+    Error,
+    InfiniteData<FeedPage>,
+    QueryKey,
+    RQPageParam
+  >({
+    enabled,
+    staleTime: STALE.INFINITY,
+    queryKey: RQKEY(feedDesc, params),
+    async queryFn({pageParam}: {pageParam: RQPageParam}) {
+      logger.debug('useNoteFeedQuery', {feedDesc, cursor: pageParam?.cursor})
+      const {api, cursor} = pageParam
+        ? pageParam
+        : {
+            api: sonetSession.hasSession && feedDesc === 'following'
+              ? createSonetHomeApi({ sonet: sonet.getApi() })
+              : createApi({
+                feedDesc,
+                feedParams: params || {},
+                feedTuners,
+                agent,
+                // Not in the query key because they don't change:
+                userInterests,
+                // Not in the query key. Reacting to it switching isn't important:
+                enableFollowingToDiscoverFallback,
+              }),
+            cursor: undefined,
+          }
+
+      try {
+        const res = await api.fetch({cursor, limit: fetchLimit})
+
+        /*
+         * If this is a public view, we need to check if notes fail moderation.
+         * If all fail, we throw an error. If only some fail, we continue and let
+         * moderations happen later, which results in some notes being shown and
+         * some not.
+         */
+        if (!agent.session) {
+          assertSomeNotesPassModeration(
+            res.feed,
+            preferences?.moderationPrefs ||
+              DEFAULT_LOGGED_OUT_PREFERENCES.moderationPrefs,
+          )
+        }
+
+        return {
+          api,
+          cursor: res.cursor,
+          feed: res.feed,
+          fetchedAt: Date.now(),
+        }
+      } catch (e) {
+        const feedDescParts = feedDesc.split('|')
+        const feedOwnerDid = new SonetUri(feedDescParts[1]).hostname
+
+        if (
+          feedDescParts[0] === 'feedgen' &&
+          BSKY_FEED_OWNER_UserIDS.includes(feedOwnerDid)
+        ) {
+          logger.error(`Bluesky feed may be offline: ${feedOwnerDid}`, {
+            feedDesc,
+            jsError: e,
+          })
+        }
+
+        throw e
+      }
+    },
+    initialPageParam: undefined,
+    getNextPageParam: lastPage =>
+      lastPage.cursor
+        ? {
+            api: lastPage.api,
+            cursor: lastPage.cursor,
+          }
+        : undefined,
+    select: useCallback(
+      (data: InfiniteData<FeedPageUnselected, RQPageParam>) => {
+        // If the selection depends on some data, that data should
+        // be included in the selectArgs object and read here.
+        const {feedTuners, moderationOpts, ignoreFilterFor, isDiscover} =
+          selectArgs
+
+        const tuner = new FeedTuner(feedTuners)
+
+        // Keep track of the last run and whether we can reuse
+        // some already selected pages from there.
+        let reusedPages = []
+        if (lastRun.current) {
+          const {
+            data: lastData,
+            args: lastArgs,
+            result: lastResult,
+          } = lastRun.current
+          let canReuse = true
+          for (let key in selectArgs) {
+            if (selectArgs.hasOwnProperty(key)) {
+              if ((selectArgs as any)[key] !== (lastArgs as any)[key]) {
+                // Can't do reuse anything if any input has changed.
+                canReuse = false
+                break
+              }
+            }
+          }
+          if (canReuse) {
+            for (let i = 0; i < data.pages.length; i++) {
+              if (data.pages[i] && lastData.pages[i] === data.pages[i]) {
+                reusedPages.push(lastResult.pages[i])
+                // Keep the tuner in sync so that the end result is deterministic.
+                tuner.tune(lastData.pages[i].feed)
+                continue
+              }
+              // Stop as soon as pages stop matching up.
+              break
+            }
+          }
+        }
+
+        const result = {
+          pageParams: data.pageParams,
+          pages: [
+            ...reusedPages,
+            ...data.pages.slice(reusedPages.length).map(page => ({
+              api: page.api,
+              tuner,
+              cursor: page.cursor,
+              fetchedAt: page.fetchedAt,
+              slices: tuner
+                .tune(page.feed)
+                .map(slice => {
+                  const moderations = slice.items.map(item =>
+                    moderateNote(item.note, moderationOpts!),
+                  )
+
+                  // apply moderation filter
+                  for (let i = 0; i < slice.items.length; i++) {
+                    const ignoreFilter =
+                      slice.items[i].note.author.userId === ignoreFilterFor
+                    if (ignoreFilter) {
+                      // remove mutes to avoid confused UIs
+                      moderations[i].causes = moderations[i].causes.filter(
+                        cause => cause.type !== 'muted',
+                      )
+                    }
+                    if (
+                      !ignoreFilter &&
+                      moderations[i]?.ui('contentList').filter
+                    ) {
+                      return undefined
+                    }
+                  }
+
+                  if (isDiscover) {
+                    userActionHistory.seen(
+                      slice.items.map(item => ({
+                        feedContext: slice.feedContext,
+                        reqId: slice.reqId,
+                        likeCount: item.note.likeCount ?? 0,
+                        renoteCount: item.note.renoteCount ?? 0,
+                        replyCount: item.note.replyCount ?? 0,
+                        isFollowedBy: Boolean(
+                          item.note.author.viewer?.followedBy,
+                        ),
+                        uri: item.note.uri,
+                      })),
+                    )
+                  }
+
+                  const feedNoteSlice: FeedNoteSlice = {
+                    _reactKey: slice._reactKey,
+                    _isFeedNoteSlice: true,
+                    isIncompleteThread: slice.isIncompleteThread,
+                    isFallbackMarker: slice.isFallbackMarker,
+                    feedContext: slice.feedContext,
+                    reqId: slice.reqId,
+                    reason: slice.reason,
+                    feedNoteUri: slice.feedNoteUri,
+                    items: slice.items.map((item, i) => {
+                      const feedNoteSliceItem: FeedNoteSliceItem = {
+                        _reactKey: `${slice._reactKey}-${i}-${item.note.uri}`,
+                        uri: item.note.uri,
+                        note: item.note,
+                        record: item.record,
+                        moderation: moderations[i],
+                        parentAuthor: item.parentAuthor,
+                        isParentBlocked: item.isParentBlocked,
+                        isParentNotFound: item.isParentNotFound,
+                      }
+                      return feedNoteSliceItem
+                    }),
+                  }
+                  return feedNoteSlice
+                })
+                .filter(n => !!n),
+            })),
+          ],
+        }
+        // Save for memoization.
+        lastRun.current = {data, result, args: selectArgs}
+        return result
+      },
+      [selectArgs /* Don't change. Everything needs to go into selectArgs. */],
+    ),
+  })
+
+  // The server may end up returning an empty page, a page with too few items,
+  // or a page with items that end up getting filtered out. When we fetch pages,
+  // we'll keep track of how many items we actually hope to see. If the server
+  // doesn't return enough items, we're going to continue asking for more items.
+  const lastItemCount = useRef(0)
+  const wantedItemCount = useRef(0)
+  const autoPaginationAttemptCount = useRef(0)
+  useEffect(() => {
+    const {data, isLoading, isRefetching, isFetchingNextPage, hasNextPage} =
+      query
+    // Count the items that we already have.
+    let itemCount = 0
+    for (const page of data?.pages || []) {
+      for (const slice of page.slices) {
+        itemCount += slice.items.length
+      }
+    }
+
+    // If items got truncated, reset the state we're tracking below.
+    if (itemCount !== lastItemCount.current) {
+      if (itemCount < lastItemCount.current) {
+        wantedItemCount.current = itemCount
+      }
+      lastItemCount.current = itemCount
+    }
+
+    // Now track how many items we really want, and fetch more if needed.
+    if (isLoading || isRefetching) {
+      // During the initial fetch, we want to get an entire page's worth of items.
+      wantedItemCount.current = MIN_NOTES
+    } else if (isFetchingNextPage) {
+      if (itemCount > wantedItemCount.current) {
+        // We have more items than wantedItemCount, so wantedItemCount must be out of date.
+        // Some other code must have called fetchNextPage(), for example, from onEndReached.
+        // Adjust the wantedItemCount to reflect that we want one more full page of items.
+        wantedItemCount.current = itemCount + MIN_NOTES
+      }
+    } else if (hasNextPage) {
+      // At this point we're not fetching anymore, so it's time to make a decision.
+      // If we userIdn't receive enough items from the server, paginate again until we do.
+      if (itemCount < wantedItemCount.current) {
+        autoPaginationAttemptCount.current++
+        if (autoPaginationAttemptCount.current < 50 /* failsafe */) {
+          query.fetchNextPage()
+        }
+      } else {
+        autoPaginationAttemptCount.current = 0
+      }
+    }
+  }, [query])
+
+  return query
+}
+
+export async function pollLatest(page: FeedPage | undefined) {
+  if (!page) {
+    return false
+  }
+  if (AppState.currentState !== 'active') {
+    return
+  }
+
+  logger.debug('useNoteFeedQuery: pollLatest')
+  const note = await page.api.peekLatest()
+  if (note) {
+    const slices = page.tuner.tune([note], {
+      dryRun: true,
+    })
+    if (slices[0]) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function createApi({
+  feedDesc,
+  feedParams,
+  feedTuners,
+  userInterests,
+  agent,
+  enableFollowingToDiscoverFallback,
+}: {
+  feedDesc: FeedDescriptor
+  feedParams: FeedParams
+  feedTuners: FeedTunerFn[]
+  userInterests?: string
+  agent: SonetAgent
+  enableFollowingToDiscoverFallback: boolean
+}) {
+  if (feedDesc === 'following') {
+    if (feedParams.mergeFeedEnabled) {
+      return new MergeFeedAPI({
+        agent,
+        feedParams,
+        feedTuners,
+        userInterests,
+      })
+    } else {
+      if (enableFollowingToDiscoverFallback) {
+        return new HomeFeedAPI({agent, userInterests})
+      } else {
+        return new FollowingFeedAPI({agent})
+      }
+    }
+  } else if (feedDesc.startsWith('author')) {
+    const [_, actor, filter] = feedDesc.split('|')
+    if ((useSonetSession as any) && (useSonetSession as any)().hasSession) {
+      const sonetApi = (useSonetApi as any)().getApi()
+      return new SonetAuthorFeedAPI({sonet: sonetApi, userId: actor.replace('userId:', '')})
+    }
+    return new AuthorFeedAPI({agent, feedParams: {actor, filter}})
+  } else if (feedDesc.startsWith('likes')) {
+    const [_, actor] = feedDesc.split('|')
+    return new LikesFeedAPI({agent, feedParams: {actor}})
+  } else if (feedDesc.startsWith('feedgen')) {
+    const [_, feed] = feedDesc.split('|')
+    return new CustomFeedAPI({
+      agent,
+      feedParams: {feed},
+      userInterests,
+    })
+  } else if (feedDesc.startsWith('list')) {
+    const [_, list] = feedDesc.split('|')
+    return new ListFeedAPI({agent, feedParams: {list}})
+  } else if (feedDesc.startsWith('notes')) {
+    const [_, uriList] = feedDesc.split('|')
+    return new NoteListFeedAPI({agent, feedParams: {uris: uriList.split(',')}})
+  } else if (feedDesc === 'demo') {
+    return new DemoFeedAPI({agent})
+  } else {
+    // shouldnt happen
+    return new FollowingFeedAPI({agent})
+  }
+}
+
+function createSonetHomeApi({sonet}: {sonet: ReturnType<typeof useSonetApi>['getApi'] extends () => infer T ? T : any}) {
+  const api: FeedAPI = {
+    async peekLatest() {
+      const res = await sonet.getHomeTimeline({limit: 1})
+      const items = Array.isArray(res.notes) ? res.notes : []
+      const first = items[0]
+      return first ? mapSonetNoteToFeedViewNote(first) : {note: {uri: 'sonet://empty', cid: 'empty', author: {userId: 'sonet:user', username: 'user'} as any} as any}
+    },
+    async fetch({cursor, limit}) {
+      const res = await sonet.getHomeTimeline({cursor, limit})
+      const notes = Array.isArray(res.notes) ? res.notes : []
+      return {
+        cursor: res?.pagination?.cursor || undefined,
+        feed: notes.map(mapSonetNoteToFeedViewNote),
+      }
+    },
+  }
+  return api
+}
+
+function mapSonetNoteToFeedViewNote(n: any): SonetFeedViewNote {
+  // Map minimal Sonet note response to a FeedViewNote shape
+  const author = n.author || {}
+  const note: SonetNote = {
+    uri: `sonet://note/${n.id}`,
+    cid: n.id,
+    author: {
+      userId: author.userId || author.id || 'sonet:user',
+      username: author.username || 'user',
+      displayName: author.display_name,
+      avatar: author.avatar_url,
+    } as any,
+    record: {text: n.content || n.text || ''} as any,
+    likeCount: n.like_count || 0,
+    renoteCount: n.renote_count || n.renote_count || 0,
+    replyCount: n.reply_count || 0,
+    indexedAt: n.created_at || new Date().toISOString(),
+  }
+  return {note}
+}
+
+export function* findAllNotesInQueryData(
+  queryClient: QueryClient,
+  uri: string,
+): Generator<SonetNote, undefined> {
+  const atUri = new SonetUri(uri)
+
+  const queryDatas = queryClient.getQueriesData<
+    InfiniteData<FeedPageUnselected>
+  >({
+    queryKey: [RQKEY_ROOT],
+  })
+  for (const [_queryKey, queryData] of queryDatas) {
+    if (!queryData?.pages) {
+      continue
+    }
+    for (const page of queryData?.pages) {
+      for (const item of page.feed) {
+        if (userIdOrUsernameUriMatches(atUri, item.note)) {
+          yield item.note
+        }
+
+        const quotedNote = getEmbeddedNote(item.note.embed)
+        if (quotedNote && userIdOrUsernameUriMatches(atUri, quotedNote)) {
+          yield embedViewRecordToNoteView(quotedNote)
+        }
+
+        if (SonetFeedDefs.isNoteView(item.reply?.parent)) {
+          if (userIdOrUsernameUriMatches(atUri, item.reply.parent)) {
+            yield item.reply.parent
+          }
+
+          const parentQuotedNote = getEmbeddedNote(item.reply.parent.embed)
+          if (
+            parentQuotedNote &&
+            userIdOrUsernameUriMatches(atUri, parentQuotedNote)
+          ) {
+            yield embedViewRecordToNoteView(parentQuotedNote)
+          }
+        }
+
+        if (SonetFeedDefs.isNoteView(item.reply?.root)) {
+          if (userIdOrUsernameUriMatches(atUri, item.reply.root)) {
+            yield item.reply.root
+          }
+
+          const rootQuotedNote = getEmbeddedNote(item.reply.root.embed)
+          if (rootQuotedNote && userIdOrUsernameUriMatches(atUri, rootQuotedNote)) {
+            yield embedViewRecordToNoteView(rootQuotedNote)
+          }
+        }
+      }
+    }
+  }
+}
+
+export function* findAllProfilesInQueryData(
+  queryClient: QueryClient,
+  userId: string,
+): Generator<SonetProfile, undefined> {
+  const queryDatas = queryClient.getQueriesData<
+    InfiniteData<FeedPageUnselected>
+  >({
+    queryKey: [RQKEY_ROOT],
+  })
+  for (const [_queryKey, queryData] of queryDatas) {
+    if (!queryData?.pages) {
+      continue
+    }
+    for (const page of queryData?.pages) {
+      for (const item of page.feed) {
+        if (item.note.author.userId === userId) {
+          yield item.note.author
+        }
+        const quotedNote = getEmbeddedNote(item.note.embed)
+        if (quotedNote?.author.userId === userId) {
+          yield quotedNote.author
+        }
+        if (
+          SonetFeedDefs.isNoteView(item.reply?.parent) &&
+          item.reply?.parent?.author.userId === userId
+        ) {
+          yield item.reply.parent.author
+        }
+        if (
+          SonetFeedDefs.isNoteView(item.reply?.root) &&
+          item.reply?.root?.author.userId === userId
+        ) {
+          yield item.reply.root.author
+        }
+      }
+    }
+  }
+}
+
+function assertSomeNotesPassModeration(
+  feed: SonetFeedViewNote[],
+  moderationPrefs: SonetModerationPrefs,
+) {
+  // no notes in this feed
+  if (feed.length === 0) return true
+
+  // assume false
+  let someNotesPassModeration = false
+
+  for (const item of feed) {
+    const moderation = moderateNote(item.note, {
+      userDid: undefined,
+      prefs: moderationPrefs,
+    })
+
+    if (!moderation.ui('contentList').filter) {
+      // we have a sfw note
+      someNotesPassModeration = true
+    }
+  }
+
+  if (!someNotesPassModeration) {
+    throw new Error(KnownError.FeedSignedInOnly)
+  }
+}
+
+export function resetNotesFeedQueries(queryClient: QueryClient, timeout = 0) {
+  setTimeout(() => {
+    queryClient.resetQueries({
+      predicate: query => query.queryKey[0] === RQKEY_ROOT,
+    })
+  }, timeout)
+}
+
+export function resetProfileNotesQueries(
+  queryClient: QueryClient,
+  userId: string,
+  timeout = 0,
+) {
+  setTimeout(() => {
+    queryClient.resetQueries({
+      predicate: query =>
+        !!(
+          query.queryKey[0] === RQKEY_ROOT &&
+          (query.queryKey[1] as string)?.includes(userId)
+        ),
+    })
+  }, timeout)
+}
+
+export function isFeedNoteSlice(v: any): v is FeedNoteSlice {
+  return (
+    v && typeof v === 'object' && '_isFeedNoteSlice' in v && v._isFeedNoteSlice
+  )
+}

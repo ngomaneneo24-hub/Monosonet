@@ -71,7 +71,7 @@ export interface VideoFeedItem {
   engagementMetrics: {
     viewCount: number
     likeCount: number
-    repostCount: number
+    renoteCount: number
     replyCount: number
     shareCount: number
     completionRate: number
@@ -395,11 +395,11 @@ export class VideoFeedService {
   }
 
   private calculateTrendingScore(candidate: any): number {
-    const {viewCount, likeCount, repostCount, replyCount, createdAt} = candidate
+    const {viewCount, likeCount, renoteCount, replyCount, createdAt} = candidate
     
     // Calculate velocity (engagement per hour)
     const hoursSinceCreation = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60)
-    const velocity = (likeCount + repostCount * 2 + replyCount * 3) / Math.max(hoursSinceCreation, 1)
+    const velocity = (likeCount + renoteCount * 2 + replyCount * 3) / Math.max(hoursSinceCreation, 1)
     
     // Normalize to 0-1 range
     return Math.min(1, velocity / 1000)
@@ -427,10 +427,10 @@ export class VideoFeedService {
   }
 
   private calculateDefaultScore(candidate: any): number {
-    const {viewCount, likeCount, repostCount, replyCount, createdAt} = candidate
+    const {viewCount, likeCount, renoteCount, replyCount, createdAt} = candidate
     
     // Engagement score
-    const engagementScore = (likeCount + repostCount * 2 + replyCount * 3) / Math.max(viewCount, 1)
+    const engagementScore = (likeCount + renoteCount * 2 + replyCount * 3) / Math.max(viewCount, 1)
     
     // Recency score (newer content gets slight boost)
     const hoursSinceCreation = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60)
@@ -457,7 +457,7 @@ export class VideoFeedService {
       engagementMetrics: {
         viewCount: candidate.viewCount || 0,
         likeCount: candidate.likeCount || 0,
-        repostCount: candidate.repostCount || 0,
+        renoteCount: candidate.renoteCount || 0,
         replyCount: candidate.replyCount || 0,
         shareCount: candidate.shareCount || 0,
         completionRate: candidate.completionRate || 0,

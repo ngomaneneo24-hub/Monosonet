@@ -395,7 +395,7 @@ std::chrono::minutes QueryCache::calculate_ttl(const std::string& query_type,
     if (query_type == "SELECT") {
         if (table_name == "users" || table_name == "profiles") {
             return std::chrono::minutes{15}; // User data changes frequently
-        } else if (table_name == "posts" || table_name == "comments") {
+        } else if (table_name == "notes" || table_name == "comments") {
             return std::chrono::minutes{5};  // Social content changes very frequently
         } else {
             return std::chrono::minutes{30}; // Default for other tables
@@ -573,9 +573,9 @@ std::vector<std::string> CacheWarmer::get_common_queries() const {
     return {
         "SELECT * FROM users WHERE id = $1",
         "SELECT * FROM profiles WHERE user_id = $1",
-        "SELECT * FROM posts WHERE author_id = $1 ORDER BY created_at DESC LIMIT 20",
-        "SELECT COUNT(*) FROM posts WHERE author_id = $1",
-        "SELECT * FROM comments WHERE post_id = $1 ORDER BY created_at ASC"
+        "SELECT * FROM notes WHERE author_id = $1 ORDER BY created_at DESC LIMIT 20",
+        "SELECT COUNT(*) FROM notes WHERE author_id = $1",
+        "SELECT * FROM comments WHERE note_id = $1 ORDER BY created_at ASC"
     };
 }
 
@@ -587,11 +587,11 @@ std::vector<std::string> CacheWarmer::get_table_queries(const std::string& table
             "SELECT * FROM users WHERE email = $1",
             "SELECT * FROM users WHERE username = $1"
         };
-    } else if (table_name == "posts") {
+    } else if (table_name == "notes") {
         return {
-            "SELECT * FROM posts WHERE id = $1",
-            "SELECT * FROM posts WHERE author_id = $1 ORDER BY created_at DESC",
-            "SELECT COUNT(*) FROM posts WHERE author_id = $1"
+            "SELECT * FROM notes WHERE id = $1",
+            "SELECT * FROM notes WHERE author_id = $1 ORDER BY created_at DESC",
+            "SELECT COUNT(*) FROM notes WHERE author_id = $1"
         };
     }
     
@@ -603,7 +603,7 @@ std::vector<std::string> CacheWarmer::get_user_queries(const std::string& user_i
     return {
         "SELECT * FROM users WHERE id = $1",
         "SELECT * FROM profiles WHERE user_id = $1",
-        "SELECT * FROM posts WHERE author_id = $1 ORDER BY created_at DESC LIMIT 20",
+        "SELECT * FROM notes WHERE author_id = $1 ORDER BY created_at DESC LIMIT 20",
         "SELECT * FROM user_settings WHERE user_id = $1"
     };
 }

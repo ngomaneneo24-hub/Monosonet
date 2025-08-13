@@ -84,7 +84,7 @@ public:
 
     struct ExportDataRequest {
         std::string access_token;
-        std::vector<std::string> data_types;  // profile, posts, messages, etc.
+        std::vector<std::string> data_types;  // profile, notes, messages, etc.
     };
 
     // HTTP endpoint handlers

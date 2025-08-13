@@ -19,7 +19,7 @@ import PasteInput, {
   type PasteInputRef, // @ts-expect-error no types when installing from github
 } from '@mattermost/react-native-paste-input'
 
-import {POST_IMG_MAX} from '#/lib/constants'
+import {NOTE_IMG_MAX} from '#/lib/constants'
 import {downloadAndResize} from '#/lib/media/manip'
 import {isUriImage} from '#/lib/media/util'
 import {cleanError} from '#/lib/strings/errors'
@@ -115,10 +115,10 @@ export const TextInput = forwardRef(function TextInputImpl(
               if (isUriImage(feature.uri)) {
                 const res = await downloadAndResize({
                   uri: feature.uri,
-                  width: POST_IMG_MAX.width,
-                  height: POST_IMG_MAX.height,
+                  width: NOTE_IMG_MAX.width,
+                  height: NOTE_IMG_MAX.height,
                   mode: 'contain',
-                  maxSize: POST_IMG_MAX.size,
+                  maxSize: NOTE_IMG_MAX.size,
                   timeout: 15e3,
                 })
 

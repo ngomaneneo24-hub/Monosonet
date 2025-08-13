@@ -1,0 +1,24 @@
+appId: xyz.blueskyweb.app
+---
+- runScript:
+    file: ../../setupServer.js
+    env:
+        SERVER_PATH: ?users&follows&notes&feeds
+- runFlow:
+    file: ../../setupApp.yml
+- tapOn:
+    id: "e2eSignInAlice"
+
+- tapOn:
+    id: "noteDropdownBtn"
+    index: 0
+- tapOn:
+    id: "noteDropdownReportBtn"
+- tapOn:
+    id: "report:option:com.atproto.moderation.defs#reasonSpam"
+- assertVisible:
+    id: "report:labeler:mod-authority.test"
+- tapOn:
+    id: "report:submit"
+- assertNotVisible:
+    id: "report:dialog"

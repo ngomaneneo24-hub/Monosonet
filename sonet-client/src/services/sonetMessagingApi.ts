@@ -146,7 +146,7 @@ export class SonetMessagingApi extends EventEmitter {
   async createChat(request: CreateChatRequest): Promise<SonetChat> {
     try {
       const response = await this.apiRequest('/messaging/chats', {
-        method: 'POST',
+        method: 'NOTE',
         body: JSON.stringify(request)
       })
 
@@ -253,7 +253,7 @@ export class SonetMessagingApi extends EventEmitter {
       }
 
       const response = await this.apiRequest('/messaging/messages', {
-        method: 'POST',
+        method: 'NOTE',
         body: JSON.stringify(messageData)
       })
 
@@ -401,7 +401,7 @@ export class SonetMessagingApi extends EventEmitter {
       
       // Send key exchange message to all participants
       await this.apiRequest('/messaging/key-exchange', {
-        method: 'POST',
+        method: 'NOTE',
         body: JSON.stringify({
           chatId,
           participantIds,
@@ -425,7 +425,7 @@ export class SonetMessagingApi extends EventEmitter {
       formData.append('encrypt', encrypt.toString())
 
       const response = await this.apiRequest('/messaging/attachments', {
-        method: 'POST',
+        method: 'NOTE',
         body: formData
       })
 

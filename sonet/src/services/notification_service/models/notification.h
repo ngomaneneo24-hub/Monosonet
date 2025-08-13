@@ -91,7 +91,7 @@ public:
     std::string action_url;       // Where to go when they tap it
     
     // Content references - linking back to the social content
-    std::string note_id;          // Related note ID (our version of posts)
+    std::string note_id;          // Related note ID (our version of notes)
     std::string comment_id;       // Related comment ID if applicable
     std::string conversation_id;  // Related DM conversation if applicable
     

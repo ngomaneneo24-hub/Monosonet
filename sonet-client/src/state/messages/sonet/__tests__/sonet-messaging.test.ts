@@ -66,7 +66,7 @@ describe('SonetMessagingApi', () => {
       })
 
       expect(mockSonetApi.fetchJson).toHaveBeenCalledWith('/v1/messages', {
-        method: 'POST',
+        method: 'NOTE',
         body: JSON.stringify({
           chat_id: 'chat-123',
           content: 'Hello, world!',

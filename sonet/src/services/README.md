@@ -16,12 +16,12 @@ A Go-based microservice for managing user lists (collections of users).
 - Permission-based access control
 
 **API Endpoints:**
-- `POST /api/v1/lists` - Create a new list
+- `NOTE /api/v1/lists` - Create a new list
 - `GET /api/v1/lists/:listId` - Get a specific list
 - `GET /api/v1/users/:userId/lists` - Get user's lists
 - `PUT /api/v1/lists/:listId` - Update a list
 - `DELETE /api/v1/lists/:listId` - Delete a list
-- `POST /api/v1/lists/:listId/members` - Add member to list
+- `NOTE /api/v1/lists/:listId/members` - Add member to list
 - `DELETE /api/v1/lists/:listId/members/:userId` - Remove member from list
 - `GET /api/v1/lists/:listId/members` - Get list members
 - `GET /api/v1/lists/:listId/members/:userId/check` - Check if user is in list
@@ -44,12 +44,12 @@ A Go-based microservice for managing user starterpacks (collections of profiles 
 - Suggested starterpacks for discovery
 
 **API Endpoints:**
-- `POST /api/v1/starterpacks` - Create a new starterpack
+- `NOTE /api/v1/starterpacks` - Create a new starterpack
 - `GET /api/v1/starterpacks/:starterpackId` - Get a specific starterpack
 - `GET /api/v1/users/:userId/starterpacks` - Get user's starterpacks
 - `PUT /api/v1/starterpacks/:starterpackId` - Update a starterpack
 - `DELETE /api/v1/starterpacks/:starterpackId` - Delete a starterpack
-- `POST /api/v1/starterpacks/:starterpackId/items` - Add item to starterpack
+- `NOTE /api/v1/starterpacks/:starterpackId/items` - Add item to starterpack
 - `DELETE /api/v1/starterpacks/:starterpackId/items/:itemId` - Remove item from starterpack
 - `GET /api/v1/starterpacks/:starterpackId/items` - Get starterpack items
 - `GET /api/v1/starterpacks/suggested` - Get suggested starterpacks
@@ -81,7 +81,7 @@ service/
 
 ### Prerequisites
 - Go 1.21+
-- PostgreSQL
+- NotegreSQL
 - Protocol Buffers compiler
 
 ### Building

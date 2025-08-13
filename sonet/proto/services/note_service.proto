@@ -750,7 +750,7 @@ message UserNoteStats {
     double average_engagement_rate = 4;
     int32 followers_gained = 5;
     repeated TopPerformingNote top_notes = 6;
-    repeated HourlyMetric posting_pattern = 7;
+    repeated HourlyMetric noteing_pattern = 7;
 }
 
 message TopPerformingNote {

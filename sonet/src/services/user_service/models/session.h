@@ -72,7 +72,7 @@ struct LocationInfo {
     std::string country_code;
     std::string region;
     std::string city;
-    std::string postal_code;
+    std::string noteal_code;
     double latitude;
     double longitude;
     std::string timezone;

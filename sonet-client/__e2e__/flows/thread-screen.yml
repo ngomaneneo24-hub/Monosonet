@@ -16,61 +16,61 @@ appId: xyz.blueskyweb.app
 - tapOn: "Thread root"
 - assertVisible: "Thread reply"
 
-# Can like the root post
+# Can like the root note
 - tapOn:
     id: "likeBtn"
     childOf:
-        id: "postThreadItem-by-bob.test"
+        id: "noteThreadItem-by-bob.test"
 - assertVisible: "1 like"
 - tapOn:
     id: "likeBtn"
     childOf:
-        id: "postThreadItem-by-bob.test"
+        id: "noteThreadItem-by-bob.test"
 - assertNotVisible: "1 like"
 
-# Can like a reply post
+# Can like a reply note
 - tapOn:
     id: "likeBtn"
     childOf:
-        id: "postThreadItem-by-carla.test"
+        id: "noteThreadItem-by-carla.test"
 - tapOn:
     id: "likeBtn"
     childOf:
-        id: "postThreadItem-by-carla.test"
+        id: "noteThreadItem-by-carla.test"
 
-# Can repost the root post
+# Can renote the root note
 - tapOn:
-    id: "repostBtn"
+    id: "renoteBtn"
     childOf:
-        id: "postThreadItem-by-bob.test"
-- tapOn: "Repost"
+        id: "noteThreadItem-by-bob.test"
+- tapOn: "Renote"
 - assertVisible:
-    id: "repostCount-expanded"
+    id: "renoteCount-expanded"
 - tapOn:
-    id: "repostBtn"
+    id: "renoteBtn"
     childOf:
-        id: "postThreadItem-by-bob.test"
-- tapOn: "Remove repost"
+        id: "noteThreadItem-by-bob.test"
+- tapOn: "Remove renote"
 - assertNotVisible:
-    id: "repostCount-expanded"
+    id: "renoteCount-expanded"
 
 
-# Can repost a reply post
+# Can renote a reply note
 - tapOn:
-    id: "repostBtn"
+    id: "renoteBtn"
     childOf:
-        id: "postThreadItem-by-carla.test"
-- tapOn: "Repost"
+        id: "noteThreadItem-by-carla.test"
+- tapOn: "Renote"
 - assertVisible:
-    id: "repostCount"
+    id: "renoteCount"
     childOf:
-        id: "postThreadItem-by-carla.test"
+        id: "noteThreadItem-by-carla.test"
 - tapOn:
-    id: "repostBtn"
+    id: "renoteBtn"
     childOf:
-        id: "postThreadItem-by-carla.test"
-- tapOn: "Remove repost"
+        id: "noteThreadItem-by-carla.test"
+- tapOn: "Remove renote"
 - assertNotVisible:
-    id: "repostCount"
+    id: "renoteCount"
     childOf:
-        id: "postThreadItem-by-carla.test"
+        id: "noteThreadItem-by-carla.test"

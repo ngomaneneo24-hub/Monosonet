@@ -3,7 +3,7 @@ appId: xyz.blueskyweb.app
 - runScript:
     file: ../setupServer.js
     env:
-        SERVER_PATH: ?users&follows&posts&feeds
+        SERVER_PATH: ?users&follows&notes&feeds
 - runFlow:
     file: ../setupApp.yml
 - tapOn:

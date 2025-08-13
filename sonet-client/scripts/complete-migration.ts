@@ -33,15 +33,15 @@ const REPLACEMENTS = {
   'https://bsky.app': 'https://sonet.app',
   
   // Terminology
-  'Post': 'Note',
-  'post': 'note',
-  'Repost': 'Renote',
-  'repost': 'renote',
+  'Note': 'Note',
+  'note': 'note',
+  'Renote': 'Renote',
+  'renote': 'renote',
   'Handle': 'Username',
   'handle': 'username',
   'DID': 'UserID',
   'did': 'userId',
-  'subscribed-post': 'subscribed-note',
+  'subscribed-note': 'subscribed-note',
   
   // File paths
   'expo-bluesky-swiss-army': 'expo-sonet-swiss-army',

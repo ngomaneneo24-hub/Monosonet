@@ -241,11 +241,11 @@ void display_api_examples() {
 🔗 HTTP REST API ENDPOINTS:
 
   Core Operations:
-  POST   /api/v1/follow/{user_id}              - Follow a user
+  NOTE   /api/v1/follow/{user_id}              - Follow a user
   DELETE /api/v1/follow/{user_id}              - Unfollow a user
-  POST   /api/v1/block/{user_id}               - Block a user
+  NOTE   /api/v1/block/{user_id}               - Block a user
   DELETE /api/v1/block/{user_id}               - Unblock a user
-  POST   /api/v1/mute/{user_id}                - Mute a user
+  NOTE   /api/v1/mute/{user_id}                - Mute a user
   DELETE /api/v1/mute/{user_id}                - Unmute a user
 
   Relationship Queries:
@@ -271,7 +271,7 @@ void display_api_examples() {
   GET    /api/v1/analytics/growth/{user_id}    - Get growth metrics
 
   Bulk Operations:
-  POST   /api/v1/follow/bulk                   - Bulk follow users
+  NOTE   /api/v1/follow/bulk                   - Bulk follow users
   DELETE /api/v1/follow/bulk                   - Bulk unfollow users
 
   Real-time:
@@ -294,7 +294,7 @@ void display_api_examples() {
 💻 EXAMPLE USAGE:
 
   # Follow a user
-  curl -X POST "http://localhost:8080/api/v1/follow/user456" \
+  curl -X NOTE "http://localhost:8080/api/v1/follow/user456" \
        -H "Authorization: Bearer $TOKEN" \
        -H "Content-Type: application/json" \
        -d '{"type": "standard", "source": "recommendation"}'
@@ -308,7 +308,7 @@ void display_api_examples() {
        -H "Authorization: Bearer $TOKEN"
 
   # Bulk follow users
-  curl -X POST "http://localhost:8080/api/v1/follow/bulk" \
+  curl -X NOTE "http://localhost:8080/api/v1/follow/bulk" \
        -H "Authorization: Bearer $TOKEN" \
        -H "Content-Type: application/json" \
        -d '{"user_ids": ["user789", "user101", "user112"], "type": "standard"}'
@@ -438,7 +438,7 @@ int main(int /*argc*/, char* /*argv*/[]) {
      --name sonet-follow \
      -p 8080:8080 \
      -p 9090:9090 \
-     -e DATABASE_URL="postgresql://user:pass@host:5432/sonet" \
+     -e DATABASE_URL="notegresql://user:pass@host:5432/sonet" \
      -e REDIS_URL="redis://host:6379" \
      -e LOG_LEVEL="info" \
      sonet-follow-service
@@ -457,7 +457,7 @@ int main(int /*argc*/, char* /*argv*/[]) {
 🔧 CONFIGURATION:
 
 Environment Variables:
-- DATABASE_URL: PostgreSQL connection string
+- DATABASE_URL: NotegreSQL connection string
 - REDIS_URL: Redis connection string
 - HTTP_PORT: HTTP server port (default: 8080)
 - GRPC_PORT: gRPC server port (default: 9090)

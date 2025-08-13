@@ -50,8 +50,8 @@ find_package(gRPC REQUIRED)
 # HTTP server library (optional - would use actual implementation)
 # find_package(httplib REQUIRED)
 
-# Database client (PostgreSQL)
-# find_package(PostgreSQL REQUIRED)
+# Database client (NotegreSQL)
+# find_package(NotegreSQL REQUIRED)
 
 # Cache client (Redis)
 # find_package(hiredis REQUIRED)

@@ -6,16 +6,16 @@ const path = require('path');
 // Type mapping from AT Protocol to Sonet
 const typeMappings = {
   // Feed types
-  'AppBskyFeedDefs.PostView': 'SonetPost',
+  'AppBskyFeedDefs.NoteView': 'SonetNote',
   'AppBskyFeedDefs.GeneratorView': 'SonetFeedGenerator',
-  'AppBskyFeedDefs.ThreadViewPost': 'SonetThreadViewPost',
-  'AppBskyFeedDefs.FeedViewPost': 'SonetFeedViewPost',
-  'AppBskyFeedDefs.ReasonRepost': 'SonetReason',
+  'AppBskyFeedDefs.ThreadViewNote': 'SonetThreadViewNote',
+  'AppBskyFeedDefs.FeedViewNote': 'SonetFeedViewNote',
+  'AppBskyFeedDefs.ReasonRenote': 'SonetReason',
   'AppBskyFeedDefs.Interaction': 'SonetInteraction',
   
-  // Post types
-  'AppBskyFeedPost.Record': 'SonetPostRecord',
-  'AppBskyFeedPost': 'SonetPost',
+  // Note types
+  'AppBskyFeedNote.Record': 'SonetNoteRecord',
+  'AppBskyFeedNote': 'SonetNote',
   
   // Actor types
   'AppBskyActorDefs.ProfileView': 'SonetProfile',
@@ -31,11 +31,11 @@ const typeMappings = {
   'AppBskyFeedDefs.CONTENTMODEIMAGES': "'images'",
   
   // Functions
-  'AppBskyFeedDefs.isReasonRepost': 'SonetUtils.isReasonRepost',
-  'AppBskyFeedDefs.isThreadViewPost': 'SonetUtils.isThreadViewPost',
+  'AppBskyFeedDefs.isReasonRenote': 'SonetUtils.isReasonRenote',
+  'AppBskyFeedDefs.isThreadViewNote': 'SonetUtils.isThreadViewNote',
   'AppBskyFeedDefs.isGeneratorView': 'SonetUtils.isGeneratorView',
-  'AppBskyFeedPost.isRecord': 'SonetUtils.isPostRecord',
-  'AppBskyFeedPost.validateRecord': 'SonetUtils.validatePostRecord',
+  'AppBskyFeedNote.isRecord': 'SonetUtils.isNoteRecord',
+  'AppBskyFeedNote.validateRecord': 'SonetUtils.validateNoteRecord',
   
   // URI types
   'AtUri': 'SonetUri',
@@ -54,14 +54,14 @@ const typeMappings = {
 // Files to process
 const filesToProcess = [
   'src/state/queries/feed.ts',
-  'src/state/queries/post-feed.ts',
+  'src/state/queries/note-feed.ts',
   'src/view/com/feeds/FeedPage.tsx',
-  'src/view/com/posts/PostFeed.tsx',
-  'src/view/com/post/Post.tsx',
-  'src/view/com/post-thread/PostThreadItem.tsx',
-  'src/screens/PostThread/components/ThreadItemPost.tsx',
-  'src/screens/PostThread/components/ThreadItemTreePost.tsx',
-  'src/screens/PostThread/components/ThreadItemAnchor.tsx',
+  'src/view/com/notes/NoteFeed.tsx',
+  'src/view/com/note/Note.tsx',
+  'src/view/com/note-thread/NoteThreadItem.tsx',
+  'src/screens/NoteThread/components/ThreadItemNote.tsx',
+  'src/screens/NoteThread/components/ThreadItemTreeNote.tsx',
+  'src/screens/NoteThread/components/ThreadItemAnchor.tsx',
   'src/screens/VideoFeed/index.tsx',
   'src/screens/Search/Explore.tsx',
   'src/screens/Search/SearchResults.tsx',
@@ -83,7 +83,7 @@ function processFile(filePath) {
   if (content.includes('@atproto/api')) {
     content = content.replace(
       /import\s*{[^}]*}\s*from\s*['"]@atproto\/api['"]/g,
-      'import { type SonetPost, type SonetProfile, type SonetFeedGenerator, type SonetPostRecord, type SonetFeedViewPost, type SonetInteraction, type SonetSavedFeed } from \'#/types/sonet\''
+      'import { type SonetNote, type SonetProfile, type SonetFeedGenerator, type SonetNoteRecord, type SonetFeedViewNote, type SonetInteraction, type SonetSavedFeed } from \'#/types/sonet\''
     );
     changed = true;
   }

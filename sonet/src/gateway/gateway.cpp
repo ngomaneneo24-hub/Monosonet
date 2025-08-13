@@ -37,7 +37,7 @@ void RestGateway::register_routes() {
 	server_->Options(R"(/.*)", [](const httplib::Request&, httplib::Response& res){ res.status = 204; });
 
 	// Placeholder Note endpoints
-	server_->Post("/api/v1/notes", [this](const httplib::Request& req, httplib::Response& res){
+	server_->Note("/api/v1/notes", [this](const httplib::Request& req, httplib::Response& res){
 		try { auto body = json::parse(req.body);
 			auto resp = responses::ok({{"id", "note_123"}, {"text", body.value("text", "")}});
 			res.status = 201; res.set_content(resp.dump(), "application/json"); }
@@ -51,13 +51,13 @@ void RestGateway::register_routes() {
 	});
 
 	// Auth endpoints (stubs) ---------------------------------
-	server_->Post("/api/v1/auth/login", [this](const httplib::Request& req, httplib::Response& res){
+	server_->Note("/api/v1/auth/login", [this](const httplib::Request& req, httplib::Response& res){
 		if (!rate_allow("auth_login")) { res.status=429; res.set_content(responses::error("RATE_LIMITED","Too many login attempts",429).dump(),"application/json"); return; }
 		try { auto body = json::parse(req.body); std::string username = body.value("username","user"); json token{{"sub",username},{"scope","read:profile write:note"},{"sid","sess123"},{"exp",9999999999}}; res.set_content(responses::ok({{"access_token",token.dump()},{"token_type","bearer"},{"expires_in",3600}}).dump(),"application/json"); }
 		catch(const std::exception& e){ res.status=400; res.set_content(responses::error("BAD_REQUEST",e.what(),400).dump(),"application/json"); }
 	});
 
-	server_->Post("/api/v1/auth/register", [this](const httplib::Request& req, httplib::Response& res){
+	server_->Note("/api/v1/auth/register", [this](const httplib::Request& req, httplib::Response& res){
 		if (!rate_allow("auth_register")) { res.status=429; res.set_content(responses::error("RATE_LIMITED","Too many registrations",429).dump(),"application/json"); return; }
 		try { auto body = json::parse(req.body); std::string username = body.value("username","newuser"); auto resp = responses::ok({{"user", {{"username",username},{"id","user_123"}}}}); res.status=201; res.set_content(resp.dump(),"application/json"); }
 		catch(const std::exception& e){ res.status=400; res.set_content(responses::error("BAD_REQUEST",e.what(),400).dump(),"application/json"); }

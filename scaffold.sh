@@ -541,7 +541,7 @@ A Twitter-like social media platform built in C++ with microservices architectur
 ## Tech Stack
 
 - **Language**: C++17/20
-- **Databases**: PostgreSQL, Redis, Cassandra, Elasticsearch
+- **Databases**: NotegreSQL, Redis, Cassandra, Elasticsearch
 - **Communication**: gRPC, HTTP/REST, WebSockets
 - **Containerization**: Docker, Kubernetes
 - **Monitoring**: Prometheus, Grafana, Jaeger

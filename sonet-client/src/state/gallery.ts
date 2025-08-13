@@ -12,7 +12,7 @@ import {
 } from 'expo-image-manipulator'
 import {nanoid} from 'nanoid/non-secure'
 
-import {POST_IMG_MAX} from '#/lib/constants'
+import {NOTE_IMG_MAX} from '#/lib/constants'
 import {getImageDim} from '#/lib/media/manip'
 import {openCropper} from '#/lib/media/picker'
 import {type PickerImage} from '#/lib/media/picker.shared'
@@ -198,7 +198,7 @@ export function resetImageManipulation(
 export async function compressImage(img: ComposerImage): Promise<PickerImage> {
   const source = img.transformed || img.source
 
-  const [w, h] = containImageRes(source.width, source.height, POST_IMG_MAX)
+  const [w, h] = containImageRes(source.width, source.height, NOTE_IMG_MAX)
 
   let minQualityPercentage = 0
   let maxQualityPercentage = 101 // exclusive
@@ -221,7 +221,7 @@ export async function compressImage(img: ComposerImage): Promise<PickerImage> {
 
     const base64 = res.base64
     const size = base64 ? getDataUriSize(base64) : 0
-    if (base64 && size <= POST_IMG_MAX.size) {
+    if (base64 && size <= NOTE_IMG_MAX.size) {
       minQualityPercentage = qualityPercentage
       newDataUri = {
         path: await moveIfNecessary(res.uri),

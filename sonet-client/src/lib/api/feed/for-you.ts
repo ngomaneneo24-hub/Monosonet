@@ -99,7 +99,7 @@ class ForYouFeedAPIImpl implements ForYouFeedAPI {
     const endpoint = '/v1/feeds/interactions'
     
     await this.makeRequest(endpoint, {
-      method: 'POST',
+      method: 'NOTE',
       body: JSON.stringify({ interactions: [interaction] })
     })
   }

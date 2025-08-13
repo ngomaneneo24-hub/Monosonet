@@ -77,7 +77,7 @@ export async function uploadVideo({
       xhr.onerror = () => {
         reject(new ServerError(_(msg`Failed to upload video`)))
       }
-      xhr.open('POST', uri)
+      xhr.open('NOTE', uri)
       xhr.setRequestHeader('Content-Type', video.mimeType)
       xhr.setRequestHeader('Authorization', `Bearer ${token}`)
       xhr.send(bytes)

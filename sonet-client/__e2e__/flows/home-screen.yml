@@ -3,7 +3,7 @@ appId: xyz.blueskyweb.app
 - runScript:
     file: ../setupServer.js
     env:
-        SERVER_PATH: ?users&follows&posts&feeds
+        SERVER_PATH: ?users&follows&notes&feeds
 - runFlow:
     file: ../setupApp.yml
 - tapOn:
@@ -33,23 +33,23 @@ appId: xyz.blueskyweb.app
 - assertNotVisible: "Feeds ✨"
 
 - tapOn:
-    label: "Can like posts"
+    label: "Can like notes"
     id: "likeBtn"
 - tapOn:
     id: "likeBtn"
 
 - tapOn:
-    label: "Can repost posts"
-    id: "repostBtn"
-- tapOn: "Repost"
+    label: "Can renote notes"
+    id: "renoteBtn"
+- tapOn: "Renote"
 - tapOn:
-    id: "repostBtn"
-- tapOn: "Remove repost"
+    id: "renoteBtn"
+- tapOn: "Remove renote"
 
 - tapOn:
-    label: "Can delete posts"
-    id: "postDropdownBtn"
+    label: "Can delete notes"
+    id: "noteDropdownBtn"
     childOf:
         id: "feedItem-by-alice.test"
-- tapOn: "Delete post"
+- tapOn: "Delete note"
 - tapOn: "Delete"

@@ -374,7 +374,7 @@ public:
     std::vector<std::pair<ResultType, size_t>> get_sorted_mixed_results() const;
     
     /**
-     * Apply result filters post-search
+     * Apply result filters note-search
      */
     void apply_content_filter(const std::function<bool(const NoteResult&)>& filter);
     void apply_user_filter(const std::function<bool(const UserResult&)>& filter);

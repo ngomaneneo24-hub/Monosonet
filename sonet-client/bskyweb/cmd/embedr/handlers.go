@@ -15,33 +15,33 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-var ErrPostNotFound = errors.New("post not found")
-var ErrPostNotPublic = errors.New("post is not publicly accessible")
+var ErrNoteNotFound = errors.New("note not found")
+var ErrNoteNotPublic = errors.New("note is not publicly accessible")
 
-func (srv *Server) getBlueskyPost(ctx context.Context, did syntax.DID, rkey syntax.RecordKey) (*appbsky.FeedDefs_PostView, error) {
+func (srv *Server) getBlueskyNote(ctx context.Context, did syntax.DID, rkey syntax.RecordKey) (*appbsky.FeedDefs_NoteView, error) {
 
-	// fetch the post post (with extra context)
-	uri := fmt.Sprintf("at://%s/app.bsky.feed.post/%s", did, rkey)
-	tpv, err := appbsky.FeedGetPostThread(ctx, srv.xrpcc, 1, 0, uri)
+	// fetch the note note (with extra context)
+	uri := fmt.Sprintf("at://%s/app.bsky.feed.note/%s", did, rkey)
+	tpv, err := appbsky.FeedGetNoteThread(ctx, srv.xrpcc, 1, 0, uri)
 	if err != nil {
-		log.Warnf("failed to fetch post: %s\t%v", uri, err)
+		log.Warnf("failed to fetch note: %s\t%v", uri, err)
 		// TODO: detect 404, specifically?
-		return nil, ErrPostNotFound
+		return nil, ErrNoteNotFound
 	}
 
-	if tpv.Thread.FeedDefs_BlockedPost != nil {
-		return nil, ErrPostNotPublic
-	} else if tpv.Thread.FeedDefs_ThreadViewPost.Post == nil {
-		return nil, ErrPostNotFound
+	if tpv.Thread.FeedDefs_BlockedNote != nil {
+		return nil, ErrNoteNotPublic
+	} else if tpv.Thread.FeedDefs_ThreadViewNote.Note == nil {
+		return nil, ErrNoteNotFound
 	}
 
-	postView := tpv.Thread.FeedDefs_ThreadViewPost.Post
-	for _, label := range postView.Author.Labels {
-		if label.Src == postView.Author.Did && label.Val == "!no-unauthenticated" {
-			return nil, ErrPostNotPublic
+	noteView := tpv.Thread.FeedDefs_ThreadViewNote.Note
+	for _, label := range noteView.Author.Labels {
+		if label.Src == noteView.Author.Did && label.Val == "!no-unauthenticated" {
+			return nil, ErrNoteNotPublic
 		}
 	}
-	return postView, nil
+	return noteView, nil
 }
 
 func (srv *Server) WebHome(c echo.Context) error {
@@ -73,7 +73,7 @@ func (srv *Server) parseBlueskyURL(ctx context.Context, raw string) (*syntax.ATU
 		return &uri, nil
 	}
 
-	// then try bsky.app post URL
+	// then try bsky.app note URL
 	u, err := url.Parse(raw)
 	if err != nil {
 		return nil, err
@@ -82,8 +82,8 @@ func (srv *Server) parseBlueskyURL(ctx context.Context, raw string) (*syntax.ATU
 		return nil, fmt.Errorf("only bsky.app URLs currently supported")
 	}
 	pathParts := strings.Split(u.Path, "/") // NOTE: pathParts[0] will be empty string
-	if len(pathParts) != 5 || pathParts[1] != "profile" || pathParts[3] != "post" {
-		return nil, fmt.Errorf("only bsky.app post URLs currently supported")
+	if len(pathParts) != 5 || pathParts[1] != "profile" || pathParts[3] != "note" {
+		return nil, fmt.Errorf("only bsky.app note URLs currently supported")
 	}
 	atid, err := syntax.ParseAtIdentifier(pathParts[2])
 	if err != nil {
@@ -108,7 +108,7 @@ func (srv *Server) parseBlueskyURL(ctx context.Context, raw string) (*syntax.ATU
 	}
 
 	// TODO: don't really need to re-parse here, if we had test coverage
-	aturi, err := syntax.ParseATURI(fmt.Sprintf("at://%s/app.bsky.feed.post/%s", did, rkey))
+	aturi, err := syntax.ParseATURI(fmt.Sprintf("at://%s/app.bsky.feed.note/%s", did, rkey))
 	if err != nil {
 		return nil, err
 	} else {
@@ -144,32 +144,32 @@ func (srv *Server) WebOEmbed(c echo.Context) error {
 	if err != nil {
 		return c.String(http.StatusBadRequest, fmt.Sprintf("Expected 'url' to be bsky.app URL or AT-URI: %v", err))
 	}
-	if aturi.Collection() != syntax.NSID("app.bsky.feed.post") {
-		return c.String(http.StatusNotImplemented, "Only posts (app.bsky.feed.post records) can be embedded currently")
+	if aturi.Collection() != syntax.NSID("app.bsky.feed.note") {
+		return c.String(http.StatusNotImplemented, "Only notes (app.bsky.feed.note records) can be embedded currently")
 	}
 	did, err := aturi.Authority().AsDID()
 	if err != nil {
 		return err
 	}
 
-	post, err := srv.getBlueskyPost(c.Request().Context(), did, aturi.RecordKey())
-	if err == ErrPostNotFound {
+	note, err := srv.getBlueskyNote(c.Request().Context(), did, aturi.RecordKey())
+	if err == ErrNoteNotFound {
 		return c.String(http.StatusNotFound, fmt.Sprintf("%v", err))
-	} else if err == ErrPostNotPublic {
+	} else if err == ErrNoteNotPublic {
 		return c.String(http.StatusForbidden, fmt.Sprintf("%v", err))
 	} else if err != nil {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
 	}
 
-	html, err := srv.postEmbedHTML(post)
+	html, err := srv.noteEmbedHTML(note)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
 	}
 	data := OEmbedResponse{
 		Type:         "rich",
 		Version:      "1.0",
-		AuthorName:   "@" + post.Author.Handle,
-		AuthorURL:    fmt.Sprintf("https://bsky.app/profile/%s", post.Author.Handle),
+		AuthorName:   "@" + note.Author.Handle,
+		AuthorURL:    fmt.Sprintf("https://bsky.app/profile/%s", note.Author.Handle),
 		ProviderName: "Bluesky Social",
 		ProviderURL:  "https://bsky.app",
 		CacheAge:     86400,
@@ -177,13 +177,13 @@ func (srv *Server) WebOEmbed(c echo.Context) error {
 		Height:       nil,
 		HTML:         html,
 	}
-	if post.Author.DisplayName != nil {
-		data.AuthorName = fmt.Sprintf("%s (@%s)", *post.Author.DisplayName, post.Author.Handle)
+	if note.Author.DisplayName != nil {
+		data.AuthorName = fmt.Sprintf("%s (@%s)", *note.Author.DisplayName, note.Author.Handle)
 	}
 	return c.JSON(http.StatusOK, data)
 }
 
-func (srv *Server) WebPostEmbed(c echo.Context) error {
+func (srv *Server) WebNoteEmbed(c echo.Context) error {
 
 	// sanity check arguments. don't 4xx, just let app handle if not expected format
 	rkeyParam := c.Param("rkey")
@@ -201,15 +201,15 @@ func (srv *Server) WebPostEmbed(c echo.Context) error {
 
 	// NOTE: this request was't really necessary; the JS will do the same fetch
 	/*
-		postView, err := srv.getBlueskyPost(ctx, did, rkey)
-		if err == ErrPostNotFound {
+		noteView, err := srv.getBlueskyNote(ctx, did, rkey)
+		if err == ErrNoteNotFound {
 			return c.String(http.StatusNotFound, fmt.Sprintf("%v", err))
-		} else if err == ErrPostNotPublic {
+		} else if err == ErrNoteNotPublic {
 			return c.String(http.StatusForbidden, fmt.Sprintf("%v", err))
 		} else if err != nil {
 			return c.String(http.StatusInternalServerError, fmt.Sprintf("%v", err))
 		}
 	*/
 
-	return c.Render(http.StatusOK, "postEmbed.html", nil)
+	return c.Render(http.StatusOK, "noteEmbed.html", nil)
 }

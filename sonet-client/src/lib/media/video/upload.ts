@@ -51,7 +51,7 @@ export async function uploadVideo({
         'content-type': video.mimeType,
         Authorization: `Bearer ${token}`,
       },
-      httpMethod: 'POST',
+      httpMethod: 'NOTE',
       uploadType: FileSystemUploadType.BINARY_CONTENT,
     },
     p => setProgress(p.totalBytesSent / p.totalBytesExpectedToSend),

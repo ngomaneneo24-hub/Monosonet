@@ -1,0 +1,20 @@
+appId: xyz.blueskyweb.app
+---
+- runScript:
+    file: ../setupServer.js
+    env:
+        SERVER_PATH: "?users&follows&notes"
+- runFlow:
+    file: ../setupApp.yml
+- tapOn:
+    id: "e2eSignInAlice"
+
+- tapOn:
+    id: "noteDropdownBtn"
+    index: 0
+- tapOn:
+    id: "noteDropdownReportBtn"
+- tapOn: "Create report for Misleading Note"
+- tapOn: "Send report to Dev-env Moderation"
+- tapOn:
+    point: "50%,90%"

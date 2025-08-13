@@ -294,7 +294,7 @@ ServiceConfig MessagingService::load_default_config() {
     config.http_port = 8080;
     config.websocket_port = 8081;
     config.grpc_port = 8082;
-    config.database_url = "postgresql://localhost:5432/sonet_messaging";
+    config.database_url = "notegresql://localhost:5432/sonet_messaging";
     config.redis_url = "redis://localhost:6379/0";
     config.max_connections = 10000;
     config.max_file_size = 100 * 1024 * 1024; // 100MB
@@ -389,7 +389,7 @@ bool MessagingService::init_storage() {
 
 bool MessagingService::init_database() {
     // Initialize database connection pool
-    // This would typically use a connection pool library like libpqxx for PostgreSQL
+    // This would typically use a connection pool library like libpqxx for NotegreSQL
     
     log_info("Initializing database connection...");
     

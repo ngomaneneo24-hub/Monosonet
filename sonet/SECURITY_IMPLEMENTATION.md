@@ -33,7 +33,7 @@ The Messaging Layer Security protocol has been fully implemented according to RF
 
 **Status: ✅ COMPLETE**
 
-Post-Quantum Cryptography algorithms have been fully integrated:
+Note-Quantum Cryptography algorithms have been fully integrated:
 
 #### Key Encapsulation Mechanisms (KEM):
 - **Kyber-512**: 800-byte public keys, 768-byte ciphertexts

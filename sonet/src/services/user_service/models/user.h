@@ -134,7 +134,7 @@ public:
     // Utility methods
     bool is_active() const;
     bool can_login() const;
-    bool can_post() const;
+    bool can_note() const;
     bool is_public() const;
     bool is_protected() const;
     bool is_private() const;

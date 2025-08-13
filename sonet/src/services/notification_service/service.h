@@ -30,7 +30,7 @@ namespace notification_service {
  */
 struct NotificationServiceConfig {
     // Database configuration
-    std::string database_url = "postgresql://localhost:5432/sonet";
+    std::string database_url = "notegresql://localhost:5432/sonet";
     std::string redis_url = "redis://localhost:6379";
     int database_pool_size = 10;
     bool enable_caching = true;

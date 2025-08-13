@@ -3,9 +3,9 @@ import {SonetNote, SonetUser} from '@sonet/types'
 
 const UserID = `userId:plc:z72i7hdynmk6r22z27h6tvur`
 const NOW = new Date()
-const POST_1_DATE = subMinutes(NOW, 2).toISOString()
-const POST_2_DATE = subMinutes(NOW, 4).toISOString()
-const POST_3_DATE = subMinutes(NOW, 5).toISOString()
+const NOTE_1_DATE = subMinutes(NOW, 2).toISOString()
+const NOTE_2_DATE = subMinutes(NOW, 4).toISOString()
+const NOTE_3_DATE = subMinutes(NOW, 5).toISOString()
 
 export const DEMO_FEED = {
   feed: [
@@ -22,13 +22,13 @@ export const DEMO_FEED = {
           followersCount: 1250,
           followingCount: 45,
           notesCount: 89,
-          createdAt: POST_1_DATE,
-          updatedAt: POST_1_DATE,
+          createdAt: NOTE_1_DATE,
+          updatedAt: NOTE_1_DATE,
         },
         content: 'Sonoma County folks: Come tip your hats our way and see us play new and old bluegrass tunes at Sebastopol Solstice Fest on June 20th.',
         language: 'en',
-        createdAt: POST_1_DATE,
-        updatedAt: POST_1_DATE,
+        createdAt: NOTE_1_DATE,
+        updatedAt: NOTE_1_DATE,
         media: [
           {
             id: 'img1',
@@ -68,11 +68,11 @@ export const DEMO_FEED = {
             following: `sonet://${UserID}/app.sonet.graph.follow/note2`,
           },
           labels: [],
-          createdAt: POST_2_DATE,
+          createdAt: NOTE_2_DATE,
         },
         record: {
           type: "sonet",
-          createdAt: POST_2_DATE,
+          createdAt: NOTE_2_DATE,
           // embed: {
           //   type: "sonet",
           //   images: [
@@ -115,7 +115,7 @@ export const DEMO_FEED = {
         renoteCount: 1,
         likeCount: 4,
         quoteCount: 0,
-        indexedAt: POST_2_DATE,
+        indexedAt: NOTE_2_DATE,
         viewer: {
           threadMuted: false,
           embeddingDisabled: false,
@@ -138,11 +138,11 @@ export const DEMO_FEED = {
             following: `sonet://${UserID}/app.sonet.graph.follow/note3`,
           },
           labels: [],
-          createdAt: POST_3_DATE,
+          createdAt: NOTE_3_DATE,
         },
         record: {
           type: "sonet",
-          createdAt: POST_3_DATE,
+          createdAt: NOTE_3_DATE,
           langs: ['en'],
           text: 'Tinkering with the basics of traditional wooden joinery in my shop lately. Starting small with this ox, made using simple mortise and tenon joints.',
         },
@@ -150,7 +150,7 @@ export const DEMO_FEED = {
         renoteCount: 97,
         likeCount: 399,
         quoteCount: 0,
-        indexedAt: POST_3_DATE,
+        indexedAt: NOTE_3_DATE,
         viewer: {
           threadMuted: false,
           embeddingDisabled: false,

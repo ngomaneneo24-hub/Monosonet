@@ -55,7 +55,7 @@ public:
         int32_t offset,
         int32_t limit,
         bool include_replies = false,
-        bool include_reposts = true
+        bool include_renotes = true
     );
 
     bool refresh_timeline(const std::string& user_id, int32_t max_items);

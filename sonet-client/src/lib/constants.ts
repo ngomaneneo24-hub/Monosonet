@@ -85,7 +85,7 @@ export const SONET_FEEDS = {
 
 export const FEEDBACK_FEEDS = [SONET_FEEDS.FOR_YOU, SONET_FEEDS.VIDEO]
 
-export const POST_IMG_MAX = {
+export const NOTE_IMG_MAX = {
   width: 2000,
   height: 2000,
   size: 1000000,
@@ -116,10 +116,10 @@ export const createHitslop = (size: number): Insets => ({
 export const HITSLOP_10 = createHitslop(10)
 export const HITSLOP_20 = createHitslop(20)
 export const HITSLOP_30 = createHitslop(30)
-export const POST_CTRL_HITSLOP = {top: 5, bottom: 10, left: 10, right: 10}
+export const NOTE_CTRL_HITSLOP = {top: 5, bottom: 10, left: 10, right: 10}
 export const LANG_DROPDOWN_HITSLOP = {top: 10, bottom: 10, left: 4, right: 4}
 export const BACK_HITSLOP = HITSLOP_30
-export const MAX_POST_LINES = 25
+export const MAX_NOTE_LINES = 25
 
 export const SONET_APP_ACCOUNT_ID = 'sonet.app'
 

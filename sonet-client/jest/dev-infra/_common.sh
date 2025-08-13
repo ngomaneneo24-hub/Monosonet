@@ -18,15 +18,15 @@ export_env() {
   export_redis_env
 }
 
-# Exports postgres environment variables
+# Exports notegres environment variables
 export_pg_env() {
   # Based on creds in compose.yaml
   export PGPORT=5433
   export PGHOST=localhost
   export PGUSER=pg
   export PGPASSWORD=password
-  export PGDATABASE=postgres
-  export DB_POSTGRES_URL="postgresql://pg:password@127.0.0.1:5433/postgres"
+  export PGDATABASE=notegres
+  export DB_NOTEGRES_URL="notegresql://pg:password@127.0.0.1:5433/notegres"
 }
 
 # Exports redis environment variables

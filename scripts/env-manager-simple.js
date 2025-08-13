@@ -172,11 +172,11 @@ NOTIFICATION_GRPC_ADDR=notification-service:9097`;
 # Copy this to .env and fill in your values
 
 # Database Configuration
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_USER=sonet
-POSTGRES_PASSWORD=sonet_dev_password
-POSTGRES_DB=sonet_dev
+NOTEGRES_HOST=localhost
+NOTEGRES_PORT=5432
+NOTEGRES_USER=sonet
+NOTEGRES_PASSWORD=sonet_dev_password
+NOTEGRES_DB=sonet_dev
 
 # Redis Configuration
 REDIS_HOST=localhost

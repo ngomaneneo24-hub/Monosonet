@@ -3,7 +3,7 @@ import { GrpcClients } from '../grpc/clients.js';
 import { verifyJwt, AuthenticatedRequest } from '../middleware/auth.js';
 
 export function registerFollowRoutes(router: Router, clients: GrpcClients) {
-  router.post('/v1/follow/:targetUserId', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
+  router.note('/v1/follow/:targetUserId', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
     const request = { user_id: req.params.targetUserId, follower_id: req.userId, type: 1, source: 'app' };
     clients.follow.FollowUser(request, (err: any, resp: any) => {
       if (err) return res.status(400).json({ ok: false, message: err.message });

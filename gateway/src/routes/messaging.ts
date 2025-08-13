@@ -19,7 +19,7 @@ export function registerMessagingRoutes(router: Router, clients: GrpcClients) {
     });
   });
 
-  router.post('/v1/messages', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
+  router.note('/v1/messages', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
     const body = req.body || {};
     const request = { recipient_id: body.recipient_id, sender_id: req.userId, content: body.content, media_ids: body.media_ids || [] };
     clients.messaging.SendMessage(request, (err: any, resp: any) => {
@@ -33,11 +33,11 @@ export function registerMessagingRoutes(router: Router, clients: GrpcClients) {
     return res.status(501).json({ ok: false, message: 'Note-to-self not implemented' });
   });
 
-  router.post('/v1/messages/note-to-self', verifyJwt, (_req: AuthenticatedRequest, res: Response) => {
+  router.note('/v1/messages/note-to-self', verifyJwt, (_req: AuthenticatedRequest, res: Response) => {
     return res.status(501).json({ ok: false, message: 'Note-to-self not implemented' });
   });
 
-  router.post('/v1/messages/note-to-self/:id/post', verifyJwt, (_req: AuthenticatedRequest, res: Response) => {
+  router.note('/v1/messages/note-to-self/:id/note', verifyJwt, (_req: AuthenticatedRequest, res: Response) => {
     return res.status(501).json({ ok: false, message: 'Note-to-self not implemented' });
   });
 }
