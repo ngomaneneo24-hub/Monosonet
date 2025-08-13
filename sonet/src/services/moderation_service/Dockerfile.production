@@ -1,0 +1,203 @@
+# Multi-stage production build for Sonet Moderation Service
+# Stage 1: Build environment
+FROM ubuntu:22.04 AS builder
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV GRPC_VERSION=1.59.0
+ENV PROTOBUF_VERSION=3.25.1
+ENV CMAKE_VERSION=3.28.0
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    wget \
+    curl \
+    pkg-config \
+    libssl-dev \
+    libz-dev \
+    libcurl4-openssl-dev \
+    libpq-dev \
+    libhiredis-dev \
+    libboost-all-dev \
+    libgtest-dev \
+    libgmock-dev \
+    clang \
+    clang-tidy \
+    cppcheck \
+    valgrind \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install CMake from source for latest version
+RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz \
+    && tar -xzf cmake-${CMAKE_VERSION}.tar.gz \
+    && cd cmake-${CMAKE_VERSION} \
+    && ./bootstrap \
+    && make -j$(nproc) \
+    && make install \
+    && cd .. \
+    && rm -rf cmake-${CMAKE_VERSION}*
+
+# Install gRPC and Protobuf
+RUN wget https://github.com/grpc/grpc/archive/v${GRPC_VERSION}.tar.gz \
+    && tar -xzf v${GRPC_VERSION}.tar.gz \
+    && cd grpc-${GRPC_VERSION} \
+    && git submodule update --init \
+    && mkdir -p cmake/build \
+    && cd cmake/build \
+    && cmake -DgRPC_INSTALL=ON \
+             -DgRPC_BUILD_TESTS=OFF \
+             -DCMAKE_BUILD_TYPE=Release \
+             -DCMAKE_INSTALL_PREFIX=/usr/local \
+             ../.. \
+    && make -j$(nproc) \
+    && make install \
+    && cd ../../.. \
+    && rm -rf grpc-${GRPC_VERSION}*
+
+# Install Protobuf compiler
+RUN wget https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protobuf-cpp-${PROTOBUF_VERSION}.tar.gz \
+    && tar -xzf protobuf-cpp-${PROTOBUF_VERSION}.tar.gz \
+    && cd protobuf-${PROTOBUF_VERSION} \
+    && ./configure --prefix=/usr/local \
+    && make -j$(nproc) \
+    && make install \
+    && ldconfig \
+    && cd .. \
+    && rm -rf protobuf-${PROTOBUF_VERSION}*
+
+# Install nlohmann/json
+RUN git clone https://github.com/nlohmann/json.git \
+    && cd json \
+    && mkdir build && cd build \
+    && cmake -DJSON_BuildTests=OFF -DCMAKE_BUILD_TYPE=Release .. \
+    && make -j$(nproc) \
+    && make install \
+    && cd ../.. \
+    && rm -rf json
+
+# Install spdlog for logging
+RUN git clone https://github.com/gabime/spdlog.git \
+    && cd spdlog \
+    && mkdir build && cd build \
+    && cmake -DSPDLOG_BUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Release .. \
+    && make -j$(nproc) \
+    && make install \
+    && cd ../.. \
+    && rm -rf spdlog
+
+# Set working directory
+WORKDIR /app
+
+# Copy source code
+COPY . .
+
+# Generate protobuf files
+RUN protoc --cpp_out=. --grpc_out=. --plugin=protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin \
+    proto/moderation_service.proto
+
+# Build the service
+RUN mkdir build && cd build \
+    && cmake -DCMAKE_BUILD_TYPE=Release \
+             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+             -DCMAKE_CXX_FLAGS="-O3 -march=native -DNDEBUG" \
+             .. \
+    && make -j$(nproc) \
+    && make install
+
+# Stage 2: Runtime environment
+FROM ubuntu:22.04 AS runtime
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libssl3 \
+    libpq5 \
+    libhiredis0.14 \
+    libboost-system1.74.0 \
+    libboost-thread1.74.0 \
+    libboost-filesystem1.74.0 \
+    libboost-date-time1.74.0 \
+    libboost-regex1.74.0 \
+    libboost-serialization1.74.0 \
+    libboost-json1.74.0 \
+    libcurl4 \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r sonet && useradd -r -g sonet sonet
+
+# Create necessary directories
+RUN mkdir -p /app/logs /app/config /app/certs /app/data \
+    && chown -R sonet:sonet /app
+
+# Copy built binaries from builder stage
+COPY --from=builder /usr/local/bin/* /usr/local/bin/
+COPY --from=builder /usr/local/lib/* /usr/local/lib/
+COPY --from=builder /usr/local/include/* /usr/local/include/
+
+# Copy configuration files
+COPY --chown=sonet:sonet config/ /app/config/
+COPY --chown=sonet:sonet scripts/ /app/scripts/
+
+# Set proper permissions
+RUN chmod +x /app/scripts/*.sh \
+    && chown -R sonet:sonet /app
+
+# Switch to non-root user
+USER sonet
+
+# Set working directory
+WORKDIR /app
+
+# Expose gRPC port
+EXPOSE 50051
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD grpc_health_probe -addr=localhost:50051 || exit 1
+
+# Set environment variables
+ENV LD_LIBRARY_PATH=/usr/local/lib
+ENV GRPC_VERBOSITY=ERROR
+ENV GRPC_TRACE=all
+
+# Default command
+CMD ["/usr/local/bin/sonet_moderation_service", "--config", "/app/config/config.yaml"]
+
+# Stage 3: Security scanning (optional)
+FROM runtime AS security-scan
+
+# Install security scanning tools
+RUN apt-get update && apt-get install -y \
+    trivy \
+    grype \
+    && rm -rf /var/lib/apt/lists/*
+
+# Run security scans
+RUN trivy fs --security-checks vuln,config,secret /app || true
+RUN grype /app || true
+
+# Stage 4: Final production image
+FROM runtime AS production
+
+# Copy security scan results if needed
+# COPY --from=security-scan /tmp/security-report.json /app/security-report.json
+
+# Add labels for production
+LABEL maintainer="Sonet Engineering Team <engineering@sonet.com>"
+LABEL version="1.0.0"
+LABEL description="Sonet Moderation Service - Production Ready"
+LABEL org.opencontainers.image.source="https://github.com/sonet/sonet-moderation-service"
+LABEL org.opencontainers.image.licenses="MIT"
+
+# Set production environment
+ENV NODE_ENV=production
+ENV LOG_LEVEL=info
+ENV GRPC_VERBOSITY=ERROR
+
+# Production command with proper signal handling
+CMD ["/usr/local/bin/sonet_moderation_service", "--config", "/app/config/config.yaml", "--log-level", "info"]

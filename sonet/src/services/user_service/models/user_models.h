@@ -23,7 +23,18 @@ enum class UserRole {
     USER = 0,
     MODERATOR = 1,
     ADMIN = 2,
-    SUPER_ADMIN = 3
+    SUPER_ADMIN = 3,
+    FOUNDER = 4  // Single founder account with full privileges
+};
+
+// User moderation status
+enum class ModerationStatus {
+    CLEAN = 0,
+    FLAGGED = 1,
+    WARNED = 2,
+    SHADOWBANNED = 3,
+    SUSPENDED = 4,
+    BANNED = 5
 };
 
 // User verification status
@@ -31,7 +42,8 @@ enum class VerificationStatus {
     UNVERIFIED = 0,
     PENDING = 1,
     VERIFIED = 2,
-    REJECTED = 3
+    REJECTED = 3,
+    FOUNDER_VERIFIED = 4  // Special founder verification
 };
 
 // Main user entity
@@ -53,6 +65,7 @@ struct User {
     std::string timezone;
     UserStatus status;
     UserRole role;
+    ModerationStatus moderation_status;
     VerificationStatus email_verified;
     VerificationStatus phone_verified;
     bool is_public_profile;
@@ -65,6 +78,10 @@ struct User {
     std::chrono::system_clock::time_point created_at;
     std::chrono::system_clock::time_point updated_at;
     std::chrono::system_clock::time_point deleted_at;
+    std::chrono::system_clock::time_point flagged_at;
+    std::chrono::system_clock::time_point flag_expires_at;
+    std::string flag_reason;
+    std::string flag_warning_message;
     std::string created_by;
     std::string updated_by;
     std::string deleted_by;
@@ -91,6 +108,16 @@ struct User {
     bool is_active() const { return status == UserStatus::ACTIVE; }
     bool is_verified() const { return email_verified == VerificationStatus::VERIFIED; }
     bool is_admin() const { return role == UserRole::ADMIN || role == UserRole::SUPER_ADMIN; }
+    bool is_founder() const { return role == UserRole::FOUNDER; }
+    bool is_moderator() const { return role >= UserRole::MODERATOR; }
+    bool is_flagged() const { return moderation_status == ModerationStatus::FLAGGED; }
+    bool is_shadowbanned() const { return moderation_status == ModerationStatus::SHADOWBANNED; }
+    bool is_suspended() const { return moderation_status == ModerationStatus::SUSPENDED; }
+    bool is_banned() const { return moderation_status == ModerationStatus::BANNED; }
+    bool is_under_moderation() const { return moderation_status != ModerationStatus::CLEAN; }
+    bool is_flag_expired() const { 
+        return flag_expires_at < std::chrono::system_clock::now(); 
+    }
     std::string get_full_name() const;
     std::string get_display_name_or_username() const;
     int get_age() const; // Calculate age from birth_date if available

@@ -10,21 +10,21 @@ import {useSession} from '#/state/session'
 import {atoms as a, useBreakpoints, useTheme} from '#/alf'
 import {Button, ButtonText} from '#/components/Button'
 import * as Dialog from '#/components/Dialog'
-import {VerifierCheck} from '#/components/icons/VerifierCheck'
+import {FounderCheck} from '#/components/icons/FounderCheck'
 import {Link} from '#/components/Link'
 import {Text} from '#/components/Typography'
 import {type FullVerificationState} from '#/components/verification'
-import type * as bsky from '#/types/bsky'
+import type * as sonet from '#/types/sonet'
 
 export {useDialogControl} from '#/components/Dialog'
 
-export function VerifierDialog({
+export function FounderDialog({
   control,
   profile,
   verificationState,
 }: {
   control: Dialog.DialogControlProps
-  profile: bsky.profile.AnyProfileView
+  profile: sonet.profile.AnyProfileView
   verificationState: FullVerificationState
 }) {
   return (
@@ -45,7 +45,7 @@ function Inner({
   control,
 }: {
   control: Dialog.DialogControlProps
-  profile: bsky.profile.AnyProfileView
+  profile: sonet.profile.AnyProfileView
   verificationState: FullVerificationState
 }) {
   const t = useTheme()
@@ -56,8 +56,8 @@ function Inner({
   const isSelf = profile.userId === currentAccount?.userId
   const userName = getUserDisplayName(profile)
   const label = isSelf
-    ? _(msg`You are a trusted verifier`)
-    : _(msg`${userName} is a trusted verifier`)
+    ? _(msg`You are a trusted account`)
+    : _(msg`${userName} is a trusted account`)
 
   return (
     <Dialog.ScrollableInner
@@ -83,7 +83,7 @@ function Inner({
               },
             ]}
             alt={_(
-              msg`An illustration showing that Bluesky selects trusted verifiers, and trusted verifiers in turn verify individual user accounts.`,
+              msg`An illustration showing that Sonet selects trusted accounts, and trusted accounts in turn verify individual user accounts.`,
             )}
           />
         </View>
@@ -94,12 +94,12 @@ function Inner({
           </Text>
           <Text style={[a.text_md, a.leading_snug]}>
             <Trans>
-              Accounts with a scalloped blue check mark{' '}
+              Accounts with a special badge{' '}
               <RNText>
-                <VerifierCheck width={14} />
+                <FounderCheck width={14} />
               </RNText>{' '}
-              can verify others. These trusted verifiers are selected by
-              Bluesky.
+              are trusted accounts. These trusted accounts are selected by
+              Sonet moderation team.
             </Trans>
           </Text>
         </View>
@@ -114,7 +114,7 @@ function Inner({
           <Link
             overridePresentation
             to={urls.website.blog.initialVerificationAnnouncement}
-            label={_(msg`Learn more about verification on Bluesky`)}
+            label={_(msg`Learn more about account verification on Sonet`)}
             size="small"
             variant="solid"
             color="primary"
