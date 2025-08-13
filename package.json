@@ -24,6 +24,7 @@
     "env:setup": "node scripts/env-manager-simple.js setup",
     "env:status": "node scripts/env-manager-simple.js status",
     "env:generate": "node scripts/env-manager-simple.js generate",
+    "env:validate": "node scripts/env-manager-simple.js validate",
     "docker:up": "cd sonet && docker-compose up -d",
     "docker:down": "cd sonet && docker-compose down",
     "docker:logs": "cd sonet && docker-compose logs -f",

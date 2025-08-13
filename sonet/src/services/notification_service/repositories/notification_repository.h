@@ -4,7 +4,7 @@
  * This file is part of Sonet - a social media platform built for real connections.
  * 
  * This is the repository interface for notifications. I designed this to be
- * database-agnostic so we can switch from NotegreSQL to something else if needed.
+ * database-agnostic so we can switch from postgresql to something else if needed.
  * The interface is clean but powerful enough to handle millions of notifications.
  */
 
@@ -227,7 +227,7 @@ public:
 };
 
 /**
- * NotegreSQL implementation of NotificationRepository
+ * postgresql implementation of NotificationRepository
  * I optimized this for Sonet-scale notification handling with multi-layer caching
  */
 class NotegreSQLNotificationRepository : public NotificationRepository {
@@ -374,7 +374,7 @@ public:
     void clear_all_caches() override;
     std::future<std::unordered_map<std::string, std::string>> get_cache_stats() override;
     
-    // Additional methods specific to NotegreSQL implementation
+    // Additional methods specific to postgresql implementation
     std::future<bool> initialize_database();
     std::future<bool> migrate_schema();
     std::future<bool> create_indexes();
@@ -429,7 +429,7 @@ private:
 class NotificationRepositoryFactory {
 public:
     enum class RepositoryType {
-        NOTEGRESQL,
+        postgresql,
         MONGODB,
         MEMORY // For testing
     };

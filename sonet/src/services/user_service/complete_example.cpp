@@ -264,7 +264,7 @@ void example_usage() {
             // {"aws_region", "us-east-1"},
             
             // Database configuration
-            {"database_connection_string", "notegresql://user:password@localhost:5432/sonet"}
+            {"database_connection_string", "postgresql://user:password@localhost:5432/sonet"}
         };
         
         // Initialize the complete user service

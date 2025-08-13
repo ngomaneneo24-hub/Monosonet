@@ -35,7 +35,7 @@ file(GLOB MEDIA_SERVICE_ALL_SOURCES
 set(MEDIA_SERVICE_MAIN ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
 list(REMOVE_ITEM MEDIA_SERVICE_ALL_SOURCES ${MEDIA_SERVICE_MAIN})
 
-# libpqxx (optional) - remove Notegres source if not found
+# libpqxx (optional) - remove postgres source if not found
 find_package(PkgConfig)
 pkg_check_modules(PQXX libpqxx)
 if(NOT PQXX_FOUND)

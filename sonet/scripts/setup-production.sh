@@ -104,7 +104,7 @@ install_system_dependencies() {
         rsyslog \
         supervisor \
         nginx \
-        notegresql-client \
+        postgresql-client \
         redis-tools \
         python3 \
         python3-pip \
@@ -175,8 +175,8 @@ create_directory_structure() {
     
     # Create main directories
     mkdir -p "$PRODUCTION_DIR"/{data,logs,backups,config,certs,scripts,monitoring}
-    mkdir -p "$DATA_DIR"/{notegres,redis,prometheus,grafana,elasticsearch}
-    mkdir -p "$LOGS_DIR"/{nginx,moderation,api,notegres,redis}
+    mkdir -p "$DATA_DIR"/{postgres,redis,prometheus,grafana,elasticsearch}
+    mkdir -p "$LOGS_DIR"/{nginx,moderation,api,postgres,redis}
     mkdir -p "$CONFIG_DIR"/{nginx,monitoring,backup}
     mkdir -p "$CERTS_DIR"/{ssl,ca}
     mkdir -p /var/log/sonet
@@ -229,7 +229,7 @@ configure_firewall() {
     ufw allow 443/tcp
     
     # Allow internal services (restrict to localhost)
-    ufw allow from 127.0.0.1 to any port 5432  # NotegreSQL
+    ufw allow from 127.0.0.1 to any port 5432  # postgresql
     ufw allow from 127.0.0.1 to any port 6379  # Redis
     ufw allow from 127.0.0.1 to any port 50051 # gRPC
     ufw allow from 127.0.0.1 to any port 8080  # API Gateway
@@ -399,12 +399,12 @@ create_production_env() {
     cp "$PROJECT_ROOT/config/production.env" "$env_file"
     
     # Generate secure passwords
-    local notegres_password=$(openssl rand -base64 32)
+    local postgres_password=$(openssl rand -base64 32)
     local redis_password=$(openssl rand -base64 32)
     local jwt_secret=$(openssl rand -base64 64)
     
     # Replace placeholder values
-    sed -i "s/your_ultra_secure_notegres_password_here/$notegres_password/g" "$env_file"
+    sed -i "s/your_ultra_secure_notegres_password_here/$postgres_password/g" "$env_file"
     sed -i "s/your_ultra_secure_redis_password_here/$redis_password/g" "$env_file"
     sed -i "s/your_ultra_secure_jwt_secret_key_here_minimum_256_bits/$jwt_secret/g" "$env_file"
     

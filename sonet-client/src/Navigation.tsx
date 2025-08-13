@@ -881,7 +881,7 @@ function RoutesContainer({children}: React.PropsWithChildren<{}>) {
    */
   const usernameChatMessage = useNonReactiveCallback(
     (payload: Extract<NotificationPayload, {reason: 'chat-message'}>) => {
-      notyLogger.debug(`usernameChatMessage`, {payload})
+      // Debug logging removed for production
 
       if (payload.recipientDid !== currentAccount?.userId) {
         // usernamed in useNotificationUsernamer after account switch finishes
@@ -922,7 +922,7 @@ function RoutesContainer({children}: React.PropsWithChildren<{}>) {
     const response = await Notifications.getLastNotificationResponseAsync()
 
     if (response) {
-      notyLogger.debug(`usernamePushNotificationEntry: response`, {response})
+      // Debug logging removed for production
 
       if (response.notification.date === lastUsernamedNotificationDateDedupe)
         return
@@ -944,12 +944,12 @@ function RoutesContainer({children}: React.PropsWithChildren<{}>) {
 
           if (path === '/notifications') {
             resetToTab('NotificationsTab')
-            notyLogger.debug(`usernamePushNotificationEntry: default navigate`)
+            // Debug logging removed for production
           } else if (path) {
             const [screen, params] = router.matchPath(path)
             // @ts-expect-error nested navigators aren't typed -sfn
             navigate('HomeTab', {screen, params})
-            notyLogger.debug(`usernamePushNotificationEntry: navigate`, {
+            // Debug logging removed for production
               screen,
               params,
             })
@@ -1084,7 +1084,7 @@ function logModuleInitTime() {
     // @ts-ignore Emitted by Metro in the bundle prelude
     performance.now() - global.__BUNDLE_START_TIME__,
   )
-  console.log(`Time to first paint: ${initMs} ms`)
+        // Performance logging removed for production
   logEvent('init', {
     initMs,
   })
@@ -1106,7 +1106,7 @@ function logModuleInitTime() {
     // Relies on our patch to polyfill.js in metro-runtime
     const initLogs = (global as any).__INIT_LOGS__
     if (shouldLog && Array.isArray(initLogs)) {
-      console.log(initLogs.join('\n'))
+      // Debug logging removed for production
     }
   }
 }

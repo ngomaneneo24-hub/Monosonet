@@ -3,7 +3,7 @@
  * 
  * This file is part of Sonet - a social media platform built for real connections.
  * 
- * This is the NotegreSQL implementation of the notification repository.
+ * This is the postgresql implementation of the notification repository.
  * I built this to handle millions of notifications with efficient caching
  * and connection pooling. The performance is optimized for mobile apps.
  */
@@ -1054,7 +1054,7 @@ std::unique_ptr<NotificationRepository> NotificationRepositoryFactory::create(
     RepositoryType type, const nlohmann::json& config) {
     
     switch (type) {
-        case RepositoryType::NOTEGRESQL: {
+        case RepositoryType::postgresql: {
             NotegreSQLNotificationRepository::Config pg_config;
             if (config.contains("connection_string")) {
                 pg_config.connection_string = config["connection_string"];

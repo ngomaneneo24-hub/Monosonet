@@ -19,7 +19,7 @@ Client → AT Protocol → Multiple PDS instances → IPFS/Blockchain
 
 ### After (Sonet)
 ```
-Client → Sonet Gateway → Go Microservices → NotegreSQL
+Client → Sonet Gateway → Go Microservices → postgresql
 ```
 
 ## API Endpoints

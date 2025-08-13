@@ -59,7 +59,7 @@ export class SonetEncryption {
         createdAt: new Date().toISOString()
       }
 
-      console.log('Encryption key pair generated:', keyId)
+      // Debug logging removed for production
       return keyPair
     } catch (error) {
       console.error('Failed to generate key pair:', error)
@@ -98,7 +98,7 @@ export class SonetEncryption {
         keyId: 'current_key' // This would be the actual key ID
       }
 
-      console.log('Message encrypted successfully')
+      // Debug logging removed for production
       return encryptedMessage
     } catch (error) {
       console.error('Failed to encrypt message:', error)
@@ -131,7 +131,7 @@ export class SonetEncryption {
       const iv = Buffer.from(encryptedMessage.iv, 'base64')
       const decryptedContent = await this.decryptWithAES(encryptedMessage.encryptedContent, messageKey, iv)
       
-      console.log('Message decrypted successfully')
+      // Debug logging removed for production
       return decryptedContent
     } catch (error) {
       console.error('Failed to decrypt message:', error)
@@ -170,7 +170,7 @@ export class SonetEncryption {
         keyId: 'current_key'
       }
 
-      console.log('File encrypted successfully')
+      // Debug logging removed for production
       return encryptedFile
     } catch (error) {
       console.error('Failed to encrypt file:', error)
@@ -203,7 +203,7 @@ export class SonetEncryption {
       const iv = Buffer.from(encryptedFile.iv, 'base64')
       const decryptedContent = await this.decryptWithAES(encryptedFile.encryptedContent, fileKey, iv)
       
-      console.log('File decrypted successfully')
+      // Debug logging removed for production
       return Buffer.from(decryptedContent, 'base64')
     } catch (error) {
       console.error('Failed to decrypt file:', error)
@@ -387,7 +387,7 @@ export class SonetEncryption {
       // Set expiration for old key
       oldKey.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
       
-      console.log('Encryption keys rotated successfully')
+      // Debug logging removed for production
       return newKey
     } catch (error) {
       console.error('Failed to rotate keys:', error)
@@ -419,7 +419,7 @@ export class SonetEncryption {
       createdAt: new Date().toISOString()
     }
 
-    console.log('Key imported successfully')
+          // Debug logging removed for production
     return key
   }
 }

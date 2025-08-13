@@ -23,10 +23,15 @@ export const SERVER_CONFIG = {
  * JWT Configuration
  */
 export const JWT_CONFIG = {
-  secret: process.env.JWT_SECRET || 'dev_jwt_secret_key_change_in_production',
+  secret: process.env.JWT_SECRET,
   expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
 } as const
+
+// Validate required environment variables
+if (!JWT_CONFIG.secret) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
 
 /**
  * Rate Limiting Configuration
@@ -70,13 +75,13 @@ export const SERVICE_ENDPOINTS = {
  * Database Configuration
  */
 export const DATABASE_CONFIG = {
-  notegres: {
-    host: process.env.NOTEGRES_HOST || 'localhost',
-    port: parseInt(process.env.NOTEGRES_PORT || '5432', 10),
-    user: process.env.NOTEGRES_USER || 'sonet',
-    password: process.env.NOTEGRES_PASSWORD || 'sonet_dev_password',
-    database: process.env.NOTEGRES_DB || 'sonet_dev',
-    sslMode: process.env.NOTEGRES_SSL_MODE || 'disable',
+  postgres: {
+    host: process.env.postgres_host || 'localhost',
+    port: parseInt(process.env.postgres_port || '5432', 10),
+    user: process.env.postgres_user || 'sonet',
+    password: process.env.postgres_password || 'sonet_dev_password',
+    database: process.env.postgres_db || 'sonet_dev',
+    sslMode: process.env.postgres_ssl_mode || 'disable',
   },
   redis: {
     host: process.env.REDIS_HOST || 'localhost',
@@ -193,7 +198,7 @@ export const getCurrentEnvConfig = () => {
 export const validateEnvironment = (): boolean => {
   const required = [
     'JWT_SECRET',
-    'NOTEGRES_PASSWORD',
+    'postgres_password',
   ]
 
   const missing = required.filter(key => !process.env[key])

@@ -17,8 +17,8 @@
 
 namespace sonet::user::repositories {
 
-// NotegreSQLProfileRepository implementation
-NotegreSQLProfileRepository::NotegreSQLProfileRepository(std::shared_ptr<pqxx::connection> connection)
+// PostgreSQLProfileRepository implementation
+PostgreSQLProfileRepository::PostgreSQLProfileRepository(std::shared_ptr<pqxx::connection> connection)
     : db_connection_(connection),
       profiles_table_("profiles"),
       social_links_table_("profile_social_links"),
@@ -31,13 +31,13 @@ NotegreSQLProfileRepository::NotegreSQLProfileRepository(std::shared_ptr<pqxx::c
     setup_prepared_statements();
 }
 
-void NotegreSQLProfileRepository::ensure_connection() {
+void PostgreSQLProfileRepository::ensure_connection() {
     if (!db_connection_ || !test_connection()) {
         reconnect_if_needed();
     }
 }
 
-void NotegreSQLProfileRepository::reconnect_if_needed() {
+void PostgreSQLProfileRepository::reconnect_if_needed() {
     try {
         if (db_connection_) {
             db_connection_.reset();
@@ -49,7 +49,7 @@ void NotegreSQLProfileRepository::reconnect_if_needed() {
     }
 }
 
-bool NotegreSQLProfileRepository::test_connection() {
+bool PostgreSQLProfileRepository::test_connection() {
     try {
         if (!db_connection_) return false;
         pqxx::work txn(*db_connection_);
@@ -62,7 +62,7 @@ bool NotegreSQLProfileRepository::test_connection() {
     }
 }
 
-std::string NotegreSQLProfileRepository::build_select_query(const std::vector<std::string>& fields) const {
+std::string PostgreSQLProfileRepository::build_select_query(const std::vector<std::string>& fields) const {
     std::stringstream query;
     query << "SELECT ";
     
@@ -79,7 +79,7 @@ std::string NotegreSQLProfileRepository::build_select_query(const std::vector<st
     return query.str();
 }
 
-std::string NotegreSQLProfileRepository::build_insert_query(const Profile& profile) const {
+std::string PostgreSQLProfileRepository::build_insert_query(const Profile& profile) const {
     return R"(
         INSERT INTO profiles (
             profile_id, user_id, display_name, bio, location, website,
@@ -99,7 +99,7 @@ std::string NotegreSQLProfileRepository::build_insert_query(const Profile& profi
     )";
 }
 
-std::string NotegreSQLProfileRepository::build_update_query(const Profile& profile) const {
+std::string PostgreSQLProfileRepository::build_update_query(const Profile& profile) const {
     return R"(
         UPDATE profiles SET
             display_name = $3, bio = $4, location = $5, website = $6,
@@ -117,7 +117,7 @@ std::string NotegreSQLProfileRepository::build_update_query(const Profile& profi
     )";
 }
 
-Profile NotegreSQLProfileRepository::map_row_to_profile(const pqxx::row& row) const {
+Profile PostgreSQLProfileRepository::map_row_to_profile(const pqxx::row& row) const {
     Profile profile;
     
     try {
@@ -175,7 +175,7 @@ Profile NotegreSQLProfileRepository::map_row_to_profile(const pqxx::row& row) co
     return profile;
 }
 
-std::vector<Profile> NotegreSQLProfileRepository::map_result_to_profiles(const pqxx::result& result) const {
+std::vector<Profile> PostgreSQLProfileRepository::map_result_to_profiles(const pqxx::result& result) const {
     std::vector<Profile> profiles;
     profiles.reserve(result.size());
     
@@ -186,7 +186,7 @@ std::vector<Profile> NotegreSQLProfileRepository::map_result_to_profiles(const p
     return profiles;
 }
 
-SocialLink NotegreSQLProfileRepository::map_row_to_social_link(const pqxx::row& row) const {
+SocialLink PostgreSQLProfileRepository::map_row_to_social_link(const pqxx::row& row) const {
     SocialLink link;
     link.platform = row["platform"].as<std::string>();
     link.username = row["username"].as<std::string>();
@@ -198,7 +198,7 @@ SocialLink NotegreSQLProfileRepository::map_row_to_social_link(const pqxx::row& 
     return link;
 }
 
-CustomProfileField NotegreSQLProfileRepository::map_row_to_custom_field(const pqxx::row& row) const {
+CustomProfileField PostgreSQLProfileRepository::map_row_to_custom_field(const pqxx::row& row) const {
     CustomProfileField field;
     field.field_id = row["field_id"].as<std::string>();
     field.label = row["label"].as<std::string>();
@@ -212,7 +212,7 @@ CustomProfileField NotegreSQLProfileRepository::map_row_to_custom_field(const pq
     return field;
 }
 
-ProfileAnalytics NotegreSQLProfileRepository::map_row_to_analytics(const pqxx::row& row) const {
+ProfileAnalytics PostgreSQLProfileRepository::map_row_to_analytics(const pqxx::row& row) const {
     ProfileAnalytics analytics;
     analytics.user_id = row["user_id"].as<std::string>();
     analytics.profile_views_today = row["profile_views_today"].as<int>(0);
@@ -239,7 +239,7 @@ ProfileAnalytics NotegreSQLProfileRepository::map_row_to_analytics(const pqxx::r
     return analytics;
 }
 
-void NotegreSQLProfileRepository::load_profile_relations(Profile& profile) const {
+void PostgreSQLProfileRepository::load_profile_relations(Profile& profile) const {
     try {
         // Load social links
         load_social_links(profile);
@@ -255,7 +255,7 @@ void NotegreSQLProfileRepository::load_profile_relations(Profile& profile) const
     }
 }
 
-void NotegreSQLProfileRepository::load_social_links(Profile& profile) const {
+void PostgreSQLProfileRepository::load_social_links(Profile& profile) const {
     try {
         pqxx::work txn(*db_connection_);
         
@@ -274,7 +274,7 @@ void NotegreSQLProfileRepository::load_social_links(Profile& profile) const {
     }
 }
 
-void NotegreSQLProfileRepository::load_custom_fields(Profile& profile) const {
+void PostgreSQLProfileRepository::load_custom_fields(Profile& profile) const {
     try {
         pqxx::work txn(*db_connection_);
         
@@ -293,7 +293,7 @@ void NotegreSQLProfileRepository::load_custom_fields(Profile& profile) const {
     }
 }
 
-void NotegreSQLProfileRepository::load_analytics(Profile& profile) const {
+void PostgreSQLProfileRepository::load_analytics(Profile& profile) const {
     try {
         pqxx::work txn(*db_connection_);
         
@@ -315,7 +315,7 @@ void NotegreSQLProfileRepository::load_analytics(Profile& profile) const {
     }
 }
 
-bool NotegreSQLProfileRepository::validate_profile_data(const Profile& profile) const {
+bool PostgreSQLProfileRepository::validate_profile_data(const Profile& profile) const {
     auto errors = profile.get_validation_errors();
     if (!errors.empty()) {
         spdlog::error("Profile validation failed: {}", nlohmann::json(errors).dump());
@@ -324,11 +324,11 @@ bool NotegreSQLProfileRepository::validate_profile_data(const Profile& profile) 
     return true;
 }
 
-void NotegreSQLProfileRepository::log_profile_operation(const std::string& operation, const std::string& profile_id) const {
+void PostgreSQLProfileRepository::log_profile_operation(const std::string& operation, const std::string& profile_id) const {
     spdlog::info("Profile operation: {} for profile_id: {}", operation, profile_id);
 }
 
-bool NotegreSQLProfileRepository::create(const Profile& profile) {
+bool PostgreSQLProfileRepository::create(const Profile& profile) {
     try {
         if (!validate_profile_data(profile)) {
             return false;
@@ -370,7 +370,7 @@ bool NotegreSQLProfileRepository::create(const Profile& profile) {
     }
 }
 
-std::optional<Profile> NotegreSQLProfileRepository::get_by_id(const std::string& profile_id) {
+std::optional<Profile> PostgreSQLProfileRepository::get_by_id(const std::string& profile_id) {
     try {
         ensure_connection();
         pqxx::work txn(*db_connection_);
@@ -390,7 +390,7 @@ std::optional<Profile> NotegreSQLProfileRepository::get_by_id(const std::string&
     }
 }
 
-std::optional<Profile> NotegreSQLProfileRepository::get_by_user_id(const std::string& user_id) {
+std::optional<Profile> PostgreSQLProfileRepository::get_by_user_id(const std::string& user_id) {
     try {
         ensure_connection();
         pqxx::work txn(*db_connection_);
@@ -410,7 +410,7 @@ std::optional<Profile> NotegreSQLProfileRepository::get_by_user_id(const std::st
     }
 }
 
-bool NotegreSQLProfileRepository::update(const Profile& profile) {
+bool PostgreSQLProfileRepository::update(const Profile& profile) {
     try {
         if (!validate_profile_data(profile)) {
             return false;
@@ -458,7 +458,7 @@ bool NotegreSQLProfileRepository::update(const Profile& profile) {
     }
 }
 
-bool NotegreSQLProfileRepository::delete_profile(const std::string& profile_id) {
+bool PostgreSQLProfileRepository::delete_profile(const std::string& profile_id) {
     try {
         ensure_connection();
         pqxx::work txn(*db_connection_);
@@ -485,7 +485,7 @@ bool NotegreSQLProfileRepository::delete_profile(const std::string& profile_id) 
     }
 }
 
-void NotegreSQLProfileRepository::update_social_links(pqxx::work& txn, const Profile& profile) {
+void PostgreSQLProfileRepository::update_social_links(pqxx::work& txn, const Profile& profile) {
     // Clear existing social links
     txn.exec_params("DELETE FROM " + social_links_table_ + " WHERE user_id = $1", profile.user_id);
     
@@ -501,7 +501,7 @@ void NotegreSQLProfileRepository::update_social_links(pqxx::work& txn, const Pro
     }
 }
 
-void NotegreSQLProfileRepository::update_custom_fields(pqxx::work& txn, const Profile& profile) {
+void PostgreSQLProfileRepository::update_custom_fields(pqxx::work& txn, const Profile& profile) {
     // Clear existing custom fields
     txn.exec_params("DELETE FROM " + custom_fields_table_ + " WHERE user_id = $1", profile.user_id);
     
@@ -517,7 +517,7 @@ void NotegreSQLProfileRepository::update_custom_fields(pqxx::work& txn, const Pr
     }
 }
 
-void NotegreSQLProfileRepository::update_profile_analytics(pqxx::work& txn, const Profile& profile) {
+void PostgreSQLProfileRepository::update_profile_analytics(pqxx::work& txn, const Profile& profile) {
     // Convert recent visitors to JSON
     nlohmann::json visitors_json = profile.analytics.recent_visitors;
     
@@ -546,7 +546,7 @@ void NotegreSQLProfileRepository::update_profile_analytics(pqxx::work& txn, cons
     );
 }
 
-void NotegreSQLProfileRepository::setup_prepared_statements() {
+void PostgreSQLProfileRepository::setup_prepared_statements() {
     try {
         ensure_connection();
         
@@ -564,7 +564,7 @@ void NotegreSQLProfileRepository::setup_prepared_statements() {
     }
 }
 
-void NotegreSQLProfileRepository::create_database_schema() {
+void PostgreSQLProfileRepository::create_database_schema() {
     try {
         ensure_connection();
         pqxx::work txn(*db_connection_);
@@ -714,11 +714,11 @@ void NotegreSQLProfileRepository::create_database_schema() {
     }
 }
 
-void NotegreSQLProfileRepository::handle_database_error(const std::exception& e, const std::string& operation) const {
+void PostgreSQLProfileRepository::handle_database_error(const std::exception& e, const std::string& operation) const {
     spdlog::error("Profile database error during {}: {}", operation, e.what());
 }
 
-std::string NotegreSQLProfileRepository::build_full_text_search_query(const std::vector<std::string>& keywords) const {
+std::string PostgreSQLProfileRepository::build_full_text_search_query(const std::vector<std::string>& keywords) const {
     if (keywords.empty()) {
         return "";
     }
@@ -732,249 +732,249 @@ std::string NotegreSQLProfileRepository::build_full_text_search_query(const std:
     return search_query.str();
 }
 
-void NotegreSQLProfileRepository::update_search_index(const Profile& profile) {
+void PostgreSQLProfileRepository::update_search_index(const Profile& profile) {
     // In a real implementation, this would update external search indices
-    // For now, we rely on NotegreSQL's built-in full-text search
+    // For now, we rely on postgresql's built-in full-text search
     spdlog::debug("Updated search index for profile: {}", profile.profile_id);
 }
 
-void NotegreSQLProfileRepository::remove_from_search_index(const std::string& profile_id) {
+void PostgreSQLProfileRepository::remove_from_search_index(const std::string& profile_id) {
     // Remove from external search indices if needed
     spdlog::debug("Removed profile from search index: {}", profile_id);
 }
 
 // Stub implementations for remaining interface methods
-std::vector<Profile> NotegreSQLProfileRepository::get_by_user_ids(const std::vector<std::string>& user_ids) {
+std::vector<Profile> PostgreSQLProfileRepository::get_by_user_ids(const std::vector<std::string>& user_ids) {
     // Implementation would batch fetch profiles
     return {};
 }
 
-bool NotegreSQLProfileRepository::update_multiple(const std::vector<Profile>& profiles) {
+bool PostgreSQLProfileRepository::update_multiple(const std::vector<Profile>& profiles) {
     // Implementation would batch update profiles
     return false;
 }
 
-SearchResult<Profile> NotegreSQLProfileRepository::search(const ProfileSearchCriteria& criteria) {
+SearchResult<Profile> PostgreSQLProfileRepository::search(const ProfileSearchCriteria& criteria) {
     // Implementation would build dynamic search query
     return SearchResult<Profile>{};
 }
 
-std::vector<Profile> NotegreSQLProfileRepository::get_featured_profiles(int limit, int offset) {
+std::vector<Profile> PostgreSQLProfileRepository::get_featured_profiles(int limit, int offset) {
     // Implementation would get featured profiles
     return {};
 }
 
-std::vector<Profile> NotegreSQLProfileRepository::get_verified_profiles(int limit, int offset) {
+std::vector<Profile> PostgreSQLProfileRepository::get_verified_profiles(int limit, int offset) {
     // Implementation would get verified profiles
     return {};
 }
 
-std::vector<Profile> NotegreSQLProfileRepository::get_profiles_by_location(const std::string& location, int limit) {
+std::vector<Profile> PostgreSQLProfileRepository::get_profiles_by_location(const std::string& location, int limit) {
     // Implementation would search by location
     return {};
 }
 
-std::vector<Profile> NotegreSQLProfileRepository::get_profiles_by_profession(const std::string& profession, int limit) {
+std::vector<Profile> PostgreSQLProfileRepository::get_profiles_by_profession(const std::string& profession, int limit) {
     // Implementation would search by profession
     return {};
 }
 
-std::vector<Profile> NotegreSQLProfileRepository::get_recently_updated(int limit, int hours_back) {
+std::vector<Profile> PostgreSQLProfileRepository::get_recently_updated(int limit, int hours_back) {
     // Implementation would get recently updated profiles
     return {};
 }
 
-bool NotegreSQLProfileRepository::update_avatar(const std::string& user_id, const std::string& avatar_url) {
+bool PostgreSQLProfileRepository::update_avatar(const std::string& user_id, const std::string& avatar_url) {
     // Implementation would update avatar URL
     return false;
 }
 
-bool NotegreSQLProfileRepository::update_banner(const std::string& user_id, const std::string& banner_url) {
+bool PostgreSQLProfileRepository::update_banner(const std::string& user_id, const std::string& banner_url) {
     // Implementation would update banner URL
     return false;
 }
 
-bool NotegreSQLProfileRepository::remove_avatar(const std::string& user_id) {
+bool PostgreSQLProfileRepository::remove_avatar(const std::string& user_id) {
     // Implementation would remove avatar
     return false;
 }
 
-bool NotegreSQLProfileRepository::remove_banner(const std::string& user_id) {
+bool PostgreSQLProfileRepository::remove_banner(const std::string& user_id) {
     // Implementation would remove banner
     return false;
 }
 
-bool NotegreSQLProfileRepository::add_social_link(const std::string& user_id, const SocialLink& link) {
+bool PostgreSQLProfileRepository::add_social_link(const std::string& user_id, const SocialLink& link) {
     // Implementation would add social link
     return false;
 }
 
-bool NotegreSQLProfileRepository::update_social_link(const std::string& user_id, const SocialLink& link) {
+bool PostgreSQLProfileRepository::update_social_link(const std::string& user_id, const SocialLink& link) {
     // Implementation would update social link
     return false;
 }
 
-bool NotegreSQLProfileRepository::remove_social_link(const std::string& user_id, const std::string& platform) {
+bool PostgreSQLProfileRepository::remove_social_link(const std::string& user_id, const std::string& platform) {
     // Implementation would remove social link
     return false;
 }
 
-std::vector<SocialLink> NotegreSQLProfileRepository::get_social_links(const std::string& user_id) {
+std::vector<SocialLink> PostgreSQLProfileRepository::get_social_links(const std::string& user_id) {
     // Implementation would get social links
     return {};
 }
 
-bool NotegreSQLProfileRepository::add_custom_field(const std::string& user_id, const CustomProfileField& field) {
+bool PostgreSQLProfileRepository::add_custom_field(const std::string& user_id, const CustomProfileField& field) {
     // Implementation would add custom field
     return false;
 }
 
-bool NotegreSQLProfileRepository::update_custom_field(const std::string& user_id, const CustomProfileField& field) {
+bool PostgreSQLProfileRepository::update_custom_field(const std::string& user_id, const CustomProfileField& field) {
     // Implementation would update custom field
     return false;
 }
 
-bool NotegreSQLProfileRepository::remove_custom_field(const std::string& user_id, const std::string& field_id) {
+bool PostgreSQLProfileRepository::remove_custom_field(const std::string& user_id, const std::string& field_id) {
     // Implementation would remove custom field
     return false;
 }
 
-bool NotegreSQLProfileRepository::reorder_custom_fields(const std::string& user_id, const std::vector<std::string>& field_order) {
+bool PostgreSQLProfileRepository::reorder_custom_fields(const std::string& user_id, const std::vector<std::string>& field_order) {
     // Implementation would reorder custom fields
     return false;
 }
 
-std::vector<CustomProfileField> NotegreSQLProfileRepository::get_custom_fields(const std::string& user_id) {
+std::vector<CustomProfileField> PostgreSQLProfileRepository::get_custom_fields(const std::string& user_id) {
     // Implementation would get custom fields
     return {};
 }
 
-bool NotegreSQLProfileRepository::record_profile_view(const std::string& user_id, const std::string& viewer_id, const std::string& source) {
+bool PostgreSQLProfileRepository::record_profile_view(const std::string& user_id, const std::string& viewer_id, const std::string& source) {
     // Implementation would record profile view
     return false;
 }
 
-ProfileAnalytics NotegreSQLProfileRepository::get_profile_analytics(const std::string& user_id) {
+ProfileAnalytics PostgreSQLProfileRepository::get_profile_analytics(const std::string& user_id) {
     // Implementation would get analytics
     return ProfileAnalytics{};
 }
 
-bool NotegreSQLProfileRepository::update_profile_analytics(const std::string& user_id, const ProfileAnalytics& analytics) {
+bool PostgreSQLProfileRepository::update_profile_analytics(const std::string& user_id, const ProfileAnalytics& analytics) {
     // Implementation would update analytics
     return false;
 }
 
-std::vector<std::string> NotegreSQLProfileRepository::get_recent_profile_visitors(const std::string& user_id, int limit) {
+std::vector<std::string> PostgreSQLProfileRepository::get_recent_profile_visitors(const std::string& user_id, int limit) {
     // Implementation would get recent visitors
     return {};
 }
 
-bool NotegreSQLProfileRepository::set_verification_status(const std::string& user_id, const std::string& badge_type, bool verified) {
+bool PostgreSQLProfileRepository::set_verification_status(const std::string& user_id, const std::string& badge_type, bool verified) {
     // Implementation would set verification status
     return false;
 }
 
-bool NotegreSQLProfileRepository::is_profile_verified(const std::string& user_id) {
+bool PostgreSQLProfileRepository::is_profile_verified(const std::string& user_id) {
     // Implementation would check verification status
     return false;
 }
 
-std::string NotegreSQLProfileRepository::get_verification_badge(const std::string& user_id) {
+std::string PostgreSQLProfileRepository::get_verification_badge(const std::string& user_id) {
     // Implementation would get verification badge
     return "";
 }
 
-bool NotegreSQLProfileRepository::update_visibility(const std::string& user_id, ProfileVisibility visibility) {
+bool PostgreSQLProfileRepository::update_visibility(const std::string& user_id, ProfileVisibility visibility) {
     // Implementation would update visibility
     return false;
 }
 
-ProfileVisibility NotegreSQLProfileRepository::get_visibility(const std::string& user_id) {
+ProfileVisibility PostgreSQLProfileRepository::get_visibility(const std::string& user_id) {
     // Implementation would get visibility
     return ProfileVisibility::PUBLIC;
 }
 
-bool NotegreSQLProfileRepository::is_profile_visible_to(const std::string& user_id, const std::string& viewer_id) {
+bool PostgreSQLProfileRepository::is_profile_visible_to(const std::string& user_id, const std::string& viewer_id) {
     // Implementation would check visibility
     return false;
 }
 
-double NotegreSQLProfileRepository::calculate_profile_completeness(const std::string& user_id) {
+double PostgreSQLProfileRepository::calculate_profile_completeness(const std::string& user_id) {
     // Implementation would calculate completeness
     return 0.0;
 }
 
-std::vector<std::string> NotegreSQLProfileRepository::get_missing_profile_fields(const std::string& user_id) {
+std::vector<std::string> PostgreSQLProfileRepository::get_missing_profile_fields(const std::string& user_id) {
     // Implementation would get missing fields
     return {};
 }
 
-std::vector<Profile> NotegreSQLProfileRepository::get_incomplete_profiles(double threshold, int limit) {
+std::vector<Profile> PostgreSQLProfileRepository::get_incomplete_profiles(double threshold, int limit) {
     // Implementation would get incomplete profiles
     return {};
 }
 
-int NotegreSQLProfileRepository::count_total_profiles() {
+int PostgreSQLProfileRepository::count_total_profiles() {
     // Implementation would count profiles
     return 0;
 }
 
-int NotegreSQLProfileRepository::count_public_profiles() {
+int PostgreSQLProfileRepository::count_public_profiles() {
     // Implementation would count public profiles
     return 0;
 }
 
-int NotegreSQLProfileRepository::count_verified_profiles() {
+int PostgreSQLProfileRepository::count_verified_profiles() {
     // Implementation would count verified profiles
     return 0;
 }
 
-std::map<std::string, int> NotegreSQLProfileRepository::get_profile_completion_stats() {
+std::map<std::string, int> PostgreSQLProfileRepository::get_profile_completion_stats() {
     // Implementation would get completion stats
     return {};
 }
 
-std::map<std::string, int> NotegreSQLProfileRepository::get_verification_stats() {
+std::map<std::string, int> PostgreSQLProfileRepository::get_verification_stats() {
     // Implementation would get verification stats
     return {};
 }
 
-bool NotegreSQLProfileRepository::cleanup_inactive_profiles(int months_inactive) {
+bool PostgreSQLProfileRepository::cleanup_inactive_profiles(int months_inactive) {
     // Implementation would cleanup inactive profiles
     return false;
 }
 
-bool NotegreSQLProfileRepository::optimize_profile_search() {
+bool PostgreSQLProfileRepository::optimize_profile_search() {
     // Implementation would optimize search
     return false;
 }
 
-ProfileMaintenanceResult NotegreSQLProfileRepository::perform_maintenance() {
+ProfileMaintenanceResult PostgreSQLProfileRepository::perform_maintenance() {
     // Implementation would perform maintenance
     return ProfileMaintenanceResult{};
 }
 
-std::vector<Profile> NotegreSQLProfileRepository::search_by_keywords(const std::vector<std::string>& keywords, int limit) {
+std::vector<Profile> PostgreSQLProfileRepository::search_by_keywords(const std::vector<std::string>& keywords, int limit) {
     // Implementation would search by keywords
     return {};
 }
 
-std::vector<Profile> NotegreSQLProfileRepository::find_similar_profiles(const std::string& user_id, int limit) {
+std::vector<Profile> PostgreSQLProfileRepository::find_similar_profiles(const std::string& user_id, int limit) {
     // Implementation would find similar profiles
     return {};
 }
 
-std::vector<Profile> NotegreSQLProfileRepository::get_trending_profiles(int hours_back, int limit) {
+std::vector<Profile> PostgreSQLProfileRepository::get_trending_profiles(int hours_back, int limit) {
     // Implementation would get trending profiles
     return {};
 }
 
-std::vector<Profile> NotegreSQLProfileRepository::get_recommended_profiles(const std::string& user_id, int limit) {
+std::vector<Profile> PostgreSQLProfileRepository::get_recommended_profiles(const std::string& user_id, int limit) {
     // Implementation would get recommendations
     return {};
 }
 
-std::vector<Profile> NotegreSQLProfileRepository::get_profiles_to_follow(const std::string& user_id, int limit) {
+std::vector<Profile> PostgreSQLProfileRepository::get_profiles_to_follow(const std::string& user_id, int limit) {
     // Implementation would get follow suggestions
     return {};
 }
@@ -1054,10 +1054,10 @@ std::vector<ProfileRecommendationEngine::RecommendationScore> ProfileRecommendat
 }
 
 // ProfileRepositoryFactory implementation
-std::unique_ptr<NotegreSQLProfileRepository> ProfileRepositoryFactory::create_profile_repository(
+std::unique_ptr<PostgreSQLProfileRepository> ProfileRepositoryFactory::create_profile_repository(
     const std::string& connection_string) {
     auto connection = create_database_connection(connection_string);
-    return std::make_unique<NotegreSQLProfileRepository>(connection);
+    return std::make_unique<PostgreSQLProfileRepository>(connection);
 }
 
 std::unique_ptr<ProfileViewTracker> ProfileRepositoryFactory::create_view_tracker(
