@@ -78,7 +78,7 @@ export class SonetRealtimeMessaging extends EventEmitter {
       this.ws = new WebSocket(`${this.apiUrl}/realtime?token=${this.authToken}`)
       
       this.ws.onopen = () => {
-        console.log('Sonet real-time connection established')
+        // Debug logging removed for production
         this.isConnected = true
         this.reconnectAttempts = 0
         this.startHeartbeat()
@@ -96,7 +96,7 @@ export class SonetRealtimeMessaging extends EventEmitter {
       }
 
       this.ws.onclose = () => {
-        console.log('Sonet real-time connection closed')
+        // Debug logging removed for production
         this.isConnected = false
         this.stopHeartbeat()
         this.emit('disconnected')
@@ -341,7 +341,7 @@ export class SonetRealtimeMessaging extends EventEmitter {
   private attemptReconnect(): void {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++
-      console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
+      // Debug logging removed for production
       
       setTimeout(() => {
         this.connect().catch(error => {

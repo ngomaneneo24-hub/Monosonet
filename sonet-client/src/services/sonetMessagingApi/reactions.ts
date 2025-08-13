@@ -42,7 +42,7 @@ export class SonetReactions {
       timestamp: new Date().toISOString()
     }
 
-    console.log('Reaction added:', reaction)
+          // Debug logging removed for production
     return reaction
   }
 

@@ -15,7 +15,7 @@ services:
     environment:
       NOTEGRES_DB: sonet_dev
       NOTEGRES_USER: sonet
-      NOTEGRES_PASSWORD: sonet_dev_password
+      NOTEGRES_PASSWORD: ${NOTEGRES_PASSWORD:-sonet_dev_password}
       NOTEGRES_MULTIPLE_DATABASES: "user_service,note_service,media_service,follow_service,notification_service,messaging_service,timeline_service,search_service,analytics_service"
     ports:
       - "5432:5432"
@@ -59,7 +59,7 @@ services:
       - TIMELINE_GRPC_ADDR=timeline-service:50051
       - MEDIA_GRPC_ADDR=media-service:9090
       - PROTO_DIR=/app/proto
-      - JWT_SECRET=dev_jwt_secret_key_change_in_production
+      - JWT_SECRET=${JWT_SECRET:-}
       - FOLLOW_GRPC_ADDR=follow-service:9090
       - SEARCH_GRPC_ADDR=search-service:9096
       - NOTIFICATION_GRPC_ADDR=notification-service:9097
@@ -88,7 +88,7 @@ services:
       - "8081:8080"
       - "9090:9090"
     environment:
-      - DATABASE_URL=notegresql://sonet:sonet_dev_password@notegres:5432/user_service
+      - DATABASE_URL=notegresql://sonet:${NOTEGRES_PASSWORD:-sonet_dev_password}@notegres:5432/user_service
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=debug
       - SERVICE_NAME=user-service

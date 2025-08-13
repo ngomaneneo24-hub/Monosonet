@@ -41,7 +41,7 @@ export class SonetOfflineQueue {
         JSON.stringify(existingMessages)
       )
 
-      console.log('Message added to offline queue:', offlineMessage.offlineId)
+      // Debug logging removed for production
     } catch (error) {
       console.error('Failed to add message to offline queue:', error)
       throw error
@@ -85,7 +85,7 @@ export class SonetOfflineQueue {
         JSON.stringify(filteredMessages)
       )
 
-      console.log('Message removed from offline queue:', offlineId)
+      // Debug logging removed for production
     } catch (error) {
       console.error('Failed to remove message from offline queue:', error)
       throw error
@@ -143,7 +143,7 @@ export class SonetOfflineQueue {
   static async clearAllMessages(): Promise<void> {
     try {
       await AsyncStorage.removeItem(this.STORAGE_KEY)
-      console.log('All offline messages cleared')
+      // Debug logging removed for production
     } catch (error) {
       console.error('Failed to clear offline messages:', error)
       throw error
@@ -161,7 +161,7 @@ export class SonetOfflineQueue {
         JSON.stringify(pendingMessages)
       )
 
-      console.log('Failed messages cleared')
+      // Debug logging removed for production
     } catch (error) {
       console.error('Failed to clear failed messages:', error)
       throw error
@@ -282,7 +282,7 @@ export class SonetOfflineQueue {
     try {
       const messages = JSON.parse(messagesJson)
       await AsyncStorage.setItem(this.STORAGE_KEY, messagesJson)
-      console.log('Messages imported successfully')
+      // Debug logging removed for production
     } catch (error) {
       console.error('Failed to import messages:', error)
       throw error

@@ -23,10 +23,15 @@ export const SERVER_CONFIG = {
  * JWT Configuration
  */
 export const JWT_CONFIG = {
-  secret: process.env.JWT_SECRET || 'dev_jwt_secret_key_change_in_production',
+  secret: process.env.JWT_SECRET,
   expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
 } as const
+
+// Validate required environment variables
+if (!JWT_CONFIG.secret) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
 
 /**
  * Rate Limiting Configuration

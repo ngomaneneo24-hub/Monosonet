@@ -33,7 +33,7 @@ export class SonetE2EEncryption {
     if (this.isInitialized) return
 
     if (!USE_SONET_E2E_ENCRYPTION) {
-      console.log('E2E encryption disabled')
+      // Debug logging removed for production
       return
     }
 
@@ -43,7 +43,7 @@ export class SonetE2EEncryption {
       }
 
       this.isInitialized = true
-      console.log('E2E encryption initialized')
+      // Debug logging removed for production
     } catch (error) {
       console.error('Failed to initialize E2E encryption:', error)
       throw error

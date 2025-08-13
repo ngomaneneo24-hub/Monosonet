@@ -56,7 +56,7 @@ export function SonetConversationScreenInner({route}: Props) {
   // Username sending message
   const usernameSendMessage = useCallback(async (content: string, attachments?: any[]) => {
     try {
-      // TODO: Implement actual message sending
+      // TODO: Implement actual message sending - placeholder for future implementation
       console.log('Sending message:', {content, attachments, conversationId})
       
       // Simulate message sending
@@ -77,7 +77,7 @@ export function SonetConversationScreenInner({route}: Props) {
   
   // Username search result press
   const usernameSearchResultPress = useCallback((result: any) => {
-    // TODO: Navigate to specific message
+    // TODO: Navigate to specific message - placeholder for future implementation
     console.log('Search result pressed:', result)
     setIsSearchOpen(false)
   }, [])
