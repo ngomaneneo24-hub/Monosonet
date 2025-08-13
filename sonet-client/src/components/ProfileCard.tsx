@@ -41,8 +41,7 @@ import {RichText} from '#/components/RichText'
 import {Text} from '#/components/Typography'
 import {useSimpleVerificationState} from '#/components/verification'
 import {VerificationCheck} from '#/components/verification/VerificationCheck'
-import {PrivateProfileFollowButton} from '#/components/PrivateProfileFollowButton'
-import type * as bsky from '#/types/bsky'
+import type * as sonet from '#/types/sonet'
 
 export function Default({
   profile,
@@ -50,7 +49,7 @@ export function Default({
   logContext = 'ProfileCard',
   testID,
 }: {
-  profile: bsky.profile.AnyProfileView
+  profile: sonet.profile.AnyProfileView
   moderationOpts: ModerationOpts
   logContext?: 'ProfileCard' | 'StarterPackProfilesList'
   testID?: string
@@ -71,7 +70,7 @@ export function Card({
   moderationOpts,
   logContext = 'ProfileCard',
 }: {
-  profile: bsky.profile.AnyProfileView
+  profile: sonet.profile.AnyProfileView
   moderationOpts: ModerationOpts
   logContext?: 'ProfileCard' | 'StarterPackProfilesList'
 }) {
@@ -116,7 +115,7 @@ export function Link({
   style,
   ...rest
 }: {
-  profile: bsky.profile.AnyProfileView
+  profile: sonet.profile.AnyProfileView
 } & Omit<LinkProps, 'to' | 'label'>) {
   const {_} = useLingui()
   return (
@@ -145,7 +144,7 @@ export function Avatar({
   liveOverride,
   size = 40,
 }: {
-  profile: bsky.profile.AnyProfileView
+  profile: sonet.profile.AnyProfileView
   moderationOpts: ModerationOpts
   onPress?: () => void
   disabledPreview?: boolean
@@ -196,7 +195,7 @@ export function NameAndUsername({
   moderationOpts,
   inline = false,
 }: {
-  profile: bsky.profile.AnyProfileView
+  profile: sonet.profile.AnyProfileView
   moderationOpts: ModerationOpts
   inline?: boolean
 }) {
@@ -218,7 +217,7 @@ function InlineNameAndUsername({
   profile,
   moderationOpts,
 }: {
-  profile: bsky.profile.AnyProfileView
+  profile: sonet.profile.AnyProfileView
   moderationOpts: ModerationOpts
 }) {
   const t = useTheme()
@@ -251,7 +250,7 @@ function InlineNameAndUsername({
           ]}>
           <VerificationCheck
             width={platform({android: 13, default: 12})}
-            verifier={verification.role === 'verifier'}
+            founder={verification.role === 'founder'}
           />
         </View>
       )}
@@ -273,7 +272,7 @@ export function Name({
   profile,
   moderationOpts,
 }: {
-  profile: bsky.profile.AnyProfileView
+  profile: sonet.profile.AnyProfileView
   moderationOpts: ModerationOpts
 }) {
   const moderation = moderateProfile(profile, moderationOpts)
@@ -300,7 +299,7 @@ export function Name({
         <View style={[a.pl_xs]}>
           <VerificationCheck
             width={14}
-            verifier={verification.role === 'verifier'}
+            founder={verification.role === 'founder'}
           />
         </View>
       )}
@@ -308,7 +307,7 @@ export function Name({
   )
 }
 
-export function Username({profile}: {profile: bsky.profile.AnyProfileView}) {
+export function Username({profile}: {profile: sonet.profile.AnyProfileView}) {
   const t = useTheme()
   const username = sanitizeUsername(profile.username, '@')
 
@@ -375,7 +374,7 @@ export function Description({
   numberOfLines = 3,
   style,
 }: {
-  profile: bsky.profile.AnyProfileView
+  profile: sonet.profile.AnyProfileView
   numberOfLines?: number
 } & TextStyleProp) {
   const profile = useProfileShadow(profileUnshadowed)
@@ -431,7 +430,7 @@ export function DescriptionPlaceholder({
 }
 
 export type FollowButtonProps = {
-  profile: bsky.profile.AnyProfileView
+  profile: sonet.profile.AnyProfileView
   moderationOpts: ModerationOpts
   logContext: LogEvents['profile:follow']['logContext'] &
     LogEvents['profile:unfollow']['logContext']
@@ -583,7 +582,7 @@ export function Labels({
   profile,
   moderationOpts,
 }: {
-  profile: bsky.profile.AnyProfileView
+  profile: sonet.profile.AnyProfileView
   moderationOpts: ModerationOpts
 }) {
   const moderation = moderateProfile(profile, moderationOpts)

@@ -11,8 +11,8 @@ import {useFullVerificationState} from '#/components/verification'
 import {type FullVerificationState} from '#/components/verification'
 import {VerificationCheck} from '#/components/verification/VerificationCheck'
 import {VerificationsDialog} from '#/components/verification/VerificationsDialog'
-import {VerifierDialog} from '#/components/verification/VerifierDialog'
-import type * as bsky from '#/types/bsky'
+import {FounderDialog} from '#/components/verification/FounderDialog'
+import type * as sonet from '#/types/sonet'
 
 export function shouldShowVerificationCheckButton(
   state: FullVerificationState,
@@ -25,12 +25,12 @@ export function shouldShowVerificationCheckButton(
     } else if (state.profile.isViewer && state.profile.wasVerified) {
       ok = true
     } else if (
-      state.viewer.role === 'verifier' &&
+      state.viewer.role === 'founder' &&
       state.viewer.hasIssuedVerification
     ) {
       ok = true
     }
-  } else if (state.profile.role === 'verifier') {
+  } else if (state.profile.role === 'founder') {
     if (state.profile.isViewer) {
       ok = true
     } else if (state.profile.isVerified) {
@@ -41,7 +41,7 @@ export function shouldShowVerificationCheckButton(
   if (
     !state.profile.showBadge &&
     !state.profile.isViewer &&
-    !(state.viewer.role === 'verifier' && state.viewer.hasIssuedVerification)
+    !(state.viewer.role === 'founder' && state.viewer.hasIssuedVerification)
   ) {
     ok = false
   }
@@ -53,7 +53,7 @@ export function VerificationCheckButton({
   profile,
   size,
 }: {
-  profile: Shadow<bsky.profile.AnyProfileView>
+  profile: Shadow<sonet.profile.AnyProfileView>
   size: 'lg' | 'md' | 'sm'
 }) {
   const state = useFullVerificationState({
@@ -72,14 +72,14 @@ export function Badge({
   verificationState: state,
   size,
 }: {
-  profile: Shadow<bsky.profile.AnyProfileView>
+  profile: Shadow<sonet.profile.AnyProfileView>
   verificationState: FullVerificationState
   size: 'lg' | 'md' | 'sm'
 }) {
   const t = useTheme()
   const {_} = useLingui()
   const verificationsDialogControl = useDialogControl()
-  const verifierDialogControl = useDialogControl()
+  const founderDialogControl = useDialogControl()
   const {gtPhone} = useBreakpoints()
   let dimensions = 12
   if (size === 'lg') {
@@ -95,14 +95,14 @@ export function Badge({
       <Button
         label={
           state.profile.isViewer
-            ? _(msg`View your verifications`)
-            : _(msg`View this user's verifications`)
+            ? _(msg`View your account verification`)
+            : _(msg`View this user's account verification`)
         }
         hitSlop={20}
         onPress={() => {
           logger.metric('verification:badge:click', {}, {statsig: true})
-          if (state.profile.role === 'verifier') {
-            verifierDialogControl.open()
+          if (state.profile.role === 'founder') {
+            founderDialogControl.open()
           } else {
             verificationsDialogControl.open()
           }
@@ -133,7 +133,7 @@ export function Badge({
                     ? t.palette.primary_500
                     : t.atoms.bg_contrast_100.backgroundColor
               }
-              verifier={state.profile.role === 'verifier'}
+              founder={state.profile.role === 'founder'}
             />
           </View>
         )}
@@ -145,8 +145,8 @@ export function Badge({
         verificationState={state}
       />
 
-      <VerifierDialog
-        control={verifierDialogControl}
+      <FounderDialog
+        control={founderDialogControl}
         profile={profile}
         verificationState={state}
       />

@@ -1,12 +1,12 @@
 import {type Props} from '#/components/icons/common'
 import {VerifiedCheck} from '#/components/icons/VerifiedCheck'
-import {VerifierCheck} from '#/components/icons/VerifierCheck'
+import {FounderCheck} from '#/components/icons/FounderCheck'
 
 export function VerificationCheck({
-  verifier,
+  founder,
   ...rest
 }: Props & {
-  verifier?: boolean
+  founder?: boolean
 }) {
-  return verifier ? <VerifierCheck {...rest} /> : <VerifiedCheck {...rest} />
+  return founder ? <FounderCheck {...rest} /> : <VerifiedCheck {...rest} />
 }

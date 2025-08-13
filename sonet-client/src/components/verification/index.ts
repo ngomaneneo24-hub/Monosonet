@@ -3,11 +3,11 @@ import {useMemo} from 'react'
 import {usePreferencesQuery} from '#/state/queries/preferences'
 import {useCurrentAccountProfile} from '#/state/queries/useCurrentAccountProfile'
 import {useSession} from '#/state/session'
-import type * as bsky from '#/types/bsky'
+import type * as sonet from '#/types/sonet'
 
 export type FullVerificationState = {
   profile: {
-    role: 'default' | 'verifier'
+    role: 'default' | 'founder'
     isVerified: boolean
     wasVerified: boolean
     isViewer: boolean
@@ -19,7 +19,7 @@ export type FullVerificationState = {
         isVerified: boolean
       }
     | {
-        role: 'verifier'
+        role: 'founder'
         isVerified: boolean
         hasIssuedVerification: boolean
       }
@@ -28,7 +28,7 @@ export type FullVerificationState = {
 export function useFullVerificationState({
   profile,
 }: {
-  profile: bsky.profile.AnyProfileView
+  profile: sonet.profile.AnyProfileView
 }): FullVerificationState {
   const {currentAccount} = useSession()
   const currentAccountProfile = useCurrentAccountProfile()
@@ -45,22 +45,22 @@ export function useFullVerificationState({
       verifications.length > 0
     const hasIssuedVerification = Boolean(
       viewerState &&
-        viewerState.role === 'verifier' &&
+        viewerState.role === 'founder' &&
         profileState.role === 'default' &&
-        verifications.find(v => v.issuer === currentAccount?.userId),
+        verifications.find(v => v.issuer === currentAccount?.id),
     )
 
     return {
       profile: {
         ...profileState,
         wasVerified,
-        isViewer: profile.userId === currentAccount?.userId,
+        isViewer: profile.id === currentAccount?.id,
         showBadge: profileState.showBadge,
       },
       viewer:
-        viewerState.role === 'verifier'
+        viewerState.role === 'founder'
           ? {
-              role: 'verifier',
+              role: 'founder',
               isVerified: viewerState.isVerified,
               hasIssuedVerification,
             }
@@ -73,7 +73,7 @@ export function useFullVerificationState({
 }
 
 export type SimpleVerificationState = {
-  role: 'default' | 'verifier'
+  role: 'default' | 'founder'
   isVerified: boolean
   showBadge: boolean
 }
@@ -81,7 +81,7 @@ export type SimpleVerificationState = {
 export function useSimpleVerificationState({
   profile,
 }: {
-  profile?: bsky.profile.AnyProfileView
+  profile?: sonet.profile.AnyProfileView
 }): SimpleVerificationState {
   const preferences = usePreferencesQuery()
   const prefs = useMemo(
@@ -97,15 +97,15 @@ export function useSimpleVerificationState({
       }
     }
 
-    const {verifiedStatus, trustedVerifierStatus} = profile.verification
+    const {verifiedStatus, founderStatus} = profile.verification
     const isVerifiedUser = ['valid', 'invalid'].includes(verifiedStatus)
-    const isVerifierUser = ['valid', 'invalid'].includes(trustedVerifierStatus)
+    const isFounderUser = ['valid', 'invalid'].includes(founderStatus)
     const isVerified =
       (isVerifiedUser && verifiedStatus === 'valid') ||
-      (isVerifierUser && trustedVerifierStatus === 'valid')
+      (isFounderUser && founderStatus === 'valid')
 
     return {
-      role: isVerifierUser ? 'verifier' : 'default',
+      role: isFounderUser ? 'founder' : 'default',
       isVerified,
       showBadge: prefs.hideBadges ? false : isVerified,
     }

@@ -686,6 +686,17 @@ let NoteMenuItems = ({
                   </Menu.Item>
                 </>
               )}
+
+              {/* Founder delete functionality - founders can delete any post */}
+              {isFounder && !isAuthor && (
+                <Menu.Item
+                  testID="postDropdownFounderDeleteBtn"
+                  label={_(msg`Delete post (Moderation)`)}
+                  onPress={onFounderDeletePost}>
+                  <Menu.ItemText>{_(msg`Delete post (Moderation)`)}</Menu.ItemText>
+                  <Menu.ItemIcon icon={Trash} position="right" />
+                </Menu.Item>
+              )}
             </Menu.Group>
           </>
         )}

@@ -20,7 +20,7 @@ import * as ProfileCard from '#/components/ProfileCard'
 import {Text} from '#/components/Typography'
 import {type FullVerificationState} from '#/components/verification'
 import {VerificationRemovePrompt} from '#/components/verification/VerificationRemovePrompt'
-import type * as bsky from '#/types/bsky'
+import type * as sonet from '#/types/sonet'
 
 export {useDialogControl} from '#/components/Dialog'
 
@@ -30,7 +30,7 @@ export function VerificationsDialog({
   verificationState,
 }: {
   control: Dialog.DialogControlProps
-  profile: bsky.profile.AnyProfileView
+  profile: sonet.profile.AnyProfileView
   verificationState: FullVerificationState
 }) {
   return (
@@ -51,7 +51,7 @@ function Inner({
   verificationState: state,
 }: {
   control: Dialog.DialogControlProps
-  profile: bsky.profile.AnyProfileView
+  profile: sonet.profile.AnyProfileView
   verificationState: FullVerificationState
 }) {
   const t = useTheme()
@@ -61,14 +61,14 @@ function Inner({
   const userName = getUserDisplayName(profile)
   const label = state.profile.isViewer
     ? state.profile.isVerified
-      ? _(msg`You are verified`)
-      : _(msg`Your verifications`)
+      ? _(msg`Your account is verified`)
+      : _(msg`Your account verification`)
     : state.profile.isVerified
-      ? _(msg`${userName} is verified`)
+      ? _(msg`${userName}'s account is verified`)
       : _(
           msg({
-            message: `${userName}'s verifications`,
-            comment: `Possessive, meaning "the verifications of {userName}"`,
+            message: `${userName}'s account verification`,
+            comment: `Possessive, meaning "the verification of {userName}"`,
           }),
         )
 
@@ -85,8 +85,7 @@ function Inner({
         <Text style={[a.text_md, a.leading_snug]}>
           {state.profile.isVerified ? (
             <Trans>
-              This account has a checkmark because it's been verified by trusted
-              sources.
+              This account has been verified as a trusted account by Sonet moderation.
             </Trans>
           ) : (
             <Trans>
@@ -147,7 +146,7 @@ function Inner({
         <Link
           overridePresentation
           to={urls.website.blog.initialVerificationAnnouncement}
-          label={_(msg`Learn more about verification on Bluesky`)}
+          label={_(msg`Learn more about account verification on Sonet`)}
           size="small"
           variant="solid"
           color="secondary"
@@ -178,7 +177,7 @@ function VerifierCard({
   outerDialogControl,
 }: {
   verification: SonetActorDefs.VerificationView
-  subject: bsky.profile.AnyProfileView
+  subject: sonet.profile.AnyProfileView
   outerDialogControl: Dialog.DialogControlProps
 }) {
   const t = useTheme()
