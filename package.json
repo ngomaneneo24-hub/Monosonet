@@ -1,5 +1,5 @@
 {
-  "name": "sonet-monorepo",
+  "name": "sonet",
   "version": "1.0.0",
   "description": "Sonet Social Media Platform - Enterprise-Grade Twitter Alternative",
   "private": true,
@@ -60,7 +60,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/sonet-social/sonet-monorepo.git"
+    "url": "https://github.com/nq-26/sonet.git"
   },
   "keywords": [
     "sonet",
@@ -71,6 +71,5 @@
     "messaging",
     "microservices"
   ],
-  "author": "Sonet Team",
-  "license": "MIT"
+  "author": "Neo Qiss"
 }
