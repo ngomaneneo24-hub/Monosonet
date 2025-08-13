@@ -1,13 +1,13 @@
 import React from 'react'
 import {Pressable, View} from 'react-native'
-import {type ScrollView} from 'react-native-gesture-handler'
-import {type AppBskyLabelerDefs} from '@atproto/api'
+import {type ScrollView} from 'react-native-gesture-usernamer'
+import {type SonetLabelerDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
 import {wait} from '#/lib/async/wait'
 import {getLabelingServiceTitle} from '#/lib/moderation'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {Logger} from '#/logger'
 import {isNative} from '#/platform/detection'
 import {useMyLabelersQuery} from '#/state/queries/preferences'
@@ -55,7 +55,7 @@ export function ReportDialog(
   }, [])
   return (
     <Dialog.Outer control={props.control} onClose={onClose}>
-      <Dialog.Handle />
+      <Dialog.Username />
       {subject ? <Inner {...props} subject={subject} /> : <Invalid />}
     </Dialog.Outer>
   )
@@ -125,7 +125,7 @@ function Inner(props: ReportDialogProps) {
       .filter(l => {
         const collections: string[] | undefined = l.subjectCollections
         if (collections === undefined) return true
-        // all chat collections accepted, since only Bluesky handles chats
+        // all chat collections accepted, since only Bluesky usernames chats
         if (props.subject.type === 'chatMessage') return true
         return collections.includes(props.subject.nsid)
       })
@@ -159,7 +159,7 @@ function Inner(props: ReportDialogProps) {
         'reportDialog:success',
         {
           reason: state.selectedOption?.reason!,
-          labeler: state.selectedLabeler?.creator.handle!,
+          labeler: state.selectedLabeler?.creator.username!,
           details: !!state.details,
         },
         {statsig: false},
@@ -264,7 +264,7 @@ function Inner(props: ReportDialogProps) {
                     />
                   ))}
 
-                  {['post', 'account'].includes(props.subject.type) && (
+                  {['note', 'account'].includes(props.subject.type) && (
                     <Link
                       to={SUPPORT_PAGE}
                       label={_(
@@ -356,7 +356,7 @@ function Inner(props: ReportDialogProps) {
                         <>
                           {supportedLabelers.map(l => (
                             <LabelerCard
-                              key={l.creator.did}
+                              key={l.creator.userId}
                               labeler={l}
                               onSelect={() => {
                                 dispatch({type: 'selectLabeler', labeler: l})
@@ -631,8 +631,8 @@ function LabelerCard({
   labeler,
   onSelect,
 }: {
-  labeler: AppBskyLabelerDefs.LabelerViewDetailed
-  onSelect?: (option: AppBskyLabelerDefs.LabelerViewDetailed) => void
+  labeler: SonetLabelerDefs.LabelerViewDetailed
+  onSelect?: (option: SonetLabelerDefs.LabelerViewDetailed) => void
 }) {
   const t = useTheme()
   const {_} = useLingui()
@@ -641,11 +641,11 @@ function LabelerCard({
   }, [onSelect, labeler])
   const title = getLabelingServiceTitle({
     displayName: labeler.creator.displayName,
-    handle: labeler.creator.handle,
+    username: labeler.creator.username,
   })
   return (
     <Button
-      testID={`report:labeler:${labeler.creator.handle}`}
+      testID={`report:labeler:${labeler.creator.username}`}
       label={_(msg`Send report to ${title}`)}
       onPress={onPress}
       disabled={!onSelect}>
@@ -680,7 +680,7 @@ function LabelerCard({
                 a.leading_snug,
                 t.atoms.text_contrast_medium,
               ]}>
-              <Trans>By {sanitizeHandle(labeler.creator.handle, '@')}</Trans>
+              <Trans>By {sanitizeUsername(labeler.creator.username, '@')}</Trans>
             </Text>
           </View>
         </View>

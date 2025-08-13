@@ -21,7 +21,7 @@ async function checkIsOnline(): Promise<boolean> {
     setTimeout(() => {
       controller.abort()
     }, 15e3)
-    const res = await fetch('https://public.api.bsky.app/xrpc/_health', {
+    const res = await fetch('https://public.api.sonet.app/xrpc/_health', {
       cache: 'no-store',
       signal: controller.signal,
     })
@@ -90,17 +90,17 @@ focusManager.setEventListener(onFocus => {
 
     return () => subscription.remove()
   } else if (typeof window !== 'undefined' && window.addEventListener) {
-    // these handlers are a bit redundant but focus catches when the browser window
-    // is blurred/focused while visibilitychange seems to only handle when the
+    // these usernamers are a bit redundant but focus catches when the browser window
+    // is blurred/focused while visibilitychange seems to only username when the
     // window minimizes (both of them catch tab changes)
     // there's no harm to redundant fires because refetchOnWindowFocus is only
     // used with queries that employ stale data times
-    const handler = () => onFocus()
-    window.addEventListener('focus', handler, false)
-    window.addEventListener('visibilitychange', handler, false)
+    const usernamer = () => onFocus()
+    window.addEventListener('focus', usernamer, false)
+    window.addEventListener('visibilitychange', usernamer, false)
     return () => {
-      window.removeEventListener('visibilitychange', handler)
-      window.removeEventListener('focus', handler)
+      window.removeEventListener('visibilitychange', usernamer)
+      window.removeEventListener('focus', usernamer)
     }
   }
 })
@@ -163,10 +163,10 @@ function QueryProviderInner({
   const initialDid = useRef(currentDid)
   if (currentDid !== initialDid.current) {
     throw Error(
-      'Something is very wrong. Expected did to be stable due to key above.',
+      'Something is very wrong. Expected userId to be stable due to key above.',
     )
   }
-  // We create the query client here so that it's scoped to a specific DID.
+  // We create the query client here so that it's scoped to a specific UserID.
   // Do not move the query client creation outside of this component.
   const [queryClient, _setQueryClient] = useState(() => createQueryClient())
   const [persistOptions, _setPersistOptions] = useState(() => {

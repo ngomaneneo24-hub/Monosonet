@@ -1,11 +1,11 @@
-// For You Feed Item - ML-powered post with insights and engagement tracking
+// For You Feed Item - ML-powered note with insights and engagement tracking
 import React, {useCallback, useState} from 'react'
 import {View, Text, StyleSheet, TouchableOpacity, Animated} from 'react-native'
 import {useLingui} from '@lingui/react'
 import {msg} from '@lingui/macro'
 
 import {type ForYouFeedItem as ForYouFeedItemType} from '#/state/queries/for-you-feed'
-import {Post} from '#/view/com/post/Post'
+import {Note} from '#/view/com/note/Note'
 import {MLInsightsOverlay} from './MLInsightsOverlay'
 import {EngagementTracker} from './EngagementTracker'
 
@@ -26,10 +26,10 @@ export function ForYouFeedItem({
   const [showInsights, setShowInsights] = useState(false)
   const [engagementStartTime] = useState(Date.now())
 
-  // Handle post interactions for ML training
-  const handleInteraction = useCallback((interactionType: string) => {
+  // Username note interactions for ML training
+  const usernameInteraction = useCallback((interactionType: string) => {
     const interaction = {
-      item: item.post.uri,
+      item: item.note.uri,
       event: `sonet.feed.defs#interaction${interactionType}`,
       feedContext: 'for-you',
       reqId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -45,13 +45,13 @@ export function ForYouFeedItem({
     onInteraction(interaction)
   }, [item, onInteraction, engagementStartTime])
 
-  // Handle post press
-  const handlePostPress = useCallback(() => {
+  // Username note press
+  const usernameNotePress = useCallback(() => {
     onPress()
   }, [onPress])
 
-  // Handle insights toggle
-  const handleInsightsToggle = useCallback(() => {
+  // Username insights toggle
+  const usernameInsightsToggle = useCallback(() => {
     setShowInsights(!showInsights)
   }, [showInsights])
 
@@ -67,12 +67,12 @@ export function ForYouFeedItem({
         </Text>
       </View>
 
-      {/* Main Post Content */}
-      <View style={styles.postContainer}>
-        <Post
-          post={item.post}
-          onPress={handlePostPress}
-          onInteraction={handleInteraction}
+      {/* Main Note Content */}
+      <View style={styles.noteContainer}>
+        <Note
+          note={item.note}
+          onPress={usernameNotePress}
+          onInteraction={usernameInteraction}
           showMLInsights={showMLInsights}
         />
       </View>
@@ -82,15 +82,15 @@ export function ForYouFeedItem({
         <MLInsightsOverlay
           ranking={item.ranking}
           mlInsights={item.mlInsights}
-          onToggle={handleInsightsToggle}
+          onToggle={usernameInsightsToggle}
           visible={showInsights}
         />
       )}
 
       {/* Engagement Tracking */}
       <EngagementTracker
-        postId={item.post.uri}
-        onInteraction={handleInteraction}
+        noteId={item.note.uri}
+        onInteraction={usernameInteraction}
         startTime={engagementStartTime}
       />
 
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     opacity: 0.8
   },
-  postContainer: {
+  noteContainer: {
     paddingHorizontal: 16
   },
   personalizationReasons: {

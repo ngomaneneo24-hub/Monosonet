@@ -1,21 +1,21 @@
 import React from 'react'
 import {View} from 'react-native'
 import {
-  type AppBskyActorDefs,
-  type AppBskyFeedDefs,
-  type AppBskyFeedPost,
-  type ComAtprotoLabelDefs,
+  type SonetActorDefs,
+  type SonetFeedDefs,
+  type SonetFeedNote,
+  type SonetLabelDefs,
   interpretLabelValueDefinition,
   type LabelPreference,
   LABELS,
   mock,
-  moderatePost,
+  moderateNote,
   moderateProfile,
   type ModerationBehavior,
   type ModerationDecision,
   type ModerationOpts,
   RichText,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -49,8 +49,8 @@ import * as ProfileCard from '#/components/ProfileCard'
 import {H1, H3, P, Text} from '#/components/Typography'
 import {ScreenHider} from '../../components/moderation/ScreenHider'
 import {NotificationFeedItem} from '../com/notifications/NotificationFeedItem'
-import {PostThreadItem} from '../com/post-thread/PostThreadItem'
-import {PostFeedItem} from '../com/posts/PostFeedItem'
+import {NoteThreadItem} from '../com/note-thread/NoteThreadItem'
+import {NoteFeedItem} from '../com/notes/NoteFeedItem'
 
 const LABEL_VALUES: (keyof typeof LABELS)[] = Object.keys(
   LABELS,
@@ -67,7 +67,7 @@ export const DebugModScreen = ({}: NativeStackScreenProps<
   const [target, setTarget] = React.useState<string[]>(['account'])
   const [visibility, setVisiblity] = React.useState<string[]>(['warn'])
   const [customLabelDef, setCustomLabelDef] =
-    React.useState<ComAtprotoLabelDefs.LabelValueDefinition>({
+    React.useState<SonetLabelDefs.LabelValueDefinition>({
       identifier: 'custom',
       blurs: 'content',
       severity: 'alert',
@@ -80,7 +80,7 @@ export const DebugModScreen = ({}: NativeStackScreenProps<
         },
       ],
     })
-  const [view, setView] = React.useState<string[]>(['post'])
+  const [view, setView] = React.useState<string[]>(['note'])
   const labelStrings = useGlobalLabelStrings()
   const {currentAccount} = useSession()
 
@@ -94,143 +94,143 @@ export const DebugModScreen = ({}: NativeStackScreenProps<
     scenario[0] === 'label' && scenarioSwitches.includes('loggedOut')
   const isFollowing = scenarioSwitches.includes('following')
 
-  const did =
-    isTargetMe && currentAccount ? currentAccount.did : 'did:web:bob.test'
+  const userId =
+    isTargetMe && currentAccount ? currentAccount.userId : 'userId:web:bob.test'
 
   const profile = React.useMemo(() => {
     const mockedProfile = mock.profileViewBasic({
-      handle: `bob.test`,
+      username: `bob.test`,
       displayName: 'Bob Robertson',
       description: 'User with this as their bio',
       labels:
         scenario[0] === 'label' && target[0] === 'account'
           ? [
               mock.label({
-                src: isSelfLabel ? did : undefined,
+                src: isSelfLabel ? userId : undefined,
                 val: label[0],
-                uri: `at://${did}/`,
+                uri: `sonet://${userId}/`,
               }),
             ]
           : scenario[0] === 'label' && target[0] === 'profile'
             ? [
                 mock.label({
-                  src: isSelfLabel ? did : undefined,
+                  src: isSelfLabel ? userId : undefined,
                   val: label[0],
-                  uri: `at://${did}/app.bsky.actor.profile/self`,
+                  uri: `sonet://${userId}/app.sonet.actor.profile/self`,
                 }),
               ]
             : undefined,
       viewer: mock.actorViewerState({
         following: isFollowing
-          ? `at://${currentAccount?.did || ''}/app.bsky.graph.follow/1234`
+          ? `sonet://${currentAccount?.userId || ''}/app.sonet.graph.follow/1234`
           : undefined,
         muted: scenario[0] === 'mute',
         mutedByList: undefined,
         blockedBy: undefined,
         blocking:
           scenario[0] === 'block'
-            ? `at://did:web:alice.test/app.bsky.actor.block/fake`
+            ? `sonet://userId:web:alice.test/app.sonet.actor.block/fake`
             : undefined,
         blockingByList: undefined,
       }),
     })
-    mockedProfile.did = did
-    mockedProfile.avatar = 'https://bsky.social/about/images/favicon-32x32.png'
+    mockedProfile.userId = userId
+    mockedProfile.avatar = 'https://sonet.social/about/images/favicon-32x32.png'
     // @ts-expect-error ProfileViewBasic is close enough -esb
     mockedProfile.banner =
-      'https://bsky.social/about/images/social-card-default-gradient.png'
+      'https://sonet.social/about/images/social-card-default-gradient.png'
     return mockedProfile
-  }, [scenario, target, label, isSelfLabel, did, isFollowing, currentAccount])
+  }, [scenario, target, label, isSelfLabel, userId, isFollowing, currentAccount])
 
-  const post = React.useMemo(() => {
-    return mock.postView({
-      record: mock.post({
-        text: "This is the body of the post. It's where the text goes. You get the idea.",
+  const note = React.useMemo(() => {
+    return mock.noteView({
+      record: mock.note({
+        text: "This is the body of the note. It's where the text goes. You get the idea.",
       }),
       author: profile,
       labels:
-        scenario[0] === 'label' && target[0] === 'post'
+        scenario[0] === 'label' && target[0] === 'note'
           ? [
               mock.label({
-                src: isSelfLabel ? did : undefined,
+                src: isSelfLabel ? userId : undefined,
                 val: label[0],
-                uri: `at://${did}/app.bsky.feed.post/fake`,
+                uri: `sonet://${userId}/app.sonet.feed.note/fake`,
               }),
             ]
           : undefined,
       embed:
         target[0] === 'embed'
           ? mock.embedRecordView({
-              record: mock.post({
+              record: mock.note({
                 text: 'Embed',
               }),
               labels:
                 scenario[0] === 'label' && target[0] === 'embed'
                   ? [
                       mock.label({
-                        src: isSelfLabel ? did : undefined,
+                        src: isSelfLabel ? userId : undefined,
                         val: label[0],
-                        uri: `at://${did}/app.bsky.feed.post/fake`,
+                        uri: `sonet://${userId}/app.sonet.feed.note/fake`,
                       }),
                     ]
                   : undefined,
               author: profile,
             })
           : {
-              $type: 'app.bsky.embed.images#view',
+              type: "sonet",
               images: [
                 {
                   thumb:
-                    'https://bsky.social/about/images/social-card-default-gradient.png',
+                    'https://sonet.social/about/images/social-card-default-gradient.png',
                   fullsize:
-                    'https://bsky.social/about/images/social-card-default-gradient.png',
+                    'https://sonet.social/about/images/social-card-default-gradient.png',
                   alt: '',
                 },
               ],
             },
     })
-  }, [scenario, label, target, profile, isSelfLabel, did])
+  }, [scenario, label, target, profile, isSelfLabel, userId])
 
   const replyNotif = React.useMemo(() => {
     const notif = mock.replyNotification({
-      record: mock.post({
-        text: "This is the body of the post. It's where the text goes. You get the idea.",
+      record: mock.note({
+        text: "This is the body of the note. It's where the text goes. You get the idea.",
         reply: {
           parent: {
-            uri: `at://${did}/app.bsky.feed.post/fake-parent`,
+            uri: `sonet://${userId}/app.sonet.feed.note/fake-parent`,
             cid: 'bafyreiclp443lavogvhj3d2ob2cxbfuscni2k5jk7bebjzg7khl3esabwq',
           },
           root: {
-            uri: `at://${did}/app.bsky.feed.post/fake-parent`,
+            uri: `sonet://${userId}/app.sonet.feed.note/fake-parent`,
             cid: 'bafyreiclp443lavogvhj3d2ob2cxbfuscni2k5jk7bebjzg7khl3esabwq',
           },
         },
       }),
       author: profile,
       labels:
-        scenario[0] === 'label' && target[0] === 'post'
+        scenario[0] === 'label' && target[0] === 'note'
           ? [
               mock.label({
-                src: isSelfLabel ? did : undefined,
+                src: isSelfLabel ? userId : undefined,
                 val: label[0],
-                uri: `at://${did}/app.bsky.feed.post/fake`,
+                uri: `sonet://${userId}/app.sonet.feed.note/fake`,
               }),
             ]
           : undefined,
     })
     const [item] = groupNotifications([notif])
-    item.subject = mock.postView({
-      record: notif.record as AppBskyFeedPost.Record,
+    item.subject = mock.noteView({
+      record: notif.record as SonetFeedNote.Record,
       author: profile,
       labels: notif.labels,
     })
     return item
-  }, [scenario, label, target, profile, isSelfLabel, did])
+  }, [scenario, label, target, profile, isSelfLabel, userId])
 
   const followNotif = React.useMemo(() => {
     const notif = mock.followNotification({
       author: profile,
-      subjectDid: currentAccount?.did || '',
+      subjectDid: currentAccount?.userId || '',
     })
     const [item] = groupNotifications([notif])
     return item
@@ -238,7 +238,7 @@ export const DebugModScreen = ({}: NativeStackScreenProps<
 
   const modOpts = React.useMemo(() => {
     return {
-      userDid: isLoggedOut ? '' : isTargetMe ? did : 'did:web:alice.test',
+      userDid: isLoggedOut ? '' : isTargetMe ? userId : 'userId:web:alice.test',
       prefs: {
         adultContentEnabled: !noAdult,
         labels: {
@@ -246,27 +246,27 @@ export const DebugModScreen = ({}: NativeStackScreenProps<
         },
         labelers: [
           {
-            did: 'did:plc:fake-labeler',
+            userId: 'userId:plc:fake-labeler',
             labels: {[label[0]]: visibility[0] as LabelPreference},
           },
         ],
         mutedWords: [],
-        hiddenPosts: [],
+        hiddenNotes: [],
       },
       labelDefs: {
-        'did:plc:fake-labeler': [
-          interpretLabelValueDefinition(customLabelDef, 'did:plc:fake-labeler'),
+        'userId:plc:fake-labeler': [
+          interpretLabelValueDefinition(customLabelDef, 'userId:plc:fake-labeler'),
         ],
       },
     }
-  }, [label, visibility, noAdult, isLoggedOut, isTargetMe, did, customLabelDef])
+  }, [label, visibility, noAdult, isLoggedOut, isTargetMe, userId, customLabelDef])
 
   const profileModeration = React.useMemo(() => {
     return moderateProfile(profile, modOpts)
   }, [profile, modOpts])
-  const postModeration = React.useMemo(() => {
-    return moderatePost(post, modOpts)
-  }, [post, modOpts])
+  const noteModeration = React.useMemo(() => {
+    return moderateNote(note, modOpts)
+  }, [note, modOpts])
 
   return (
     <Layout.Screen>
@@ -467,9 +467,9 @@ export const DebugModScreen = ({}: NativeStackScreenProps<
                             <Toggle.Radio />
                             <Toggle.LabelText>Profile</Toggle.LabelText>
                           </Toggle.Item>
-                          <Toggle.Item name="post" label="Post">
+                          <Toggle.Item name="note" label="Note">
                             <Toggle.Radio />
-                            <Toggle.LabelText>Post</Toggle.LabelText>
+                            <Toggle.LabelText>Note</Toggle.LabelText>
                           </Toggle.Item>
                           <Toggle.Item name="embed" label="Embed">
                             <Toggle.Radio />
@@ -491,8 +491,8 @@ export const DebugModScreen = ({}: NativeStackScreenProps<
               label="Results"
               values={view}
               onChange={setView}>
-              <ToggleButton.Button name="post" label="Post">
-                <ToggleButton.ButtonText>Post</ToggleButton.ButtonText>
+              <ToggleButton.Button name="note" label="Note">
+                <ToggleButton.ButtonText>Note</ToggleButton.ButtonText>
               </ToggleButton.Button>
               <ToggleButton.Button name="notifications" label="Notifications">
                 <ToggleButton.ButtonText>Notifications</ToggleButton.ButtonText>
@@ -513,18 +513,18 @@ export const DebugModScreen = ({}: NativeStackScreenProps<
                 a.p_md,
                 t.atoms.border_contrast_medium,
               ]}>
-              {view[0] === 'post' && (
+              {view[0] === 'note' && (
                 <>
-                  <Heading title="Post" subtitle="in feed" />
-                  <MockPostFeedItem post={post} moderation={postModeration} />
+                  <Heading title="Note" subtitle="in feed" />
+                  <MockNoteFeedItem note={note} moderation={noteModeration} />
 
-                  <Heading title="Post" subtitle="viewed directly" />
-                  <MockPostThreadItem post={post} moderation={postModeration} />
+                  <Heading title="Note" subtitle="viewed directly" />
+                  <MockNoteThreadItem note={note} moderation={noteModeration} />
 
-                  <Heading title="Post" subtitle="reply in thread" />
-                  <MockPostThreadItem
-                    post={post}
-                    moderation={postModeration}
+                  <Heading title="Note" subtitle="reply in thread" />
+                  <MockNoteThreadItem
+                    note={note}
+                    moderation={noteModeration}
                     reply
                   />
                 </>
@@ -564,8 +564,8 @@ export const DebugModScreen = ({}: NativeStackScreenProps<
                     mod={profileModeration}
                   />
                   <ModerationUIView
-                    label="Post Moderation UI"
-                    mod={postModeration}
+                    label="Note Moderation UI"
+                    mod={noteModeration}
                   />
                   <DataView
                     label={label[0]}
@@ -576,8 +576,8 @@ export const DebugModScreen = ({}: NativeStackScreenProps<
                     data={profileModeration}
                   />
                   <DataView
-                    label="Post Moderation Data"
-                    data={postModeration}
+                    label="Note Moderation Data"
+                    data={noteModeration}
                   />
                 </>
               )}
@@ -607,9 +607,9 @@ function CustomLabelForm({
   def,
   setDef,
 }: {
-  def: ComAtprotoLabelDefs.LabelValueDefinition
+  def: SonetLabelDefs.LabelValueDefinition
   setDef: React.Dispatch<
-    React.SetStateAction<ComAtprotoLabelDefs.LabelValueDefinition>
+    React.SetStateAction<SonetLabelDefs.LabelValueDefinition>
   >
 }) {
   const t = useTheme()
@@ -805,11 +805,11 @@ function Spacer() {
   return <View style={{height: 30}} />
 }
 
-function MockPostFeedItem({
-  post,
+function MockNoteFeedItem({
+  note,
   moderation,
 }: {
-  post: AppBskyFeedDefs.PostView
+  note: SonetFeedDefs.NoteView
   moderation: ModerationDecision
 }) {
   const t = useTheme()
@@ -821,43 +821,43 @@ function MockPostFeedItem({
     )
   }
   return (
-    <PostFeedItem
-      post={post}
-      record={post.record as AppBskyFeedPost.Record}
+    <NoteFeedItem
+      note={note}
+      record={note.record as SonetFeedNote.Record}
       moderation={moderation}
       parentAuthor={undefined}
       showReplyTo={false}
       reason={undefined}
       feedContext={''}
       reqId={undefined}
-      rootPost={post}
+      rootNote={note}
     />
   )
 }
 
-function MockPostThreadItem({
-  post,
+function MockNoteThreadItem({
+  note,
   moderation,
   reply,
 }: {
-  post: AppBskyFeedDefs.PostView
+  note: SonetFeedDefs.NoteView
   moderation: ModerationDecision
   reply?: boolean
 }) {
   return (
-    <PostThreadItem
+    <NoteThreadItem
       // @ts-ignore
-      post={post}
-      record={post.record as AppBskyFeedPost.Record}
+      note={note}
+      record={note.record as SonetFeedNote.Record}
       moderation={moderation}
       depth={reply ? 1 : 0}
-      isHighlightedPost={!reply}
+      isHighlightedNote={!reply}
       treeView={false}
-      prevPost={undefined}
-      nextPost={undefined}
+      prevNote={undefined}
+      nextNote={undefined}
       hasPrecedingItem={false}
       overrideBlur={false}
-      onPostReply={() => {}}
+      onNoteReply={() => {}}
     />
   )
 }
@@ -890,7 +890,7 @@ function MockAccountCard({
   profile,
   moderation,
 }: {
-  profile: AppBskyActorDefs.ProfileViewBasic
+  profile: SonetActorDefs.ProfileViewBasic
   moderation: ModerationDecision
 }) {
   const t = useTheme()
@@ -914,7 +914,7 @@ function MockAccountScreen({
   moderation,
   moderationOpts,
 }: {
-  profile: AppBskyActorDefs.ProfileViewBasic
+  profile: SonetActorDefs.ProfileViewBasic
   moderation: ModerationDecision
   moderationOpts: ModerationOpts
 }) {

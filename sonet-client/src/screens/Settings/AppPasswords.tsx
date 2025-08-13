@@ -7,7 +7,7 @@ import Animated, {
   LinearTransition,
   StretchOutY,
 } from 'react-native-reanimated'
-import {type ComAtprotoServerListAppPasswords} from '@atproto/api'
+import {type SonetServerListAppPasswords} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {type NativeStackScreenProps} from '@react-navigation/native-stack'
@@ -135,7 +135,7 @@ export function AppPasswordsScreen({}: Props) {
 function AppPasswordCard({
   appPassword,
 }: {
-  appPassword: ComAtprotoServerListAppPasswords.AppPassword
+  appPassword: SonetServerListAppPasswords.AppPassword
 }) {
   const t = useTheme()
   const {i18n, _} = useLingui()

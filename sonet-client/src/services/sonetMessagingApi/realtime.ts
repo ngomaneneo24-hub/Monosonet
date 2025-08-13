@@ -61,15 +61,15 @@ export class SonetRealtimeMessaging extends EventEmitter {
 
   constructor(private apiUrl: string, private authToken: string) {
     super()
-    this.setupEventHandlers()
+    this.setupEventUsernamers()
   }
 
-  private setupEventHandlers() {
-    this.on('message', this.handleMessage.bind(this))
-    this.on('typing', this.handleTyping.bind(this))
-    this.on('online_status', this.handleOnlineStatus.bind(this))
-    this.on('read_receipt', this.handleReadReceipt.bind(this))
-    this.on('reaction', this.handleReaction.bind(this))
+  private setupEventUsernamers() {
+    this.on('message', this.usernameMessage.bind(this))
+    this.on('typing', this.usernameTyping.bind(this))
+    this.on('online_status', this.usernameOnlineStatus.bind(this))
+    this.on('read_receipt', this.usernameReadReceipt.bind(this))
+    this.on('reaction', this.usernameReaction.bind(this))
   }
 
   // Connect to real-time messaging service
@@ -89,7 +89,7 @@ export class SonetRealtimeMessaging extends EventEmitter {
       this.ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data)
-          this.handleRealtimeEvent(data)
+          this.usernameRealtimeEvent(data)
         } catch (error) {
           console.error('Failed to parse real-time message:', error)
         }
@@ -224,8 +224,8 @@ export class SonetRealtimeMessaging extends EventEmitter {
     }
   }
 
-  // Handle incoming real-time events
-  private handleRealtimeEvent(event: RealtimeEvent): void {
+  // Username incoming real-time events
+  private usernameRealtimeEvent(event: RealtimeEvent): void {
     switch (event.type) {
       case 'message':
         this.emit('message', event.data)
@@ -247,8 +247,8 @@ export class SonetRealtimeMessaging extends EventEmitter {
     }
   }
 
-  // Handle incoming messages
-  private handleMessage(message: RealtimeMessage): void {
+  // Username incoming messages
+  private usernameMessage(message: RealtimeMessage): void {
     // Update typing indicators
     if (message.type === 'text') {
       this.clearTypingIndicator(message.chatId, message.senderId)
@@ -257,8 +257,8 @@ export class SonetRealtimeMessaging extends EventEmitter {
     this.emit('new_message', message)
   }
 
-  // Handle typing indicators
-  private handleTyping(typingIndicator: TypingIndicator): void {
+  // Username typing indicators
+  private usernameTyping(typingIndicator: TypingIndicator): void {
     const key = `${typingIndicator.chatId}_${typingIndicator.userId}`
     
     if (typingIndicator.isTyping) {
@@ -270,19 +270,19 @@ export class SonetRealtimeMessaging extends EventEmitter {
     this.emit('typing_update', typingIndicator)
   }
 
-  // Handle online status updates
-  private handleOnlineStatus(status: OnlineStatus): void {
+  // Username online status updates
+  private usernameOnlineStatus(status: OnlineStatus): void {
     this.onlineStatuses.set(status.userId, status)
     this.emit('online_status_update', status)
   }
 
-  // Handle read receipts
-  private handleReadReceipt(receipt: ReadReceipt): void {
+  // Username read receipts
+  private usernameReadReceipt(receipt: ReadReceipt): void {
     this.emit('read_receipt_update', receipt)
   }
 
-  // Handle reactions
-  private handleReaction(reaction: RealtimeMessage): void {
+  // Username reactions
+  private usernameReaction(reaction: RealtimeMessage): void {
     this.emit('reaction_update', reaction)
   }
 

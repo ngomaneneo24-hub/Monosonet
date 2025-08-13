@@ -1,9 +1,9 @@
 import {
-  AppBskyActorDefs,
-  AppBskyActorGetSuggestions,
-  AppBskyGraphGetSuggestedFollowsByActor,
+  SonetActorDefs,
+  SonetActorGetSuggestions,
+  SonetGraphGetSuggestedFollowsByActor,
   moderateProfile,
-} from '@atproto/api'
+} from '@sonet/api'
 import {
   InfiniteData,
   QueryClient,
@@ -29,9 +29,9 @@ const suggestedFollowsQueryKey = (options?: SuggestedFollowsOptions) => [
 ]
 
 const suggestedFollowsByActorQueryKeyRoot = 'suggested-follows-by-actor'
-const suggestedFollowsByActorQueryKey = (did: string) => [
+const suggestedFollowsByActorQueryKey = (userId: string) => [
   suggestedFollowsByActorQueryKeyRoot,
-  did,
+  userId,
 ]
 
 type SuggestedFollowsOptions = {limit?: number; subsequentPageLimit?: number}
@@ -44,9 +44,9 @@ export function useSuggestedFollowsQuery(options?: SuggestedFollowsOptions) {
   const limit = options?.limit || 25
 
   return useInfiniteQuery<
-    AppBskyActorGetSuggestions.OutputSchema,
+    SonetActorGetSuggestions.OutputSchema,
     Error,
-    InfiniteData<AppBskyActorGetSuggestions.OutputSchema>,
+    InfiniteData<SonetActorGetSuggestions.OutputSchema>,
     QueryKey,
     string | undefined
   >({
@@ -59,7 +59,7 @@ export function useSuggestedFollowsQuery(options?: SuggestedFollowsOptions) {
         options?.subsequentPageLimit && pageParam
           ? options.subsequentPageLimit
           : limit
-      const res = await agent.app.bsky.actor.getSuggestions(
+      const res = await agent.app.sonet.actor.getSuggestions(
         {
           limit: maybeDifferentLimit,
           cursor: pageParam,
@@ -90,7 +90,7 @@ export function useSuggestedFollowsQuery(options?: SuggestedFollowsOptions) {
               return false
             }
           }
-          if (actor.did === currentAccount?.did) {
+          if (actor.userId === currentAccount?.userId) {
             return false
           }
           return true
@@ -104,18 +104,18 @@ export function useSuggestedFollowsQuery(options?: SuggestedFollowsOptions) {
 }
 
 export function useSuggestedFollowsByActorQuery({
-  did,
+  userId,
   enabled,
 }: {
-  did: string
+  userId: string
   enabled?: boolean
 }) {
   const agent = useAgent()
   return useQuery({
-    queryKey: suggestedFollowsByActorQueryKey(did),
+    queryKey: suggestedFollowsByActorQueryKey(userId),
     queryFn: async () => {
-      const res = await agent.app.bsky.graph.getSuggestedFollowsByActor({
-        actor: did,
+      const res = await agent.app.sonet.graph.getSuggestedFollowsByActor({
+        actor: userId,
       })
       const suggestions = res.data.isFallback
         ? []
@@ -128,18 +128,18 @@ export function useSuggestedFollowsByActorQuery({
 
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
-  did: string,
-): Generator<AppBskyActorDefs.ProfileView, void> {
-  yield* findAllProfilesInSuggestedFollowsQueryData(queryClient, did)
-  yield* findAllProfilesInSuggestedFollowsByActorQueryData(queryClient, did)
+  userId: string,
+): Generator<SonetActorDefs.ProfileView, void> {
+  yield* findAllProfilesInSuggestedFollowsQueryData(queryClient, userId)
+  yield* findAllProfilesInSuggestedFollowsByActorQueryData(queryClient, userId)
 }
 
 function* findAllProfilesInSuggestedFollowsQueryData(
   queryClient: QueryClient,
-  did: string,
+  userId: string,
 ) {
   const queryDatas = queryClient.getQueriesData<
-    InfiniteData<AppBskyActorGetSuggestions.OutputSchema>
+    InfiniteData<SonetActorGetSuggestions.OutputSchema>
   >({
     queryKey: [suggestedFollowsQueryKeyRoot],
   })
@@ -149,7 +149,7 @@ function* findAllProfilesInSuggestedFollowsQueryData(
     }
     for (const page of queryData?.pages) {
       for (const actor of page.actors) {
-        if (actor.did === did) {
+        if (actor.userId === userId) {
           yield actor
         }
       }
@@ -159,10 +159,10 @@ function* findAllProfilesInSuggestedFollowsQueryData(
 
 function* findAllProfilesInSuggestedFollowsByActorQueryData(
   queryClient: QueryClient,
-  did: string,
+  userId: string,
 ) {
   const queryDatas =
-    queryClient.getQueriesData<AppBskyGraphGetSuggestedFollowsByActor.OutputSchema>(
+    queryClient.getQueriesData<SonetGraphGetSuggestedFollowsByActor.OutputSchema>(
       {
         queryKey: [suggestedFollowsByActorQueryKeyRoot],
       },
@@ -172,7 +172,7 @@ function* findAllProfilesInSuggestedFollowsByActorQueryData(
       continue
     }
     for (const suggestion of queryData.suggestions) {
-      if (suggestion.did === did) {
+      if (suggestion.userId === userId) {
         yield suggestion
       }
     }

@@ -2,12 +2,12 @@ import React from 'react'
 import {View} from 'react-native'
 import {Image} from 'expo-image'
 import {
-  AppBskyGraphDefs,
-  AppBskyGraphStarterpack,
+  SonetGraphDefs,
+  SonetGraphStarterpack,
   AtUri,
   type ModerationOpts,
   RichText as RichTextAPI,
-} from '@atproto/api'
+} from '@sonet/api'
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome'
 import {msg, Plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -67,7 +67,7 @@ import {
 import * as Prompt from '#/components/Prompt'
 import {RichText} from '#/components/RichText'
 import {FeedsList} from '#/components/StarterPack/Main/FeedsList'
-import {PostsList} from '#/components/StarterPack/Main/PostsList'
+import {NotesList} from '#/components/StarterPack/Main/NotesList'
 import {ProfilesList} from '#/components/StarterPack/Main/ProfilesList'
 import {QrCodeDialog} from '#/components/StarterPack/QrCodeDialog'
 import {ShareDialog} from '#/components/StarterPack/ShareDialog'
@@ -131,7 +131,7 @@ export function StarterPackScreenInner({
 
   const moderationOpts = useModerationOpts()
   const {
-    data: did,
+    data: userId,
     isLoading: isLoadingDid,
     isError: isErrorDid,
   } = useResolveDidQuery(name)
@@ -139,15 +139,15 @@ export function StarterPackScreenInner({
     data: starterPack,
     isLoading: isLoadingStarterPack,
     isError: isErrorStarterPack,
-  } = useStarterPackQuery({did, rkey})
+  } = useStarterPackQuery({userId, rkey})
 
   const isValid =
     starterPack &&
-    (starterPack.list || starterPack?.creator?.did === currentAccount?.did) &&
-    AppBskyGraphDefs.validateStarterPackView(starterPack) &&
-    AppBskyGraphStarterpack.validateRecord(starterPack.record)
+    (starterPack.list || starterPack?.creator?.userId === currentAccount?.userId) &&
+    SonetGraphDefs.validateStarterPackView(starterPack) &&
+    SonetGraphStarterpack.validateRecord(starterPack.record)
 
-  if (!did || !starterPack || !isValid || !moderationOpts) {
+  if (!userId || !starterPack || !isValid || !moderationOpts) {
     return (
       <ListMaybePlaceholder
         isLoading={isLoadingDid || isLoadingStarterPack || !moderationOpts}
@@ -158,7 +158,7 @@ export function StarterPackScreenInner({
     )
   }
 
-  if (!starterPack.list && starterPack.creator.did === currentAccount?.did) {
+  if (!starterPack.list && starterPack.creator.userId === currentAccount?.userId) {
     return <InvalidStarterPack rkey={rkey} />
   }
 
@@ -176,19 +176,19 @@ function StarterPackScreenLoaded({
   routeParams,
   moderationOpts,
 }: {
-  starterPack: AppBskyGraphDefs.StarterPackView
+  starterPack: SonetGraphDefs.StarterPackView
   routeParams: StarterPackScreeProps['route']['params']
   moderationOpts: ModerationOpts
 }) {
   const showPeopleTab = Boolean(starterPack.list)
   const showFeedsTab = Boolean(starterPack.feeds?.length)
-  const showPostsTab = Boolean(starterPack.list)
+  const showNotesTab = Boolean(starterPack.list)
   const {_} = useLingui()
 
   const tabs = [
     ...(showPeopleTab ? [_(msg`People`)] : []),
     ...(showFeedsTab ? [_(msg`Feeds`)] : []),
-    ...(showPostsTab ? [_(msg`Posts`)] : []),
+    ...(showNotesTab ? [_(msg`Notes`)] : []),
   ]
 
   const qrCodeDialogControl = useDialogControl()
@@ -206,7 +206,7 @@ function StarterPackScreenLoaded({
 
   const onOpenShareDialog = React.useCallback(() => {
     const rkey = new AtUri(starterPack.uri).rkey
-    shortenLink(makeStarterPackLink(starterPack.creator.did, rkey)).then(
+    shortenLink(makeStarterPackLink(starterPack.creator.userId, rkey)).then(
       res => {
         setLink(res.url)
       },
@@ -262,9 +262,9 @@ function StarterPackScreenLoaded({
               />
             )
           : null}
-        {showPostsTab
+        {showNotesTab
           ? ({headerHeight, scrollElRef}) => (
-              <PostsList
+              <NotesList
                 // Validated above
                 listUri={starterPack!.list!.uri}
                 headerHeight={headerHeight}
@@ -297,7 +297,7 @@ function Header({
   routeParams,
   onOpenShareDialog,
 }: {
-  starterPack: AppBskyGraphDefs.StarterPackView
+  starterPack: SonetGraphDefs.StarterPackView
   routeParams: StarterPackScreeProps['route']['params']
   onOpenShareDialog: () => void
 }) {
@@ -313,7 +313,7 @@ function Header({
   const [isProcessing, setIsProcessing] = React.useState(false)
 
   const {record, creator} = starterPack
-  const isOwn = creator?.did === currentAccount?.did
+  const isOwn = creator?.userId === currentAccount?.userId
   const joinedAllTimeCount = starterPack.joinedAllTimeCount ?? 0
 
   const navigation = useNavigation<NavigationProp>()
@@ -344,7 +344,7 @@ function Header({
 
     setIsProcessing(true)
 
-    let listItems: AppBskyGraphDefs.ListItemView[] = []
+    let listItems: SonetGraphDefs.ListItemView[] = []
     try {
       listItems = await getAllListMembers(agent, starterPack.list.uri)
     } catch (e) {
@@ -356,19 +356,19 @@ function Header({
       return
     }
 
-    const dids = listItems
+    const userIds = listItems
       .filter(
         li =>
-          li.subject.did !== currentAccount?.did &&
+          li.subject.userId !== currentAccount?.userId &&
           !isBlockedOrBlocking(li.subject) &&
           !isMuted(li.subject) &&
           !li.subject.viewer?.following,
       )
-      .map(li => li.subject.did)
+      .map(li => li.subject.userId)
 
     let followUris: Map<string, string>
     try {
-      followUris = await bulkWriteFollows(agent, dids)
+      followUris = await bulkWriteFollows(agent, userIds)
     } catch (e) {
       setIsProcessing(false)
       Toast.show(_(msg`An error occurred while trying to follow all`), 'xmark')
@@ -377,25 +377,25 @@ function Header({
 
     setIsProcessing(false)
     batchedUpdates(() => {
-      for (let did of dids) {
-        updateProfileShadow(queryClient, did, {
-          followingUri: followUris.get(did),
+      for (let userId of userIds) {
+        updateProfileShadow(queryClient, userId, {
+          followingUri: followUris.get(userId),
         })
       }
     })
     Toast.show(_(msg`All accounts have been followed!`))
-    captureAction(ProgressGuideAction.Follow, dids.length)
+    captureAction(ProgressGuideAction.Follow, userIds.length)
     logEvent('starterPack:followAll', {
       logContext: 'StarterPackProfilesList',
       starterPack: starterPack.uri,
-      count: dids.length,
+      count: userIds.length,
     })
   }
 
   if (
-    !bsky.dangerousIsType<AppBskyGraphStarterpack.Record>(
+    !bsky.dangerousIsType<SonetGraphStarterpack.Record>(
       record,
-      AppBskyGraphStarterpack.isRecord,
+      SonetGraphStarterpack.isRecord,
     )
   ) {
     return null
@@ -417,7 +417,7 @@ function Header({
         isOwner={isOwn}
         avatar={undefined}
         creator={creator}
-        purpose="app.bsky.graph.defs#referencelist"
+        purpose="app.sonet.graph.defs#referencelist"
         avatarType="starter-pack">
         {hasSession ? (
           <View style={[a.flex_row, a.gap_sm, a.align_center]}>
@@ -508,7 +508,7 @@ function OverflowMenu({
   routeParams,
   onOpenShareDialog,
 }: {
-  starterPack: AppBskyGraphDefs.StarterPackView
+  starterPack: SonetGraphDefs.StarterPackView
   routeParams: StarterPackScreeProps['route']['params']
   onOpenShareDialog: () => void
 }) {
@@ -540,7 +540,7 @@ function OverflowMenu({
     },
   })
 
-  const isOwn = starterPack.creator.did === currentAccount?.did
+  const isOwn = starterPack.creator.userId === currentAccount?.userId
 
   const onDeleteStarterPack = async () => {
     if (!starterPack.list) {
@@ -558,7 +558,7 @@ function OverflowMenu({
   return (
     <>
       <Menu.Root>
-        <Menu.Trigger label={_(msg`Repost or quote post`)}>
+        <Menu.Trigger label={_(msg`Renote or quote note`)}>
           {({props}) => (
             <Button
               {...props}
@@ -644,7 +644,7 @@ function OverflowMenu({
           control={reportDialogControl}
           subject={{
             ...starterPack,
-            $type: 'app.bsky.graph.defs#starterPackView',
+            type: "sonet",
           }}
         />
       )}

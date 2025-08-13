@@ -131,7 +131,7 @@ export function StepProfile() {
   const onContinue = React.useCallback(async () => {
     let imageUri = avatar?.image?.path
 
-    // In the event that view-shot didn't load in time and the user pressed continue, this will just be undefined
+    // In the event that view-shot userIdn't load in time and the user pressed continue, this will just be undefined
     // and the default avatar will be used. We don't want to block getting through create if this fails for some
     // reason
     if (!imageUri || avatar.useCreatedAvatar) {

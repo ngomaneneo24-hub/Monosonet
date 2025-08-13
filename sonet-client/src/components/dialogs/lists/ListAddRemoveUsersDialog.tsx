@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react'
 import {View} from 'react-native'
-import {type AppBskyGraphDefs, type ModerationOpts} from '@atproto/api'
+import {type SonetGraphDefs, type ModerationOpts} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -31,7 +31,7 @@ export function ListAddRemoveUsersDialog({
   onChange,
 }: {
   control: Dialog.DialogControlProps
-  list: AppBskyGraphDefs.ListView
+  list: SonetGraphDefs.ListView
   onChange?: (
     type: 'add' | 'remove',
     profile: bsky.profile.AnyProfileView,
@@ -39,7 +39,7 @@ export function ListAddRemoveUsersDialog({
 }) {
   return (
     <Dialog.Outer control={control} testID="listAddRemoveUsersDialog">
-      <Dialog.Handle />
+      <Dialog.Username />
       <DialogInner list={list} onChange={onChange} />
     </Dialog.Outer>
   )
@@ -49,7 +49,7 @@ function DialogInner({
   list,
   onChange,
 }: {
-  list: AppBskyGraphDefs.ListView
+  list: SonetGraphDefs.ListView
   onChange?: (
     type: 'add' | 'remove',
     profile: bsky.profile.AnyProfileView,
@@ -90,7 +90,7 @@ function UserResult({
   moderationOpts,
 }: {
   profile: bsky.profile.AnyProfileView
-  list: AppBskyGraphDefs.ListView
+  list: SonetGraphDefs.ListView
   memberships: ListMembersip[] | undefined
   onChange?: (
     type: 'add' | 'remove',
@@ -100,8 +100,8 @@ function UserResult({
 }) {
   const {_} = useLingui()
   const membership = useMemo(
-    () => getMembership(memberships, list.uri, profile.did),
-    [memberships, list.uri, profile.did],
+    () => getMembership(memberships, list.uri, profile.userId),
+    [memberships, list.uri, profile.userId],
   )
   const {mutate: listMembershipAdd, isPending: isAddingPending} =
     useListMembershipAddMutation({
@@ -128,12 +128,12 @@ function UserResult({
     if (membership === false) {
       listMembershipAdd({
         listUri: list.uri,
-        actorDid: profile.did,
+        actorDid: profile.userId,
       })
     } else {
       listMembershipRemove({
         listUri: list.uri,
-        actorDid: profile.did,
+        actorDid: profile.userId,
         membershipUri: membership,
       })
     }
@@ -147,7 +147,7 @@ function UserResult({
         <ProfileCard.Avatar profile={profile} moderationOpts={moderationOpts} />
         <View style={[a.flex_1]}>
           <ProfileCard.Name profile={profile} moderationOpts={moderationOpts} />
-          <ProfileCard.Handle profile={profile} />
+          <ProfileCard.Username profile={profile} />
         </View>
         {membership !== undefined && (
           <Button

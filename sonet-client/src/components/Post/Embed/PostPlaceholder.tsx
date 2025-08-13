@@ -5,7 +5,7 @@ import {InfoCircleIcon} from '#/lib/icons'
 import {Text} from '#/view/com/util/text/Text'
 import {atoms as a, useTheme} from '#/alf'
 
-export function PostPlaceholder({children}: {children: React.ReactNode}) {
+export function NotePlaceholder({children}: {children: React.ReactNode}) {
   const t = useTheme()
   const pal = usePalette('default')
   return (

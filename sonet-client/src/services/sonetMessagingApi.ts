@@ -327,7 +327,7 @@ export class SonetMessagingApi extends EventEmitter {
   // Real-time Features
   private setupWebSocketListeners(): void {
     sonetWebSocket.on('message', (messageData) => {
-      this.handleIncomingMessage(messageData)
+      this.usernameIncomingMessage(messageData)
     })
 
     sonetWebSocket.on('typing', (typingData) => {
@@ -347,7 +347,7 @@ export class SonetMessagingApi extends EventEmitter {
     })
   }
 
-  private async handleIncomingMessage(messageData: any): Promise<void> {
+  private async usernameIncomingMessage(messageData: any): Promise<void> {
     try {
       const message: SonetMessage = messageData
       
@@ -381,7 +381,7 @@ export class SonetMessagingApi extends EventEmitter {
       // Emit event
       this.emit('message_received', message)
     } catch (error) {
-      console.error('Failed to handle incoming message:', error)
+      console.error('Failed to username incoming message:', error)
     }
   }
 

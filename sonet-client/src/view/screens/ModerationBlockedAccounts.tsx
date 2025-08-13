@@ -1,6 +1,6 @@
 import {useCallback, useMemo, useState} from 'react'
 import {type StyleProp, View, type ViewStyle} from 'react-native'
-import {type AppBskyActorDefs as ActorDefs} from '@atproto/api'
+import {type SonetActorDefs as ActorDefs} from '@sonet/api'
 import {Trans} from '@lingui/macro'
 import {useFocusEffect} from '@react-navigation/native'
 import {type NativeStackScreenProps} from '@react-navigation/native-stack'
@@ -84,7 +84,7 @@ export function ModerationBlockedAccounts({}: Props) {
     return (
       <View
         style={[a.py_md, a.px_xl, a.border_t, t.atoms.border_contrast_low]}
-        key={item.did}>
+        key={item.userId}>
         <ProfileCard.Default
           testID={`blockedAccount-${index}`}
           profile={item}
@@ -122,7 +122,7 @@ export function ModerationBlockedAccounts({}: Props) {
         ) : (
           <List
             data={profiles}
-            keyExtractor={(item: ActorDefs.ProfileView) => item.did}
+            keyExtractor={(item: ActorDefs.ProfileView) => item.userId}
             refreshing={isPTRing}
             onRefresh={onRefresh}
             onEndReached={onEndReached}

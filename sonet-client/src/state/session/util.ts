@@ -7,7 +7,7 @@ import {SessionAccount} from './types'
 
 export function readLastActiveAccount() {
   const {currentAccount, accounts} = persisted.get('session')
-  return accounts.find(a => a.did === currentAccount?.did)
+  return accounts.find(a => a.userId === currentAccount?.userId)
 }
 
 export function isSignupQueued(accessJwt: string | undefined) {
@@ -15,7 +15,7 @@ export function isSignupQueued(accessJwt: string | undefined) {
     const sessData = jwtDecode(accessJwt)
     return (
       hasProp(sessData, 'scope') &&
-      sessData.scope === 'com.atproto.signupQueued'
+      sessData.scope === 'com.sonet.signupQueued'
     )
   }
   return false
@@ -26,8 +26,8 @@ export function isSessionExpired(account: SessionAccount) {
     if (account.accessJwt) {
       const decoded = jwtDecode(account.accessJwt)
       if (decoded.exp) {
-        const didExpire = Date.now() >= decoded.exp * 1000
-        return didExpire
+        const userIdExpire = Date.now() >= decoded.exp * 1000
+        return userIdExpire
       }
     }
   } catch (e) {

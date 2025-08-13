@@ -26,7 +26,7 @@ export const defaultTheme: Theme = {
       replyLineDot: lightPalette.contrast_200,
       unreadNotifBg: lightPalette.primary_25,
       unreadNotifBorder: lightPalette.primary_100,
-      postCtrl: lightPalette.contrast_500,
+      noteCtrl: lightPalette.contrast_500,
       brandText: lightPalette.primary_500,
       emptyStateIcon: lightPalette.contrast_300,
       borderLinkHover: lightPalette.contrast_300,
@@ -263,12 +263,12 @@ export const defaultTheme: Theme = {
       fontSize: 17,
       letterSpacing: tokens.TRACKING,
     },
-    'post-text': {
+    'note-text': {
       fontSize: 16,
       letterSpacing: tokens.TRACKING,
       fontWeight: fontWeight.normal,
     },
-    'post-text-lg': {
+    'note-text-lg': {
       fontSize: 20,
       letterSpacing: tokens.TRACKING,
       fontWeight: fontWeight.normal,
@@ -312,7 +312,7 @@ export const darkTheme: Theme = {
       replyLineDot: darkPalette.contrast_200,
       unreadNotifBg: darkPalette.primary_25,
       unreadNotifBorder: darkPalette.primary_100,
-      postCtrl: darkPalette.contrast_500,
+      noteCtrl: darkPalette.contrast_500,
       brandText: darkPalette.primary_500,
       emptyStateIcon: darkPalette.contrast_300,
       borderLinkHover: darkPalette.contrast_300,
@@ -361,7 +361,7 @@ export const dimTheme: Theme = {
       replyLineDot: dimPalette.contrast_200,
       unreadNotifBg: dimPalette.primary_25,
       unreadNotifBorder: dimPalette.primary_100,
-      postCtrl: dimPalette.contrast_500,
+      noteCtrl: dimPalette.contrast_500,
       brandText: dimPalette.primary_500,
       emptyStateIcon: dimPalette.contrast_300,
       borderLinkHover: dimPalette.contrast_300,

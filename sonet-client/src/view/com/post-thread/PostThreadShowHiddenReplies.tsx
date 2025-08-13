@@ -7,7 +7,7 @@ import {Button} from '#/components/Button'
 import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlash} from '#/components/icons/EyeSlash'
 import {Text} from '#/components/Typography'
 
-export function PostThreadShowHiddenReplies({
+export function NoteThreadShowHiddenReplies({
   type,
   onPress,
   hideTopBorder,

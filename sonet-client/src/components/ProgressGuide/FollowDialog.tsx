@@ -7,7 +7,7 @@ import {
   View,
   type ViewStyle,
 } from 'react-native'
-import {type ModerationOpts} from '@atproto/api'
+import {type ModerationOpts} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -89,7 +89,7 @@ export function FollowDialog({guide}: {guide: Follow10ProgressGuide}) {
         </ButtonText>
       </Button>
       <Dialog.Outer control={control} nativeOptions={{minHeight}}>
-        <Dialog.Handle />
+        <Dialog.Username />
         <DialogInner guide={guide} />
       </Dialog.Outer>
     </>
@@ -175,16 +175,16 @@ function DialogInner({guide}: {guide: Follow10ProgressGuide}) {
     } else {
       const seen = new Set<string>()
       for (const profile of results) {
-        if (seen.has(profile.did)) continue
-        if (profile.did === currentAccount?.did) continue
+        if (seen.has(profile.userId)) continue
+        if (profile.userId === currentAccount?.userId) continue
         if (profile.viewer?.following) continue
 
-        seen.add(profile.did)
+        seen.add(profile.userId)
 
         _items.push({
           type: 'profile',
           // Don't share identity across tabs or typing attempts
-          key: resultsKey + ':' + profile.did,
+          key: resultsKey + ':' + profile.userId,
           profile,
         })
       }
@@ -199,7 +199,7 @@ function DialogInner({guide}: {guide: Follow10ProgressGuide}) {
     searchResults,
     searchResultsError,
     isFetchingSearchResults,
-    currentAccount?.did,
+    currentAccount?.userId,
     hasSearchText,
     resultsKey,
   ])
@@ -447,13 +447,13 @@ let Tabs = ({
     })
   }
 
-  function handleSelectTab(index: number) {
+  function usernameSelectTab(index: number) {
     const tab = interests[index]
     onSelectTab(tab)
     scrollIntoViewIfNeeded(index)
   }
 
-  function handleTabLayout(index: number, x: number, width: number) {
+  function usernameTabLayout(index: number, x: number, width: number) {
     if (!tabOffsets.length) {
       pendingTabOffsets.current[index] = {x, width}
       if (pendingTabOffsets.current.length === interests.length) {
@@ -482,12 +482,12 @@ let Tabs = ({
         return (
           <TabComponent
             key={interest}
-            onSelectTab={handleSelectTab}
+            onSelectTab={usernameSelectTab}
             active={active}
             index={i}
             interest={interest}
             interestsDisplayName={interestsDisplayNames[interest]}
-            onLayout={handleTabLayout}
+            onLayout={usernameTabLayout}
           />
         )
       })}
@@ -605,13 +605,13 @@ function FollowProfileCardInner({
                 profile={profile}
                 moderationOpts={moderationOpts}
               />
-              <ProfileCard.NameAndHandle
+              <ProfileCard.NameAndUsername
                 profile={profile}
                 moderationOpts={moderationOpts}
               />
               <PrivateProfileFollowButton
                 profile={profile}
-                logContext="PostOnboardingFindFollows"
+                logContext="NoteOnboardingFindFollows"
                 shape="round"
                 onFollow={onFollow}
                 colorInverted

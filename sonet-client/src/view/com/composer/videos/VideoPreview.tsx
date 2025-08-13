@@ -15,11 +15,11 @@ export function VideoPreview({
   asset,
   video,
   clear,
-  isActivePost,
+  isActiveNote,
 }: {
   asset: ImagePickerAsset
   video: CompressedVideo
-  isActivePost: boolean
+  isActiveNote: boolean
   clear: () => void
 }) {
   const t = useTheme()
@@ -47,7 +47,7 @@ export function VideoPreview({
       <View style={[a.absolute, a.inset_0]}>
         <VideoTranscodeBackdrop uri={asset.uri} />
       </View>
-      {isActivePost && (
+      {isActiveNote && (
         <BlueskyVideoView
           url={video.uri}
           autoplay={!autoplayDisabled}

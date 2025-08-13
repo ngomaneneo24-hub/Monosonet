@@ -9,8 +9,8 @@ export const DEFAULT_HOME_FEED_PREFS: UsePreferencesQueryResponse['feedViewPrefs
     hideReplies: false,
     hideRepliesByUnfollowed: true, // Legacy, ignored
     hideRepliesByLikeCount: 0, // Legacy, ignored
-    hideReposts: false,
-    hideQuotePosts: false,
+    hideRenotes: false,
+    hideQuoteNotes: false,
     lab_mergeFeedEnabled: false, // experimental
   }
 
@@ -27,7 +27,7 @@ export const DEFAULT_LOGGED_OUT_PREFERENCES: UsePreferencesQueryResponse = {
     labels: DEFAULT_LOGGED_OUT_LABEL_PREFERENCES,
     labelers: [],
     mutedWords: [],
-    hiddenPosts: [],
+    hiddenNotes: [],
   },
   feedViewPrefs: DEFAULT_HOME_FEED_PREFS,
   threadViewPrefs: DEFAULT_THREAD_VIEW_PREFS,
@@ -39,9 +39,9 @@ export const DEFAULT_LOGGED_OUT_PREFERENCES: UsePreferencesQueryResponse = {
     activeProgressGuide: undefined,
     nuxs: [],
   },
-  postInteractionSettings: {
+  noteInteractionSettings: {
     threadgateAllowRules: undefined,
-    postgateEmbeddingRules: [],
+    notegateEmbeddingRules: [],
   },
   verificationPrefs: {
     hideBadges: false,

@@ -154,9 +154,9 @@ export function useCreateListMutation() {
       return response
     },
     onSuccess: () => {
-      if (currentAccount?.did) {
+      if (currentAccount?.userId) {
         queryClient.invalidateQueries({
-          queryKey: RQKEY_USER_LISTS(currentAccount.did),
+          queryKey: RQKEY_USER_LISTS(currentAccount.userId),
         })
       }
     },
@@ -203,9 +203,9 @@ export function useDeleteListMutation() {
       queryClient.removeQueries({
         queryKey: RQKEY_LIST_MEMBERS(list_id),
       })
-      if (currentAccount?.did) {
+      if (currentAccount?.userId) {
         queryClient.invalidateQueries({
-          queryKey: RQKEY_USER_LISTS(currentAccount.did),
+          queryKey: RQKEY_USER_LISTS(currentAccount.userId),
         })
       }
     },

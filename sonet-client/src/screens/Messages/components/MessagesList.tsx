@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useRef, useState} from 'react'
 import {type LayoutChangeEvent, View} from 'react-native'
-import {useKeyboardHandler} from 'react-native-keyboard-controller'
+import {useKeyboardUsernamer} from 'react-native-keyboard-controller'
 import Animated, {
   runOnJS,
   scrollTo,
@@ -16,14 +16,14 @@ import {ScrollProvider} from '#/lib/ScrollContext'
 import {shortenLinks, stripInvalidMentions} from '#/lib/strings/rich-text-manip'
 import {
   convertBskyAppUrlIfNeeded,
-  isBskyPostUrl,
+  isBskyNoteUrl,
 } from '#/lib/strings/url-helpers'
 import {logger} from '#/logger'
 import {isNative} from '#/platform/detection'
 import {isWeb} from '#/platform/detection'
 // AT Protocol removed - using Sonet messaging
 import {useUnifiedConvoState} from '#/state/messages/hybrid-provider'
-import {useGetPost} from '#/state/queries/post'
+import {useGetNote} from '#/state/queries/note'
 import {useAgent} from '#/state/session'
 import {useShellLayout} from '#/state/shell/shell-layout'
 import {
@@ -61,7 +61,7 @@ function MaybeLoader({isLoading}: {isLoading: boolean}) {
 }
 
 function renderItem({item}: {item: any}) {
-  // Handle Sonet message types
+  // Username Sonet message types
   if (item.type === 'message') {
     return <SonetMessageItem message={item} isOwnMessage={item.senderId === 'current_user'} />
   } else if (item.type === 'typing') {
@@ -96,7 +96,7 @@ export function MessagesList({
 }) {
   const state = useUnifiedConvoState()
   const agent = useAgent()
-  const getPost = useGetPost()
+  const getNote = useGetNote()
   const {embedUri, setEmbed} = useMessageEmbed()
 
   useHideBottomBarBorderForScreen()
@@ -128,10 +128,10 @@ export function MessagesList({
 
   // -- Keep track of background state and positioning for new pill
   const layoutHeight = useSharedValue(0)
-  const didBackground = useRef(false)
+  const userIdBackground = useRef(false)
   useEffect(() => {
     if (state.status === 'ready' && !state.isConnected) {
-      didBackground.current = true
+      userIdBackground.current = true
     }
   }, [state.status, state.isConnected])
 
@@ -165,7 +165,7 @@ export function MessagesList({
         // we can just scroll the user to that offset and add a little bit of padding. We'll also show the pill
         // that can be pressed to immediately scroll to the end.
         if (
-          didBackground.current &&
+          userIdBackground.current &&
           hasScrolled &&
           height - prevContentHeight.current > layoutHeight.get() - 50 &&
           state.messages.length - prevItemCount.current > 1
@@ -199,7 +199,7 @@ export function MessagesList({
 
       prevContentHeight.current = height
       prevItemCount.current = state.messages.length
-      didBackground.current = false
+      userIdBackground.current = false
     },
     [
       hasScrolled,
@@ -256,7 +256,7 @@ export function MessagesList({
   // We use this value to keep track of when we want to disable the animation.
   const layoutScrollWithoutAnimation = useSharedValue(false)
 
-  useKeyboardHandler(
+  useKeyboardUsernamer(
     {
       onStart: e => {
         'worklet'
@@ -306,7 +306,7 @@ export function MessagesList({
         // This would typically call state.actions.sendMessage()
         console.log('Sending message:', text)
         
-        // Handle embeds and rich text processing for Sonet
+        // Username embeds and rich text processing for Sonet
         // This would be implemented based on Sonet's rich text capabilities
 
         if (!hasScrolled) {
@@ -366,7 +366,7 @@ export function MessagesList({
           initialNumToRender={isNative ? 32 : 62}
           maxToRenderPerBatch={isWeb ? 32 : 62}
           keyboardDismissMode="on-drag"
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="usernamed"
           maintainVisibleContentPosition={{
             minIndexForVisible: 0,
           }}

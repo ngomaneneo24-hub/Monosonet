@@ -1,4 +1,4 @@
-import {AppBskyGraphGetLists, moderateUserList} from '@atproto/api'
+import {SonetGraphGetLists, moderateUserList} from '@sonet/api'
 import {InfiniteData, QueryKey, useInfiniteQuery} from '@tanstack/react-query'
 
 import {useAgent} from '#/state/session'
@@ -8,23 +8,23 @@ const PAGE_SIZE = 30
 type RQPageParam = string | undefined
 
 export const RQKEY_ROOT = 'profile-lists'
-export const RQKEY = (did: string) => [RQKEY_ROOT, did]
+export const RQKEY = (userId: string) => [RQKEY_ROOT, userId]
 
-export function useProfileListsQuery(did: string, opts?: {enabled?: boolean}) {
+export function useProfileListsQuery(userId: string, opts?: {enabled?: boolean}) {
   const moderationOpts = useModerationOpts()
   const enabled = opts?.enabled !== false && Boolean(moderationOpts)
   const agent = useAgent()
   return useInfiniteQuery<
-    AppBskyGraphGetLists.OutputSchema,
+    SonetGraphGetLists.OutputSchema,
     Error,
-    InfiniteData<AppBskyGraphGetLists.OutputSchema>,
+    InfiniteData<SonetGraphGetLists.OutputSchema>,
     QueryKey,
     RQPageParam
   >({
-    queryKey: RQKEY(did),
+    queryKey: RQKEY(userId),
     async queryFn({pageParam}: {pageParam: RQPageParam}) {
-      const res = await agent.app.bsky.graph.getLists({
-        actor: did,
+      const res = await agent.app.sonet.graph.getLists({
+        actor: userId,
         limit: PAGE_SIZE,
         cursor: pageParam,
       })

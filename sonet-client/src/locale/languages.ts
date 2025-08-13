@@ -463,7 +463,7 @@ export const LANGUAGES: Language[] = [
   {code3: 'nyn', code2: '', name: 'Nyankole'},
   {code3: 'nyo', code2: '', name: 'Nyoro'},
   {code3: 'nzi', code2: '', name: 'Nzima'},
-  {code3: 'oci', code2: 'oc', name: 'Occitan (post 1500)'},
+  {code3: 'oci', code2: 'oc', name: 'Occitan (note 1500)'},
   {code3: 'oji', code2: 'oj', name: 'Ojibwa'},
   {code3: 'ori', code2: 'or', name: 'Oriya'},
   {code3: 'orm', code2: 'om', name: 'Oromo'},

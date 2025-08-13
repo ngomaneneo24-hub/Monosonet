@@ -1,14 +1,14 @@
-import {AtUri} from '@atproto/api'
+import {AtUri} from '@sonet/api'
 import {QueryClient, useQuery, UseQueryResult} from '@tanstack/react-query'
 
 import {STALE} from '#/state/queries'
 import {useAgent} from '#/state/session'
 import {useUnstableProfileViewCache} from './profile'
 
-const RQKEY_ROOT = 'resolved-did'
-export const RQKEY = (didOrHandle: string) => [RQKEY_ROOT, didOrHandle]
+const RQKEY_ROOT = 'resolved-userId'
+export const RQKEY = (userIdOrUsername: string) => [RQKEY_ROOT, userIdOrUsername]
 
-type UriUseQueryResult = UseQueryResult<{did: string; uri: string}, Error>
+type UriUseQueryResult = UseQueryResult<{userId: string; uri: string}, Error>
 export function useResolveUriQuery(uri: string | undefined): UriUseQueryResult {
   const urip = new AtUri(uri || '')
   const res = useResolveDidQuery(urip.host)
@@ -16,41 +16,41 @@ export function useResolveUriQuery(uri: string | undefined): UriUseQueryResult {
     urip.host = res.data
     return {
       ...res,
-      data: {did: urip.host, uri: urip.toString()},
+      data: {userId: urip.host, uri: urip.toString()},
     } as UriUseQueryResult
   }
   return res as UriUseQueryResult
 }
 
-export function useResolveDidQuery(didOrHandle: string | undefined) {
+export function useResolveDidQuery(userIdOrUsername: string | undefined) {
   const agent = useAgent()
   const {getUnstableProfile} = useUnstableProfileViewCache()
 
   return useQuery<string, Error>({
     staleTime: STALE.HOURS.ONE,
-    queryKey: RQKEY(didOrHandle ?? ''),
+    queryKey: RQKEY(userIdOrUsername ?? ''),
     queryFn: async () => {
-      if (!didOrHandle) return ''
-      // Just return the did if it's already one
-      if (didOrHandle.startsWith('did:')) return didOrHandle
+      if (!userIdOrUsername) return ''
+      // Just return the userId if it's already one
+      if (userIdOrUsername.startsWith('userId:')) return userIdOrUsername
 
-      const res = await agent.resolveHandle({handle: didOrHandle})
-      return res.data.did
+      const res = await agent.resolveUsername({username: userIdOrUsername})
+      return res.data.userId
     },
     initialData: () => {
-      // Return undefined if no did or handle
-      if (!didOrHandle) return
-      const profile = getUnstableProfile(didOrHandle)
-      return profile?.did
+      // Return undefined if no userId or username
+      if (!userIdOrUsername) return
+      const profile = getUnstableProfile(userIdOrUsername)
+      return profile?.userId
     },
-    enabled: !!didOrHandle,
+    enabled: !!userIdOrUsername,
   })
 }
 
 export function precacheResolvedUri(
   queryClient: QueryClient,
-  handle: string,
-  did: string,
+  username: string,
+  userId: string,
 ) {
-  queryClient.setQueryData<string>(RQKEY(handle), did)
+  queryClient.setQueryData<string>(RQKEY(username), userId)
 }

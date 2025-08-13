@@ -1,15 +1,15 @@
-import {AppBskyFeedDefs, BskyAgent} from '@atproto/api'
+import {SonetFeedDefs, SonetAppAgent} from '@sonet/api'
 
 import {FeedAPI, FeedAPIResponse} from './types'
 
 export class FollowingFeedAPI implements FeedAPI {
-  agent: BskyAgent
+  agent: SonetAppAgent
 
-  constructor({agent}: {agent: BskyAgent}) {
+  constructor({agent}: {agent: SonetAppAgent}) {
     this.agent = agent
   }
 
-  async peekLatest(): Promise<AppBskyFeedDefs.FeedViewPost> {
+  async peekLatest(): Promise<SonetFeedDefs.FeedViewNote> {
     const res = await this.agent.getTimeline({
       limit: 1,
     })

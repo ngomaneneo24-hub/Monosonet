@@ -1,11 +1,11 @@
 import {memo, useState} from 'react'
 import {type StyleProp, View, type ViewStyle} from 'react-native'
 import {
-  type AppBskyFeedDefs,
-  type AppBskyFeedPost,
-  type AppBskyFeedThreadgate,
+  type SonetFeedDefs,
+  type SonetFeedNote,
+  type SonetFeedThreadgate,
   type RichText as RichTextAPI,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg, plural} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -16,9 +16,9 @@ import {useOpenComposer} from '#/lib/hooks/useOpenComposer'
 import {type Shadow} from '#/state/cache/types'
 import {useFeedFeedbackContext} from '#/state/feed-feedback'
 import {
-  usePostLikeMutationQueue,
-  usePostRepostMutationQueue,
-} from '#/state/queries/post'
+  useNoteLikeMutationQueue,
+  useNoteRenoteMutationQueue,
+} from '#/state/queries/note'
 import {useRequireAuth} from '#/state/session'
 import {
   ProgressGuideAction,
@@ -29,56 +29,56 @@ import * as Toast from '#/view/com/util/Toast'
 import {atoms as a, useBreakpoints} from '#/alf'
 import {Bubble_Stroke2_Corner2_Rounded as Bubble} from '#/components/icons/Bubble'
 import {
-  PostControlButton,
-  PostControlButtonIcon,
-  PostControlButtonText,
-} from './PostControlButton'
-import {PostMenuButton} from './PostMenu'
-import {RepostButton} from './RepostButton'
+  NoteControlButton,
+  NoteControlButtonIcon,
+  NoteControlButtonText,
+} from './NoteControlButton'
+import {NoteMenuButton} from './NoteMenu'
+import {RenoteButton} from './RenoteButton'
 import {ShareMenuButton} from './ShareMenu'
 
-let PostControls = ({
+let NoteControls = ({
   big,
-  post,
+  note,
   record,
   richText,
   feedContext,
   reqId,
   style,
   onPressReply,
-  onPostReply,
+  onNoteReply,
   logContext,
   threadgateRecord,
   onShowLess,
-  viaRepost,
+  viaRenote,
 }: {
   big?: boolean
-  post: Shadow<AppBskyFeedDefs.PostView>
-  record: AppBskyFeedPost.Record
+  note: Shadow<SonetFeedDefs.NoteView>
+  record: SonetFeedNote.Record
   richText: RichTextAPI
   feedContext?: string | undefined
   reqId?: string | undefined
   style?: StyleProp<ViewStyle>
   onPressReply: () => void
-  onPostReply?: (postUri: string | undefined) => void
-  logContext: 'FeedItem' | 'PostThreadItem' | 'Post' | 'ImmersiveVideo'
-  threadgateRecord?: AppBskyFeedThreadgate.Record
-  onShowLess?: (interaction: AppBskyFeedDefs.Interaction) => void
-  viaRepost?: {uri: string; cid: string}
+  onNoteReply?: (noteUri: string | undefined) => void
+  logContext: 'FeedItem' | 'NoteThreadItem' | 'Note' | 'ImmersiveVideo'
+  threadgateRecord?: SonetFeedThreadgate.Record
+  onShowLess?: (interaction: SonetFeedDefs.Interaction) => void
+  viaRenote?: {uri: string; cid: string}
 }): React.ReactNode => {
   const {_, i18n} = useLingui()
   const {gtMobile} = useBreakpoints()
   const {openComposer} = useOpenComposer()
   const {feedDescriptor} = useFeedFeedbackContext()
-  const [queueLike, queueUnlike] = usePostLikeMutationQueue(
-    post,
-    viaRepost,
+  const [queueLike, queueUnlike] = useNoteLikeMutationQueue(
+    note,
+    viaRenote,
     feedDescriptor,
     logContext,
   )
-  const [queueRepost, queueUnrepost] = usePostRepostMutationQueue(
-    post,
-    viaRepost,
+  const [queueRenote, queueUnrenote] = useNoteRenoteMutationQueue(
+    note,
+    viaRenote,
     feedDescriptor,
     logContext,
   )
@@ -87,11 +87,11 @@ let PostControls = ({
   const {captureAction} = useProgressGuideControls()
   const playHaptic = useHaptics()
   const isBlocked = Boolean(
-    post.author.viewer?.blocking ||
-      post.author.viewer?.blockedBy ||
-      post.author.viewer?.blockingByList,
+    note.author.viewer?.blocking ||
+      note.author.viewer?.blockedBy ||
+      note.author.viewer?.blockingByList,
   )
-  const replyDisabled = post.viewer?.replyDisabled
+  const replyDisabled = note.viewer?.replyDisabled
 
   const [hasLikeIconBeenToggled, setHasLikeIconBeenToggled] = useState(false)
 
@@ -106,11 +106,11 @@ let PostControls = ({
 
     try {
       setHasLikeIconBeenToggled(true)
-      if (!post.viewer?.like) {
+      if (!note.viewer?.like) {
         playHaptic('Light')
         sendInteraction({
-          item: post.uri,
-          event: 'app.bsky.feed.defs#interactionLike',
+          item: note.uri,
+          event: 'app.sonet.feed.defs#interactionLike',
           feedContext,
           reqId,
         })
@@ -126,7 +126,7 @@ let PostControls = ({
     }
   }
 
-  const onRepost = async () => {
+  const onRenote = async () => {
     if (isBlocked) {
       Toast.show(
         _(msg`Cannot interact with a blocked user`),
@@ -136,16 +136,16 @@ let PostControls = ({
     }
 
     try {
-      if (!post.viewer?.repost) {
+      if (!note.viewer?.renote) {
         sendInteraction({
-          item: post.uri,
-          event: 'app.bsky.feed.defs#interactionRepost',
+          item: note.uri,
+          event: 'app.sonet.feed.defs#interactionRenote',
           feedContext,
           reqId,
         })
-        await queueRepost()
+        await queueRenote()
       } else {
-        await queueUnrepost()
+        await queueUnrenote()
       }
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
@@ -164,21 +164,21 @@ let PostControls = ({
     }
 
     sendInteraction({
-      item: post.uri,
-      event: 'app.bsky.feed.defs#interactionQuote',
+      item: note.uri,
+      event: 'app.sonet.feed.defs#interactionQuote',
       feedContext,
       reqId,
     })
     openComposer({
-      quote: post,
-      onPost: onPostReply,
+      quote: note,
+      onNote: onNoteReply,
     })
   }
 
   const onShare = () => {
     sendInteraction({
-      item: post.uri,
-      event: 'app.bsky.feed.defs#interactionShare',
+      item: note.uri,
+      event: 'app.sonet.feed.defs#interactionShare',
       feedContext,
       reqId,
     })
@@ -198,14 +198,14 @@ let PostControls = ({
           big ? a.align_center : [a.flex_1, a.align_start, {marginLeft: -6}],
           replyDisabled ? {opacity: 0.5} : undefined,
         ]}>
-        <PostControlButton
+        <NoteControlButton
           testID="replyBtn"
           onPress={
             !replyDisabled ? () => requireAuth(() => onPressReply()) : undefined
           }
           label={_(
             msg({
-              message: `Reply (${plural(post.replyCount || 0, {
+              message: `Reply (${plural(note.replyCount || 0, {
                 one: '# reply',
                 other: '# replies',
               })})`,
@@ -214,74 +214,74 @@ let PostControls = ({
             }),
           )}
           big={big}>
-          <PostControlButtonIcon icon={Bubble} />
-          {typeof post.replyCount !== 'undefined' && post.replyCount > 0 && (
-            <PostControlButtonText>
-              {formatCount(i18n, post.replyCount)}
-            </PostControlButtonText>
+          <NoteControlButtonIcon icon={Bubble} />
+          {typeof note.replyCount !== 'undefined' && note.replyCount > 0 && (
+            <NoteControlButtonText>
+              {formatCount(i18n, note.replyCount)}
+            </NoteControlButtonText>
           )}
-        </PostControlButton>
+        </NoteControlButton>
       </View>
       <View style={big ? a.align_center : [a.flex_1, a.align_start]}>
-        <RepostButton
-          isReposted={!!post.viewer?.repost}
-          repostCount={(post.repostCount ?? 0) + (post.quoteCount ?? 0)}
-          onRepost={onRepost}
+        <RenoteButton
+          isRenoteed={!!note.viewer?.renote}
+          renoteCount={(note.renoteCount ?? 0) + (note.quoteCount ?? 0)}
+          onRenote={onRenote}
           onQuote={onQuote}
           big={big}
-          embeddingDisabled={Boolean(post.viewer?.embeddingDisabled)}
+          embeddingDisabled={Boolean(note.viewer?.embeddingDisabled)}
         />
       </View>
       <View style={big ? a.align_center : [a.flex_1, a.align_start]}>
-        <PostControlButton
+        <NoteControlButton
           testID="likeBtn"
           big={big}
           onPress={() => requireAuth(() => onPressToggleLike())}
           label={
-            post.viewer?.like
+            note.viewer?.like
               ? _(
                   msg({
-                    message: `Unlike (${plural(post.likeCount || 0, {
+                    message: `Unlike (${plural(note.likeCount || 0, {
                       one: '# like',
                       other: '# likes',
                     })})`,
                     comment:
-                      'Accessibility label for the like button when the post has been liked, verb followed by number of likes and noun',
+                      'Accessibility label for the like button when the note has been liked, verb followed by number of likes and noun',
                   }),
                 )
               : _(
                   msg({
-                    message: `Like (${plural(post.likeCount || 0, {
+                    message: `Like (${plural(note.likeCount || 0, {
                       one: '# like',
                       other: '# likes',
                     })})`,
                     comment:
-                      'Accessibility label for the like button when the post has not been liked, verb form followed by number of likes and noun form',
+                      'Accessibility label for the like button when the note has not been liked, verb form followed by number of likes and noun form',
                   }),
                 )
           }>
           <AnimatedLikeIcon
-            isLiked={Boolean(post.viewer?.like)}
+            isLiked={Boolean(note.viewer?.like)}
             big={big}
             hasBeenToggled={hasLikeIconBeenToggled}
           />
           <CountWheel
-            likeCount={post.likeCount ?? 0}
+            likeCount={note.likeCount ?? 0}
             big={big}
-            isLiked={Boolean(post.viewer?.like)}
+            isLiked={Boolean(note.viewer?.like)}
             hasBeenToggled={hasLikeIconBeenToggled}
           />
-        </PostControlButton>
+        </NoteControlButton>
       </View>
       <View style={big ? a.align_center : [a.flex_1, a.align_start]}>
         <View style={[!big && a.ml_sm]}>
           <ShareMenuButton
-            testID="postShareBtn"
-            post={post}
+            testID="noteShareBtn"
+            note={note}
             big={big}
             record={record}
             richText={richText}
-            timestamp={post.indexedAt}
+            timestamp={note.indexedAt}
             threadgateRecord={threadgateRecord}
             onShare={onShare}
           />
@@ -289,15 +289,15 @@ let PostControls = ({
       </View>
       <View
         style={big ? a.align_center : [gtMobile && a.flex_1, a.align_start]}>
-        <PostMenuButton
-          testID="postDropdownBtn"
-          post={post}
-          postFeedContext={feedContext}
-          postReqId={reqId}
+        <NoteMenuButton
+          testID="noteDropdownBtn"
+          note={note}
+          noteFeedContext={feedContext}
+          noteReqId={reqId}
           big={big}
           record={record}
           richText={richText}
-          timestamp={post.indexedAt}
+          timestamp={note.indexedAt}
           threadgateRecord={threadgateRecord}
           onShowLess={onShowLess}
         />
@@ -305,5 +305,5 @@ let PostControls = ({
     </View>
   )
 }
-PostControls = memo(PostControls)
-export {PostControls}
+NoteControls = memo(NoteControls)
+export {NoteControls}

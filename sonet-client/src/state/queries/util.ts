@@ -1,11 +1,11 @@
 import {
-  AppBskyActorDefs,
-  AppBskyEmbedRecord,
-  AppBskyEmbedRecordWithMedia,
-  AppBskyFeedDefs,
-  AppBskyFeedPost,
+  SonetActorDefs,
+  SonetEmbedRecord,
+  SonetEmbedRecordWithMedia,
+  SonetFeedDefs,
+  SonetFeedNote,
   AtUri,
-} from '@atproto/api'
+} from '@sonet/api'
 import {InfiniteData, QueryClient, QueryKey} from '@tanstack/react-query'
 
 import * as bsky from '#/types/bsky'
@@ -27,53 +27,53 @@ export async function truncateAndInvalidate<T = any>(
 }
 
 // Given an AtUri, this function will check if the AtUri matches a
-// hit regardless of whether the AtUri uses a DID or handle as a host.
+// hit regardless of whether the AtUri uses a UserID or username as a host.
 //
 // AtUri should be the URI that is being searched for, while currentUri
 // is the URI that is being checked. currentAuthor is the author
 // of the currentUri that is being checked.
-export function didOrHandleUriMatches(
+export function userIdOrUsernameUriMatches(
   atUri: AtUri,
-  record: {uri: string; author: AppBskyActorDefs.ProfileViewBasic},
+  record: {uri: string; author: SonetActorDefs.ProfileViewBasic},
 ) {
-  if (atUri.host.startsWith('did:')) {
+  if (atUri.host.startsWith('userId:')) {
     return atUri.href === record.uri
   }
 
-  return atUri.host === record.author.handle && record.uri.endsWith(atUri.rkey)
+  return atUri.host === record.author.username && record.uri.endsWith(atUri.rkey)
 }
 
-export function getEmbeddedPost(
+export function getEmbeddedNote(
   v: unknown,
-): AppBskyEmbedRecord.ViewRecord | undefined {
+): SonetEmbedRecord.ViewRecord | undefined {
   if (
-    bsky.dangerousIsType<AppBskyEmbedRecord.View>(v, AppBskyEmbedRecord.isView)
+    bsky.dangerousIsType<SonetEmbedRecord.View>(v, SonetEmbedRecord.isView)
   ) {
     if (
-      AppBskyEmbedRecord.isViewRecord(v.record) &&
-      AppBskyFeedPost.isRecord(v.record.value)
+      SonetEmbedRecord.isViewRecord(v.record) &&
+      SonetFeedNote.isRecord(v.record.value)
     ) {
       return v.record
     }
   }
   if (
-    bsky.dangerousIsType<AppBskyEmbedRecordWithMedia.View>(
+    bsky.dangerousIsType<SonetEmbedRecordWithMedia.View>(
       v,
-      AppBskyEmbedRecordWithMedia.isView,
+      SonetEmbedRecordWithMedia.isView,
     )
   ) {
     if (
-      AppBskyEmbedRecord.isViewRecord(v.record.record) &&
-      AppBskyFeedPost.isRecord(v.record.record.value)
+      SonetEmbedRecord.isViewRecord(v.record.record) &&
+      SonetFeedNote.isRecord(v.record.record.value)
     ) {
       return v.record.record
     }
   }
 }
 
-export function embedViewRecordToPostView(
-  v: AppBskyEmbedRecord.ViewRecord,
-): AppBskyFeedDefs.PostView {
+export function embedViewRecordToNoteView(
+  v: SonetEmbedRecord.ViewRecord,
+): SonetFeedDefs.NoteView {
   return {
     uri: v.uri,
     cid: v.cid,
@@ -85,6 +85,6 @@ export function embedViewRecordToPostView(
     likeCount: v.likeCount,
     quoteCount: v.quoteCount,
     replyCount: v.replyCount,
-    repostCount: v.repostCount,
+    renoteCount: v.renoteCount,
   }
 }

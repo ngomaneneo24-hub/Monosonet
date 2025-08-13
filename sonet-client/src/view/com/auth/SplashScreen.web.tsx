@@ -11,7 +11,7 @@ import {Logo} from '#/view/icons/Logo'
 import {Logotype} from '#/view/icons/Logotype'
 import {
   AppClipOverlay,
-  postAppClipMessage,
+  noteAppClipMessage,
 } from '#/screens/StarterPack/StarterPackLandingScreen'
 import {atoms as a, useTheme} from '#/alf'
 import {AppLanguageDropdown} from '#/components/AppLanguageDropdown'
@@ -39,7 +39,7 @@ export const SplashScreen = ({
     const clip = getParams.get('clip')
     if (clip === 'true') {
       setShowClipOverlay(true)
-      postAppClipMessage({
+      noteAppClipMessage({
         action: 'present',
       })
     }
@@ -166,17 +166,17 @@ function Footer() {
       ]}>
       <InlineLinkText
         label={_(msg`Learn more about Bluesky`)}
-        to="https://bsky.social">
+        to="https://sonet.social">
         <Trans>Business</Trans>
       </InlineLinkText>
       <InlineLinkText
         label={_(msg`Read the Bluesky blog`)}
-        to="https://bsky.social/about/blog">
+        to="https://sonet.social/about/blog">
         <Trans>Blog</Trans>
       </InlineLinkText>
       <InlineLinkText
         label={_(msg`See jobs at Bluesky`)}
-        to="https://bsky.social/about/join">
+        to="https://sonet.social/about/join">
         <Trans comment="Link to a page with job openings at Bluesky">
           Jobs
         </Trans>

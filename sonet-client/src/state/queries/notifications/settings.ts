@@ -1,4 +1,4 @@
-import {type AppBskyNotificationDefs} from '@atproto/api'
+import {type SonetNotificationDefs} from '@sonet/api'
 import {t} from '@lingui/macro'
 import {
   type QueryClient,
@@ -22,7 +22,7 @@ export function useNotificationSettingsQuery({
   return useQuery({
     queryKey: RQKEY,
     queryFn: async () => {
-      const response = await agent.app.bsky.notification.getPreferences()
+      const response = await agent.app.sonet.notification.getPreferences()
       return response.data.preferences
     },
     enabled,
@@ -34,10 +34,10 @@ export function useNotificationSettingsUpdateMutation() {
 
   return useMutation({
     mutationFn: async (
-      update: Partial<AppBskyNotificationDefs.Preferences>,
+      update: Partial<SonetNotificationDefs.Preferences>,
     ) => {
       const response =
-        await agent.app.bsky.notification.putPreferencesV2(update)
+        await agent.app.sonet.notification.putPreferencesV2(update)
       return response.data.preferences
     },
     onMutate: update => {
@@ -53,11 +53,11 @@ export function useNotificationSettingsUpdateMutation() {
 
 function optimisticUpdateNotificationSettings(
   queryClient: QueryClient,
-  update: Partial<AppBskyNotificationDefs.Preferences>,
+  update: Partial<SonetNotificationDefs.Preferences>,
 ) {
   queryClient.setQueryData(
     RQKEY,
-    (old?: AppBskyNotificationDefs.Preferences) => {
+    (old?: SonetNotificationDefs.Preferences) => {
       if (!old) return old
       return {...old, ...update}
     },

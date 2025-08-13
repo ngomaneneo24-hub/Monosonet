@@ -104,7 +104,7 @@ export function Disable() {
     tokenStatus: 'default',
   })
 
-  const handleSendEmail = async () => {
+  const usernameSendEmail = async () => {
     dispatch({type: 'setEmailStatus', status: 'pending'})
     try {
       await wait(1000, requestEmailUpdate())
@@ -124,7 +124,7 @@ export function Disable() {
     }
   }
 
-  const handleManageEmail2FA = async () => {
+  const usernameManageEmail2FA = async () => {
     if (!isValidCode(token)) {
       dispatch({
         type: 'setError',
@@ -175,7 +175,7 @@ export function Disable() {
               size="large"
               variant="solid"
               color="primary"
-              onPress={handleSendEmail}
+              onPress={usernameSendEmail}
               disabled={state.emailStatus === 'pending'}>
               <ButtonText>
                 <Trans>Send email</Trans>
@@ -222,9 +222,9 @@ export function Disable() {
             <TokenField
               value={token}
               onChangeText={setToken}
-              onSubmitEditing={handleManageEmail2FA}
+              onSubmitEditing={usernameManageEmail2FA}
             />
-            <ResendEmailText onPress={handleSendEmail} />
+            <ResendEmailText onPress={usernameSendEmail} />
           </View>
 
           {state.error && <Admonition type="error">{state.error}</Admonition>}
@@ -234,7 +234,7 @@ export function Disable() {
             size="large"
             variant="solid"
             color="primary"
-            onPress={handleManageEmail2FA}
+            onPress={usernameManageEmail2FA}
             disabled={
               !token || token.length !== 11 || state.tokenStatus === 'pending'
             }>

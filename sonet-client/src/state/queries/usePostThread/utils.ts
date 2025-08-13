@@ -1,52 +1,52 @@
 import {
-  type AppBskyFeedDefs,
-  AppBskyFeedPost,
-  AppBskyFeedThreadgate,
-  AppBskyUnspeccedDefs,
-  type AppBskyUnspeccedGetPostThreadV2,
+  type SonetFeedDefs,
+  SonetFeedNote,
+  SonetFeedThreadgate,
+  SonetUnspeccedDefs,
+  type SonetUnspeccedGetNoteThreadV2,
   AtUri,
-} from '@atproto/api'
+} from '@sonet/api'
 
 import {
   type ApiThreadItem,
   type ThreadItem,
   type TraversalMetadata,
-} from '#/state/queries/usePostThread/types'
+} from '#/state/queries/useNoteThread/types'
 import {isDevMode} from '#/storage/hooks/dev-mode'
 import * as bsky from '#/types/bsky'
 
 export function getThreadgateRecord(
-  view: AppBskyUnspeccedGetPostThreadV2.OutputSchema['threadgate'],
+  view: SonetUnspeccedGetNoteThreadV2.OutputSchema['threadgate'],
 ) {
-  return bsky.dangerousIsType<AppBskyFeedThreadgate.Record>(
+  return bsky.dangerousIsType<SonetFeedThreadgate.Record>(
     view?.record,
-    AppBskyFeedThreadgate.isRecord,
+    SonetFeedThreadgate.isRecord,
   )
     ? view?.record
     : undefined
 }
 
-export function getRootPostAtUri(post: AppBskyFeedDefs.PostView) {
+export function getRootNoteAtUri(note: SonetFeedDefs.NoteView) {
   if (
-    bsky.dangerousIsType<AppBskyFeedPost.Record>(
-      post.record,
-      AppBskyFeedPost.isRecord,
+    bsky.dangerousIsType<SonetFeedNote.Record>(
+      note.record,
+      SonetFeedNote.isRecord,
     )
   ) {
     /**
-     * If the record has no `reply` field, it is a root post.
+     * If the record has no `reply` field, it is a root note.
      */
-    if (!post.record.reply) {
-      return new AtUri(post.uri)
+    if (!note.record.reply) {
+      return new AtUri(note.uri)
     }
-    if (post.record.reply?.root?.uri) {
-      return new AtUri(post.record.reply.root.uri)
+    if (note.record.reply?.root?.uri) {
+      return new AtUri(note.record.reply.root.uri)
     }
   }
 }
 
-export function getPostRecord(post: AppBskyFeedDefs.PostView) {
-  return post.record as AppBskyFeedPost.Record
+export function getNoteRecord(note: SonetFeedDefs.NoteView) {
+  return note.record as SonetFeedNote.Record
 }
 
 export function getTraversalMetadata({
@@ -60,10 +60,10 @@ export function getTraversalMetadata({
   nextItem?: ApiThreadItem
   parentMetadata?: TraversalMetadata
 }): TraversalMetadata {
-  if (!AppBskyUnspeccedDefs.isThreadItemPost(item.value)) {
-    throw new Error(`Expected thread item to be a post`)
+  if (!SonetUnspeccedDefs.isThreadItemNote(item.value)) {
+    throw new Error(`Expected thread item to be a note`)
   }
-  const repliesCount = item.value.post.replyCount || 0
+  const repliesCount = item.value.note.replyCount || 0
   const repliesUnhydrated = item.value.moreReplies || 0
   const metadata = {
     depth: item.depth,
@@ -92,9 +92,9 @@ export function getTraversalMetadata({
      * Unknown until after traversal
      */
     followsReadMoreUp: false,
-    postData: {
+    noteData: {
       uri: item.uri,
-      authorHandle: item.value.post.author.handle,
+      authorUsername: item.value.note.author.username,
     },
     repliesCount,
     repliesUnhydrated,
@@ -106,7 +106,7 @@ export function getTraversalMetadata({
 
   if (isDevMode()) {
     // @ts-ignore dev only for debugging
-    metadata.postData.text = getPostRecord(item.value.post).text
+    metadata.noteData.text = getNoteRecord(item.value.note).text
   }
 
   return metadata
@@ -116,17 +116,17 @@ export function storeTraversalMetadata(
   metadatas: Map<string, TraversalMetadata>,
   metadata: TraversalMetadata,
 ) {
-  metadatas.set(metadata.postData.uri, metadata)
+  metadatas.set(metadata.noteData.uri, metadata)
 
   if (isDevMode()) {
     // @ts-ignore dev only for debugging
-    metadatas.set(metadata.postData.text, metadata)
+    metadatas.set(metadata.noteData.text, metadata)
     // @ts-ignore
     window.__thread = metadatas
   }
 }
 
-export function getThreadPostUI({
+export function getThreadNoteUI({
   depth,
   repliesCount,
   prevItemDepth,
@@ -136,7 +136,7 @@ export function getThreadPostUI({
   repliesUnhydrated,
   precedesChildReadMore,
   followsReadMoreUp,
-}: TraversalMetadata): Extract<ThreadItem, {type: 'threadPost'}>['ui'] {
+}: TraversalMetadata): Extract<ThreadItem, {type: 'threadNote'}>['ui'] {
   const isReplyAndHasReplies =
     depth > 0 &&
     repliesCount > 0 &&
@@ -151,7 +151,7 @@ export function getThreadPostUI({
     indent: depth,
     /*
      * If there are no slices below this one, or the next slice has a depth <=
-     * than the depth of this post, it's the last child of the reply tree. It
+     * than the depth of this note, it's the last child of the reply tree. It
      * is not necessarily the last leaf in the parent branch, since it could
      * have another sibling.
      */
@@ -161,14 +161,14 @@ export function getThreadPostUI({
   }
 }
 
-export function getThreadPostNoUnauthenticatedUI({
+export function getThreadNoteNoUnauthenticatedUI({
   depth,
   prevItemDepth,
 }: {
   depth: number
   prevItemDepth?: number
   nextItemDepth?: number
-}): Extract<ThreadItem, {type: 'threadPostNoUnauthenticated'}>['ui'] {
+}): Extract<ThreadItem, {type: 'threadNoteNoUnauthenticated'}>['ui'] {
   return {
     showChildReplyLine: depth < 0,
     showParentReplyLine: Boolean(prevItemDepth && prevItemDepth < depth),

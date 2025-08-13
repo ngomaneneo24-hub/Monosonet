@@ -66,7 +66,7 @@ export function BottomBar({navigation}: BottomTabBarProps) {
   const numUnreadNotifications = useUnreadNotifications()
   const numUnreadMessages = useUnreadMessageCount()
   const footerMinimalShellTransform = useMinimalShellFooterTransform()
-  const {data: profile} = useProfileQuery({did: currentAccount?.did})
+  const {data: profile} = useProfileQuery({userId: currentAccount?.userId})
   const {requestSwitchToAccount} = useLoggedOutViewControls()
   const closeAllActiveElements = useCloseAllActiveElements()
   const dedupe = useDedupe()

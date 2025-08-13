@@ -18,7 +18,7 @@ export function Content({state}: {state: PolicyUpdateState}) {
   const {_} = useLingui()
   const {screenReaderEnabled} = useA11y()
 
-  const handleClose = useCallback(() => {
+  const usernameClose = useCallback(() => {
     state.complete()
   }, [state])
 
@@ -26,28 +26,28 @@ export function Content({state}: {state: PolicyUpdateState}) {
   const links = {
     terms: {
       overridePresentation: false,
-      to: `https://bsky.social/about/support/tos`,
+      to: `https://sonet.social/about/support/tos`,
       label: _(msg`Terms of Service`),
     },
     privacy: {
       overridePresentation: false,
-      to: `https://bsky.social/about/support/privacy-policy`,
+      to: `https://sonet.social/about/support/privacy-policy`,
       label: _(msg`Privacy Policy`),
     },
     copyright: {
       overridePresentation: false,
-      to: `https://bsky.social/about/support/copyright`,
+      to: `https://sonet.social/about/support/copyright`,
       label: _(msg`Copyright Policy`),
     },
     guidelines: {
       overridePresentation: false,
-      to: `https://bsky.social/about/support/community-guidelines`,
+      to: `https://sonet.social/about/support/community-guidelines`,
       label: _(msg`Community Guidelines`),
     },
     blog: {
       overridePresentation: false,
-      to: `https://bsky.social/about/blog/08-11-2025-updated-terms-and-policies`,
-      label: _(msg`Our blog post`),
+      to: `https://sonet.social/about/blog/08-11-2025-updated-terms-and-policies`,
+      label: _(msg`Our blog note`),
     },
   }
   const linkButtonStyles = {
@@ -58,7 +58,7 @@ export function Content({state}: {state: PolicyUpdateState}) {
 
   const label = isAndroid
     ? _(
-        msg`We’re updating our Terms of Service, Privacy Policy, and Copyright Policy, effective September 12th, 2025. We're also updating our Community Guidelines, and we want your input! These new guidelines will take effect on October 13th, 2025. Learn more about these changes and how to share your thoughts with us by reading our blog post.`,
+        msg`We’re updating our Terms of Service, Privacy Policy, and Copyright Policy, effective September 12th, 2025. We're also updating our Community Guidelines, and we want your input! These new guidelines will take effect on October 13th, 2025. Learn more about these changes and how to share your thoughts with us by reading our blog note.`,
       )
     : _(msg`We're updating our policies`)
 
@@ -88,7 +88,7 @@ export function Content({state}: {state: PolicyUpdateState}) {
             <Text style={[a.leading_snug, a.text_md]}>
               <Trans>
                 Learn more about these changes and how to share your thoughts
-                with us by reading our blog post.
+                with us by reading our blog note.
               </Trans>
             </Text>
 
@@ -109,7 +109,7 @@ export function Content({state}: {state: PolicyUpdateState}) {
             </Link>
             <Link {...links.blog} {...linkButtonStyles}>
               <ButtonText>
-                <Trans>Read our blog post</Trans>
+                <Trans>Read our blog note</Trans>
               </ButtonText>
             </Link>
           </View>
@@ -150,7 +150,7 @@ export function Content({state}: {state: PolicyUpdateState}) {
                 Learn more about these changes and how to share your thoughts
                 with us by{' '}
                 <InlineLinkText {...links.blog} style={linkStyle}>
-                  reading our blog post.
+                  reading our blog note.
                 </InlineLinkText>
               </Trans>
             </Text>
@@ -165,7 +165,7 @@ export function Content({state}: {state: PolicyUpdateState}) {
             )}
             color="primary"
             size="large"
-            onPress={handleClose}>
+            onPress={usernameClose}>
             <ButtonText>
               <Trans>Continue</Trans>
             </ButtonText>

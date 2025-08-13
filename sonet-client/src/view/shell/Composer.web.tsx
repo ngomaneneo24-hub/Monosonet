@@ -12,7 +12,7 @@ import {
   type EmojiPickerState,
 } from '#/view/com/composer/text-input/web/EmojiPicker'
 import {atoms as a, flatten, useBreakpoints, useTheme} from '#/alf'
-import {ComposePost, useComposerCancelRef} from '../com/composer/Composer'
+import {ComposeNote, useComposerCancelRef} from '../com/composer/Composer'
 
 const BOTTOM_BAR_HEIGHT = 61
 
@@ -100,12 +100,12 @@ function Inner({state}: {state: ComposerOpts}) {
               {animationFillMode: 'backwards'},
             ],
           ]}>
-          <ComposePost
+          <ComposeNote
             cancelRef={ref}
             replyTo={state.replyTo}
             quote={state.quote}
-            onPost={state.onPost}
-            onPostSuccess={state.onPostSuccess}
+            onNote={state.onNote}
+            onNoteSuccess={state.onNoteSuccess}
             mention={state.mention}
             openEmojiPicker={onOpenPicker}
             text={state.text}

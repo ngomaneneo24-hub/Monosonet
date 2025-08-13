@@ -1,6 +1,6 @@
 import React from 'react'
 import {View} from 'react-native'
-import {AppBskyLabelerDefs} from '@atproto/api'
+import {SonetLabelerDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -29,7 +29,7 @@ export function SubmitView({
   goBack,
   onSubmitComplete,
 }: ReportDialogProps & {
-  labelers: AppBskyLabelerDefs.LabelerViewDetailed[]
+  labelers: SonetLabelerDefs.LabelerViewDetailed[]
   selectedLabeler: string
   selectedReportOption: ReportOption
   goBack: () => void
@@ -51,8 +51,8 @@ export function SubmitView({
 
     const $type =
       params.type === 'account'
-        ? 'com.atproto.admin.defs#repoRef'
-        : 'com.atproto.repo.strongRef'
+        ? 'com.sonet.admin.defs#repoRef'
+        : 'com.sonet.repo.strongRef'
     const report = {
       reasonType: selectedReportOption.reason,
       subject: {
@@ -62,12 +62,12 @@ export function SubmitView({
       reason: details,
     }
     const results = await Promise.all(
-      selectedServices.map(did => {
+      selectedServices.map(userId => {
         return agent
           .createModerationReport(report, {
             encoding: 'application/json',
             headers: {
-              'atproto-proxy': `${did}#atproto_labeler`,
+              'atproto-proxy': `${userId}#atproto_labeler`,
             },
           })
           .then(
@@ -149,12 +149,12 @@ export function SubmitView({
             {labelers.map(labeler => {
               const title = getLabelingServiceTitle({
                 displayName: labeler.creator.displayName,
-                handle: labeler.creator.handle,
+                username: labeler.creator.username,
               })
               return (
                 <Toggle.Item
-                  key={labeler.creator.did}
-                  name={labeler.creator.did}
+                  key={labeler.creator.userId}
+                  name={labeler.creator.userId}
                   label={title}>
                   <LabelerToggle title={title} />
                 </Toggle.Item>

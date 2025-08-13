@@ -1,6 +1,6 @@
-import {forwardRef, useEffect, useImperativeHandle, useState} from 'react'
+import {forwardRef, useEffect, useImperativeUsername, useState} from 'react'
 import {Pressable, StyleSheet, View} from 'react-native'
-import {type AppBskyActorDefs} from '@atproto/api'
+import {type SonetActorDefs} from '@sonet/api'
 import {Trans} from '@lingui/macro'
 import {ReactRenderer} from '@tiptap/react'
 import {
@@ -12,7 +12,7 @@ import tippy, {type Instance as TippyInstance} from 'tippy.js'
 
 import {usePalette} from '#/lib/hooks/usePalette'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {type ActorAutocompleteFn} from '#/state/queries/actor-autocomplete'
 import {Text} from '#/view/com/util/text/Text'
 import {UserAvatar} from '#/view/com/util/UserAvatar'
@@ -104,40 +104,40 @@ const MentionList = forwardRef<MentionListRef, SuggestionProps>(
       const item = props.items[index]
 
       if (item) {
-        props.command({id: item.handle})
+        props.command({id: item.username})
       }
     }
 
-    const upHandler = () => {
+    const upUsernamer = () => {
       setSelectedIndex(
         (selectedIndex + props.items.length - 1) % props.items.length,
       )
     }
 
-    const downHandler = () => {
+    const downUsernamer = () => {
       setSelectedIndex((selectedIndex + 1) % props.items.length)
     }
 
-    const enterHandler = () => {
+    const enterUsernamer = () => {
       selectItem(selectedIndex)
     }
 
     useEffect(() => setSelectedIndex(0), [props.items])
 
-    useImperativeHandle(ref, () => ({
+    useImperativeUsername(ref, () => ({
       onKeyDown: ({event}) => {
         if (event.key === 'ArrowUp') {
-          upHandler()
+          upUsernamer()
           return true
         }
 
         if (event.key === 'ArrowDown') {
-          downHandler()
+          downUsernamer()
           return true
         }
 
         if (event.key === 'Enter' || event.key === 'Tab') {
-          enterHandler()
+          enterUsernamer()
           return true
         }
 
@@ -156,7 +156,7 @@ const MentionList = forwardRef<MentionListRef, SuggestionProps>(
 
               return (
                 <AutocompleteProfileCard
-                  key={item.handle}
+                  key={item.username}
                   profile={item}
                   isSelected={isSelected}
                   itemIndex={index}
@@ -185,7 +185,7 @@ function AutocompleteProfileCard({
   totalItems,
   onPress,
 }: {
-  profile: AppBskyActorDefs.ProfileViewBasic
+  profile: SonetActorDefs.ProfileViewBasic
   isSelected: boolean
   itemIndex: number
   totalItems: number
@@ -194,7 +194,7 @@ function AutocompleteProfileCard({
   const pal = usePalette('default')
   const {getGraphemeString} = useGrapheme()
   const {name: displayName} = getGraphemeString(
-    sanitizeDisplayName(profile.displayName || sanitizeHandle(profile.handle)),
+    sanitizeDisplayName(profile.displayName || sanitizeUsername(profile.username)),
     30, // Heuristic value; can be modified
   )
   const state = useSimpleVerificationState({
@@ -236,7 +236,7 @@ function AutocompleteProfileCard({
       </View>
       <View>
         <Text type="xs" style={pal.textLight} numberOfLines={1}>
-          {sanitizeHandle(profile.handle, '@')}
+          {sanitizeUsername(profile.username, '@')}
         </Text>
       </View>
     </Pressable>

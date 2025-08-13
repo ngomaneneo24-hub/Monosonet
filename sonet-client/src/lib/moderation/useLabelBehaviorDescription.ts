@@ -1,4 +1,4 @@
-import {InterpretedLabelValueDefinition, LabelPreference} from '@atproto/api'
+import {InterpretedLabelValueDefinition, LabelPreference} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 

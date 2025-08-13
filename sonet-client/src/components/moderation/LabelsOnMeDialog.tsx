@@ -1,6 +1,6 @@
 import React from 'react'
 import {View} from 'react-native'
-import {ComAtprotoLabelDefs, ComAtprotoModerationDefs} from '@atproto/api'
+import {SonetLabelDefs, SonetModerationDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useMutation} from '@tanstack/react-query'
@@ -9,7 +9,7 @@ import {useGetTimeAgo} from '#/lib/hooks/useTimeAgo'
 import {useLabelSubject} from '#/lib/moderation'
 import {useLabelInfo} from '#/lib/moderation/useLabelInfo'
 import {makeProfileLink} from '#/lib/routes/links'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {logger} from '#/logger'
 import {isAndroid} from '#/platform/detection'
 import {useAgent, useSession} from '#/state/session'
@@ -26,14 +26,14 @@ export {useDialogControl as useLabelsOnMeDialogControl} from '#/components/Dialo
 
 export interface LabelsOnMeDialogProps {
   control: Dialog.DialogOuterProps['control']
-  labels: ComAtprotoLabelDefs.Label[]
+  labels: SonetLabelDefs.Label[]
   type: 'account' | 'content'
 }
 
 export function LabelsOnMeDialog(props: LabelsOnMeDialogProps) {
   return (
     <Dialog.Outer control={props.control}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <LabelsOnMeDialogInner {...props} />
     </Dialog.Outer>
   )
@@ -43,13 +43,13 @@ function LabelsOnMeDialogInner(props: LabelsOnMeDialogProps) {
   const {_} = useLingui()
   const {currentAccount} = useSession()
   const [appealingLabel, setAppealingLabel] = React.useState<
-    ComAtprotoLabelDefs.Label | undefined
+    SonetLabelDefs.Label | undefined
   >(undefined)
   const {labels} = props
   const isAccount = props.type === 'account'
   const containsSelfLabel = React.useMemo(
-    () => labels.some(l => l.src === currentAccount?.did),
-    [currentAccount?.did, labels],
+    () => labels.some(l => l.src === currentAccount?.userId),
+    [currentAccount?.userId, labels],
   )
 
   return (
@@ -93,7 +93,7 @@ function LabelsOnMeDialogInner(props: LabelsOnMeDialogProps) {
               <Label
                 key={`${label.val}-${label.src}`}
                 label={label}
-                isSelfLabel={label.src === currentAccount?.did}
+                isSelfLabel={label.src === currentAccount?.userId}
                 control={props.control}
                 onPressAppeal={setAppealingLabel}
               />
@@ -112,16 +112,16 @@ function Label({
   control,
   onPressAppeal,
 }: {
-  label: ComAtprotoLabelDefs.Label
+  label: SonetLabelDefs.Label
   isSelfLabel: boolean
   control: Dialog.DialogOuterProps['control']
-  onPressAppeal: (label: ComAtprotoLabelDefs.Label) => void
+  onPressAppeal: (label: SonetLabelDefs.Label) => void
 }) {
   const t = useTheme()
   const {_} = useLingui()
   const {labeler, strings} = useLabelInfo(label)
   const sourceName = labeler
-    ? sanitizeHandle(labeler.creator.handle, '@')
+    ? sanitizeUsername(labeler.creator.username, '@')
     : label.src
   const timeDiff = useGetTimeAgo({future: true})
   return (
@@ -180,7 +180,7 @@ function Label({
                 <InlineLinkText
                   label={sourceName}
                   to={makeProfileLink(
-                    labeler ? labeler.creator : {did: label.src, handle: ''},
+                    labeler ? labeler.creator : {userId: label.src, username: ''},
                   )}
                   onPress={() => control.close()}>
                   {sourceName}
@@ -212,7 +212,7 @@ function AppealForm({
   control,
   onPressBack,
 }: {
-  label: ComAtprotoLabelDefs.Label
+  label: SonetLabelDefs.Label
   control: Dialog.DialogOuterProps['control']
   onPressBack: () => void
 }) {
@@ -221,20 +221,20 @@ function AppealForm({
   const {gtMobile} = useBreakpoints()
   const [details, setDetails] = React.useState('')
   const {subject} = useLabelSubject({label})
-  const isAccountReport = 'did' in subject
+  const isAccountReport = 'userId' in subject
   const agent = useAgent()
   const sourceName = labeler
-    ? sanitizeHandle(labeler.creator.handle, '@')
+    ? sanitizeUsername(labeler.creator.username, '@')
     : label.src
 
   const {mutate, isPending} = useMutation({
     mutationFn: async () => {
       const $type = !isAccountReport
-        ? 'com.atproto.repo.strongRef'
-        : 'com.atproto.admin.defs#repoRef'
+        ? 'com.sonet.repo.strongRef'
+        : 'com.sonet.admin.defs#repoRef'
       await agent.createModerationReport(
         {
-          reasonType: ComAtprotoModerationDefs.REASONAPPEAL,
+          reasonType: SonetModerationDefs.REASONAPPEAL,
           subject: {
             $type,
             ...subject,
@@ -273,7 +273,7 @@ function AppealForm({
             <InlineLinkText
               label={sourceName}
               to={makeProfileLink(
-                labeler ? labeler.creator : {did: label.src, handle: ''},
+                labeler ? labeler.creator : {userId: label.src, username: ''},
               )}
               onPress={() => control.close()}
               style={[a.text_md, a.leading_snug]}>
@@ -288,7 +288,7 @@ function AppealForm({
           label={_(msg`Text input field`)}
           placeholder={_(
             msg`Please explain why you think this label was incorrectly applied by ${
-              labeler ? sanitizeHandle(labeler.creator.handle, '@') : label.src
+              labeler ? sanitizeUsername(labeler.creator.username, '@') : label.src
             }`,
           )}
           value={details}

@@ -5,7 +5,7 @@ import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
 
 import {NavigationProp} from '#/lib/routes/types'
-import {isInvalidHandle} from '#/lib/strings/handles'
+import {isInvalidUsername} from '#/lib/strings/usernames'
 import {isNative, isWeb} from '#/platform/detection'
 import {
   usePreferencesQuery,
@@ -26,12 +26,12 @@ import * as Menu from '#/components/Menu'
 export function RichTextTag({
   tag,
   display,
-  authorHandle,
+  authorUsername,
   textStyle,
 }: {
   tag: string
   display: string
-  authorHandle?: string
+  authorUsername?: string
   textStyle: StyleProp<TextStyle>
 }) {
   const {_} = useLingui()
@@ -108,28 +108,28 @@ export function RichTextTag({
       <Menu.Outer>
         <Menu.Group>
           <Menu.Item
-            label={_(msg`See ${tag} posts`)}
+            label={_(msg`See ${tag} notes`)}
             onPress={() => {
               navigation.push('Hashtag', {
                 tag: encodeURIComponent(tag),
               })
             }}>
             <Menu.ItemText>
-              <Trans>See #{tag} posts</Trans>
+              <Trans>See #{tag} notes</Trans>
             </Menu.ItemText>
             <Menu.ItemIcon icon={Search} />
           </Menu.Item>
-          {authorHandle && !isInvalidHandle(authorHandle) && (
+          {authorUsername && !isInvalidUsername(authorUsername) && (
             <Menu.Item
-              label={_(msg`See ${tag} posts by user`)}
+              label={_(msg`See ${tag} notes by user`)}
               onPress={() => {
                 navigation.push('Hashtag', {
                   tag: encodeURIComponent(tag),
-                  author: authorHandle,
+                  author: authorUsername,
                 })
               }}>
               <Menu.ItemText>
-                <Trans>See #{tag} posts by user</Trans>
+                <Trans>See #{tag} notes by user</Trans>
               </Menu.ItemText>
               <Menu.ItemIcon icon={Person} />
             </Menu.Item>

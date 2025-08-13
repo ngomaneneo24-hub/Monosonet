@@ -3,7 +3,7 @@ import '#/logger/bitdrift/setup'
 import '#/view/icons'
 
 import React, {useEffect, useState} from 'react'
-import {GestureHandlerRootView} from 'react-native-gesture-handler'
+import {GestureUsernamerRootView} from 'react-native-gesture-usernamer'
 import {RootSiblingParent} from 'react-native-root-siblings'
 import {
   initialWindowMetrics,
@@ -73,17 +73,17 @@ import {useStarterPackEntry} from '#/components/hooks/useStarterPackEntry'
 import {Provider as IntentDialogProvider} from '#/components/intents/IntentDialogs'
 import {Provider as PolicyUpdateOverlayProvider} from '#/components/PolicyUpdateOverlay'
 import {Provider as PortalProvider} from '#/components/Portal'
-import {Provider as VideoVolumeProvider} from '#/components/Post/Embed/VideoEmbed/VideoVolumeContext'
+import {Provider as VideoVolumeProvider} from '#/components/Note/Embed/VideoEmbed/VideoVolumeContext'
 import {Splash} from '#/Splash'
 import {BottomSheetProvider} from '../modules/bottom-sheet'
-import {BackgroundNotificationPreferencesProvider} from '../modules/expo-background-notification-handler/src/BackgroundNotificationHandlerProvider'
+import {BackgroundNotificationPreferencesProvider} from '../modules/expo-background-notification-usernamer/src/BackgroundNotificationUsernamerProvider'
 
 SplashScreen.preventAutoHideAsync()
 if (isIOS) {
   SystemUI.setBackgroundColorAsync('black')
 }
 if (isAndroid) {
-  // iOS is handled by the config plugin -sfn
+  // iOS is usernamed by the config plugin -sfn
   ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP)
 }
 
@@ -137,8 +137,8 @@ function InnerApp() {
               <VideoVolumeProvider>
                 <React.Fragment
                   // Resets the entire tree below when it changes:
-                  key={currentAccount?.did}>
-                  <QueryProvider currentDid={currentAccount?.did}>
+                  key={currentAccount?.userId}>
+                  <QueryProvider currentDid={currentAccount?.userId}>
                     <PolicyUpdateOverlayProvider>
                       <StatsigProvider>
                         <AgeAssuranceProvider>
@@ -157,7 +157,7 @@ function InnerApp() {
                                                 <ProgressGuideProvider>
                                                   <ServiceAccountManager>
                                                     <HideBottomBarBorderProvider>
-                                                      <GestureHandlerRootView
+                                                      <GestureUsernamerRootView
                                                         style={s.h100pct}>
                                                         <GlobalGestureEventsProvider>
                                                           <IntentDialogProvider>
@@ -166,7 +166,7 @@ function InnerApp() {
                                                             <NuxDialogs />
                                                           </IntentDialogProvider>
                                                         </GlobalGestureEventsProvider>
-                                                      </GestureHandlerRootView>
+                                                      </GestureUsernamerRootView>
                                                     </HideBottomBarBorderProvider>
                                                   </ServiceAccountManager>
                                                 </ProgressGuideProvider>

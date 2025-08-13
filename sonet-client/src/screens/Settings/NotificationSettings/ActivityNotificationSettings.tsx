@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react'
 import {type ListRenderItemInfo, Text as RNText, View} from 'react-native'
-import {type ModerationOpts} from '@atproto/api'
+import {type ModerationOpts} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -102,7 +102,7 @@ export function ActivityNotificationSettingsScreen({}: Props) {
                 titleText={<Trans>Activity from others</Trans>}
                 subtitleText={
                   <Trans>
-                    Get notified about posts and replies from accounts you
+                    Get notified about notes and replies from accounts you
                     choose.
                   </Trans>
                 }
@@ -116,8 +116,8 @@ export function ActivityNotificationSettingsScreen({}: Props) {
               </View>
             ) : (
               <PreferenceControls
-                name="subscribedPost"
-                preference={preferences?.subscribedPost}
+                name="subscribedNote"
+                preference={preferences?.subscribedNote}
               />
             )}
           </SettingsList.Container>
@@ -190,7 +190,7 @@ export function ActivityNotificationSettingsScreen({}: Props) {
 }
 
 function keyExtractor(item: bsky.profile.AnyProfileView) {
-  return item.did
+  return item.userId
 }
 
 function ActivitySubscriptionCard({
@@ -207,10 +207,10 @@ function ActivitySubscriptionCard({
 
   const preview = useMemo(() => {
     const actSub = profile.viewer?.activitySubscription
-    if (actSub?.post && actSub?.reply) {
-      return _(msg`Posts, Replies`)
-    } else if (actSub?.post) {
-      return _(msg`Posts`)
+    if (actSub?.note && actSub?.reply) {
+      return _(msg`Notes, Replies`)
+    } else if (actSub?.note) {
+      return _(msg`Notes`)
     } else if (actSub?.reply) {
       return _(msg`Replies`)
     }
@@ -226,7 +226,7 @@ function ActivitySubscriptionCard({
             moderationOpts={moderationOpts}
           />
           <View style={[a.flex_1, a.gap_2xs]}>
-            <ProfileCard.NameAndHandle
+            <ProfileCard.NameAndUsername
               profile={profile}
               moderationOpts={moderationOpts}
               inline

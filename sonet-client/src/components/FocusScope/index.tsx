@@ -11,7 +11,7 @@ import {
 } from 'react'
 import {
   AccessibilityInfo,
-  findNodeHandle,
+  findNodeUsername,
   Pressable,
   Text,
   View,
@@ -70,7 +70,7 @@ function FocusTrap({children}: {children: ReactNode}) {
 
   const focusNode = useCallback((ref: View | null) => {
     if (!ref) return
-    const node = findNodeHandle(ref)
+    const node = findNodeUsername(ref)
     if (node) {
       AccessibilityInfo.setAccessibilityFocus(node)
     }

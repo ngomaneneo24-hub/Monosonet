@@ -159,7 +159,7 @@ export interface VideoItem {
     view_count: number
     unique_viewers: number
     like_count: number
-    repost_count: number
+    renote_count: number
     reply_count: number
     share_count: number
     bookmark_count: number
@@ -205,7 +205,7 @@ export interface VideoItem {
 export interface EngagementEvent {
   user_id: string
   video_id: string
-  event_type: 'view' | 'like' | 'repost' | 'reply' | 'share' | 'bookmark' | 'skip' | 'report'
+  event_type: 'view' | 'like' | 'renote' | 'reply' | 'share' | 'bookmark' | 'skip' | 'report'
   timestamp: string
   duration_ms?: number
   completion_rate?: number
@@ -252,7 +252,7 @@ export interface FeedInsightsResponse {
   }
   engagement_trends: {
     like_rate: number
-    repost_rate: number
+    renote_rate: number
     reply_rate: number
     share_rate: number
     skip_rate: number
@@ -569,7 +569,7 @@ export class VideoFeedAPIError extends Error {
   }
 }
 
-export const handleVideoFeedError = (error: any): VideoFeedAPIError => {
+export const usernameVideoFeedError = (error: any): VideoFeedAPIError => {
   if (error instanceof VideoFeedAPIError) {
     return error
   }

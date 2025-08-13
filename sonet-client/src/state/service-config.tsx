@@ -9,7 +9,7 @@ type TrendingContext = {
 }
 
 type LiveNowContext = {
-  did: string
+  userId: string
   domains: string[]
 }[]
 
@@ -82,7 +82,7 @@ export function useLiveNowConfig() {
   return ctx
 }
 
-export function useCanGoLive(did?: string) {
+export function useCanGoLive(userId?: string) {
   const config = useLiveNowConfig()
-  return !!config.find(cfg => cfg.did === did)
+  return !!config.find(cfg => cfg.userId === userId)
 }

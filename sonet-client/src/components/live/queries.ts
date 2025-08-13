@@ -1,10 +1,10 @@
 import {
   type $Typed,
-  type AppBskyActorStatus,
-  type AppBskyEmbedExternal,
-  ComAtprotoRepoPutRecord,
-} from '@atproto/api'
-import {retry} from '@atproto/common-web'
+  type SonetActorStatus,
+  type SonetEmbedExternal,
+  SonetRepoPutRecord,
+} from '@sonet/api'
+import {retry} from '@sonet/types'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
@@ -30,7 +30,7 @@ export function useLiveLinkMetaQuery(url: string | null) {
     queryKey: ['link-meta', url],
     queryFn: async () => {
       if (!url) return undefined
-      const config = liveNowConfig.find(cfg => cfg.did === currentAccount?.did)
+      const config = liveNowConfig.find(cfg => cfg.userId === currentAccount?.userId)
 
       if (!config) throw new Error(_(msg`You are not allowed to go live`))
 
@@ -59,7 +59,7 @@ export function useUpsertLiveStatusMutation(
     mutationFn: async () => {
       if (!currentAccount) throw new Error('Not logged in')
 
-      let embed: $Typed<AppBskyEmbedExternal.Main> | undefined
+      let embed: $Typed<SonetEmbedExternal.Main> | undefined
 
       if (linkMeta) {
         let thumb
@@ -85,9 +85,9 @@ export function useUpsertLiveStatusMutation(
         }
 
         embed = {
-          $type: 'app.bsky.embed.external',
+          type: "sonet",
           external: {
-            $type: 'app.bsky.embed.external#external',
+            type: "sonet",
             title: linkMeta.title ?? '',
             description: linkMeta.description ?? '',
             uri: linkMeta.url,
@@ -97,22 +97,22 @@ export function useUpsertLiveStatusMutation(
       }
 
       const record = {
-        $type: 'app.bsky.actor.status',
+        type: "sonet",
         createdAt: createdAt ?? new Date().toISOString(),
-        status: 'app.bsky.actor.status#live',
+        status: 'app.sonet.actor.status#live',
         durationMinutes: duration,
         embed,
-      } satisfies AppBskyActorStatus.Record
+      } satisfies SonetActorStatus.Record
 
       const upsert = async () => {
-        const repo = currentAccount.did
-        const collection = 'app.bsky.actor.status'
+        const repo = currentAccount.userId
+        const collection = 'app.sonet.actor.status'
 
-        const existing = await agent.com.atproto.repo
+        const existing = await agent.com.sonet.repo
           .getRecord({repo, collection, rkey: 'self'})
           .catch(_e => undefined)
 
-        await agent.com.atproto.repo.putRecord({
+        await agent.com.sonet.repo.putRecord({
           repo,
           collection,
           rkey: 'self',
@@ -123,7 +123,7 @@ export function useUpsertLiveStatusMutation(
 
       await retry(upsert, {
         maxRetries: 5,
-        retryable: e => e instanceof ComAtprotoRepoPutRecord.InvalidSwapError,
+        retryable: e => e instanceof SonetRepoPutRecord.InvalidSwapError,
       })
 
       return {
@@ -160,19 +160,19 @@ export function useUpsertLiveStatusMutation(
         const expiresAt = new Date(record.createdAt)
         expiresAt.setMinutes(expiresAt.getMinutes() + record.durationMinutes)
 
-        updateProfileShadow(queryClient, currentAccount.did, {
+        updateProfileShadow(queryClient, currentAccount.userId, {
           status: {
-            $type: 'app.bsky.actor.defs#statusView',
-            status: 'app.bsky.actor.status#live',
+            type: "sonet",
+            status: 'app.sonet.actor.status#live',
             isActive: true,
             expiresAt: expiresAt.toISOString(),
             embed:
               record.embed && image
                 ? {
-                    $type: 'app.bsky.embed.external#view',
+                    type: "sonet",
                     external: {
                       ...record.embed.external,
-                      $type: 'app.bsky.embed.external#viewExternal',
+                      type: "sonet",
                       thumb: image,
                     },
                   }
@@ -196,8 +196,8 @@ export function useRemoveLiveStatusMutation() {
     mutationFn: async () => {
       if (!currentAccount) throw new Error('Not logged in')
 
-      await agent.app.bsky.actor.status.delete({
-        repo: currentAccount.did,
+      await agent.app.sonet.actor.status.delete({
+        repo: currentAccount.userId,
         rkey: 'self',
       })
     },
@@ -212,7 +212,7 @@ export function useRemoveLiveStatusMutation() {
       control.close(() => {
         if (!currentAccount) return
 
-        updateProfileShadow(queryClient, currentAccount.did, {
+        updateProfileShadow(queryClient, currentAccount.userId, {
           status: undefined,
         })
       })

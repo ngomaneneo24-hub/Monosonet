@@ -1,9 +1,9 @@
 import React from 'react'
 import {
-  BskyAgent,
+  SonetAppAgent,
   DEFAULT_LABEL_SETTINGS,
   interpretLabelValueDefinitions,
-} from '@atproto/api'
+} from '@sonet/api'
 
 import {isNonConfigurableModerationAuthority} from '#/state/session/additional-moderation-authorities'
 import {useLabelersDetailedInfoQuery} from '../labeler'
@@ -23,17 +23,17 @@ export function useMyLabelersQuery({
   excludeNonConfigurableLabelers?: boolean
 } = {}) {
   const prefs = usePreferencesQuery()
-  let dids = Array.from(
+  let userIds = Array.from(
     new Set(
-      BskyAgent.appLabelers.concat(
-        prefs.data?.moderationPrefs.labelers.map(l => l.did) || [],
+      SonetAppAgent.appLabelers.concat(
+        prefs.data?.moderationPrefs.labelers.map(l => l.userId) || [],
       ),
     ),
   )
   if (excludeNonConfigurableLabelers) {
-    dids = dids.filter(did => !isNonConfigurableModerationAuthority(did))
+    userIds = userIds.filter(userId => !isNonConfigurableModerationAuthority(userId))
   }
-  const labelers = useLabelersDetailedInfoQuery({dids})
+  const labelers = useLabelersDetailedInfoQuery({userIds})
   const isLoading = prefs.isLoading || labelers.isLoading
   const error = prefs.error || labelers.error
   return React.useMemo(() => {
@@ -52,7 +52,7 @@ export function useLabelDefinitionsQuery() {
     return {
       labelDefs: Object.fromEntries(
         (labelers.data || []).map(labeler => [
-          labeler.creator.did,
+          labeler.creator.userId,
           interpretLabelValueDefinitions(labeler),
         ]),
       ),

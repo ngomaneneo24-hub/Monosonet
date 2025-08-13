@@ -3,13 +3,13 @@ import React, {useEffect, useRef, useCallback} from 'react'
 import {View, StyleSheet} from 'react-native'
 
 interface EngagementTrackerProps {
-  postId: string
+  noteId: string
   onInteraction: (interaction: any) => void
   startTime: number
 }
 
 export function EngagementTracker({
-  postId,
+  noteId,
   onInteraction,
   startTime
 }: EngagementTrackerProps) {
@@ -18,15 +18,15 @@ export function EngagementTracker({
   const hasInteracted = useRef(false)
   const interactionCount = useRef(0)
 
-  // Track when post becomes visible
-  const handleViewStart = useCallback(() => {
+  // Track when note becomes visible
+  const usernameViewStart = useCallback(() => {
     if (!isVisible.current) {
       isVisible.current = true
       viewStartTime.current = Date.now()
       
       // Send view interaction
       onInteraction({
-        item: postId,
+        item: noteId,
         event: 'sonet.feed.defs#interactionSeen',
         feedContext: 'for-you',
         reqId: `view_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -36,17 +36,17 @@ export function EngagementTracker({
         }
       })
     }
-  }, [postId, onInteraction])
+  }, [noteId, onInteraction])
 
-  // Track when post becomes invisible
-  const handleViewEnd = useCallback(() => {
+  // Track when note becomes invisible
+  const usernameViewEnd = useCallback(() => {
     if (isVisible.current) {
       isVisible.current = false
       const viewDuration = Date.now() - viewStartTime.current
       
       // Send view end interaction
       onInteraction({
-        item: postId,
+        item: noteId,
         event: 'sonet.feed.defs#interactionSeen',
         feedContext: 'for-you',
         reqId: `view_end_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -57,7 +57,7 @@ export function EngagementTracker({
         }
       })
     }
-  }, [postId, onInteraction])
+  }, [noteId, onInteraction])
 
   // Track user interactions
   const trackInteraction = useCallback((interactionType: string) => {
@@ -65,7 +65,7 @@ export function EngagementTracker({
     interactionCount.current += 1
     
     onInteraction({
-      item: postId,
+      item: noteId,
       event: `sonet.feed.defs#interaction${interactionType}`,
       feedContext: 'for-you',
       reqId: `interaction_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -76,12 +76,12 @@ export function EngagementTracker({
         has_interacted: hasInteracted.current
       }
     })
-  }, [postId, onInteraction])
+  }, [noteId, onInteraction])
 
   // Track scroll behavior
   const trackScroll = useCallback((direction: 'up' | 'down') => {
     onInteraction({
-      item: postId,
+      item: noteId,
       event: 'sonet.feed.defs#interactionSeen',
       feedContext: 'for-you',
       reqId: `scroll_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -91,7 +91,7 @@ export function EngagementTracker({
         interaction_count: interactionCount.current
       }
     })
-  }, [postId, onInteraction])
+  }, [noteId, onInteraction])
 
   // Track time-based engagement
   useEffect(() => {
@@ -106,7 +106,7 @@ export function EngagementTracker({
       setTimeout(() => {
         if (isVisible.current) {
           onInteraction({
-            item: postId,
+            item: noteId,
             event: 'sonet.feed.defs#interactionSeen',
             feedContext: 'for-you',
             reqId: `time_${interval}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -124,16 +124,16 @@ export function EngagementTracker({
     return () => {
       timers.forEach(timer => clearTimeout(timer))
     }
-  }, [postId, onInteraction])
+  }, [noteId, onInteraction])
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (isVisible.current) {
-        handleViewEnd()
+        usernameViewEnd()
       }
     }
-  }, [handleViewEnd])
+  }, [usernameViewEnd])
 
   // This component doesn't render anything visible
   // It just tracks engagement for ML training

@@ -7,12 +7,12 @@ import {
   useState,
 } from 'react'
 import {TextInput, View} from 'react-native'
-import {moderateProfile, type ModerationOpts} from '@atproto/api'
+import {moderateProfile, type ModerationOpts} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {isWeb} from '#/platform/detection'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
 import {useActorAutocompleteQuery} from '#/state/queries/actor-autocomplete'
@@ -71,7 +71,7 @@ export function SearchablePeopleList({
       onSelectChat?: undefined
     }
   | {
-      onSelectChat: (did: string) => void
+      onSelectChat: (userId: string) => void
       renderProfileCard?: undefined
     }
 )) {
@@ -91,7 +91,7 @@ export function SearchablePeopleList({
     isError,
     isFetching,
   } = useActorAutocompleteQuery(searchText, true, 12)
-  const {data: follows} = useProfileFollowsQuery(currentAccount?.did)
+  const {data: follows} = useProfileFollowsQuery(currentAccount?.userId)
   const {data: convos} = useListConvosQuery({
     enabled: showRecentConvos,
     status: 'accepted',
@@ -109,10 +109,10 @@ export function SearchablePeopleList({
     } else if (searchText.length) {
       if (results?.length) {
         for (const profile of results) {
-          if (profile.did === currentAccount?.did) continue
+          if (profile.userId === currentAccount?.userId) continue
           _items.push({
             type: 'profile',
-            key: profile.did,
+            key: profile.userId,
             profile,
           })
         }
@@ -140,17 +140,17 @@ export function SearchablePeopleList({
           for (const page of convos.pages) {
             for (const convo of page.convos) {
               const profiles = convo.members.filter(
-                m => m.did !== currentAccount?.did,
+                m => m.userId !== currentAccount?.userId,
               )
 
               for (const profile of profiles) {
-                if (usedDids.has(profile.did)) continue
+                if (usedDids.has(profile.userId)) continue
 
-                usedDids.add(profile.did)
+                usedDids.add(profile.userId)
 
                 _items.push({
                   type: 'profile',
-                  key: profile.did,
+                  key: profile.userId,
                   profile,
                 })
               }
@@ -161,11 +161,11 @@ export function SearchablePeopleList({
 
           for (const page of follows.pages) {
             for (const profile of page.follows) {
-              if (usedDids.has(profile.did)) continue
+              if (usedDids.has(profile.userId)) continue
 
               followsItems.push({
                 type: 'profile',
-                key: profile.did,
+                key: profile.userId,
                 profile,
               })
             }
@@ -188,7 +188,7 @@ export function SearchablePeopleList({
           for (const profile of page.follows) {
             _items.push({
               type: 'profile',
-              key: profile.did,
+              key: profile.userId,
               profile,
             })
           }
@@ -212,7 +212,7 @@ export function SearchablePeopleList({
     searchText,
     results,
     isError,
-    currentAccount?.did,
+    currentAccount?.userId,
     follows,
     convos,
     showRecentConvos,
@@ -360,27 +360,27 @@ function DefaultProfileCard({
 }: {
   profile: bsky.profile.AnyProfileView
   moderationOpts: ModerationOpts
-  onPress: (did: string) => void
+  onPress: (userId: string) => void
 }) {
   const t = useTheme()
   const {_} = useLingui()
   const enabled = canBeMessaged(profile)
   const moderation = moderateProfile(profile, moderationOpts)
-  const handle = sanitizeHandle(profile.handle, '@')
+  const username = sanitizeUsername(profile.username, '@')
   const displayName = sanitizeDisplayName(
-    profile.displayName || sanitizeHandle(profile.handle),
+    profile.displayName || sanitizeUsername(profile.username),
     moderation.ui('displayName'),
   )
 
-  const handleOnPress = useCallback(() => {
-    onPress(profile.did)
-  }, [onPress, profile.did])
+  const usernameOnPress = useCallback(() => {
+    onPress(profile.userId)
+  }, [onPress, profile.userId])
 
   return (
     <Button
       disabled={!enabled}
       label={_(msg`Start chat with ${displayName}`)}
-      onPress={handleOnPress}>
+      onPress={usernameOnPress}>
       {({hovered, pressed, focused}) => (
         <View
           style={[
@@ -405,12 +405,12 @@ function DefaultProfileCard({
                 moderationOpts={moderationOpts}
               />
               {enabled ? (
-                <ProfileCard.Handle profile={profile} />
+                <ProfileCard.Username profile={profile} />
               ) : (
                 <Text
                   style={[a.leading_snug, t.atoms.text_contrast_high]}
                   numberOfLines={2}>
-                  <Trans>{handle} can't be messaged</Trans>
+                  <Trans>{username} can't be messaged</Trans>
                 </Text>
               )}
             </View>

@@ -7,10 +7,10 @@ import {
   type ViewStyle,
 } from 'react-native'
 import {
-  type AppBskyActorDefs,
+  type SonetActorDefs,
   type ModerationCause,
   type ModerationUI,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
@@ -32,11 +32,11 @@ interface Props extends ComponentProps<typeof Link> {
   iconSize: number
   iconStyles: StyleProp<ViewStyle>
   modui: ModerationUI
-  profile: AppBskyActorDefs.ProfileViewBasic
+  profile: SonetActorDefs.ProfileViewBasic
   interpretFilterAsBlur?: boolean
 }
 
-export function PostHider({
+export function NoteHider({
   testID,
   href,
   disabled,

@@ -67,7 +67,7 @@ function UnifiedConvoProviderInner({isSonet}: {isSonet: boolean}) {
   const sonetState = useSonetConvoState()
   const sonetDispatch = useSonetConvoDispatch()
 
-  // Handle encryption status for Sonet
+  // Username encryption status for Sonet
   useEffect(() => {
     if (isSonet && sonetState.chat?.isEncrypted) {
       // Update encryption status when chat encryption is enabled

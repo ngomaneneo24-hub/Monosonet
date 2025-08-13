@@ -1,5 +1,5 @@
 import {View} from 'react-native'
-import {AppBskyActorDefs} from '@atproto/api'
+import {SonetActorDefs} from '@sonet/api'
 import {msg, plural} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -13,7 +13,7 @@ import {Text} from '#/components/Typography'
 export function ProfileHeaderMetrics({
   profile,
 }: {
-  profile: Shadow<AppBskyActorDefs.ProfileViewDetailed>
+  profile: Shadow<SonetActorDefs.ProfileViewDetailed>
 }) {
   const t = useTheme()
   const {_, i18n} = useLingui()
@@ -53,9 +53,9 @@ export function ProfileHeaderMetrics({
         </Text>
       </InlineLinkText>
       <Text style={[a.font_bold, t.atoms.text, a.text_md]}>
-        {formatCount(i18n, profile.postsCount || 0)}{' '}
+        {formatCount(i18n, profile.notesCount || 0)}{' '}
         <Text style={[t.atoms.text_contrast_medium, a.font_normal, a.text_md]}>
-          {plural(profile.postsCount || 0, {one: 'post', other: 'posts'})}
+          {plural(profile.notesCount || 0, {one: 'note', other: 'notes'})}
         </Text>
       </Text>
     </View>

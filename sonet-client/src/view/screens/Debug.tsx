@@ -342,7 +342,7 @@ function EmptyStateView() {
 function LoadingPlaceholderView() {
   return (
     <>
-      <LoadingPlaceholder.PostLoadingPlaceholder />
+      <LoadingPlaceholder.NoteLoadingPlaceholder />
       <LoadingPlaceholder.NotificationLoadingPlaceholder />
     </>
   )
@@ -399,7 +399,7 @@ function ButtonsView() {
 const DROPDOWN_ITEMS: DropdownItem[] = [
   {
     icon: ['far', 'paste'],
-    label: 'Copy post text',
+    label: 'Copy note text',
     onPress() {},
   },
   {
@@ -409,7 +409,7 @@ const DROPDOWN_ITEMS: DropdownItem[] = [
   },
   {
     icon: 'circle-exclamation',
-    label: 'Report post',
+    label: 'Report note',
     onPress() {},
   },
 ]

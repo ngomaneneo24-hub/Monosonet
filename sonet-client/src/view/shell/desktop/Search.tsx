@@ -138,7 +138,7 @@ export function DesktopSearch() {
               />
               {autocompleteData?.map(item => (
                 <SearchProfileCard
-                  key={item.did}
+                  key={item.userId}
                   profile={item}
                   moderationOpts={moderationOpts}
                   onPress={onSearchProfileCardPress}

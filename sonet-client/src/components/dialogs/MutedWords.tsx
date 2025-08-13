@@ -1,6 +1,6 @@
 import React from 'react'
 import {View} from 'react-native'
-import {AppBskyActorDefs, sanitizeMutedWordValue} from '@atproto/api'
+import {SonetActorDefs, sanitizeMutedWordValue} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -39,7 +39,7 @@ export function MutedWordsDialog() {
   const {mutedWordsDialogControl: control} = useGlobalDialogsControlContext()
   return (
     <Dialog.Outer control={control}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <MutedWordsInner />
     </Dialog.Outer>
   )
@@ -65,7 +65,7 @@ function MutedWordsInner() {
     const sanitizedValue = sanitizeMutedWordValue(field)
     const surfaces = ['tag', targets.includes('content') && 'content'].filter(
       Boolean,
-    ) as AppBskyActorDefs.MutedWord['targets']
+    ) as SonetActorDefs.MutedWord['targets']
     const actorTarget = excludeFollowing ? 'exclude-following' : 'all'
 
     const now = Date.now()
@@ -113,9 +113,9 @@ function MutedWordsInner() {
         </Text>
         <Text style={[a.pb_lg, a.leading_snug, t.atoms.text_contrast_medium]}>
           <Trans>
-            Posts can be muted based on their text, their tags, or both. We
-            recommend avoiding common words that appear in many posts, since it
-            can result in no posts being shown.
+            Notes can be muted based on their text, their tags, or both. We
+            recommend avoiding common words that appear in many notes, since it
+            can result in no notes being shown.
           </Trans>
         </Text>
 
@@ -255,7 +255,7 @@ function MutedWordsInner() {
 
             <View style={[a.flex_row, a.align_center, a.gap_sm, a.flex_wrap]}>
               <Toggle.Item
-                label={_(msg`Mute this word in post text and tags`)}
+                label={_(msg`Mute this word in note text and tags`)}
                 name="content"
                 style={[a.flex_1]}>
                 <TargetToggle>
@@ -412,7 +412,7 @@ function MutedWordsInner() {
 function MutedWordRow({
   style,
   word,
-}: ViewStyleProp & {word: AppBskyActorDefs.MutedWord}) {
+}: ViewStyleProp & {word: SonetActorDefs.MutedWord}) {
   const t = useTheme()
   const {_} = useLingui()
   const {isPending, mutateAsync: removeMutedWord} = useRemoveMutedWordMutation()

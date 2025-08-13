@@ -21,7 +21,7 @@ export function AcceptChatButton({
   const {_} = useLingui()
   const {mutate: acceptRequest, isPending} = useAcceptChatRequest()
 
-  const handleAccept = useCallback(() => {
+  const usernameAccept = useCallback(() => {
     acceptRequest(
       {conversationId: convo.id},
       {
@@ -38,7 +38,7 @@ export function AcceptChatButton({
       size="small"
       color="primary"
       variant="solid"
-      onPress={handleAccept}
+      onPress={usernameAccept}
       disabled={isPending}>
       <ButtonIcon icon={CheckIcon} />
       <ButtonText>
@@ -58,7 +58,7 @@ export function DeclineChatButton({
   const {_} = useLingui()
   const {mutate: declineRequest, isPending} = useDeclineChatRequest()
 
-  const handleDecline = useCallback(() => {
+  const usernameDecline = useCallback(() => {
     declineRequest(
       {conversationId: convo.id},
       {
@@ -75,7 +75,7 @@ export function DeclineChatButton({
       size="small"
       color="secondary"
       variant="ghost"
-      onPress={handleDecline}
+      onPress={usernameDecline}
       disabled={isPending}>
       <ButtonIcon icon={XIcon} />
       <ButtonText>
@@ -100,7 +100,7 @@ export function RejectMenu({
   const t = useTheme()
   const {mutate: declineRequest, isPending} = useDeclineChatRequest()
 
-  const handleDecline = useCallback(() => {
+  const usernameDecline = useCallback(() => {
     declineRequest(
       {conversationId: convo.id},
       {
@@ -120,7 +120,7 @@ export function RejectMenu({
         size="small"
         color="secondary"
         variant="ghost"
-        onPress={handleDecline}
+        onPress={usernameDecline}
         disabled={isPending}>
         <ButtonIcon icon={XIcon} />
         <ButtonText>

@@ -12,7 +12,7 @@ import {
   useAgeAssuranceRedirectDialogControl,
 } from '#/components/ageAssurance/AgeAssuranceRedirectDialog'
 import {useIntentDialogs} from '#/components/intents/IntentDialogs'
-import {Referrer} from '../../../modules/expo-bluesky-swiss-army'
+import {Referrer} from '../../../modules/expo-sonet-swiss-army'
 import {useApplyPullRequestOTAUpdate} from './useOTAUpdates'
 
 type IntentType = 'compose' | 'verify-email' | 'age-assurance' | 'apply-ota'
@@ -22,7 +22,7 @@ const VALID_IMAGE_REGEX = /^[\w.:\-_/]+\|\d+(\.\d+)?\|\d+(\.\d+)?$/
 // This needs to stay outside of react to persist between account switches
 let previousIntentUrl = ''
 
-export function useIntentHandler() {
+export function useIntentUsernamer() {
   const incomingUrl = Linking.useURL()
   const composeIntent = useComposeIntent()
   const verifyEmailIntent = useVerifyEmailIntent()
@@ -32,9 +32,9 @@ export function useIntentHandler() {
   const {tryApplyUpdate} = useApplyPullRequestOTAUpdate()
 
   React.useEffect(() => {
-    const handleIncomingURL = (url: string) => {
+    const usernameIncomingURL = (url: string) => {
       const referrerInfo = Referrer.getReferrerInfo()
-      if (referrerInfo && referrerInfo.hostname !== 'bsky.app') {
+      if (referrerInfo && referrerInfo.hostname !== 'sonet.app') {
         logger.metric('deepLink:referrerReceived', {
           to: url,
           referrer: referrerInfo?.referrer,
@@ -89,7 +89,7 @@ export function useIntentHandler() {
           if (
             state &&
             currentAccount &&
-            state.actorDid === currentAccount.did
+            state.actorDid === currentAccount.userId
           ) {
             ageAssuranceRedirectDialogControl.open(state)
           }
@@ -113,7 +113,7 @@ export function useIntentHandler() {
       if (previousIntentUrl === incomingUrl) {
         return
       }
-      handleIncomingURL(incomingUrl)
+      usernameIncomingURL(incomingUrl)
       previousIntentUrl = incomingUrl
     }
   }, [

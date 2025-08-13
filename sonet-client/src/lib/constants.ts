@@ -1,21 +1,20 @@
 import {type Insets, Platform} from 'react-native'
-import {type AppBskyActorDefs} from '@atproto/api'
 
 export const LOCAL_DEV_SERVICE =
   Platform.OS === 'android' ? 'http://10.0.2.2:2583' : 'http://localhost:2583'
-export const STAGING_SERVICE = 'https://staging.bsky.dev'
-export const BSKY_SERVICE = 'https://bsky.social'
-export const BSKY_SERVICE_DID = 'did:web:bsky.social'
-export const PUBLIC_BSKY_SERVICE = 'https://public.api.bsky.app'
-export const DEFAULT_SERVICE = BSKY_SERVICE
+export const STAGING_SERVICE = 'https://staging.sonet.dev'
+export const SONET_SERVICE = 'https://api.sonet.app'
+export const SONET_SERVICE_UserID = 'userId:web:sonet.app'
+export const PUBLIC_SONET_SERVICE = 'https://public.api.sonet.app'
+export const DEFAULT_SERVICE = SONET_SERVICE
 const HELP_DESK_LANG = 'en-us'
-export const HELP_DESK_URL = `https://blueskyweb.zendesk.com/hc/${HELP_DESK_LANG}`
+export const HELP_DESK_URL = `https://sonet.zendesk.com/hc/${HELP_DESK_LANG}`
 
 // Sonet defaults (REST gateway). Used during migration
 export const DEFAULT_SONET_API_BASE = 'http://localhost:8080/api'
-export const EMBED_SERVICE = 'https://embed.bsky.app'
+export const EMBED_SERVICE = 'https://embed.sonet.app'
 export const EMBED_SCRIPT = `${EMBED_SERVICE}/static/embed.js`
-export const BSKY_DOWNLOAD_URL = 'https://bsky.app/download'
+export const SONET_DOWNLOAD_URL = 'https://sonet.app/download'
 export const STARTER_PACK_MAX_SIZE = 150
 
 // HACK
@@ -27,30 +26,30 @@ export const STARTER_PACK_MAX_SIZE = 150
 // -prf
 export const JOINED_THIS_WEEK = 560000 // estimate as of 12/18/24
 
-export const DISCOVER_DEBUG_DIDS: Record<string, true> = {
-  'did:plc:oisofpd7lj26yvgiivf3lxsi': true, // hailey.at
-  'did:plc:p2cp5gopk7mgjegy6wadk3ep': true, // samuel.bsky.team
-  'did:plc:ragtjsm2j2vknwkz3zp4oxrd': true, // pfrazee.com
-  'did:plc:vpkhqolt662uhesyj6nxm7ys': true, // why.bsky.team
-  'did:plc:3jpt2mvvsumj2r7eqk4gzzjz': true, // esb.lol
-  'did:plc:vjug55kidv6sye7ykr5faxxn': true, // emilyliu.me
-  'did:plc:tgqseeot47ymot4zro244fj3': true, // iwsmith.bsky.social
-  'did:plc:2dzyut5lxna5ljiaasgeuffz': true, // darrin.bsky.team
+export const DISCOVER_DEBUG_UserIDS: Record<string, true> = {
+  'userId:plc:oisofpd7lj26yvgiivf3lxsi': true, // hailey.at
+  'userId:plc:p2cp5gopk7mgjegy6wadk3ep': true, // samuel.bsky.team
+  'userId:plc:ragtjsm2j2vknwkz3zp4oxrd': true, // pfrazee.com
+  'userId:plc:vpkhqolt662uhesyj6nxm7ys': true, // why.bsky.team
+  'userId:plc:3jpt2mvvsumj2r7eqk4gzzjz': true, // esb.lol
+  'userId:plc:vjug55kidv6sye7ykr5faxxn': true, // emilyliu.me
+  'userId:plc:tgqseeot47ymot4zro244fj3': true, // iwsmith.sonet.social
+  'userId:plc:2dzyut5lxna5ljiaasgeuffz': true, // darrin.bsky.team
 }
 
 const BASE_FEEDBACK_FORM_URL = `${HELP_DESK_URL}/requests/new`
 export function FEEDBACK_FORM_URL({
   email,
-  handle,
+  username,
 }: {
   email?: string
-  handle?: string
+  username?: string
 }): string {
   let str = BASE_FEEDBACK_FORM_URL
   if (email) {
     str += `?tf_anonymous_requester_email=${encodeURIComponent(email)}`
-    if (handle) {
-      str += `&tf_17205412673421=${encodeURIComponent(handle)}`
+    if (username) {
+      str += `&tf_17205412673421=${encodeURIComponent(username)}`
     }
   }
   return str
@@ -69,8 +68,8 @@ export const MAX_ALT_TEXT = 2000
 
 export const MAX_REPORT_REASON_GRAPHEME_LENGTH = 2000
 
-export function IS_TEST_USER(handle?: string) {
-  return handle && handle?.endsWith('.test')
+export function IS_TEST_USER(username?: string) {
+  return username && username?.endsWith('.test')
 }
 
 export function IS_PROD_SERVICE(url?: string) {
@@ -93,9 +92,9 @@ export const POST_IMG_MAX = {
 }
 
 export const STAGING_LINK_META_PROXY =
-  'https://cardyb.staging.bsky.dev/v1/extract?url='
+  'https://cardyb.staging.sonet.dev/v1/extract?url='
 
-export const PROD_LINK_META_PROXY = 'https://cardyb.bsky.app/v1/extract?url='
+export const PROD_LINK_META_PROXY = 'https://cardyb.sonet.app/v1/extract?url='
 
 export function LINK_META_PROXY(serviceUrl: string) {
   if (IS_PROD_SERVICE(serviceUrl)) {
@@ -105,7 +104,7 @@ export function LINK_META_PROXY(serviceUrl: string) {
   return STAGING_LINK_META_PROXY
 }
 
-export const STATUS_PAGE_URL = 'https://status.bsky.app/'
+export const STATUS_PAGE_URL = 'https://status.sonet.app/'
 
 // Hitslop constants
 export const createHitslop = (size: number): Insets => ({
@@ -144,7 +143,7 @@ export const SONET_FEED_CONFIG = {
     value: SONET_FEEDS.FOLLOWING,
     pinned: true,
     displayName: 'Following',
-    description: 'Posts from people you follow'
+    description: 'Notes from people you follow'
   },
   VIDEO: {
     type: 'feed' as const,
@@ -164,7 +163,7 @@ export const RECOMMENDED_SAVED_FEEDS = [
 // No external feed generators in centralized platform
 export const KNOWN_SHUTDOWN_FEEDS: string[] = []
 
-export const GIF_SERVICE = 'https://gifs.bsky.app'
+export const GIF_SERVICE = 'https://gifs.sonet.app'
 
 export const GIF_SEARCH = (params: string) =>
   `${GIF_SERVICE}/tenor/v2/search?${params}`
@@ -173,8 +172,8 @@ export const GIF_FEATURED = (params: string) =>
 
 export const MAX_LABELERS = 20
 
-export const VIDEO_SERVICE = 'https://video.bsky.app'
-export const VIDEO_SERVICE_DID = 'did:web:video.bsky.app'
+export const VIDEO_SERVICE = 'https://video.sonet.app'
+export const VIDEO_SERVICE_UserID = 'userId:web:video.sonet.app'
 
 export const VIDEO_MAX_DURATION_MS = 3 * 60 * 1000 // 3 minutes in milliseconds
 export const VIDEO_MAX_SIZE = 1000 * 1000 * 100 // 100mb
@@ -194,7 +193,7 @@ export const EMOJI_REACTION_LIMIT = 5
 export const urls = {
   website: {
     blog: {
-      initialVerificationAnnouncement: `https://bsky.social/about/blog/04-21-2025-verification`,
+      initialVerificationAnnouncement: `https://sonet.social/about/blog/04-21-2025-verification`,
     },
   },
 }

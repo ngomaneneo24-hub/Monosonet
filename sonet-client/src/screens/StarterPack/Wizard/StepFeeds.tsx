@@ -1,7 +1,7 @@
 import {useState} from 'react'
 import {ListRenderItemInfo, View} from 'react-native'
 import {KeyboardAwareScrollView} from 'react-native-keyboard-controller'
-import {AppBskyFeedDefs, ModerationOpts} from '@atproto/api'
+import {SonetFeedDefs, ModerationOpts} from '@sonet/api'
 import {Trans} from '@lingui/macro'
 
 import {DISCOVER_FEED_URI} from '#/lib/constants'
@@ -21,7 +21,7 @@ import {ScreenTransition} from '#/components/StarterPack/Wizard/ScreenTransition
 import {WizardFeedCard} from '#/components/StarterPack/Wizard/WizardListCard'
 import {Text} from '#/components/Typography'
 
-function keyExtractor(item: AppBskyFeedDefs.GeneratorView) {
+function keyExtractor(item: SonetFeedDefs.GeneratorView) {
   return item.uri
 }
 
@@ -36,7 +36,7 @@ export function StepFeeds({moderationOpts}: {moderationOpts: ModerationOpts}) {
     useSavedFeeds()
   const savedFeeds = savedFeedsAndLists?.feeds
     .filter(f => f.type === 'feed' && f.view.uri !== DISCOVER_FEED_URI)
-    .map(f => f.view) as AppBskyFeedDefs.GeneratorView[]
+    .map(f => f.view) as SonetFeedDefs.GeneratorView[]
 
   const {
     data: popularFeedsPages,
@@ -66,7 +66,7 @@ export function StepFeeds({moderationOpts}: {moderationOpts: ModerationOpts}) {
 
   const renderItem = ({
     item,
-  }: ListRenderItemInfo<AppBskyFeedDefs.GeneratorView>) => {
+  }: ListRenderItemInfo<SonetFeedDefs.GeneratorView>) => {
     return (
       <WizardFeedCard
         generator={item}
@@ -99,7 +99,7 @@ export function StepFeeds({moderationOpts}: {moderationOpts: ModerationOpts}) {
         onEndReachedThreshold={2}
         keyboardDismissMode="on-drag"
         renderScrollComponent={props => <KeyboardAwareScrollView {...props} />}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="usernamed"
         disableFullWindowScroll={true}
         sideBorders={false}
         style={{flex: 1}}

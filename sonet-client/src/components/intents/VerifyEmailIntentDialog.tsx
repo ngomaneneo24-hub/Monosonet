@@ -20,7 +20,7 @@ export function VerifyEmailIntentDialog() {
 
   return (
     <Dialog.Outer control={control}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <Inner control={control} />
     </Dialog.Outer>
   )
@@ -44,7 +44,7 @@ function Inner({}: {control: DialogControlProps}) {
         return
       }
       try {
-        await agent.com.atproto.server.confirmEmail({
+        await agent.com.sonet.server.confirmEmail({
           email: (currentAccount?.email || '').trim(),
           token: state.code.trim(),
         })
@@ -53,11 +53,11 @@ function Inner({}: {control: DialogControlProps}) {
         setStatus('failure')
       }
     })()
-  }, [agent.com.atproto.server, currentAccount?.email, state?.code])
+  }, [agent.com.sonet.server, currentAccount?.email, state?.code])
 
   const onPressResendEmail = async () => {
     setSending(true)
-    await agent.com.atproto.server.requestEmailConfirmation()
+    await agent.com.sonet.server.requestEmailConfirmation()
     setSending(false)
     setStatus('resent')
   }

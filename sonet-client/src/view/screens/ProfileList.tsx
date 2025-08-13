@@ -2,12 +2,12 @@ import React, {useCallback, useMemo} from 'react'
 import {StyleSheet, View} from 'react-native'
 import {useAnimatedRef} from 'react-native-reanimated'
 import {
-  AppBskyGraphDefs,
+  SonetGraphDefs,
   AtUri,
   moderateUserList,
   type ModerationOpts,
   RichText as RichTextAPI,
-} from '@atproto/api'
+} from '@sonet/api'
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -42,8 +42,8 @@ import {
   useListMuteMutation,
   useListQuery,
 } from '#/state/queries/list'
-import {type FeedDescriptor} from '#/state/queries/post-feed'
-import {RQKEY as FEED_RQKEY} from '#/state/queries/post-feed'
+import {type FeedDescriptor} from '#/state/queries/note-feed'
+import {RQKEY as FEED_RQKEY} from '#/state/queries/note-feed'
 import {
   useAddSavedFeedsMutation,
   usePreferencesQuery,
@@ -57,7 +57,7 @@ import {useSession} from '#/state/session'
 import {useSetMinimalShellMode} from '#/state/shell'
 import {ListMembers} from '#/view/com/lists/ListMembers'
 import {PagerWithHeader} from '#/view/com/pager/PagerWithHeader'
-import {PostFeed} from '#/view/com/posts/PostFeed'
+import {NoteFeed} from '#/view/com/notes/NoteFeed'
 import {ProfileSubpageHeader} from '#/view/com/profile/ProfileSubpageHeader'
 import {EmptyState} from '#/view/com/util/EmptyState'
 import {FAB} from '#/view/com/util/fab/FAB'
@@ -101,9 +101,9 @@ export function ProfileListScreen(props: Props) {
 
 function ProfileListScreenInner(props: Props) {
   const {_} = useLingui()
-  const {name: handleOrDid, rkey} = props.route.params
+  const {name: usernameOrDid, rkey} = props.route.params
   const {data: resolvedUri, error: resolveError} = useResolveUriQuery(
-    AtUri.make(handleOrDid, 'app.bsky.graph.list', rkey).toString(),
+    AtUri.make(usernameOrDid, 'app.sonet.graph.list', rkey).toString(),
   )
   const {data: preferences} = usePreferencesQuery()
   const {data: list, error: listError} = useListQuery(resolvedUri?.uri)
@@ -114,7 +114,7 @@ function ProfileListScreenInner(props: Props) {
       <Layout.Content>
         <ErrorScreen
           error={_(
-            msg`We're sorry, but we were unable to resolve this list. If this persists, please contact the list creator, @${handleOrDid}.`,
+            msg`We're sorry, but we were unable to resolve this list. If this persists, please contact the list creator, @${usernameOrDid}.`,
           )}
         />
       </Layout.Content>
@@ -149,7 +149,7 @@ function ProfileListScreenLoaded({
   preferences,
 }: Props & {
   uri: string
-  list: AppBskyGraphDefs.ListView
+  list: SonetGraphDefs.ListView
   moderationOpts: ModerationOpts
   preferences: UsePreferencesQueryResponse
 }) {
@@ -161,13 +161,13 @@ function ProfileListScreenLoaded({
   const {rkey} = route.params
   const feedSectionRef = React.useRef<SectionRef>(null)
   const aboutSectionRef = React.useRef<SectionRef>(null)
-  const isCurateList = list.purpose === AppBskyGraphDefs.CURATELIST
+  const isCurateList = list.purpose === SonetGraphDefs.CURATELIST
   const isScreenFocused = useIsFocused()
   const isHidden = list.labels?.findIndex(l => l.val === '!hide') !== -1
-  const isOwner = currentAccount?.did === list.creator.did
+  const isOwner = currentAccount?.userId === list.creator.userId
   const scrollElRef = useAnimatedRef()
   const addUserDialogControl = useDialogControl()
-  const sectionTitlesCurate = [_(msg`Posts`), _(msg`People`)]
+  const sectionTitlesCurate = [_(msg`Notes`), _(msg`People`)]
 
   const moderation = React.useMemo(() => {
     return moderateUserList(list, moderationOpts)
@@ -247,7 +247,7 @@ function ProfileListScreenLoaded({
                 />
               }
               accessibilityRole="button"
-              accessibilityLabel={_(msg`New post`)}
+              accessibilityLabel={_(msg`New note`)}
               accessibilityHint=""
             />
           </View>
@@ -285,7 +285,7 @@ function ProfileListScreenLoaded({
               />
             }
             accessibilityRole="button"
-            accessibilityLabel={_(msg`New post`)}
+            accessibilityLabel={_(msg`New note`)}
             accessibilityHint=""
           />
         </View>
@@ -305,7 +305,7 @@ function Header({
   preferences,
 }: {
   rkey: string
-  list: AppBskyGraphDefs.ListView
+  list: SonetGraphDefs.ListView
   preferences: UsePreferencesQueryResponse
 }) {
   const pal = usePalette('default')
@@ -318,11 +318,11 @@ function Header({
   const listMuteMutation = useListMuteMutation()
   const listBlockMutation = useListBlockMutation()
   const listDeleteMutation = useListDeleteMutation()
-  const isCurateList = list.purpose === 'app.bsky.graph.defs#curatelist'
-  const isModList = list.purpose === 'app.bsky.graph.defs#modlist'
+  const isCurateList = list.purpose === 'app.sonet.graph.defs#curatelist'
+  const isModList = list.purpose === 'app.sonet.graph.defs#modlist'
   const isBlocking = !!list.viewer?.blocked
   const isMuting = !!list.viewer?.muted
-  const isOwner = list.creator.did === currentAccount?.did
+  const isOwner = list.creator.userId === currentAccount?.userId
   const playHaptic = useHaptics()
 
   const {mutateAsync: addSavedFeeds, isPending: isAddSavedFeedPending} =
@@ -502,7 +502,7 @@ function Header({
   }, [reportDialogControl])
 
   const onPressShare = useCallback(() => {
-    const url = toShareUrl(`/profile/${list.creator.did}/lists/${rkey}`)
+    const url = toShareUrl(`/profile/${list.creator.userId}/lists/${rkey}`)
     shareUrl(url)
   }, [list, rkey])
 
@@ -693,10 +693,10 @@ function Header({
   return (
     <>
       <ProfileSubpageHeader
-        href={makeListLink(list.creator.handle || list.creator.did || '', rkey)}
+        href={makeListLink(list.creator.username || list.creator.userId || '', rkey)}
         title={list.name}
         avatar={list.avatar}
-        isOwner={list.creator.did === currentAccount?.did}
+        isOwner={list.creator.userId === currentAccount?.userId}
         creator={list.creator}
         purpose={list.purpose}
         avatarType="list">
@@ -704,7 +704,7 @@ function Header({
           control={reportDialogControl}
           subject={{
             ...list,
-            $type: 'app.bsky.graph.defs#listView',
+            type: "sonet",
           }}
         />
         {isCurateList ? (
@@ -773,7 +773,7 @@ function Header({
           control={subscribeMutePromptControl}
           title={_(msg`Mute these accounts?`)}
           description={_(
-            msg`Muting is private. Muted accounts can interact with you, but you will not see their posts or receive notifications from them.`,
+            msg`Muting is private. Muted accounts can interact with you, but you will not see their notes or receive notifications from them.`,
           )}
           onConfirm={onSubscribeMute}
           confirmButtonCta={_(msg`Mute list`)}
@@ -826,7 +826,7 @@ const FeedSection = React.forwardRef<SectionRef, FeedSectionProps>(
       queryClient.resetQueries({queryKey: FEED_RQKEY(feed)})
       setHasNew(false)
     }, [scrollElRef, headerHeight, queryClient, feed, setHasNew])
-    React.useImperativeHandle(ref, () => ({
+    React.useImperativeUsername(ref, () => ({
       scrollToTop: onScrollToTop,
     }))
 
@@ -837,7 +837,7 @@ const FeedSection = React.forwardRef<SectionRef, FeedSectionProps>(
       return listenSoftReset(onScrollToTop)
     }, [onScrollToTop, isScreenFocused])
 
-    const renderPostsEmpty = useCallback(() => {
+    const renderNotesEmpty = useCallback(() => {
       return (
         <View style={[a.gap_xl, a.align_center]}>
           <EmptyState icon="hashtag" message={_(msg`This feed is empty.`)} />
@@ -860,7 +860,7 @@ const FeedSection = React.forwardRef<SectionRef, FeedSectionProps>(
 
     return (
       <View>
-        <PostFeed
+        <NoteFeed
           testID="listFeed"
           enabled={isFocused}
           feed={feed}
@@ -869,13 +869,13 @@ const FeedSection = React.forwardRef<SectionRef, FeedSectionProps>(
           scrollElRef={scrollElRef}
           onHasNew={setHasNew}
           onScrolledDownChange={setIsScrolledDown}
-          renderEmptyState={renderPostsEmpty}
+          renderEmptyState={renderNotesEmpty}
           headerOffset={headerHeight}
         />
         {(isScrolledDown || hasNew) && (
           <LoadLatestBtn
             onPress={onScrollToTop}
-            label={_(msg`Load new posts`)}
+            label={_(msg`Load new notes`)}
             showIndicator={hasNew}
           />
         )}
@@ -885,7 +885,7 @@ const FeedSection = React.forwardRef<SectionRef, FeedSectionProps>(
 )
 
 interface AboutSectionProps {
-  list: AppBskyGraphDefs.ListView
+  list: SonetGraphDefs.ListView
   onPressAddUser: () => void
   headerHeight: number
   scrollElRef: ListRef
@@ -899,7 +899,7 @@ const AboutSection = React.forwardRef<SectionRef, AboutSectionProps>(
     const {currentAccount} = useSession()
     const {isMobile} = useWebMediaQueries()
     const [isScrolledDown, setIsScrolledDown] = React.useState(false)
-    const isOwner = list.creator.did === currentAccount?.did
+    const isOwner = list.creator.userId === currentAccount?.userId
 
     const onScrollToTop = useCallback(() => {
       scrollElRef.current?.scrollToOffset({
@@ -908,7 +908,7 @@ const AboutSection = React.forwardRef<SectionRef, AboutSectionProps>(
       })
     }, [scrollElRef, headerHeight])
 
-    React.useImperativeHandle(ref, () => ({
+    React.useImperativeUsername(ref, () => ({
       scrollToTop: onScrollToTop,
     }))
 

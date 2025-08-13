@@ -42,13 +42,13 @@ export function Toasts() {
             toast.show({
               type: 'default',
               content:
-                'This is a longer message to test how the toast handles multiple lines of text content.',
+                'This is a longer message to test how the toast usernames multiple lines of text content.',
               a11yLabel:
-                'This is a longer message to test how the toast handles multiple lines of text content.',
+                'This is a longer message to test how the toast usernames multiple lines of text content.',
             })
           }>
           <Toast
-            content="This is a longer message to test how the toast handles multiple lines of text content."
+            content="This is a longer message to test how the toast usernames multiple lines of text content."
             type="default"
           />
         </Pressable>

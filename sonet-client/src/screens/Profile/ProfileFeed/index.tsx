@@ -1,7 +1,7 @@
 import React, {useCallback, useMemo} from 'react'
 import {StyleSheet, View} from 'react-native'
 import {useAnimatedRef} from 'react-native-reanimated'
-import { type SonetPost, type SonetProfile, type SonetFeedGenerator, type SonetPostRecord, type SonetFeedViewPost, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
+import { type SonetNote, type SonetProfile, type SonetFeedGenerator, type SonetNoteRecord, type SonetFeedViewNote, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useIsFocused, useNavigation} from '@react-navigation/native'
@@ -24,8 +24,8 @@ import {
   type FeedSourceFeedInfo,
   useFeedSourceInfoQuery,
 } from '#/state/queries/feed'
-import {type FeedDescriptor, type FeedParams} from '#/state/queries/post-feed'
-import {RQKEY as FEED_RQKEY} from '#/state/queries/post-feed'
+import {type FeedDescriptor, type FeedParams} from '#/state/queries/note-feed'
+import {RQKEY as FEED_RQKEY} from '#/state/queries/note-feed'
 import {
   usePreferencesQuery,
   type UsePreferencesQueryResponse,
@@ -33,13 +33,13 @@ import {
 import {useResolveUriQuery} from '#/state/queries/resolve-uri'
 import {truncateAndInvalidate} from '#/state/queries/util'
 import {useSession} from '#/state/session'
-import {PostFeed} from '#/view/com/posts/PostFeed'
+import {NoteFeed} from '#/view/com/notes/NoteFeed'
 import {EmptyState} from '#/view/com/util/EmptyState'
 import {FAB} from '#/view/com/util/fab/FAB'
 import {Button} from '#/view/com/util/forms/Button'
 import {type ListRef} from '#/view/com/util/List'
 import {LoadLatestBtn} from '#/view/com/util/load-latest/LoadLatestBtn'
-import {PostFeedLoadingPlaceholder} from '#/view/com/util/LoadingPlaceholder'
+import {NoteFeedLoadingPlaceholder} from '#/view/com/util/LoadingPlaceholder'
 import {Text} from '#/view/com/util/text/Text'
 import {
   ProfileFeedHeader,
@@ -49,7 +49,7 @@ import * as Layout from '#/components/Layout'
 
 type Props = NativeStackScreenProps<CommonNavigatorParams, 'ProfileFeed'>
 export function ProfileFeedScreen(props: Props) {
-  const {rkey, name: handleOrDid} = props.route.params
+  const {rkey, name: usernameOrDid} = props.route.params
 
   const feedParams: FeedParams | undefined = props.route.params.feedCacheKey
     ? {
@@ -61,8 +61,8 @@ export function ProfileFeedScreen(props: Props) {
   const navigation = useNavigation<NavigationProp>()
 
   const uri = useMemo(
-    () => makeRecordUri(handleOrDid, 'app.bsky.feed.generator', rkey),
-    [rkey, handleOrDid],
+    () => makeRecordUri(usernameOrDid, 'app.sonet.feed.generator', rkey),
+    [rkey, usernameOrDid],
   )
   const {error, data: resolvedUri} = useResolveUriQuery(uri)
 
@@ -115,7 +115,7 @@ export function ProfileFeedScreen(props: Props) {
     <Layout.Screen testID="profileFeedScreen">
       <ProfileFeedHeaderSkeleton />
       <Layout.Content>
-        <PostFeedLoadingPlaceholder />
+        <NoteFeedLoadingPlaceholder />
       </Layout.Content>
     </Layout.Screen>
   )
@@ -135,7 +135,7 @@ function ProfileFeedScreenIntermediate({
     return (
       <Layout.Content>
         <ProfileFeedHeaderSkeleton />
-        <PostFeedLoadingPlaceholder />
+        <NoteFeedLoadingPlaceholder />
       </Layout.Content>
     )
   }
@@ -188,7 +188,7 @@ export function ProfileFeedScreenInner({
     return listenSoftReset(onScrollToTop)
   }, [onScrollToTop, isScreenFocused])
 
-  const renderPostsEmpty = useCallback(() => {
+  const renderNotesEmpty = useCallback(() => {
     return <EmptyState icon="hashtag" message={_(msg`This feed is empty.`)} />
   }, [_])
 
@@ -205,7 +205,7 @@ export function ProfileFeedScreenInner({
       <ProfileFeedHeader info={feedInfo} />
 
       <FeedFeedbackProvider value={feedFeedback}>
-        <PostFeed
+        <NoteFeed
           feed={feed}
           feedParams={feedParams}
           pollInterval={60e3}
@@ -213,7 +213,7 @@ export function ProfileFeedScreenInner({
           onHasNew={setHasNew}
           scrollElRef={scrollElRef}
           onScrolledDownChange={setIsScrolledDown}
-          renderEmptyState={renderPostsEmpty}
+          renderEmptyState={renderNotesEmpty}
           isVideoFeed={isVideoFeed}
         />
       </FeedFeedbackProvider>
@@ -221,7 +221,7 @@ export function ProfileFeedScreenInner({
       {(isScrolledDown || hasNew) && (
         <LoadLatestBtn
           onPress={onScrollToTop}
-          label={_(msg`Load new posts`)}
+          label={_(msg`Load new notes`)}
           showIndicator={hasNew}
         />
       )}
@@ -238,7 +238,7 @@ export function ProfileFeedScreenInner({
             />
           }
           accessibilityRole="button"
-          accessibilityLabel={_(msg`New post`)}
+          accessibilityLabel={_(msg`New note`)}
           accessibilityHint=""
         />
       )}

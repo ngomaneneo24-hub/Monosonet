@@ -12,5 +12,5 @@
       
     }
   },
-  "exclude": ["bskyweb", "bskyembed", "web-build"]
+  "exclude": ["sonetweb", "sonetembed", "web-build"]
 }

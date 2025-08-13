@@ -8,14 +8,14 @@ import {Button, type ButtonProps} from '#/components/Button'
 import {type Props as SVGIconProps} from '#/components/icons/common'
 import {Text, type TextProps} from '#/components/Typography'
 
-const PostControlContext = createContext<{
+const NoteControlContext = createContext<{
   big?: boolean
   active?: boolean
   color?: {color: string}
 }>({})
 
 // Base button style, which the the other ones extend
-export function PostControlButton({
+export function NoteControlButton({
   ref,
   onPress,
   onLongPress,
@@ -56,7 +56,7 @@ export function PostControlButton({
     [],
   )
 
-  const handlePress = useMemo(() => {
+  const usernamePress = useMemo(() => {
     if (!onPress) return
     return (evt: GestureResponderEvent) => {
       playHaptic('Light')
@@ -64,7 +64,7 @@ export function PostControlButton({
     }
   }, [onPress, playHaptic])
 
-  const handleLongPress = useMemo(() => {
+  const usernameLongPress = useMemo(() => {
     if (!onLongPress) return
     return (evt: GestureResponderEvent) => {
       playHaptic('Heavy')
@@ -75,8 +75,8 @@ export function PostControlButton({
   return (
     <Button
       ref={ref}
-      onPress={handlePress}
-      onLongPress={handleLongPress}
+      onPress={usernamePress}
+      onLongPress={usernameLongPress}
       style={style}
       hoverStyle={t.atoms.bg_contrast_25}
       shape="round"
@@ -86,31 +86,31 @@ export function PostControlButton({
       {...props}>
       {typeof children === 'function' ? (
         args => (
-          <PostControlContext.Provider value={ctx}>
+          <NoteControlContext.Provider value={ctx}>
             {children(args)}
-          </PostControlContext.Provider>
+          </NoteControlContext.Provider>
         )
       ) : (
-        <PostControlContext.Provider value={ctx}>
+        <NoteControlContext.Provider value={ctx}>
           {children}
-        </PostControlContext.Provider>
+        </NoteControlContext.Provider>
       )}
     </Button>
   )
 }
 
-export function PostControlButtonIcon({
+export function NoteControlButtonIcon({
   icon: Comp,
 }: {
   icon: React.ComponentType<SVGIconProps>
 }) {
-  const {big, color} = useContext(PostControlContext)
+  const {big, color} = useContext(NoteControlContext)
 
   return <Comp style={[color, a.pointer_events_none]} width={big ? 22 : 18} />
 }
 
-export function PostControlButtonText({style, ...props}: TextProps) {
-  const {big, active, color} = useContext(PostControlContext)
+export function NoteControlButtonText({style, ...props}: TextProps) {
+  const {big, active, color} = useContext(NoteControlContext)
 
   return (
     <Text

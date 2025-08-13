@@ -28,12 +28,12 @@ export function DraftsDialog({onSelectDraft, onClose}: DraftsDialogProps) {
   const {data: draftsData, isLoading} = useUserDraftsQuery(50, undefined, false)
   const deleteDraft = useDeleteDraftMutation()
 
-  const handleDraftSelect = useCallback((draft: Draft) => {
+  const usernameDraftSelect = useCallback((draft: Draft) => {
     setSelectedDraft(draft)
     control.open()
   }, [control])
 
-  const handleConfirmSelect = useCallback(() => {
+  const usernameConfirmSelect = useCallback(() => {
     if (selectedDraft) {
       onSelectDraft(selectedDraft)
       control.close()
@@ -41,7 +41,7 @@ export function DraftsDialog({onSelectDraft, onClose}: DraftsDialogProps) {
     }
   }, [selectedDraft, onSelectDraft, control, onClose])
 
-  const handleDeleteDraft = useCallback(async (draftId: string) => {
+  const usernameDeleteDraft = useCallback(async (draftId: string) => {
     try {
       await deleteDraft.mutateAsync(draftId)
       Toast.show(_(msg`Draft deleted`), 'check')
@@ -63,7 +63,7 @@ export function DraftsDialog({onSelectDraft, onClose}: DraftsDialogProps) {
   if (isLoading) {
     return (
       <Dialog.Outer control={control}>
-        <Dialog.Handle />
+        <Dialog.Username />
         <Dialog.Inner>
           <View style={[a.p_lg, a.align_center]}>
             <Text style={[a.text_lg, t.atoms.text_contrast_high]}>
@@ -80,7 +80,7 @@ export function DraftsDialog({onSelectDraft, onClose}: DraftsDialogProps) {
   return (
     <>
       <Dialog.Outer control={control}>
-        <Dialog.Handle />
+        <Dialog.Username />
         <Dialog.Inner>
           <View style={[a.p_lg, a.gap_lg]}>
             <View style={[a.flex_row, a.align_center, a.justify_between]}>
@@ -114,8 +114,8 @@ export function DraftsDialog({onSelectDraft, onClose}: DraftsDialogProps) {
                     <DraftItem
                       key={draft.draft_id}
                       draft={draft}
-                      onSelect={handleDraftSelect}
-                      onDelete={handleDeleteDraft}
+                      onSelect={usernameDraftSelect}
+                      onDelete={usernameDeleteDraft}
                       formatDate={formatDate}
                       truncateContent={truncateContent}
                     />
@@ -129,7 +129,7 @@ export function DraftsDialog({onSelectDraft, onClose}: DraftsDialogProps) {
 
       {/* Confirmation Dialog */}
       <Dialog.Outer control={control}>
-        <Dialog.Handle />
+        <Dialog.Username />
         <Dialog.Inner>
           <View style={[a.p_lg, a.gap_lg]}>
             <Text style={[a.text_lg, a.font_heavy, t.atoms.text_contrast_high]}>
@@ -138,7 +138,7 @@ export function DraftsDialog({onSelectDraft, onClose}: DraftsDialogProps) {
             
             <Text style={[a.text_md, t.atoms.text_contrast_high]}>
               <Trans>
-                This will replace your current post content. Are you sure you want to load this draft?
+                This will replace your current note content. Are you sure you want to load this draft?
               </Trans>
             </Text>
 
@@ -156,7 +156,7 @@ export function DraftsDialog({onSelectDraft, onClose}: DraftsDialogProps) {
                 label={_(msg`Load Draft`)}
                 variant="solid"
                 color="primary"
-                onPress={handleConfirmSelect}>
+                onPress={usernameConfirmSelect}>
                 <ButtonText>
                   <Trans>Load Draft</Trans>
                 </ButtonText>
@@ -181,11 +181,11 @@ function DraftItem({draft, onSelect, onDelete, formatDate, truncateContent}: Dra
   const {_} = useLingui()
   const t = useTheme()
 
-  const handleSelect = useCallback(() => {
+  const usernameSelect = useCallback(() => {
     onSelect(draft)
   }, [draft, onSelect])
 
-  const handleDelete = useCallback((e: any) => {
+  const usernameDelete = useCallback((e: any) => {
     e.stopPropagation()
     onDelete(draft.draft_id)
   }, [draft.draft_id, onDelete])
@@ -202,7 +202,7 @@ function DraftItem({draft, onSelect, onDelete, formatDate, truncateContent}: Dra
         t.atoms.border_contrast_low,
         t.atoms.bg_contrast_25,
       ]}
-      onPress={handleSelect}>
+      onPress={usernameSelect}>
       <View style={[a.flex_1, a.gap_sm]}>
         <View style={[a.flex_row, a.align_center, a.justify_between]}>
           <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
@@ -213,7 +213,7 @@ function DraftItem({draft, onSelect, onDelete, formatDate, truncateContent}: Dra
             variant="ghost"
             color="negative"
             size="small"
-            onPress={handleDelete}>
+            onPress={usernameDelete}>
             <ButtonIcon icon={TrashIcon} />
           </Button>
         </View>

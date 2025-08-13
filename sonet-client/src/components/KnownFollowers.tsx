@@ -1,10 +1,10 @@
 import React from 'react'
 import {View} from 'react-native'
 import {
-  type AppBskyActorDefs,
+  type SonetActorDefs,
   moderateProfile,
   type ModerationOpts,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg, Plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -27,7 +27,7 @@ const AVI_BORDER = 1
  * `count` includes blocked users and `followers` does not.
  */
 export function shouldShowKnownFollowers(
-  knownFollowers?: AppBskyActorDefs.KnownFollowers,
+  knownFollowers?: SonetActorDefs.KnownFollowers,
 ) {
   return knownFollowers && knownFollowers.followers.length > 0
 }
@@ -45,7 +45,7 @@ export function KnownFollowers({
   minimal?: boolean
   showIfEmpty?: boolean
 }) {
-  const cache = React.useRef<Map<string, AppBskyActorDefs.KnownFollowers>>(
+  const cache = React.useRef<Map<string, SonetActorDefs.KnownFollowers>>(
     new Map(),
   )
 
@@ -56,11 +56,11 @@ export function KnownFollowers({
    * screen, or once this one is popped, this cache is empty, so new data is
    * displayed.
    */
-  if (profile.viewer?.knownFollowers && !cache.current.has(profile.did)) {
-    cache.current.set(profile.did, profile.viewer.knownFollowers)
+  if (profile.viewer?.knownFollowers && !cache.current.has(profile.userId)) {
+    cache.current.set(profile.userId, profile.viewer.knownFollowers)
   }
 
-  const cachedKnownFollowers = cache.current.get(profile.did)
+  const cachedKnownFollowers = cache.current.get(profile.userId)
 
   if (cachedKnownFollowers && shouldShowKnownFollowers(cachedKnownFollowers)) {
     return (
@@ -88,7 +88,7 @@ function KnownFollowersInner({
 }: {
   profile: bsky.profile.AnyProfileView
   moderationOpts: ModerationOpts
-  cachedKnownFollowers: AppBskyActorDefs.KnownFollowers
+  cachedKnownFollowers: SonetActorDefs.KnownFollowers
   onLinkPress?: LinkProps['onPress']
   minimal?: boolean
   showIfEmpty?: boolean
@@ -104,7 +104,7 @@ function KnownFollowersInner({
       profile: {
         ...f,
         displayName: sanitizeDisplayName(
-          f.displayName || f.handle,
+          f.displayName || f.username,
           moderation.ui('displayName'),
         ),
       },
@@ -151,7 +151,7 @@ function KnownFollowersInner({
             ]}>
             {slice.map(({profile: prof, moderation}, i) => (
               <View
-                key={prof.did}
+                key={prof.userId}
                 style={[
                   a.rounded_full,
                   {
@@ -192,11 +192,11 @@ function KnownFollowersInner({
               serverCount > 2 ? (
                 <Trans>
                   Followed by{' '}
-                  <Text emoji key={slice[0].profile.did} style={textStyle}>
+                  <Text emoji key={slice[0].profile.userId} style={textStyle}>
                     {slice[0].profile.displayName}
                   </Text>
                   ,{' '}
-                  <Text emoji key={slice[1].profile.did} style={textStyle}>
+                  <Text emoji key={slice[1].profile.userId} style={textStyle}>
                     {slice[1].profile.displayName}
                   </Text>
                   , and{' '}
@@ -210,11 +210,11 @@ function KnownFollowersInner({
                 // only 2
                 <Trans>
                   Followed by{' '}
-                  <Text emoji key={slice[0].profile.did} style={textStyle}>
+                  <Text emoji key={slice[0].profile.userId} style={textStyle}>
                     {slice[0].profile.displayName}
                   </Text>{' '}
                   and{' '}
-                  <Text emoji key={slice[1].profile.did} style={textStyle}>
+                  <Text emoji key={slice[1].profile.userId} style={textStyle}>
                     {slice[1].profile.displayName}
                   </Text>
                 </Trans>
@@ -223,7 +223,7 @@ function KnownFollowersInner({
               // 1-n followers, including blocks
               <Trans>
                 Followed by{' '}
-                <Text emoji key={slice[0].profile.did} style={textStyle}>
+                <Text emoji key={slice[0].profile.userId} style={textStyle}>
                   {slice[0].profile.displayName}
                 </Text>{' '}
                 and{' '}
@@ -237,7 +237,7 @@ function KnownFollowersInner({
               // only 1
               <Trans>
                 Followed by{' '}
-                <Text emoji key={slice[0].profile.did} style={textStyle}>
+                <Text emoji key={slice[0].profile.userId} style={textStyle}>
                   {slice[0].profile.displayName}
                 </Text>
               </Trans>

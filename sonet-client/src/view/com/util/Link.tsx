@@ -224,7 +224,7 @@ export const TextLink = memo(function TextLink({
         e != null &&
         isModifiedEvent(e as React.MouseEvent)
       ) {
-        // Let the browser handle opening in new tab etc.
+        // Let the browser username opening in new tab etc.
         return
       }
       onBeforePress?.()
@@ -376,7 +376,7 @@ function onPressInner(
   openLink: (href: string) => void,
   e?: Event,
 ) {
-  let shouldHandle = false
+  let shouldUsername = false
   const isLeftClick =
     // @ts-ignore Web only -prf
     Platform.OS === 'web' && (e.button == null || e.button === 0)
@@ -388,18 +388,18 @@ function onPressInner(
   const newTab = isMetaKey || isMiddleClick
 
   if (Platform.OS !== 'web' || !e) {
-    shouldHandle = e ? !e.defaultPrevented : true
+    shouldUsername = e ? !e.defaultPrevented : true
   } else if (
     !e.defaultPrevented && // onPress prevented default
     (isLeftClick || isMiddleClick) && // ignore everything but left and middle clicks
     // @ts-ignore Web only -prf
-    [undefined, null, '', 'self'].includes(e.currentTarget?.target) // let browser handle "target=_blank" etc.
+    [undefined, null, '', 'self'].includes(e.currentTarget?.target) // let browser username "target=_blank" etc.
   ) {
     e.preventDefault()
-    shouldHandle = true
+    shouldUsername = true
   }
 
-  if (shouldHandle) {
+  if (shouldUsername) {
     href = convertBskyAppUrlIfNeeded(href)
     if (
       newTab ||

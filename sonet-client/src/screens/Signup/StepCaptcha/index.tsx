@@ -5,7 +5,7 @@ import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {nanoid} from 'nanoid/non-secure'
 
-import {createFullHandle} from '#/lib/strings/handles'
+import {createFullUsername} from '#/lib/strings/usernames'
 import {logger} from '#/logger'
 import {isAndroid, isIOS, isNative, isWeb} from '#/platform/detection'
 import {ScreenTransition} from '#/screens/Login/ScreenTransition'
@@ -80,8 +80,8 @@ function StepCaptchaInner({
     const newUrl = new URL(state.serviceUrl)
     newUrl.pathname = CAPTCHA_PATH
     newUrl.searchParams.set(
-      'handle',
-      createFullHandle(state.handle, state.userDomain),
+      'username',
+      createFullUsername(state.username, state.userDomain),
     )
     newUrl.searchParams.set('state', stateParam)
     newUrl.searchParams.set('colorScheme', theme.name)
@@ -97,7 +97,7 @@ function StepCaptchaInner({
     return newUrl.href
   }, [
     state.serviceUrl,
-    state.handle,
+    state.username,
     state.userDomain,
     stateParam,
     theme.name,
@@ -125,22 +125,22 @@ function StepCaptchaInner({
       })
       logger.metric('signup:captchaFailure', {}, {statsig: true})
       logger.error('Signup Flow Error', {
-        registrationHandle: state.handle,
+        registrationUsername: state.username,
         error,
       })
     },
-    [_, dispatch, state.handle],
+    [_, dispatch, state.username],
   )
 
   const onBackPress = React.useCallback(() => {
     logger.error('Signup Flow Error', {
       errorMessage:
         'User went back from captcha step. Possibly encountered an error.',
-      registrationHandle: state.handle,
+      registrationUsername: state.username,
     })
 
     dispatch({type: 'prev'})
-  }, [dispatch, state.handle])
+  }, [dispatch, state.username])
 
   return (
     <ScreenTransition>

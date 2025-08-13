@@ -13,7 +13,7 @@ import {
   type TextInputSelectionChangeEventData,
   View,
 } from 'react-native'
-import {AppBskyRichtextFacet, RichText} from '@atproto/api'
+import {SonetRichtextFacet, RichText} from '@sonet/api'
 import PasteInput, {
   type PastedFile,
   type PasteInputRef, // @ts-expect-error no types when installing from github
@@ -78,7 +78,7 @@ export const TextInput = forwardRef(function TextInputImpl(
   const [autocompletePrefix, setAutocompletePrefix] = useState('')
   const prevLength = React.useRef(richtext.length)
 
-  React.useImperativeHandle(ref, () => ({
+  React.useImperativeUsername(ref, () => ({
     focus: () => textInput.current?.focus(),
     blur: () => {
       textInput.current?.blur()
@@ -111,7 +111,7 @@ export const TextInput = forwardRef(function TextInputImpl(
       if (newRt.facets) {
         for (const facet of newRt.facets) {
           for (const feature of facet.features) {
-            if (AppBskyRichtextFacet.isLink(feature)) {
+            if (SonetRichtextFacet.isLink(feature)) {
               if (isUriImage(feature.uri)) {
                 const res = await downloadAndResize({
                   uri: feature.uri,

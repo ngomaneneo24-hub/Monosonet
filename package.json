@@ -1,9 +1,76 @@
 {
-	"dependencies": {
-		"expo": "^53.0.20"
-	},
-	"devDependencies": {
-		"@types/react": "~19.0.10",
-		"typescript": "~5.8.3"
-	}
+  "name": "sonet-monorepo",
+  "version": "1.0.0",
+  "description": "Sonet Social Media Platform - Enterprise-Grade Twitter Alternative",
+  "private": true,
+  "workspaces": [
+    "sonet-client",
+    "gateway",
+    "sonet"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:gateway\" \"npm run dev:services\"",
+    "dev:client": "cd sonet-client && npm run start",
+    "dev:gateway": "cd gateway && npm run dev",
+    "dev:services": "cd sonet && docker-compose up -d",
+    "build": "npm run build:client && npm run build:gateway && npm run build:services",
+    "build:client": "cd sonet-client && npm run build",
+    "build:gateway": "cd gateway && npm run build",
+    "build:services": "cd sonet && make build",
+    "test": "npm run test:client && npm run test:gateway && npm run test:services",
+    "test:client": "cd sonet-client && npm test",
+    "test:gateway": "cd gateway && npm test",
+    "test:services": "cd sonet && make test",
+    "env:setup": "node scripts/env-manager-simple.js setup",
+    "env:status": "node scripts/env-manager-simple.js status",
+    "env:generate": "node scripts/env-manager-simple.js generate",
+    "docker:up": "cd sonet && docker-compose up -d",
+    "docker:down": "cd sonet && docker-compose down",
+    "docker:logs": "cd sonet && docker-compose logs -f",
+    "docker:restart": "cd sonet && docker-compose restart",
+    "clean": "npm run clean:node_modules && npm run clean:build && npm run clean:docker",
+    "clean:node_modules": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +",
+    "clean:build": "find . -name 'dist' -type d -prune -exec rm -rf '{}' + && find . -name 'build' -type d -prune -exec rm -rf '{}' +",
+    "clean:docker": "cd sonet && docker-compose down -v && docker system prune -f",
+    "install:all": "npm install && cd sonet-client && npm install && cd ../gateway && npm install",
+    "update:all": "npm update && cd sonet-client && npm update && cd ../gateway && npm update",
+    "lint": "npm run lint:client && npm run lint:gateway",
+    "lint:client": "cd sonet-client && npm run lint",
+    "lint:gateway": "cd gateway && npm run lint",
+    "format": "npm run format:client && npm run format:gateway",
+    "format:client": "cd sonet-client && npm run format",
+    "format:gateway": "cd gateway && npm run format",
+    "start:production": "npm run build && npm run docker:up && cd gateway && npm start",
+    "start:staging": "NODE_ENV=staging npm run start:production",
+    "logs": "npm run logs:gateway && npm run logs:services",
+    "logs:gateway": "cd gateway && npm run logs",
+    "logs:services": "cd sonet && docker-compose logs -f",
+    "health:check": "curl -f http://localhost:8080/health || echo 'Gateway not responding'",
+    "db:migrate": "cd sonet && make db:migrate",
+    "db:seed": "cd sonet && make db:seed",
+    "db:reset": "cd sonet && make db:reset"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "dotenv": "^16.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sonet-social/sonet-monorepo.git"
+  },
+  "keywords": [
+    "sonet",
+    "social-media",
+    "twitter-alternative",
+    "enterprise",
+    "real-time",
+    "messaging",
+    "microservices"
+  ],
+  "author": "Sonet Team",
+  "license": "MIT"
 }

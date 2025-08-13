@@ -1,4 +1,4 @@
-import {AtpAgent} from '@atproto/api'
+import {AtpAgent} from '@sonet/api'
 
 import {SupportedMimeTypes, VIDEO_SERVICE} from '#/lib/constants'
 

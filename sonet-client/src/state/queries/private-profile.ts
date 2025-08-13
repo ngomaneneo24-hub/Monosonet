@@ -53,13 +53,13 @@ export function usePrivateProfileQuery() {
   const {_} = useLingui()
 
   return useQuery<PrivateProfileData, Error>({
-    queryKey: RQKEY(currentAccount?.did || ''),
+    queryKey: RQKEY(currentAccount?.userId || ''),
     queryFn: async () => {
-      if (!currentAccount?.did) throw new Error('User not authenticated')
-      const response = await apiRequest(`/v1/users/${currentAccount.did}/privacy`)
+      if (!currentAccount?.userId) throw new Error('User not authenticated')
+      const response = await apiRequest(`/v1/users/${currentAccount.userId}/privacy`)
       return response
     },
-    enabled: !!currentAccount?.did,
+    enabled: !!currentAccount?.userId,
     staleTime: STALE.MINUTES.FIVE,
     placeholderData: {is_private: false},
   })
@@ -73,18 +73,18 @@ export function useUpdatePrivateProfileMutation() {
 
   return useMutation<PrivateProfileData, Error, UpdatePrivateProfileRequest>({
     mutationFn: async (data) => {
-      if (!currentAccount?.did) throw new Error('User not authenticated')
-      const response = await apiRequest(`/v1/users/${currentAccount.did}/privacy`, {
+      if (!currentAccount?.userId) throw new Error('User not authenticated')
+      const response = await apiRequest(`/v1/users/${currentAccount.userId}/privacy`, {
         method: 'PUT',
         body: JSON.stringify(data),
       })
       return response
     },
     onSuccess: (data) => {
-      if (currentAccount?.did) {
-        queryClient.setQueryData(RQKEY(currentAccount.did), data)
+      if (currentAccount?.userId) {
+        queryClient.setQueryData(RQKEY(currentAccount.userId), data)
         queryClient.invalidateQueries({
-          queryKey: ['profile', currentAccount.did],
+          queryKey: ['profile', currentAccount.userId],
         })
       }
     },

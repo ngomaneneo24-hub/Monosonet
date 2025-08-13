@@ -1,11 +1,11 @@
 import React from 'react'
 import {View} from 'react-native'
-import {AppBskyLabelerDefs} from '@atproto/api'
+import {SonetLabelerDefs} from '@sonet/api'
 import {msg, Plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
 import {getLabelingServiceTitle} from '#/lib/moderation'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {useLabelerInfoQuery} from '#/state/queries/labeler'
 import {UserAvatar} from '#/view/com/util/UserAvatar'
 import {atoms as a, useTheme, ViewStyleProp} from '#/alf'
@@ -16,7 +16,7 @@ import {Text} from '#/components/Typography'
 import {ChevronRight_Stroke2_Corner0_Rounded as ChevronRight} from '../icons/Chevron'
 
 type LabelingServiceProps = {
-  labeler: AppBskyLabelerDefs.LabelerViewDetailed
+  labeler: SonetLabelerDefs.LabelerViewDetailed
 }
 
 export function Outer({
@@ -51,7 +51,7 @@ export function Title({value}: {value: string}) {
   )
 }
 
-export function Description({value, handle}: {value?: string; handle: string}) {
+export function Description({value, username}: {value?: string; username: string}) {
   const {_} = useLingui()
   return value ? (
     <Text numberOfLines={2}>
@@ -59,7 +59,7 @@ export function Description({value, handle}: {value?: string; handle: string}) {
     </Text>
   ) : (
     <Text emoji style={[a.leading_snug]}>
-      {_(msg`By ${sanitizeHandle(handle, '@')}`)}
+      {_(msg`By ${sanitizeUsername(username, '@')}`)}
     </Text>
   )
 }
@@ -133,12 +133,12 @@ export function Default({
         <Title
           value={getLabelingServiceTitle({
             displayName: labeler.creator.displayName,
-            handle: labeler.creator.handle,
+            username: labeler.creator.username,
           })}
         />
         <Description
           value={labeler.creator.description}
-          handle={labeler.creator.handle}
+          username={labeler.creator.username}
         />
         {labeler.likeCount ? <LikeCount likeCount={labeler.likeCount} /> : null}
       </Content>
@@ -157,11 +157,11 @@ export function Link({
       to={{
         screen: 'Profile',
         params: {
-          name: labeler.creator.handle,
+          name: labeler.creator.username,
         },
       }}
       label={_(
-        msg`View the labeling service provided by @${labeler.creator.handle}`,
+        msg`View the labeling service provided by @${labeler.creator.username}`,
       )}>
       {children}
     </InternalLink>
@@ -178,19 +178,19 @@ export function DefaultSkeleton() {
 }
 
 export function Loader({
-  did,
+  userId,
   loading: LoadingComponent = DefaultSkeleton,
   error: ErrorComponent,
   component: Component,
 }: {
-  did: string
+  userId: string
   loading?: React.ComponentType<{}>
   error?: React.ComponentType<{error: string}>
   component: React.ComponentType<{
-    labeler: AppBskyLabelerDefs.LabelerViewDetailed
+    labeler: SonetLabelerDefs.LabelerViewDetailed
   }>
 }) {
-  const {isLoading, data, error} = useLabelerInfoQuery({did})
+  const {isLoading, data, error} = useLabelerInfoQuery({userId})
 
   return isLoading ? (
     LoadingComponent ? (

@@ -26,7 +26,7 @@ export function ActivitySubscriptionsNUX() {
 
   return (
     <Dialog.Outer control={control} onClose={onClose}>
-      <Dialog.Handle />
+      <Dialog.Username />
 
       <Dialog.ScrollableInner
         label={_(msg`Introducing activity notifications`)}
@@ -134,7 +134,7 @@ export function ActivitySubscriptionsNUX() {
                   maxWidth: 300,
                 },
               ]}>
-              <Trans>Get notified when someone posts</Trans>
+              <Trans>Get notified when someone notes</Trans>
             </Text>
             <Text
               style={[
@@ -146,7 +146,7 @@ export function ActivitySubscriptionsNUX() {
                 },
               ]}>
               <Trans>
-                You can now choose to be notified when specific people post. If
+                You can now choose to be notified when specific people note. If
                 there’s someone you want timely updates from, go to their
                 profile and find the new bell icon near the follow button.
               </Trans>

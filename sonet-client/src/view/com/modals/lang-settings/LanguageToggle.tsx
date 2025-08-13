@@ -1,7 +1,7 @@
 import {StyleSheet} from 'react-native'
 
 import {usePalette} from '#/lib/hooks/usePalette'
-import {toPostLanguages, useLanguagePrefs} from '#/state/preferences/languages'
+import {toNoteLanguages, useLanguagePrefs} from '#/state/preferences/languages'
 import {ToggleButton} from '#/view/com/util/forms/ToggleButton'
 
 export function LanguageToggle({
@@ -13,7 +13,7 @@ export function LanguageToggle({
   code2: string
   name: string
   onPress: () => void
-  langType: 'contentLanguages' | 'postLanguages'
+  langType: 'contentLanguages' | 'noteLanguages'
 }) {
   const pal = usePalette('default')
   const langPrefs = useLanguagePrefs()
@@ -21,12 +21,12 @@ export function LanguageToggle({
   const values =
     langType === 'contentLanguages'
       ? langPrefs.contentLanguages
-      : toPostLanguages(langPrefs.postLanguage)
+      : toNoteLanguages(langPrefs.noteLanguage)
   const isSelected = values.includes(code2)
 
-  // enforce a max of 3 selections for post languages
+  // enforce a max of 3 selections for note languages
   let isDisabled = false
-  if (langType === 'postLanguages' && values.length >= 3 && !isSelected) {
+  if (langType === 'noteLanguages' && values.length >= 3 && !isSelected) {
     isDisabled = true
   }
 

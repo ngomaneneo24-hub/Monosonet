@@ -148,7 +148,7 @@ export function Trigger({
             props: {
               ...props,
               // No-op override to prevent false positive that interprets mobile scroll as a tap.
-              // This requires the custom onPress handler below to compensate.
+              // This requires the custom onPress usernamer below to compensate.
               // https://github.com/radix-ui/primitives/issues/1912
               onPointerDown: undefined,
               onPress: () => {

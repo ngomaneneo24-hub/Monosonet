@@ -12,8 +12,8 @@ import {usePalette} from '#/lib/hooks/usePalette'
 import {isNative} from '#/platform/detection'
 import {useModalControls} from '#/state/modals'
 import {
-  hasPostLanguage,
-  toPostLanguages,
+  hasNoteLanguage,
+  toNoteLanguages,
   useLanguagePrefs,
   useLanguagePrefsApi,
 } from '#/state/preferences/languages'
@@ -38,10 +38,10 @@ export function SelectLangBtn() {
         Keyboard.dismiss()
       }
     }
-    openModal({name: 'post-languages-settings'})
+    openModal({name: 'note-languages-settings'})
   }, [openModal])
 
-  const postLanguagesPref = toPostLanguages(langPrefs.postLanguage)
+  const noteLanguagesPref = toNoteLanguages(langPrefs.noteLanguage)
   const items: DropdownItem[] = useMemo(() => {
     let arr: DropdownItemButton[] = []
 
@@ -61,32 +61,32 @@ export function SelectLangBtn() {
       arr.push({
         icon:
           langCodes.every(code =>
-            hasPostLanguage(langPrefs.postLanguage, code),
-          ) && langCodes.length === postLanguagesPref.length
+            hasNoteLanguage(langPrefs.noteLanguage, code),
+          ) && langCodes.length === noteLanguagesPref.length
             ? ['fas', 'circle-dot']
             : ['far', 'circle'],
         label: langName,
         onPress() {
-          setLangPrefs.setPostLanguage(commaSeparatedLangCodes)
+          setLangPrefs.setNoteLanguage(commaSeparatedLangCodes)
         },
       })
     }
 
-    if (postLanguagesPref.length) {
+    if (noteLanguagesPref.length) {
       /*
-       * Re-join here after sanitization bc postLanguageHistory is an array of
+       * Re-join here after sanitization bc noteLanguageHistory is an array of
        * comma-separated strings too
        */
-      add(langPrefs.postLanguage)
+      add(langPrefs.noteLanguage)
     }
 
     // comma-separted strings of lang codes that have been used in the past
-    for (const lang of langPrefs.postLanguageHistory) {
+    for (const lang of langPrefs.noteLanguageHistory) {
       add(lang)
     }
 
     return [
-      {heading: true, label: _(msg`Post language`)},
+      {heading: true, label: _(msg`Note language`)},
       ...arr.slice(0, 6),
       {sep: true},
       {
@@ -94,7 +94,7 @@ export function SelectLangBtn() {
         onPress: onPressMore,
       },
     ]
-  }, [onPressMore, langPrefs, setLangPrefs, postLanguagesPref, _])
+  }, [onPressMore, langPrefs, setLangPrefs, noteLanguagesPref, _])
 
   return (
     <DropdownButton
@@ -106,9 +106,9 @@ export function SelectLangBtn() {
       hitSlop={LANG_DROPDOWN_HITSLOP}
       accessibilityLabel={_(msg`Language selection`)}
       accessibilityHint="">
-      {postLanguagesPref.length > 0 ? (
+      {noteLanguagesPref.length > 0 ? (
         <Text type="lg-bold" style={[pal.link, styles.label]} numberOfLines={1}>
-          {postLanguagesPref
+          {noteLanguagesPref
             .map(lang => codeToLanguageName(lang, langPrefs.appLanguage))
             .join(', ')}
         </Text>

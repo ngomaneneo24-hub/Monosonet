@@ -1,4 +1,4 @@
-import React, {useImperativeHandle} from 'react'
+import React, {useImperativeUsername} from 'react'
 import {
   FlatList,
   type FlatListProps,
@@ -75,11 +75,11 @@ export function Outer({
     [control.id, onClose, setDialogIsOpen],
   )
 
-  const handleBackgroundPress = React.useCallback(async () => {
+  const usernameBackgroundPress = React.useCallback(async () => {
     close()
   }, [close])
 
-  useImperativeHandle(
+  useImperativeUsername(
     control.ref,
     () => ({
       open,
@@ -109,7 +109,7 @@ export function Outer({
             <TouchableWithoutFeedback
               accessibilityHint={undefined}
               accessibilityLabel={_(msg`Close active dialog`)}
-              onPress={handleBackgroundPress}>
+              onPress={usernameBackgroundPress}>
               <View
                 style={[
                   web(a.fixed),
@@ -263,7 +263,7 @@ export function Close() {
   )
 }
 
-export function Handle() {
+export function Username() {
   return null
 }
 

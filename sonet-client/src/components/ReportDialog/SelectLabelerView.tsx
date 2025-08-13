@@ -1,5 +1,5 @@
 import {View} from 'react-native'
-import {AppBskyLabelerDefs} from '@atproto/api'
+import {SonetLabelerDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -14,7 +14,7 @@ import {ReportDialogProps} from './types'
 export function SelectLabelerView({
   ...props
 }: ReportDialogProps & {
-  labelers: AppBskyLabelerDefs.LabelerViewDetailed[]
+  labelers: SonetLabelerDefs.LabelerViewDetailed[]
   onSelectLabeler: (v: string) => void
 }) {
   const t = useTheme()
@@ -38,9 +38,9 @@ export function SelectLabelerView({
         {props.labelers.map(labeler => {
           return (
             <Button
-              key={labeler.creator.did}
+              key={labeler.creator.userId}
               label={_(msg`Send report to ${labeler.creator.displayName}`)}
-              onPress={() => props.onSelectLabeler(labeler.creator.did)}>
+              onPress={() => props.onSelectLabeler(labeler.creator.userId)}>
               <LabelerButton labeler={labeler} />
             </Button>
           )
@@ -53,7 +53,7 @@ export function SelectLabelerView({
 function LabelerButton({
   labeler,
 }: {
-  labeler: AppBskyLabelerDefs.LabelerViewDetailed
+  labeler: SonetLabelerDefs.LabelerViewDetailed
 }) {
   const t = useTheme()
   const {hovered, pressed} = useButtonContext()
@@ -72,11 +72,11 @@ function LabelerButton({
         <LabelingServiceCard.Title
           value={getLabelingServiceTitle({
             displayName: labeler.creator.displayName,
-            handle: labeler.creator.handle,
+            username: labeler.creator.username,
           })}
         />
         <Text style={[t.atoms.text_contrast_medium, a.text_sm, a.font_bold]}>
-          @{labeler.creator.handle}
+          @{labeler.creator.username}
         </Text>
       </LabelingServiceCard.Content>
     </LabelingServiceCard.Outer>

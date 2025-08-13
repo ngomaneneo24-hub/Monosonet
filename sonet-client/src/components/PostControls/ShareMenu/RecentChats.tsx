@@ -1,12 +1,12 @@
 import {ScrollView, View} from 'react-native'
-import {moderateProfile, type ModerationOpts} from '@atproto/api'
+import {moderateProfile, type ModerationOpts} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
 
 import {type NavigationProp} from '#/lib/routes/types'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {logger} from '#/logger'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
 import {useListConvosQuery} from '#/state/queries/messages/list-conversations'
@@ -20,7 +20,7 @@ import {useSimpleVerificationState} from '#/components/verification'
 import {VerificationCheck} from '#/components/verification/VerificationCheck'
 import type * as bsky from '#/types/bsky'
 
-export function RecentChats({postUri}: {postUri: string}) {
+export function RecentChats({noteUri}: {noteUri: string}) {
   const control = useDialogContext()
   const {_} = useLingui()
   const {currentAccount} = useSession()
@@ -34,7 +34,7 @@ export function RecentChats({postUri}: {postUri: string}) {
       logger.metric('share:press:recentDm', {}, {statsig: true})
       navigation.navigate('MessagesConversation', {
         conversation: convoId,
-        embed: postUri,
+        embed: noteUri,
       })
     })
   }
@@ -54,10 +54,10 @@ export function RecentChats({postUri}: {postUri: string}) {
         {convos && convos.length > 0 ? (
           convos.map(convo => {
             const otherMember = convo.members.find(
-              member => member.did !== currentAccount?.did,
+              member => member.userId !== currentAccount?.userId,
             )
 
-            if (!otherMember || otherMember.handle === 'missing.invalid')
+            if (!otherMember || otherMember.username === 'missing.invalid')
               return null
 
             return (
@@ -100,7 +100,7 @@ function RecentChatItem({
 
   const moderation = moderateProfile(profile, moderationOpts)
   const name = sanitizeDisplayName(
-    profile.displayName || sanitizeHandle(profile.handle),
+    profile.displayName || sanitizeUsername(profile.username),
     moderation.ui('displayName'),
   )
   const verification = useSimpleVerificationState({profile})
@@ -108,7 +108,7 @@ function RecentChatItem({
   return (
     <Button
       onPress={onPress}
-      label={_(msg`Send post to ${name}`)}
+      label={_(msg`Send note to ${name}`)}
       style={[
         a.flex_col,
         {width: WIDTH},

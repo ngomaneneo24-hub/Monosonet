@@ -21,7 +21,7 @@ export function LinkWarningDialog() {
       nativeOptions={{preventExpansion: true}}
       webOptions={{alignCenter: true}}
       onClose={linkWarningDialogControl.clear}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <InAppBrowserConsentInner link={linkWarningDialogControl.value} />
     </Dialog.Outer>
   )

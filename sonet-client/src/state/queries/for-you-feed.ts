@@ -1,7 +1,7 @@
 // For You Feed React Query Hook - ML-powered personalized content
 import {useInfiniteQuery, useMutation, useQueryClient} from '@tanstack/react-query'
 import {forYouFeedAPI, type ForYouFeedParams} from '#/lib/api/feed/for-you'
-import {type SonetFeedViewPost} from '#/types/sonet'
+import {type SonetFeedViewNote} from '#/types/sonet'
 
 const RQKEY_ROOT = 'for-you-feed'
 
@@ -9,7 +9,7 @@ export function RQKEY(params?: ForYouFeedParams) {
   return [RQKEY_ROOT, params || {}]
 }
 
-export interface ForYouFeedItem extends SonetFeedViewPost {
+export interface ForYouFeedItem extends SonetFeedViewNote {
   ranking: {
     score: number
     factors: Record<string, number>
@@ -46,9 +46,9 @@ export function useForYouFeedQuery(params?: ForYouFeedParams) {
 
       // Transform response to match our internal format
       const items: ForYouFeedItem[] = response.items.map(item => ({
-        post: item.post,
+        note: item.note,
         reply: undefined, // TODO: Add reply support if needed
-        reason: undefined, // TODO: Add repost reason support if needed
+        reason: undefined, // TODO: Add renote reason support if needed
         feedContext: item.feedContext,
         ranking: item.ranking,
         mlInsights: {
@@ -98,20 +98,20 @@ export function useForYouFeedPersonalization() {
   return useQueryClient().getQueryData([RQKEY_ROOT, 'personalization'])
 }
 
-// Hook for getting ML insights about a specific post
-export function usePostMLInsights(postId: string) {
+// Hook for getting ML insights about a specific note
+export function useNoteMLInsights(noteId: string) {
   const queryClient = useQueryClient()
   const allPages = queryClient.getQueriesData({queryKey: [RQKEY_ROOT]})
   
-  // Find the post across all pages
+  // Find the note across all pages
   for (const [_, data] of allPages) {
     if (data && typeof data === 'object' && 'pages' in data) {
       for (const page of (data as any).pages) {
-        const post = page.items?.find((item: ForYouFeedItem) => 
-          item.post.uri === postId
+        const note = page.items?.find((item: ForYouFeedItem) => 
+          item.note.uri === noteId
         )
-        if (post) {
-          return post.ranking
+        if (note) {
+          return note.ranking
         }
       }
     }

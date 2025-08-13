@@ -31,7 +31,7 @@ export function GoLiveDialog({
 }) {
   return (
     <Dialog.Outer control={control} nativeOptions={{preventExpansion: true}}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <DialogInner profile={profile} />
     </Dialog.Outer>
   )
@@ -112,7 +112,7 @@ function DialogInner({profile}: {profile: bsky.profile.AnyProfileView}) {
               liveOverride
               disabledPreview
             />
-            <ProfileCard.NameAndHandle
+            <ProfileCard.NameAndUsername
               profile={profile}
               moderationOpts={moderationOpts}
             />

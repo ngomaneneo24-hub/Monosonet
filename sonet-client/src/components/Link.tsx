@@ -216,7 +216,7 @@ export function useLink({
     ],
   )
 
-  const handleLongPress = React.useCallback(() => {
+  const usernameLongPress = React.useCallback(() => {
     const requiresWarning = Boolean(
       !disableMismatchWarning &&
         displayText &&
@@ -245,9 +245,9 @@ export function useLink({
     (e: GestureResponderEvent) => {
       const exitEarlyIfFalse = outerOnLongPress?.(e)
       if (exitEarlyIfFalse === false) return
-      return isNative && shareOnLongPress ? handleLongPress() : undefined
+      return isNative && shareOnLongPress ? usernameLongPress() : undefined
     },
-    [outerOnLongPress, handleLongPress, shareOnLongPress],
+    [outerOnLongPress, usernameLongPress, shareOnLongPress],
   )
 
   return {
@@ -423,13 +423,13 @@ export function WebOnlyInlineLinkText({
 }
 
 /**
- * Utility to create a static `onPress` handler for a `Link` that would otherwise link to a URI
+ * Utility to create a static `onPress` usernamer for a `Link` that would otherwise link to a URI
  *
  * Example:
  *   `<Link {...createStaticClick(e => {...})} />`
  */
 export function createStaticClick(
-  onPressHandler: Exclude<BaseLinkProps['onPress'], undefined>,
+  onPressUsernamer: Exclude<BaseLinkProps['onPress'], undefined>,
 ): {
   to: BaseLinkProps['to']
   onPress: Exclude<BaseLinkProps['onPress'], undefined>
@@ -438,14 +438,14 @@ export function createStaticClick(
     to: '#',
     onPress(e: GestureResponderEvent) {
       e.preventDefault()
-      onPressHandler(e)
+      onPressUsernamer(e)
       return false
     },
   }
 }
 
 /**
- * Utility to create a static `onPress` handler for a `Link`, but only if the
+ * Utility to create a static `onPress` usernamer for a `Link`, but only if the
  * click was not modified in some way e.g. `Cmd` or a middle click.
  *
  * On native, this behaves the same as `createStaticClick` because there are no
@@ -455,13 +455,13 @@ export function createStaticClick(
  *   `<Link {...createStaticClick(e => {...})} />`
  */
 export function createStaticClickIfUnmodified(
-  onPressHandler: Exclude<BaseLinkProps['onPress'], undefined>,
+  onPressUsernamer: Exclude<BaseLinkProps['onPress'], undefined>,
 ): {onPress: Exclude<BaseLinkProps['onPress'], undefined>} {
   return {
     onPress(e: GestureResponderEvent) {
       if (!isWeb || !isModifiedClickEvent(e)) {
         e.preventDefault()
-        onPressHandler(e)
+        onPressUsernamer(e)
         return false
       }
     },

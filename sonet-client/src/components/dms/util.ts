@@ -1,4 +1,4 @@
-import {type ChatBskyConvoDefs} from '@atproto/api'
+import {type SonetConvoDefs} from '@sonet/api'
 
 import {EMOJI_REACTION_LIMIT} from '#/lib/constants'
 import type * as bsky from '#/types/bsky'
@@ -30,7 +30,7 @@ export function localDateString(date: Date) {
 }
 
 export function hasAlreadyReacted(
-  message: ChatBskyConvoDefs.MessageView,
+  message: SonetConvoDefs.MessageView,
   myDid: string | undefined,
   emoji: string,
 ): boolean {
@@ -38,19 +38,19 @@ export function hasAlreadyReacted(
     return false
   }
   return !!message.reactions.find(
-    reaction => reaction.value === emoji && reaction.sender.did === myDid,
+    reaction => reaction.value === emoji && reaction.sender.userId === myDid,
   )
 }
 
 export function hasReachedReactionLimit(
-  message: ChatBskyConvoDefs.MessageView,
+  message: SonetConvoDefs.MessageView,
   myDid: string | undefined,
 ): boolean {
   if (!message.reactions) {
     return false
   }
   const myReactions = message.reactions.filter(
-    reaction => reaction.sender.did === myDid,
+    reaction => reaction.sender.userId === myDid,
   )
   return myReactions.length >= EMOJI_REACTION_LIMIT
 }

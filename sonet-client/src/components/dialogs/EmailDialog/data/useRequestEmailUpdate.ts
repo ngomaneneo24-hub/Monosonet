@@ -1,13 +1,11 @@
 import {useMutation} from '@tanstack/react-query'
-
-import {useAgent} from '#/state/session'
+import {sonetClient} from '@sonet/api'
 
 export function useRequestEmailUpdate() {
-  const agent = useAgent()
-
   return useMutation({
     mutationFn: async () => {
-      return (await agent.com.atproto.server.requestEmailUpdate()).data
+      // Sonet simplified email update request
+      return await sonetClient.requestEmailUpdate()
     },
   })
 }

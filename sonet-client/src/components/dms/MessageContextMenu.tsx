@@ -1,7 +1,7 @@
 import {memo, useCallback} from 'react'
 import {LayoutAnimation} from 'react-native'
 import * as Clipboard from 'expo-clipboard'
-import {type ChatBskyConvoDefs, RichText} from '@atproto/api'
+import {type SonetConvoDefs, RichText} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -30,7 +30,7 @@ export let MessageContextMenu = ({
   message,
   children,
 }: {
-  message: ChatBskyConvoDefs.MessageView
+  message: SonetConvoDefs.MessageView
   children: TriggerProps['children']
 }): React.ReactNode => {
   const {_} = useLingui()
@@ -41,7 +41,7 @@ export let MessageContextMenu = ({
   const langPrefs = useLanguagePrefs()
   const openLink = useOpenLink()
 
-  const isFromSelf = message.sender?.did === currentAccount?.did
+  const isFromSelf = message.sender?.userId === currentAccount?.userId
 
   const onCopyMessage = useCallback(() => {
     const str = richTextToString(
@@ -90,14 +90,14 @@ export let MessageContextMenu = ({
         message.reactions?.find(
           reaction =>
             reaction.value === emoji &&
-            reaction.sender.did === currentAccount?.did,
+            reaction.sender.userId === currentAccount?.userId,
         )
       ) {
         convo
           .removeReaction(message.id, emoji)
           .catch(() => Toast.show(_(msg`Failed to remove emoji reaction`)))
       } else {
-        if (hasReachedReactionLimit(message, currentAccount?.did)) return
+        if (hasReachedReactionLimit(message, currentAccount?.userId)) return
         convo
           .addReaction(message.id, emoji)
           .catch(() =>
@@ -105,11 +105,11 @@ export let MessageContextMenu = ({
           )
       }
     },
-    [_, convo, message, currentAccount?.did],
+    [_, convo, message, currentAccount?.userId],
   )
 
   const sender = convo.convo.members.find(
-    member => member.did === message.sender.did,
+    member => member.userId === message.sender.userId,
   )
 
   return (
@@ -128,7 +128,7 @@ export let MessageContextMenu = ({
           label={_(msg`Message options`)}
           contentLabel={_(
             msg`Message from @${
-              sender?.handle ?? 'unknown' // should always be defined
+              sender?.username ?? 'unknown' // should always be defined
             }: ${message.text}`,
           )}>
           {children}

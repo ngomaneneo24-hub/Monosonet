@@ -1,23 +1,25 @@
 import React, {useCallback} from 'react'
 import {LayoutAnimation} from 'react-native'
-import {
-  ComAtprotoServerCreateAccount,
-  type ComAtprotoServerDescribeServer,
-} from '@atproto/api'
+import { SonetAuthResponse, SonetUser } from '@sonet/types'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import * as EmailValidator from 'email-validator'
 
 import {DEFAULT_SERVICE} from '#/lib/constants'
 import {cleanError} from '#/lib/strings/errors'
-import {createFullHandle} from '#/lib/strings/handles'
+import {createFullUsername} from '#/lib/strings/usernames'
 import {getAge} from '#/lib/strings/time'
 import {logger} from '#/logger'
 import {useSessionApi} from '#/state/session'
 import {useOnboardingDispatch} from '#/state/shell'
 import {usePreemptivelyCompleteActivePolicyUpdate} from '#/components/PolicyUpdateOverlay/usePreemptivelyCompleteActivePolicyUpdate'
 
-export type ServiceDescription = ComAtprotoServerDescribeServer.OutputSchema
+export type ServiceDescription = {
+  name: string
+  description: string
+  version: string
+  features: string[]
+}
 
 const DEFAULT_DATE = new Date(Date.now() - 60e3 * 60 * 24 * 365 * 20) // default to 20 years ago
 
@@ -35,7 +37,7 @@ type SubmitTask = {
 type ErrorField =
   | 'invite-code'
   | 'email'
-  | 'handle'
+  | 'username'
   | 'password'
   | 'date-of-birth'
 
@@ -50,7 +52,7 @@ export type SignupState = {
   email: string
   password: string
   inviteCode: string
-  handle: string
+  username: string
 
   error: string
   errorField?: ErrorField
@@ -75,7 +77,7 @@ export type SignupAction =
   | {type: 'setPassword'; value: string}
   | {type: 'setDateOfBirth'; value: Date}
   | {type: 'setInviteCode'; value: string}
-  | {type: 'setHandle'; value: string}
+  | {type: 'setUsername'; value: string}
   | {type: 'setError'; value: string; field?: ErrorField}
   | {type: 'clearError'}
   | {type: 'setIsLoading'; value: boolean}
@@ -92,7 +94,7 @@ export const initialState: SignupState = {
   dateOfBirth: DEFAULT_DATE,
   email: '',
   password: '',
-  handle: '',
+  username: '',
   inviteCode: '',
 
   error: '',
@@ -106,7 +108,7 @@ export const initialState: SignupState = {
   fieldErrors: {
     'invite-code': 0,
     email: 0,
-    handle: 0,
+    username: 0,
     password: 0,
     'date-of-birth': 0,
   },
@@ -176,8 +178,8 @@ export function reducer(s: SignupState, a: SignupAction): SignupState {
       next.inviteCode = a.value
       break
     }
-    case 'setHandle': {
-      next.handle = a.value
+    case 'setUsername': {
+      next.username = a.value
       break
     }
     case 'setIsLoading': {
@@ -282,12 +284,12 @@ export function useSubmitSignup() {
           field: 'password',
         })
       }
-      if (!state.handle) {
+      if (!state.username) {
         dispatch({type: 'setStep', value: SignupStep.HANDLE})
         return dispatch({
           type: 'setError',
-          value: _(msg`Please choose your handle.`),
-          field: 'handle',
+          value: _(msg`Please choose your username.`),
+          field: 'username',
         })
       }
       if (
@@ -297,7 +299,7 @@ export function useSubmitSignup() {
         dispatch({type: 'setStep', value: SignupStep.CAPTCHA})
         logger.error('Signup Flow Error', {
           errorMessage: 'Verification captcha code was not set.',
-          registrationHandle: state.handle,
+          registrationUsername: state.username,
         })
         return dispatch({
           type: 'setError',
@@ -312,7 +314,7 @@ export function useSubmitSignup() {
           {
             service: state.serviceUrl,
             email: state.email,
-            handle: createFullHandle(state.handle, state.userDomain),
+            username: createFullUsername(state.username, state.userDomain),
             password: state.password,
             birthDate: state.dateOfBirth,
             inviteCode: state.inviteCode.trim(),
@@ -341,7 +343,7 @@ export function useSubmitSignup() {
         onboardingDispatch({type: 'start'})
       } catch (e: any) {
         let errMsg = e.toString()
-        if (e instanceof ComAtprotoServerCreateAccount.InvalidInviteCodeError) {
+        if (e.message.includes('Invalid invite code')) {
           dispatch({
             type: 'setError',
             value: _(
@@ -354,19 +356,19 @@ export function useSubmitSignup() {
         }
 
         const error = cleanError(errMsg)
-        const isHandleError = error.toLowerCase().includes('handle')
+        const isUsernameError = error.toLowerCase().includes('username')
 
         dispatch({type: 'setIsLoading', value: false})
         dispatch({
           type: 'setError',
           value: error,
-          field: isHandleError ? 'handle' : undefined,
+          field: isUsernameError ? 'username' : undefined,
         })
-        dispatch({type: 'setStep', value: isHandleError ? 2 : 1})
+        dispatch({type: 'setStep', value: isUsernameError ? 2 : 1})
 
         logger.error('Signup Flow Error', {
           errorMessage: error,
-          registrationHandle: state.handle,
+          registrationUsername: state.username,
         })
       } finally {
         dispatch({type: 'setIsLoading', value: false})

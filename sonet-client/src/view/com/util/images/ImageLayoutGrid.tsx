@@ -1,15 +1,15 @@
 import React from 'react'
 import {type StyleProp, StyleSheet, View, type ViewStyle} from 'react-native'
 import {type AnimatedRef, useAnimatedRef} from 'react-native-reanimated'
-import {type AppBskyEmbedImages} from '@atproto/api'
+import {type SonetEmbedImages} from '@sonet/api'
 
 import {atoms as a, useBreakpoints} from '#/alf'
-import {PostEmbedViewContext} from '#/components/Post/Embed/types'
+import {NoteEmbedViewContext} from '#/components/Note/Embed/types'
 import {type Dimensions} from '../../lightbox/ImageViewing/@types'
 import {GalleryItem} from './Gallery'
 
 interface ImageLayoutGridProps {
-  images: AppBskyEmbedImages.ViewImage[]
+  images: SonetEmbedImages.ViewImage[]
   onPress?: (
     index: number,
     containerRefs: AnimatedRef<any>[],
@@ -18,13 +18,13 @@ interface ImageLayoutGridProps {
   onLongPress?: (index: number) => void
   onPressIn?: (index: number) => void
   style?: StyleProp<ViewStyle>
-  viewContext?: PostEmbedViewContext
+  viewContext?: NoteEmbedViewContext
 }
 
 export function ImageLayoutGrid({style, ...props}: ImageLayoutGridProps) {
   const {gtMobile} = useBreakpoints()
   const gap =
-    props.viewContext === PostEmbedViewContext.FeedEmbedRecordWithMedia
+    props.viewContext === NoteEmbedViewContext.FeedEmbedRecordWithMedia
       ? gtMobile
         ? a.gap_xs
         : a.gap_2xs
@@ -40,7 +40,7 @@ export function ImageLayoutGrid({style, ...props}: ImageLayoutGridProps) {
 }
 
 interface ImageLayoutGridInnerProps {
-  images: AppBskyEmbedImages.ViewImage[]
+  images: SonetEmbedImages.ViewImage[]
   onPress?: (
     index: number,
     containerRefs: AnimatedRef<any>[],
@@ -48,7 +48,7 @@ interface ImageLayoutGridInnerProps {
   ) => void
   onLongPress?: (index: number) => void
   onPressIn?: (index: number) => void
-  viewContext?: PostEmbedViewContext
+  viewContext?: NoteEmbedViewContext
   gap: {gap: number}
 }
 

@@ -1,6 +1,6 @@
 import {useCallback} from 'react'
 import {View} from 'react-native'
-import {type AppBskyActorDefs, type ModerationOpts} from '@atproto/api'
+import {type SonetActorDefs, type ModerationOpts} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
@@ -16,7 +16,7 @@ export function SearchProfileCard({
   moderationOpts,
   onPress: onPressInner,
 }: {
-  profile: AppBskyActorDefs.ProfileViewBasic
+  profile: SonetActorDefs.ProfileViewBasic
   moderationOpts: ModerationOpts
   onPress?: () => void
 }) {
@@ -31,9 +31,9 @@ export function SearchProfileCard({
 
   return (
     <Link
-      testID={`searchAutoCompleteResult-${profile.handle}`}
+      testID={`searchAutoCompleteResult-${profile.username}`}
       to={makeProfileLink(profile)}
-      label={_(msg`View ${profile.handle}'s profile`)}
+      label={_(msg`View ${profile.username}'s profile`)}
       onPress={onPress}>
       {({hovered, pressed}) => (
         <View
@@ -49,7 +49,7 @@ export function SearchProfileCard({
                 profile={profile}
                 moderationOpts={moderationOpts}
               />
-              <ProfileCard.NameAndHandle
+              <ProfileCard.NameAndUsername
                 profile={profile}
                 moderationOpts={moderationOpts}
               />

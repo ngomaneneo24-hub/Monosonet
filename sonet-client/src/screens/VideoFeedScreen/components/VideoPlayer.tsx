@@ -8,7 +8,7 @@ import {
   Platform,
   ActivityIndicator,
   Animated,
-  PanGestureHandler,
+  PanGestureUsernamer,
   State
 } from 'react-native'
 import {Video, ResizeMode, AVPlaybackStatus} from 'expo-av'
@@ -26,7 +26,7 @@ interface VideoPlayerProps {
   onPlaybackStatusUpdate: (status: AVPlaybackStatus) => void
   onViewTrack: () => void
   onLike: () => void
-  onRepost: () => void
+  onRenote: () => void
   onShare: () => void
   onClose: () => void
 }
@@ -38,7 +38,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onPlaybackStatusUpdate,
   onViewTrack,
   onLike,
-  onRepost,
+  onRenote,
   onShare,
   onClose
 }) => {
@@ -51,7 +51,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [isLiked, setIsLiked] = useState(false)
-  const [isReposted, setIsReposted] = useState(false)
+  const [isRenoteed, setIsRenoteed] = useState(false)
   const [viewTracked, setViewTracked] = useState(false)
   
   // Animation values
@@ -68,8 +68,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, [isPlaying, showControls])
 
-  // Handle playback status updates
-  const handlePlaybackStatusUpdate = useCallback((playbackStatus: AVPlaybackStatus) => {
+  // Username playback status updates
+  const usernamePlaybackStatusUpdate = useCallback((playbackStatus: AVPlaybackStatus) => {
     setStatus(playbackStatus)
     onPlaybackStatusUpdate(playbackStatus)
 
@@ -143,8 +143,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     })
   }, [controlsOpacity])
 
-  // Handle video tap
-  const handleVideoTap = useCallback(() => {
+  // Username video tap
+  const usernameVideoTap = useCallback(() => {
     if (showControls) {
       hideControls()
     } else {
@@ -152,20 +152,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, [showControls, hideControls])
 
-  // Handle like
-  const handleLike = useCallback(() => {
+  // Username like
+  const usernameLike = useCallback(() => {
     setIsLiked(!isLiked)
     onLike()
   }, [isLiked, onLike])
 
-  // Handle repost
-  const handleRepost = useCallback(() => {
-    setIsReposted(!isReposted)
-    onRepost()
-  }, [isReposted, onRepost])
+  // Username renote
+  const usernameRenote = useCallback(() => {
+    setIsRenoteed(!isRenoteed)
+    onRenote()
+  }, [isRenoteed, onRenote])
 
-  // Handle progress bar tap
-  const handleProgressBarTap = useCallback((event: any) => {
+  // Username progress bar tap
+  const usernameProgressBarTap = useCallback((event: any) => {
     const {locationX} = event.nativeEvent
     const progressBarWidth = event.target.measure((x: number, y: number, width: number) => {
       const progress = locationX / width
@@ -199,7 +199,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* Video Player */}
       <TouchableOpacity
         style={styles.videoContainer}
-        onPress={handleVideoTap}
+        onPress={usernameVideoTap}
         activeOpacity={1}
       >
         <Video
@@ -210,16 +210,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           shouldPlay={isActive}
           isLooping={false}
           isMuted={false}
-          onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+          onPlaybackStatusUpdate={usernamePlaybackStatusUpdate}
           onLoadStart={() => setIsLoading(true)}
           onLoad={() => setIsLoading(false)}
           onError={(error) => {
             console.error('Video playback error:', error)
             setIsLoading(false)
           }}
-          usePoster={true}
-          posterSource={{uri: video.thumbnail_url}}
-          posterStyle={styles.poster}
+          useNoteer={true}
+          noteerSource={{uri: video.thumbnail_url}}
+          noteerStyle={styles.noteer}
         />
 
         {/* Loading Indicator */}
@@ -243,7 +243,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         <View style={styles.progressContainer}>
           <TouchableOpacity
             style={styles.progressBar}
-            onPress={handleProgressBarTap}
+            onPress={usernameProgressBarTap}
             activeOpacity={0.8}
           >
             <View style={styles.progressBackground} />
@@ -315,7 +315,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
+            <TouchableOpacity style={styles.actionButton} onPress={usernameLike}>
               <Text style={[styles.actionIcon, isLiked && styles.likedIcon]}>
                 {isLiked ? '❤️' : '🤍'}
               </Text>
@@ -324,12 +324,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionButton} onPress={handleRepost}>
-              <Text style={[styles.actionIcon, isReposted && styles.repostedIcon]}>
-                {isReposted ? '🔄' : '↩️'}
+            <TouchableOpacity style={styles.actionButton} onPress={usernameRenote}>
+              <Text style={[styles.actionIcon, isRenoteed && styles.renoteedIcon]}>
+                {isRenoteed ? '🔄' : '↩️'}
               </Text>
               <Text style={styles.actionText}>
-                {video.engagement.repost_count.toLocaleString()}
+                {video.engagement.renote_count.toLocaleString()}
               </Text>
             </TouchableOpacity>
 
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  poster: {
+  noteer: {
     width: '100%',
     height: '100%',
   },
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
   likedIcon: {
     color: '#FF3B30',
   },
-  repostedIcon: {
+  renoteedIcon: {
     color: '#34C759',
   },
 })

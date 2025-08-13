@@ -1,4 +1,4 @@
-import {BskyAgent, ComAtprotoRepoUploadBlob} from '@atproto/api'
+import {SonetAppAgent, SonetRepoUploadBlob} from '@sonet/api'
 
 /**
  * @note It is recommended, on web, to use the `file` instance of the file
@@ -7,10 +7,10 @@ import {BskyAgent, ComAtprotoRepoUploadBlob} from '@atproto/api'
  * be passed directly to this function.
  */
 export async function uploadBlob(
-  agent: BskyAgent,
+  agent: SonetAppAgent,
   input: string | Blob,
   encoding?: string,
-): Promise<ComAtprotoRepoUploadBlob.Response> {
+): Promise<SonetRepoUploadBlob.Response> {
   if (
     typeof input === 'string' &&
     (input.startsWith('data:') || input.startsWith('blob:'))

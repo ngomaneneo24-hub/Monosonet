@@ -4,7 +4,7 @@ import type ViewShot from 'react-native-view-shot'
 import {requestMediaLibraryPermissionsAsync} from 'expo-image-picker'
 import {createAssetAsync} from 'expo-media-library'
 import * as Sharing from 'expo-sharing'
-import {type AppBskyGraphDefs, AppBskyGraphStarterpack} from '@atproto/api'
+import {type SonetGraphDefs, SonetGraphStarterpack} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -25,7 +25,7 @@ export function QrCodeDialog({
   link,
   control,
 }: {
-  starterPack: AppBskyGraphDefs.StarterPackView
+  starterPack: SonetGraphDefs.StarterPackView
   link?: string
   control: DialogControlProps
 }) {
@@ -81,7 +81,7 @@ export function QrCodeDialog({
         if (
           !bsky.validate(
             starterPack.record,
-            AppBskyGraphStarterpack.validateRecord,
+            SonetGraphStarterpack.validateRecord,
           )
         ) {
           return
@@ -155,7 +155,7 @@ export function QrCodeDialog({
 
   return (
     <Dialog.Outer control={control}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <Dialog.ScrollableInner
         label={_(msg`Create a QR code for a starter pack`)}>
         <View style={[a.flex_1, a.align_center, a.gap_5xl]}>

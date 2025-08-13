@@ -1,42 +1,42 @@
 import {useEffect, useId, useState} from 'react'
-import {type AppBskyFeedDefs, AtUri} from '@atproto/api'
+import {type SonetFeedDefs, AtUri} from '@sonet/api'
 
 import {Logger} from '#/logger'
-import {type FeedDescriptor} from '#/state/queries/post-feed'
+import {type FeedDescriptor} from '#/state/queries/note-feed'
 
 /**
  * Separate logger for better debugging
  */
-const logger = Logger.create(Logger.Context.PostSource)
+const logger = Logger.create(Logger.Context.NoteSource)
 
-export type PostSource = {
-  post: AppBskyFeedDefs.FeedViewPost
+export type NoteSource = {
+  note: SonetFeedDefs.FeedViewNote
   feed?: FeedDescriptor
 }
 
 /**
- * A cache of sources that will be consumed by the post thread view. This is
+ * A cache of sources that will be consumed by the note thread view. This is
  * cleaned up any time a source is consumed.
  */
-const transientSources = new Map<string, PostSource>()
+const transientSources = new Map<string, NoteSource>()
 
 /**
- * A cache of sources that have been consumed by the post thread view. This is
- * not cleaned up, but because we use a new ID for each post thread view that
+ * A cache of sources that have been consumed by the note thread view. This is
+ * not cleaned up, but because we use a new ID for each note thread view that
  * consumes a source, this is never reused unless a user navigates back to a
- * post thread view that has not been dropped from memory.
+ * note thread view that has not been dropped from memory.
  */
-const consumedSources = new Map<string, PostSource>()
+const consumedSources = new Map<string, NoteSource>()
 
 /**
- * For stashing the feed that the user was browsing when they clicked on a post.
+ * For stashing the feed that the user was browsing when they clicked on a note.
  *
  * Used for FeedFeedback and other ephemeral non-critical systems.
  */
-export function setUnstablePostSource(key: string, source: PostSource) {
+export function setUnstableNoteSource(key: string, source: NoteSource) {
   assertValidDevOnly(
     key,
-    `setUnstablePostSource key should be a URI containing a handle, received ${key} — use buildPostSourceKey`,
+    `setUnstableNoteSource key should be a URI containing a username, received ${key} — use buildNoteSourceKey`,
   )
   logger.debug('set', {key, source})
   transientSources.set(key, source)
@@ -48,12 +48,12 @@ export function setUnstablePostSource(key: string, source: PostSource) {
  * return a reference to the same source until those views are dropped from
  * memory.
  */
-export function useUnstablePostSource(key: string) {
+export function useUnstableNoteSource(key: string) {
   const id = useId()
   const [source] = useState(() => {
     assertValidDevOnly(
       key,
-      `consumeUnstablePostSource key should be a URI containing a handle, received ${key} — be sure to use buildPostSourceKey when setting the source`,
+      `consumeUnstableNoteSource key should be a URI containing a username, received ${key} — be sure to use buildNoteSourceKey when setting the source`,
       true,
     )
     const source = consumedSources.get(id) || transientSources.get(key)
@@ -76,12 +76,12 @@ export function useUnstablePostSource(key: string) {
 }
 
 /**
- * Builds a post source key. This (atm) is a URI where the `host` is the post
- * author's handle, not DID.
+ * Builds a note source key. This (atm) is a URI where the `host` is the note
+ * author's username, not UserID.
  */
-export function buildPostSourceKey(key: string, handle: string) {
+export function buildNoteSourceKey(key: string, username: string) {
   const urip = new AtUri(key)
-  urip.host = handle
+  urip.host = username
   return urip.toString()
 }
 
@@ -91,7 +91,7 @@ export function buildPostSourceKey(key: string, handle: string) {
 function assertValidDevOnly(key: string, message: string, beChill = false) {
   if (__DEV__) {
     const urip = new AtUri(key)
-    if (urip.host.startsWith('did:')) {
+    if (urip.host.startsWith('userId:')) {
       if (beChill) {
         logger.warn(message)
       } else {

@@ -26,7 +26,7 @@ export function useAccountSwitcher() {
         return
       }
       try {
-        setPendingDid(account.did)
+        setPendingDid(account.userId)
         if (account.accessJwt) {
           if (isWeb) {
             // We're switching accounts, which remounts the entire app.
@@ -38,11 +38,11 @@ export function useAccountSwitcher() {
           }
           await resumeSession(account)
           logEvent('account:loggedIn', {logContext, withPassword: false})
-          Toast.show(_(msg`Signed in as @${account.handle}`))
+          Toast.show(_(msg`Signed in as @${account.username}`))
         } else {
-          requestSwitchToAccount({requestedAccount: account.did})
+          requestSwitchToAccount({requestedAccount: account.userId})
           Toast.show(
-            _(msg`Please sign in as @${account.handle}`),
+            _(msg`Please sign in as @${account.username}`),
             'circle-exclamation',
           )
         }
@@ -50,9 +50,9 @@ export function useAccountSwitcher() {
         logger.error(`switch account: selectAccount failed`, {
           message: e.message,
         })
-        requestSwitchToAccount({requestedAccount: account.did})
+        requestSwitchToAccount({requestedAccount: account.userId})
         Toast.show(
-          _(msg`Please sign in as @${account.handle}`),
+          _(msg`Please sign in as @${account.username}`),
           'circle-exclamation',
         )
       } finally {

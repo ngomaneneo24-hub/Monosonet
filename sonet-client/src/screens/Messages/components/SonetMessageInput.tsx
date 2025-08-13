@@ -27,7 +27,7 @@ export function SonetMessageInput({
   const [text, setText] = useState('')
   const [isSending, setIsSending] = useState(false)
 
-  const handleSend = useCallback(async () => {
+  const usernameSend = useCallback(async () => {
     if (!text.trim() || isSending || disabled) return
 
     setIsSending(true)
@@ -41,12 +41,12 @@ export function SonetMessageInput({
     }
   }, [text, isSending, disabled, onSendMessage])
 
-  const handleKeyPress = useCallback((e: any) => {
+  const usernameKeyPress = useCallback((e: any) => {
     if (e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
       e.preventDefault()
-      handleSend()
+      usernameSend()
     }
-  }, [handleSend])
+  }, [usernameSend])
 
   const getEncryptionIcon = () => {
     switch (encryptionStatus) {
@@ -103,7 +103,7 @@ export function SonetMessageInput({
         <TextInput
           value={text}
           onChangeText={setText}
-          onKeyPress={handleKeyPress}
+          onKeyPress={usernameKeyPress}
           placeholder={placeholder || _('Type a message...')}
           placeholderTextColor={t.atoms.text_contrast_medium}
           multiline
@@ -140,7 +140,7 @@ export function SonetMessageInput({
 
       {/* Send Button */}
       <Button
-        onPress={handleSend}
+        onPress={usernameSend}
         disabled={!text.trim() || isSending || disabled}
         style={[
           a.w_10,

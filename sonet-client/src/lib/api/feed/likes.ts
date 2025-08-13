@@ -1,27 +1,27 @@
 import {
-  AppBskyFeedDefs,
-  AppBskyFeedGetActorLikes as GetActorLikes,
-  BskyAgent,
-} from '@atproto/api'
+  SonetFeedDefs,
+  SonetFeedGetActorLikes as GetActorLikes,
+  SonetAppAgent,
+} from '@sonet/api'
 
 import {FeedAPI, FeedAPIResponse} from './types'
 
 export class LikesFeedAPI implements FeedAPI {
-  agent: BskyAgent
+  agent: SonetAppAgent
   params: GetActorLikes.QueryParams
 
   constructor({
     agent,
     feedParams,
   }: {
-    agent: BskyAgent
+    agent: SonetAppAgent
     feedParams: GetActorLikes.QueryParams
   }) {
     this.agent = agent
     this.params = feedParams
   }
 
-  async peekLatest(): Promise<AppBskyFeedDefs.FeedViewPost> {
+  async peekLatest(): Promise<SonetFeedDefs.FeedViewNote> {
     const res = await this.agent.getActorLikes({
       ...this.params,
       limit: 1,

@@ -1,8 +1,8 @@
 import {
-  type AppBskyActorDefs,
-  type AppBskyActorGetProfile,
+  type SonetActorDefs,
+  type SonetActorGetProfile,
   AtUri,
-} from '@atproto/api'
+} from '@sonet/api'
 import {useMutation} from '@tanstack/react-query'
 
 import {until} from '#/lib/async/until'
@@ -22,7 +22,7 @@ export function useVerificationsRemoveMutation() {
       verifications,
     }: {
       profile: bsky.profile.AnyProfileView
-      verifications: AppBskyActorDefs.VerificationView[]
+      verifications: SonetActorDefs.VerificationView[]
     }) {
       if (!currentAccount) {
         throw new Error('User not logged in')
@@ -32,8 +32,8 @@ export function useVerificationsRemoveMutation() {
 
       await Promise.all(
         uris.map(uri => {
-          return agent.app.bsky.graph.verification.delete({
-            repo: currentAccount.did,
+          return agent.app.sonet.graph.verification.delete({
+            repo: currentAccount.userId,
             rkey: new AtUri(uri).rkey,
           })
         }),
@@ -42,7 +42,7 @@ export function useVerificationsRemoveMutation() {
       await until(
         5,
         1e3,
-        ({data: profile}: AppBskyActorGetProfile.Response) => {
+        ({data: profile}: SonetActorGetProfile.Response) => {
           if (
             !profile.verification?.verifications.some(v => uris.includes(v.uri))
           ) {
@@ -51,7 +51,7 @@ export function useVerificationsRemoveMutation() {
           return false
         },
         () => {
-          return agent.getProfile({actor: profile.did ?? ''})
+          return agent.getProfile({actor: profile.userId ?? ''})
         },
       )
     },

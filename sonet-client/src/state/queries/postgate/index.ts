@@ -1,42 +1,42 @@
 import React from 'react'
 import {
-  AppBskyEmbedRecord,
-  AppBskyEmbedRecordWithMedia,
-  type AppBskyFeedDefs,
-  AppBskyFeedPostgate,
+  SonetEmbedRecord,
+  SonetEmbedRecordWithMedia,
+  type SonetFeedDefs,
+  SonetFeedNotegate,
   AtUri,
-  type BskyAgent,
-} from '@atproto/api'
+  type SonetAppAgent,
+} from '@sonet/api'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 
 import {networkRetry, retry} from '#/lib/async/retry'
 import {logger} from '#/logger'
-import {updatePostShadow} from '#/state/cache/post-shadow'
+import {updateNoteShadow} from '#/state/cache/note-shadow'
 import {STALE} from '#/state/queries'
-import {useGetPosts} from '#/state/queries/post'
+import {useGetNotes} from '#/state/queries/note'
 import {
   createMaybeDetachedQuoteEmbed,
-  createPostgateRecord,
-  mergePostgateRecords,
+  createNotegateRecord,
+  mergeNotegateRecords,
   POSTGATE_COLLECTION,
-} from '#/state/queries/postgate/util'
+} from '#/state/queries/notegate/util'
 import {useAgent} from '#/state/session'
 import * as bsky from '#/types/bsky'
 
-export async function getPostgateRecord({
+export async function getNotegateRecord({
   agent,
-  postUri,
+  noteUri,
 }: {
-  agent: BskyAgent
-  postUri: string
-}): Promise<AppBskyFeedPostgate.Record | undefined> {
-  const urip = new AtUri(postUri)
+  agent: SonetAppAgent
+  noteUri: string
+}): Promise<SonetFeedNotegate.Record | undefined> {
+  const urip = new AtUri(noteUri)
 
-  if (!urip.host.startsWith('did:')) {
-    const res = await agent.resolveHandle({
-      handle: urip.host,
+  if (!urip.host.startsWith('userId:')) {
+    const res = await agent.resolveUsername({
+      username: urip.host,
     })
-    urip.host = res.data.did
+    urip.host = res.data.userId
   }
 
   try {
@@ -54,7 +54,7 @@ export async function getPostgateRecord({
         return true
       },
       () =>
-        agent.api.com.atproto.repo.getRecord({
+        agent.api.com.sonet.repo.getRecord({
           repo: urip.host,
           collection: POSTGATE_COLLECTION,
           rkey: urip.rkey,
@@ -63,7 +63,7 @@ export async function getPostgateRecord({
 
     if (
       data.value &&
-      bsky.validate(data.value, AppBskyFeedPostgate.validateRecord)
+      bsky.validate(data.value, SonetFeedNotegate.validateRecord)
     ) {
       return data.value
     } else {
@@ -83,87 +83,87 @@ export async function getPostgateRecord({
   }
 }
 
-export async function writePostgateRecord({
+export async function writeNotegateRecord({
   agent,
-  postUri,
-  postgate,
+  noteUri,
+  notegate,
 }: {
-  agent: BskyAgent
-  postUri: string
-  postgate: AppBskyFeedPostgate.Record
+  agent: SonetAppAgent
+  noteUri: string
+  notegate: SonetFeedNotegate.Record
 }) {
-  const postUrip = new AtUri(postUri)
+  const noteUrip = new AtUri(noteUri)
 
   await networkRetry(2, () =>
-    agent.api.com.atproto.repo.putRecord({
-      repo: agent.session!.did,
+    agent.api.com.sonet.repo.putRecord({
+      repo: agent.session!.userId,
       collection: POSTGATE_COLLECTION,
-      rkey: postUrip.rkey,
-      record: postgate,
+      rkey: noteUrip.rkey,
+      record: notegate,
     }),
   )
 }
 
-export async function upsertPostgate(
+export async function upsertNotegate(
   {
     agent,
-    postUri,
+    noteUri,
   }: {
-    agent: BskyAgent
-    postUri: string
+    agent: SonetAppAgent
+    noteUri: string
   },
   callback: (
-    postgate: AppBskyFeedPostgate.Record | undefined,
-  ) => Promise<AppBskyFeedPostgate.Record | undefined>,
+    notegate: SonetFeedNotegate.Record | undefined,
+  ) => Promise<SonetFeedNotegate.Record | undefined>,
 ) {
-  const prev = await getPostgateRecord({
+  const prev = await getNotegateRecord({
     agent,
-    postUri,
+    noteUri,
   })
   const next = await callback(prev)
   if (!next) return
-  await writePostgateRecord({
+  await writeNotegateRecord({
     agent,
-    postUri,
-    postgate: next,
+    noteUri,
+    notegate: next,
   })
 }
 
-export const createPostgateQueryKey = (postUri: string) => [
-  'postgate-record',
-  postUri,
+export const createNotegateQueryKey = (noteUri: string) => [
+  'notegate-record',
+  noteUri,
 ]
-export function usePostgateQuery({postUri}: {postUri: string}) {
+export function useNotegateQuery({noteUri}: {noteUri: string}) {
   const agent = useAgent()
   return useQuery({
     staleTime: STALE.SECONDS.THIRTY,
-    queryKey: createPostgateQueryKey(postUri),
+    queryKey: createNotegateQueryKey(noteUri),
     async queryFn() {
-      return await getPostgateRecord({agent, postUri}).then(res => res ?? null)
+      return await getNotegateRecord({agent, noteUri}).then(res => res ?? null)
     },
   })
 }
 
-export function useWritePostgateMutation() {
+export function useWriteNotegateMutation() {
   const agent = useAgent()
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({
-      postUri,
-      postgate,
+      noteUri,
+      notegate,
     }: {
-      postUri: string
-      postgate: AppBskyFeedPostgate.Record
+      noteUri: string
+      notegate: SonetFeedNotegate.Record
     }) => {
-      return writePostgateRecord({
+      return writeNotegateRecord({
         agent,
-        postUri,
-        postgate,
+        noteUri,
+        notegate,
       })
     },
-    onSuccess(_, {postUri}) {
+    onSuccess(_, {noteUri}) {
       queryClient.invalidateQueries({
-        queryKey: createPostgateQueryKey(postUri),
+        queryKey: createNotegateQueryKey(noteUri),
       })
     },
   })
@@ -172,26 +172,26 @@ export function useWritePostgateMutation() {
 export function useToggleQuoteDetachmentMutation() {
   const agent = useAgent()
   const queryClient = useQueryClient()
-  const getPosts = useGetPosts()
-  const prevEmbed = React.useRef<AppBskyFeedDefs.PostView['embed']>()
+  const getNotes = useGetNotes()
+  const prevEmbed = React.useRef<SonetFeedDefs.NoteView['embed']>()
 
   return useMutation({
     mutationFn: async ({
-      post,
+      note,
       quoteUri,
       action,
     }: {
-      post: AppBskyFeedDefs.PostView
+      note: SonetFeedDefs.NoteView
       quoteUri: string
       action: 'detach' | 'reattach'
     }) => {
-      // cache here since post shadow mutates original object
-      prevEmbed.current = post.embed
+      // cache here since note shadow mutates original object
+      prevEmbed.current = note.embed
 
       if (action === 'detach') {
-        updatePostShadow(queryClient, post.uri, {
+        updateNoteShadow(queryClient, note.uri, {
           embed: createMaybeDetachedQuoteEmbed({
-            post,
+            note,
             quote: undefined,
             quoteUri,
             detached: true,
@@ -199,37 +199,37 @@ export function useToggleQuoteDetachmentMutation() {
         })
       }
 
-      await upsertPostgate({agent, postUri: quoteUri}, async prev => {
+      await upsertNotegate({agent, noteUri: quoteUri}, async prev => {
         if (prev) {
           if (action === 'detach') {
-            return mergePostgateRecords(prev, {
-              detachedEmbeddingUris: [post.uri],
+            return mergeNotegateRecords(prev, {
+              detachedEmbeddingUris: [note.uri],
             })
           } else if (action === 'reattach') {
             return {
               ...prev,
               detachedEmbeddingUris:
-                prev.detachedEmbeddingUris?.filter(uri => uri !== post.uri) ||
+                prev.detachedEmbeddingUris?.filter(uri => uri !== note.uri) ||
                 [],
             }
           }
         } else {
           if (action === 'detach') {
-            return createPostgateRecord({
-              post: quoteUri,
-              detachedEmbeddingUris: [post.uri],
+            return createNotegateRecord({
+              note: quoteUri,
+              detachedEmbeddingUris: [note.uri],
             })
           }
         }
       })
     },
-    async onSuccess(_data, {post, quoteUri, action}) {
+    async onSuccess(_data, {note, quoteUri, action}) {
       if (action === 'reattach') {
         try {
-          const [quote] = await getPosts({uris: [quoteUri]})
-          updatePostShadow(queryClient, post.uri, {
+          const [quote] = await getNotes({uris: [quoteUri]})
+          updateNoteShadow(queryClient, note.uri, {
             embed: createMaybeDetachedQuoteEmbed({
-              post,
+              note,
               quote,
               quoteUri: undefined,
               detached: false,
@@ -237,20 +237,20 @@ export function useToggleQuoteDetachmentMutation() {
           })
         } catch (e: any) {
           // ok if this fails, it's just optimistic UI
-          logger.error(`Postgate: failed to get quote post for re-attachment`, {
+          logger.error(`Notegate: failed to get quote note for re-attachment`, {
             safeMessage: e.message,
           })
         }
       }
     },
-    onError(_, {post, action}) {
+    onError(_, {note, action}) {
       if (action === 'detach' && prevEmbed.current) {
         // detach failed, add the embed back
         if (
-          AppBskyEmbedRecord.isView(prevEmbed.current) ||
-          AppBskyEmbedRecordWithMedia.isView(prevEmbed.current)
+          SonetEmbedRecord.isView(prevEmbed.current) ||
+          SonetEmbedRecordWithMedia.isView(prevEmbed.current)
         ) {
-          updatePostShadow(queryClient, post.uri, {
+          updateNoteShadow(queryClient, note.uri, {
             embed: prevEmbed.current,
           })
         }
@@ -262,22 +262,22 @@ export function useToggleQuoteDetachmentMutation() {
   })
 }
 
-export function useToggleQuotepostEnabledMutation() {
+export function useToggleQuotenoteEnabledMutation() {
   const agent = useAgent()
 
   return useMutation({
     mutationFn: async ({
-      postUri,
+      noteUri,
       action,
     }: {
-      postUri: string
+      noteUri: string
       action: 'enable' | 'disable'
     }) => {
-      await upsertPostgate({agent, postUri: postUri}, async prev => {
+      await upsertNotegate({agent, noteUri: noteUri}, async prev => {
         if (prev) {
           if (action === 'disable') {
-            return mergePostgateRecords(prev, {
-              embeddingRules: [{$type: 'app.bsky.feed.postgate#disableRule'}],
+            return mergeNotegateRecords(prev, {
+              embeddingRules: [{type: "sonet"}],
             })
           } else if (action === 'enable') {
             return {
@@ -287,9 +287,9 @@ export function useToggleQuotepostEnabledMutation() {
           }
         } else {
           if (action === 'disable') {
-            return createPostgateRecord({
-              post: postUri,
-              embeddingRules: [{$type: 'app.bsky.feed.postgate#disableRule'}],
+            return createNotegateRecord({
+              note: noteUri,
+              embeddingRules: [{type: "sonet"}],
             })
           }
         }

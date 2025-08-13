@@ -52,7 +52,7 @@ export function TabBar({
   const syncScrollState = useSharedValue<'synced' | 'unsynced' | 'needs-sync'>(
     'synced',
   )
-  const didInitialScroll = useSharedValue(false)
+  const userIdInitialScroll = useSharedValue(false)
   const contentSize = useSharedValue(0)
   const containerSize = useSharedValue(0)
   const scrollX = useSharedValue(0)
@@ -118,9 +118,9 @@ export function TabBar({
       if (nextLayoutsLength !== prevLayoutsLength) {
         if (
           nextLayoutsLength === itemsLength &&
-          didInitialScroll.get() === false
+          userIdInitialScroll.get() === false
         ) {
-          didInitialScroll.set(true)
+          userIdInitialScroll.set(true)
           const progress = dragProgress.get()
           const offset = progressToOffset(progress)
           // It's unclear why we need to go back to JS here. It seems iOS-specific.
@@ -405,14 +405,14 @@ function TabBarItem({
     }
   })
 
-  const handleLayout = useCallback(
+  const usernameLayout = useCallback(
     (e: LayoutChangeEvent) => {
       runOnUI(onItemLayout)(index, e.nativeEvent.layout)
     },
     [index, onItemLayout],
   )
 
-  const handleTextLayout = useCallback(
+  const usernameTextLayout = useCallback(
     (e: LayoutChangeEvent) => {
       runOnUI(onTextLayout)(index, e.nativeEvent.layout)
     },
@@ -420,7 +420,7 @@ function TabBarItem({
   )
 
   return (
-    <View onLayout={handleLayout} style={{flexGrow: 1}}>
+    <View onLayout={usernameLayout} style={{flexGrow: 1}}>
       <PressableWithHover
         testID={`${testID}-selector-${index}`}
         style={styles.item}
@@ -432,7 +432,7 @@ function TabBarItem({
             emoji
             testID={testID ? `${testID}-${item}` : undefined}
             style={[styles.itemText, t.atoms.text, a.text_md, a.font_bold]}
-            onLayout={handleTextLayout}>
+            onLayout={usernameTextLayout}>
             {item}
           </Text>
         </Animated.View>

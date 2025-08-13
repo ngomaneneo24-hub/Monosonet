@@ -12,7 +12,7 @@ import {
 } from 'react-native'
 import {
   type SonetProfile,
-  type SonetPost,
+  type SonetNote,
   type SonetEmbed,
 } from '#/types/sonet'
 import {msg} from '@lingui/macro'
@@ -26,7 +26,7 @@ import {useNonReactiveCallback} from '#/lib/hooks/useNonReactiveCallback'
 import {logEvent} from '#/lib/statsig/statsig'
 import {logger} from '#/logger'
 import {isIOS, isNative, isWeb} from '#/platform/detection'
-import {listenPostCreated} from '#/state/events'
+import {listenNoteCreated} from '#/state/events'
 import {useFeedFeedbackContext} from '#/state/feed-feedback'
 import {useTrendingSettings} from '#/state/preferences/trending'
 import {STALE} from '#/state/queries'
@@ -34,18 +34,18 @@ import {
   type AuthorFilter,
   type FeedDescriptor,
   type FeedParams,
-  type FeedPostSlice,
-  type FeedPostSliceItem,
+  type FeedNoteSlice,
+  type FeedNoteSliceItem,
   pollLatest,
   RQKEY,
-  usePostFeedQuery,
-} from '#/state/queries/post-feed'
+  useNoteFeedQuery,
+} from '#/state/queries/note-feed'
 import {useLiveNowConfig} from '#/state/service-config'
 import {useSession} from '#/state/session'
 import {useProgressGuide} from '#/state/shell/progress-guide'
 import {useSelectedFeed} from '#/state/shell/selected-feed'
 import {List, type ListRef} from '#/view/com/util/List'
-import {PostFeedLoadingPlaceholder} from '#/view/com/util/LoadingPlaceholder'
+import {NoteFeedLoadingPlaceholder} from '#/view/com/util/LoadingPlaceholder'
 import {LoadMoreRetryBtn} from '#/view/com/util/LoadMoreRetryBtn'
 import {type VideoFeedSourceContext} from '#/screens/VideoFeed/types'
 import {useBreakpoints, useLayoutBreakpoints} from '#/alf'
@@ -55,15 +55,15 @@ import {
 } from '#/components/ageAssurance/AgeAssuranceDismissibleFeedBanner'
 import {ProgressGuide, SuggestedFollows} from '#/components/FeedInterstitials'
 import {
-  PostFeedVideoGridRow,
-  PostFeedVideoGridRowPlaceholder,
-} from '#/components/feeds/PostFeedVideoGridRow'
+  NoteFeedVideoGridRow,
+  NoteFeedVideoGridRowPlaceholder,
+} from '#/components/feeds/NoteFeedVideoGridRow'
 import {TrendingInterstitial} from '#/components/interstitials/Trending'
 import {TrendingVideos as TrendingVideosInterstitial} from '#/components/interstitials/TrendingVideos'
 import {DiscoverFallbackHeader} from './DiscoverFallbackHeader'
 import {FeedShutdownMsg} from './FeedShutdownMsg'
-import {PostFeedErrorMessage} from './PostFeedErrorMessage'
-import {PostFeedItem} from './PostFeedItem'
+import {NoteFeedErrorMessage} from './NoteFeedErrorMessage'
+import {NoteFeedItem} from './NoteFeedItem'
 import {ShowLessFollowup} from './ShowLessFollowup'
 import {ViewFullThread} from './ViewFullThread'
 
@@ -95,7 +95,7 @@ type FeedRow =
   | {
       type: 'sliceItem'
       key: string
-      slice: FeedPostSlice
+      slice: FeedNoteSlice
       indexInSlice: number
       showReplyTo: boolean
     }
@@ -106,7 +106,7 @@ type FeedRow =
   | {
       type: 'videoGridRow'
       key: string
-      items: FeedPostSliceItem[]
+      items: FeedNoteSliceItem[]
       sourceFeedUri: string
       feedContexts: (string | undefined)[]
       reqIds: (string | undefined)[]
@@ -142,7 +142,7 @@ type FeedRow =
     }
 
 export function getItemsForFeedback(feedRow: FeedRow): {
-  item: FeedPostSliceItem
+  item: FeedNoteSliceItem
   feedContext: string | undefined
   reqId: string | undefined
 }[] {
@@ -167,7 +167,7 @@ export function getItemsForFeedback(feedRow: FeedRow): {
 // const REFRESH_AFTER = STALE.HOURS.ONE
 const CHECK_LATEST_AFTER = STALE.SECONDS.THIRTY
 
-let PostFeed = ({
+let NoteFeed = ({
   feed,
   feedParams,
   ignoreFilterFor,
@@ -253,7 +253,7 @@ let PostFeed = ({
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-  } = usePostFeedQuery(feed, feedParams, opts)
+  } = useNoteFeedQuery(feed, feedParams, opts)
   const lastFetchedAt = data?.pages[0].fetchedAt
   if (lastFetchedAt) {
     lastFetchRef.current = lastFetchedAt
@@ -286,8 +286,8 @@ let PostFeed = ({
     }
   })
 
-  const myDid = currentAccount?.did || ''
-  const onPostCreated = useCallback(() => {
+  const myDid = currentAccount?.userId || ''
+  const onNoteCreated = useCallback(() => {
     // NOTE
     // only invalidate if there's 1 page
     // more than 1 page can trigger some UI freakouts on iOS and android
@@ -295,14 +295,14 @@ let PostFeed = ({
     if (
       data?.pages.length === 1 &&
       (feed === 'following' ||
-        feed === `author|${myDid}|posts_and_author_threads`)
+        feed === `author|${myDid}|notes_and_author_threads`)
     ) {
       queryClient.invalidateQueries({queryKey: RQKEY(feed)})
     }
   }, [queryClient, feed, data, myDid])
   useEffect(() => {
-    return listenPostCreated(onPostCreated)
-  }, [onPostCreated])
+    return listenNoteCreated(onNoteCreated)
+  }, [onNoteCreated])
 
   useEffect(() => {
     if (enabled && !disablePoll) {
@@ -373,8 +373,8 @@ let PostFeed = ({
       feedKind = 'discover'
     } else if (
       feedType === 'author' &&
-      (feedTab === 'posts_and_author_threads' ||
-        feedTab === 'posts_with_replies')
+      (feedTab === 'notes_and_author_threads' ||
+        feedTab === 'notes_with_replies')
     ) {
       feedKind = 'profile'
     }
@@ -402,7 +402,7 @@ let PostFeed = ({
 
         if (isVideoFeed) {
           const videos: {
-            item: FeedPostSliceItem
+            item: FeedNoteSliceItem
             feedContext: string | undefined
             reqId: string | undefined
           }[] = []
@@ -410,9 +410,9 @@ let PostFeed = ({
             for (const slice of page.slices) {
               const item = slice.items.find(
                 // eslint-disable-next-line @typescript-eslint/no-shadow
-                item => item.uri === slice.feedPostUri,
+                item => item.uri === slice.feedNoteUri,
               )
-              if (item && AppBskyEmbedVideo.isView(item.post.embed)) {
+              if (item && SonetEmbedVideo.isView(item.note.embed)) {
                 videos.push({
                   item,
                   feedContext: slice.feedContext,
@@ -423,7 +423,7 @@ let PostFeed = ({
           }
 
           const rows: {
-            item: FeedPostSliceItem
+            item: FeedNoteSliceItem
             feedContext: string | undefined
             reqId: string | undefined
           }[][] = []
@@ -554,8 +554,8 @@ let PostFeed = ({
                     slice: slice,
                     indexInSlice: beforeLast,
                     showReplyTo:
-                      slice.items[beforeLast].parentAuthor?.did !==
-                      slice.items[beforeLast].post.author.did,
+                      slice.items[beforeLast].parentAuthor?.userId !==
+                      slice.items[beforeLast].note.author.userId,
                   }),
                 )
                 arr.push(
@@ -641,7 +641,7 @@ let PostFeed = ({
       await refetch()
       onHasNew?.(false)
     } catch (err) {
-      logger.error('Failed to refresh posts feed', {message: err})
+      logger.error('Failed to refresh notes feed', {message: err})
     }
     setIsPTRing(false)
   }, [refetch, setIsPTRing, onHasNew, feed, feedType])
@@ -657,7 +657,7 @@ let PostFeed = ({
     try {
       await fetchNextPage()
     } catch (err) {
-      logger.error('Failed to load more posts', {message: err})
+      logger.error('Failed to load more notes', {message: err})
     }
   }, [
     isFetching,
@@ -687,7 +687,7 @@ let PostFeed = ({
         return renderEmptyState()
       } else if (row.type === 'error') {
         return (
-          <PostFeedErrorMessage
+          <NoteFeedErrorMessage
             feedDesc={feed}
             error={error ?? undefined}
             onPressTryAgain={onPressTryAgain}
@@ -698,13 +698,13 @@ let PostFeed = ({
         return (
           <LoadMoreRetryBtn
             label={_(
-              msg`There was an issue fetching posts. Tap here to try again.`,
+              msg`There was an issue fetching notes. Tap here to try again.`,
             )}
             onPress={onPressRetryLoadMore}
           />
         )
       } else if (row.type === 'loading') {
-        return <PostFeedLoadingPlaceholder />
+        return <NoteFeedLoadingPlaceholder />
       } else if (row.type === 'feedShutdownMsg') {
         return <FeedShutdownMsg feedUri={feedUriOrActorDid} />
       } else if (row.type === 'interstitialFollows') {
@@ -728,8 +728,8 @@ let PostFeed = ({
         const indexInSlice = row.indexInSlice
         const item = slice.items[indexInSlice]
         return (
-          <PostFeedItem
-            post={item.post}
+          <NoteFeedItem
+            note={item.note}
             record={item.record}
             reason={indexInSlice === 0 ? slice.reason : undefined}
             feedContext={slice.feedContext}
@@ -746,7 +746,7 @@ let PostFeed = ({
             isParentBlocked={item.isParentBlocked}
             isParentNotFound={item.isParentNotFound}
             hideTopBorder={rowIndex === 0 && indexInSlice === 0}
-            rootPost={slice.items[0].post}
+            rootNote={slice.items[0].note}
             onShowLess={onPressShowLess}
           />
         )
@@ -755,9 +755,9 @@ let PostFeed = ({
       } else if (row.type === 'videoGridRowPlaceholder') {
         return (
           <View>
-            <PostFeedVideoGridRowPlaceholder />
-            <PostFeedVideoGridRowPlaceholder />
-            <PostFeedVideoGridRowPlaceholder />
+            <NoteFeedVideoGridRowPlaceholder />
+            <NoteFeedVideoGridRowPlaceholder />
+            <NoteFeedVideoGridRowPlaceholder />
           </View>
         )
       } else if (row.type === 'videoGridRow') {
@@ -765,7 +765,7 @@ let PostFeed = ({
         if (feedType === 'author') {
           sourceContext = {
             type: 'author',
-            did: feedUriOrActorDid,
+            userId: feedUriOrActorDid,
             filter: feedTab as AuthorFilter,
           }
         } else {
@@ -777,7 +777,7 @@ let PostFeed = ({
         }
 
         return (
-          <PostFeedVideoGridRow
+          <NoteFeedVideoGridRow
             items={row.items}
             sourceContext={sourceContext}
           />
@@ -833,19 +833,19 @@ let PostFeed = ({
     (item: FeedRow) => {
       feedFeedback.onItemSeen(item)
       if (item.type === 'sliceItem') {
-        const actor = item.slice.items[item.indexInSlice].post.author
+        const actor = item.slice.items[item.indexInSlice].note.author
 
         if (
           actor.status &&
-          validateStatus(actor.did, actor.status, liveNowConfig) &&
+          validateStatus(actor.userId, actor.status, liveNowConfig) &&
           isStatusStillActive(actor.status.expiresAt)
         ) {
-          if (!seenActorWithStatusRef.current.has(actor.did)) {
-            seenActorWithStatusRef.current.add(actor.did)
+          if (!seenActorWithStatusRef.current.has(actor.userId)) {
+            seenActorWithStatusRef.current.add(actor.userId)
             logger.metric(
-              'live:view:post',
+              'live:view:note',
               {
-                subject: actor.did,
+                subject: actor.userId,
                 feed,
               },
               {statsig: false},
@@ -876,7 +876,7 @@ let PostFeed = ({
         }}
         onScrolledDownChange={onScrolledDownChange}
         onEndReached={onEndReached}
-        onEndReachedThreshold={2} // number of posts left to trigger load more
+        onEndReachedThreshold={2} // number of notes left to trigger load more
         removeClippedSubviews={true}
         extraData={extraData}
         desktopFixedHeight={
@@ -891,8 +891,8 @@ let PostFeed = ({
     </View>
   )
 }
-PostFeed = memo(PostFeed)
-export {PostFeed}
+NoteFeed = memo(NoteFeed)
+export {NoteFeed}
 
 const styles = StyleSheet.create({
   feedFooter: {paddingTop: 20},

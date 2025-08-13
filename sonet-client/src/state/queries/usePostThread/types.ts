@@ -1,53 +1,53 @@
 import {
-  type AppBskyFeedDefs,
-  type AppBskyFeedPost,
-  type AppBskyFeedThreadgate,
-  type AppBskyUnspeccedDefs,
-  type AppBskyUnspeccedGetPostThreadOtherV2,
-  type AppBskyUnspeccedGetPostThreadV2,
+  type SonetFeedDefs,
+  type SonetFeedNote,
+  type SonetFeedThreadgate,
+  type SonetUnspeccedDefs,
+  type SonetUnspeccedGetNoteThreadOtherV2,
+  type SonetUnspeccedGetNoteThreadV2,
   type ModerationDecision,
-} from '@atproto/api'
+} from '@sonet/api'
 
 export type ApiThreadItem =
-  | AppBskyUnspeccedGetPostThreadV2.ThreadItem
-  | AppBskyUnspeccedGetPostThreadOtherV2.ThreadItem
+  | SonetUnspeccedGetNoteThreadV2.ThreadItem
+  | SonetUnspeccedGetNoteThreadOtherV2.ThreadItem
 
-export const postThreadQueryKeyRoot = 'post-thread-v2' as const
+export const noteThreadQueryKeyRoot = 'note-thread-v2' as const
 
-export const createPostThreadQueryKey = (props: PostThreadParams) =>
-  [postThreadQueryKeyRoot, props] as const
+export const createNoteThreadQueryKey = (props: NoteThreadParams) =>
+  [noteThreadQueryKeyRoot, props] as const
 
-export const createPostThreadOtherQueryKey = (
-  props: Omit<AppBskyUnspeccedGetPostThreadOtherV2.QueryParams, 'anchor'> & {
+export const createNoteThreadOtherQueryKey = (
+  props: Omit<SonetUnspeccedGetNoteThreadOtherV2.QueryParams, 'anchor'> & {
     anchor?: string
   },
-) => [postThreadQueryKeyRoot, 'other', props] as const
+) => [noteThreadQueryKeyRoot, 'other', props] as const
 
-export type PostThreadParams = Pick<
-  AppBskyUnspeccedGetPostThreadV2.QueryParams,
+export type NoteThreadParams = Pick<
+  SonetUnspeccedGetNoteThreadV2.QueryParams,
   'sort' | 'prioritizeFollowedUsers'
 > & {
   anchor?: string
   view: 'tree' | 'linear'
 }
 
-export type UsePostThreadQueryResult = {
+export type UseNoteThreadQueryResult = {
   hasOtherReplies: boolean
-  thread: AppBskyUnspeccedGetPostThreadV2.ThreadItem[]
-  threadgate?: Omit<AppBskyFeedDefs.ThreadgateView, 'record'> & {
-    record: AppBskyFeedThreadgate.Record
+  thread: SonetUnspeccedGetNoteThreadV2.ThreadItem[]
+  threadgate?: Omit<SonetFeedDefs.ThreadgateView, 'record'> & {
+    record: SonetFeedThreadgate.Record
   }
 }
 
 export type ThreadItem =
   | {
-      type: 'threadPost'
+      type: 'threadNote'
       key: string
       uri: string
       depth: number
-      value: Omit<AppBskyUnspeccedDefs.ThreadItemPost, 'post'> & {
-        post: Omit<AppBskyFeedDefs.PostView, 'record'> & {
-          record: AppBskyFeedPost.Record
+      value: Omit<SonetUnspeccedDefs.ThreadItemNote, 'note'> & {
+        note: Omit<SonetFeedDefs.NoteView, 'record'> & {
+          record: SonetFeedNote.Record
         }
       }
       isBlurred: boolean
@@ -63,29 +63,29 @@ export type ThreadItem =
       }
     }
   | {
-      type: 'threadPostNoUnauthenticated'
+      type: 'threadNoteNoUnauthenticated'
       key: string
       uri: string
       depth: number
-      value: AppBskyUnspeccedDefs.ThreadItemNoUnauthenticated
+      value: SonetUnspeccedDefs.ThreadItemNoUnauthenticated
       ui: {
         showParentReplyLine: boolean
         showChildReplyLine: boolean
       }
     }
   | {
-      type: 'threadPostNotFound'
+      type: 'threadNoteNotFound'
       key: string
       uri: string
       depth: number
-      value: AppBskyUnspeccedDefs.ThreadItemNotFound
+      value: SonetUnspeccedDefs.ThreadItemNotFound
     }
   | {
-      type: 'threadPostBlocked'
+      type: 'threadNoteBlocked'
       key: string
       uri: string
       depth: number
-      value: AppBskyUnspeccedDefs.ThreadItemBlocked
+      value: SonetUnspeccedDefs.ThreadItemBlocked
     }
   | {
       type: 'replyComposer'
@@ -133,25 +133,25 @@ export type ThreadItem =
  */
 export type TraversalMetadata = {
   /**
-   * The depth of the post in the reply tree, where 0 is the root post. This is
+   * The depth of the note in the reply tree, where 0 is the root note. This is
    * calculated on the server.
    */
   depth: number
   /**
-   * Indicates if this item is a "read more" link preceding this post that
+   * Indicates if this item is a "read more" link preceding this note that
    * continues the thread upwards.
    */
   followsReadMoreUp: boolean
   /**
-   * Indicates if the post is the last reply beneath its parent post.
+   * Indicates if the note is the last reply beneath its parent note.
    */
   isLastSibling: boolean
   /**
-   * Indicates the post is the end-of-the-line for a given branch of replies.
+   * Indicates the note is the end-of-the-line for a given branch of replies.
    */
   isLastChild: boolean
   /**
-   * Indicates if the post is the left/lower-most branch of the reply tree.
+   * Indicates if the note is the left/lower-most branch of the reply tree.
    * Value corresponds to the depth at which this branch started.
    */
   isPartOfLastBranchFromDepth?: number
@@ -178,17 +178,17 @@ export type TraversalMetadata = {
    * Any data needed to be passed along to the "read more" items. Keep this
    * trim for better memory usage.
    */
-  postData: {
+  noteData: {
     uri: string
-    authorHandle: string
+    authorUsername: string
   }
   /**
-   * The total number of replies to this post, including those not hydrated
+   * The total number of replies to this note, including those not hydrated
    * and returned by the response.
    */
   repliesCount: number
   /**
-   * The number of replies to this post not hydrated and returned by the
+   * The number of replies to this note not hydrated and returned by the
    * response.
    */
   repliesUnhydrated: number
@@ -203,13 +203,13 @@ export type TraversalMetadata = {
    */
   repliesSeenCounter: number
   /**
-   * The total number of replies to this post hydrated in this response. Used
-   * for populating the `replyIndex` of the post by referencing this value on
+   * The total number of replies to this note hydrated in this response. Used
+   * for populating the `replyIndex` of the note by referencing this value on
    * the parent.
    */
   repliesIndexCounter: number
   /**
-   * The index-0-based index of this reply in the parent post's replies.
+   * The index-0-based index of this reply in the parent note's replies.
    */
   replyIndex: number
   /**

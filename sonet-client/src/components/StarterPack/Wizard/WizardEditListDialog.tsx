@@ -1,8 +1,8 @@
 import {useRef} from 'react'
 import type {ListRenderItemInfo} from 'react-native'
 import {View} from 'react-native'
-import {AppBskyActorDefs, ModerationOpts} from '@atproto/api'
-import {GeneratorView} from '@atproto/api/dist/client/types/app/bsky/feed/defs'
+import {SonetActorDefs, ModerationOpts} from '@sonet/api'
+import {GeneratorView} from '@sonet/api/dist/client/types/app/bsky/feed/defs'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -21,10 +21,10 @@ import {
 import {Text} from '#/components/Typography'
 
 function keyExtractor(
-  item: AppBskyActorDefs.ProfileViewBasic | GeneratorView,
+  item: SonetActorDefs.ProfileViewBasic | GeneratorView,
   index: number,
 ) {
-  return `${item.did}-${index}`
+  return `${item.userId}-${index}`
 }
 
 export function WizardEditListDialog({
@@ -38,7 +38,7 @@ export function WizardEditListDialog({
   state: WizardState
   dispatch: (action: WizardAction) => void
   moderationOpts: ModerationOpts
-  profile: AppBskyActorDefs.ProfileViewDetailed
+  profile: SonetActorDefs.ProfileViewDetailed
 }) {
   const {_} = useLingui()
   const t = useTheme()
@@ -52,7 +52,7 @@ export function WizardEditListDialog({
 
     return [
       profile,
-      ...state.profiles.filter(p => p.did !== currentAccount?.did),
+      ...state.profiles.filter(p => p.userId !== currentAccount?.userId),
     ]
   }
 
@@ -77,7 +77,7 @@ export function WizardEditListDialog({
 
   return (
     <Dialog.Outer control={control} testID="newChatDialog">
-      <Dialog.Handle />
+      <Dialog.Username />
       <Dialog.InnerFlatList
         ref={listRef}
         data={getData()}

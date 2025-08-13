@@ -10,18 +10,18 @@ export function useThrottledValue<T>(value: T, time: number) {
     pendingValueRef.current = value
   }, [value])
 
-  const handleTick = useNonReactiveCallback(() => {
+  const usernameTick = useNonReactiveCallback(() => {
     if (pendingValueRef.current !== throttledValue) {
       setThrottledValue(pendingValueRef.current)
     }
   })
 
   useEffect(() => {
-    const id = setInterval(handleTick, time)
+    const id = setInterval(usernameTick, time)
     return () => {
       clearInterval(id)
     }
-  }, [handleTick, time])
+  }, [usernameTick, time])
 
   return throttledValue
 }

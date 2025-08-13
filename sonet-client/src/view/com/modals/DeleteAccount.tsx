@@ -49,7 +49,7 @@ export function Component({}: {}) {
     setError('')
     setIsProcessing(true)
     try {
-      await agent.com.atproto.server.requestAccountDelete()
+      await agent.com.sonet.server.requestAccountDelete()
       setIsEmailSent(true)
     } catch (e: any) {
       setError(cleanError(e))
@@ -57,8 +57,8 @@ export function Component({}: {}) {
     setIsProcessing(false)
   }
   const onPressConfirmDelete = async () => {
-    if (!currentAccount?.did) {
-      throw new Error(`DeleteAccount modal: currentAccount.did is undefined`)
+    if (!currentAccount?.userId) {
+      throw new Error(`DeleteAccount modal: currentAccount.userId is undefined`)
     }
 
     setError('')
@@ -76,8 +76,8 @@ export function Component({}: {}) {
       if (!success) {
         throw new Error('Failed to inform chat service of account deletion')
       }
-      await agent.com.atproto.server.deleteAccount({
-        did: currentAccount.did,
+      await agent.com.sonet.server.deleteAccount({
+        userId: currentAccount.userId,
         password,
         token,
       })
@@ -95,7 +95,7 @@ export function Component({}: {}) {
   }
   return (
     <SafeAreaView style={[s.flex1]}>
-      <ScrollView style={[pal.view]} keyboardShouldPersistTaps="handled">
+      <ScrollView style={[pal.view]} keyboardShouldPersistTaps="usernamed">
         <View style={[styles.titleContainer, pal.view]}>
           <Text type="title-xl" style={[s.textCenter, pal.text]}>
             <Trans>
@@ -111,7 +111,7 @@ export function Component({}: {}) {
                   pal.text,
                   s.bold,
                 ]}>
-                {currentAccount?.handle}
+                {currentAccount?.username}
               </Text>
               <Text type="title-xl" style={[pal.text, s.bold]}>
                 "
