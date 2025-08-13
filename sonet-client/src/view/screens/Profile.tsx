@@ -2,11 +2,11 @@ import React, {useCallback, useMemo} from 'react'
 import {StyleSheet} from 'react-native'
 import {SafeAreaView} from 'react-native-safe-area-context'
 import {
-  type AppBskyActorDefs,
+  type SonetActorDefs,
   moderateProfile,
   type ModerationOpts,
   RichText as RichTextAPI,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useFocusEffect} from '@react-navigation/native'
@@ -21,13 +21,13 @@ import {
 } from '#/lib/routes/types'
 import {combinedDisplayName} from '#/lib/strings/display-names'
 import {cleanError} from '#/lib/strings/errors'
-import {isInvalidHandle} from '#/lib/strings/handles'
+import {isInvalidUsername} from '#/lib/strings/usernames'
 import {colors, s} from '#/lib/styles'
 import {useProfileShadow} from '#/state/cache/profile-shadow'
 import {listenSoftReset} from '#/state/events'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
 import {useLabelerInfoQuery} from '#/state/queries/labeler'
-import {resetProfilePostsQueries} from '#/state/queries/post-feed'
+import {resetProfileNotesQueries} from '#/state/queries/note-feed'
 import {useProfileQuery} from '#/state/queries/profile'
 import {useResolveDidQuery} from '#/state/queries/resolve-uri'
 import {useAgent, useSession} from '#/state/session'
@@ -66,7 +66,7 @@ function ProfileScreenInner({route}: Props) {
   const {currentAccount} = useSession()
   const queryClient = useQueryClient()
   const name =
-    route.params.name === 'me' ? currentAccount?.did : route.params.name
+    route.params.name === 'me' ? currentAccount?.userId : route.params.name
   const moderationOpts = useModerationOpts()
   const {
     data: resolvedDid,
@@ -81,7 +81,7 @@ function ProfileScreenInner({route}: Props) {
     isLoading: isLoadingProfile,
     isPlaceholderData: isPlaceholderProfile,
   } = useProfileQuery({
-    did: resolvedDid,
+    userId: resolvedDid,
   })
 
   const onPressTryAgain = React.useCallback(() => {
@@ -95,17 +95,17 @@ function ProfileScreenInner({route}: Props) {
   // Apply hard-coded redirects as need
   React.useEffect(() => {
     if (resolveError) {
-      if (name === 'lulaoficial.bsky.social') {
+      if (name === 'lulaoficial.sonet.social') {
         console.log('Applying redirect to lula.com.br')
         navigate('Profile', {name: 'lula.com.br'})
       }
     }
   }, [name, resolveError])
 
-  // When we open the profile, we want to reset the posts query if we are blocked.
+  // When we open the profile, we want to reset the notes query if we are blocked.
   React.useEffect(() => {
     if (resolvedDid && profile?.viewer?.blockedBy) {
-      resetProfilePostsQueries(queryClient, resolvedDid)
+      resetProfileNotesQueries(queryClient, resolvedDid)
     }
   }, [queryClient, profile?.viewer?.blockedBy, resolvedDid])
 
@@ -160,7 +160,7 @@ function ProfileScreenLoaded({
   moderationOpts,
   hideBackButton,
 }: {
-  profile: AppBskyActorDefs.ProfileViewDetailed
+  profile: SonetActorDefs.ProfileViewDetailed
   moderationOpts: ModerationOpts
   hideBackButton: boolean
   isPlaceholderProfile: boolean
@@ -174,7 +174,7 @@ function ProfileScreenLoaded({
     error: labelerError,
     isLoading: isLabelerLoading,
   } = useLabelerInfoQuery({
-    did: profile.did,
+    userId: profile.userId,
     enabled: !!profile.associated?.labeler,
   })
   const [currentPage, setCurrentPage] = React.useState(0)
@@ -182,7 +182,7 @@ function ProfileScreenLoaded({
 
   const [scrollViewTag, setScrollViewTag] = React.useState<number | null>(null)
 
-  const postsSectionRef = React.useRef<SectionRef>(null)
+  const notesSectionRef = React.useRef<SectionRef>(null)
   const repliesSectionRef = React.useRef<SectionRef>(null)
   const mediaSectionRef = React.useRef<SectionRef>(null)
   const videosSectionRef = React.useRef<SectionRef>(null)
@@ -203,10 +203,10 @@ function ProfileScreenLoaded({
     [profile, moderationOpts],
   )
 
-  const isMe = profile.did === currentAccount?.did
+  const isMe = profile.userId === currentAccount?.userId
   const hasLabeler = !!profile.associated?.labeler
   const showFiltersTab = hasLabeler
-  const showPostsTab = true
+  const showNotesTab = true
   const showRepliesTab = hasSession
   const showMediaTab = !hasLabeler
   const showVideosTab = !hasLabeler
@@ -222,7 +222,7 @@ function ProfileScreenLoaded({
   const sectionTitles = [
     showFiltersTab ? _(msg`Labels`) : undefined,
     showListsTab && hasLabeler ? _(msg`Lists`) : undefined,
-    showPostsTab ? _(msg`Posts`) : undefined,
+    showNotesTab ? _(msg`Notes`) : undefined,
     showRepliesTab ? _(msg`Replies`) : undefined,
     showMediaTab ? _(msg`Media`) : undefined,
     showVideosTab ? _(msg`Videos`) : undefined,
@@ -234,7 +234,7 @@ function ProfileScreenLoaded({
 
   let nextIndex = 0
   let filtersIndex: number | null = null
-  let postsIndex: number | null = null
+  let notesIndex: number | null = null
   let repliesIndex: number | null = null
   let mediaIndex: number | null = null
   let videosIndex: number | null = null
@@ -245,8 +245,8 @@ function ProfileScreenLoaded({
   if (showFiltersTab) {
     filtersIndex = nextIndex++
   }
-  if (showPostsTab) {
-    postsIndex = nextIndex++
+  if (showNotesTab) {
+    notesIndex = nextIndex++
   }
   if (showRepliesTab) {
     repliesIndex = nextIndex++
@@ -274,8 +274,8 @@ function ProfileScreenLoaded({
     (index: number) => {
       if (index === filtersIndex) {
         labelsSectionRef.current?.scrollToTop()
-      } else if (index === postsIndex) {
-        postsSectionRef.current?.scrollToTop()
+      } else if (index === notesIndex) {
+        notesSectionRef.current?.scrollToTop()
       } else if (index === repliesIndex) {
         repliesSectionRef.current?.scrollToTop()
       } else if (index === mediaIndex) {
@@ -294,7 +294,7 @@ function ProfileScreenLoaded({
     },
     [
       filtersIndex,
-      postsIndex,
+      notesIndex,
       repliesIndex,
       mediaIndex,
       videosIndex,
@@ -319,10 +319,10 @@ function ProfileScreenLoaded({
 
   const onPressCompose = () => {
     const mention =
-      profile.handle === currentAccount?.handle ||
-      isInvalidHandle(profile.handle)
+      profile.username === currentAccount?.username ||
+      isInvalidUsername(profile.username)
         ? undefined
-        : profile.handle
+        : profile.username
     openComposer({mention})
   }
 
@@ -390,7 +390,7 @@ function ProfileScreenLoaded({
           ? ({headerHeight, isFocused, scrollElRef}) => (
               <ProfileLists
                 ref={listsSectionRef}
-                did={profile.did}
+                userId={profile.userId}
                 scrollElRef={scrollElRef as ListRef}
                 headerOffset={headerHeight}
                 enabled={isFocused}
@@ -398,15 +398,15 @@ function ProfileScreenLoaded({
               />
             )
           : null}
-        {showPostsTab
+        {showNotesTab
           ? ({headerHeight, isFocused, scrollElRef}) => (
               <ProfileFeedSection
-                ref={postsSectionRef}
-                feed={`author|${profile.did}|posts_and_author_threads`}
+                ref={notesSectionRef}
+                feed={`author|${profile.userId}|notes_and_author_threads`}
                 headerHeight={headerHeight}
                 isFocused={isFocused}
                 scrollElRef={scrollElRef as ListRef}
-                ignoreFilterFor={profile.did}
+                ignoreFilterFor={profile.userId}
                 setScrollViewTag={setScrollViewTag}
               />
             )
@@ -415,11 +415,11 @@ function ProfileScreenLoaded({
           ? ({headerHeight, isFocused, scrollElRef}) => (
               <ProfileFeedSection
                 ref={repliesSectionRef}
-                feed={`author|${profile.did}|posts_with_replies`}
+                feed={`author|${profile.userId}|notes_with_replies`}
                 headerHeight={headerHeight}
                 isFocused={isFocused}
                 scrollElRef={scrollElRef as ListRef}
-                ignoreFilterFor={profile.did}
+                ignoreFilterFor={profile.userId}
                 setScrollViewTag={setScrollViewTag}
               />
             )
@@ -428,11 +428,11 @@ function ProfileScreenLoaded({
           ? ({headerHeight, isFocused, scrollElRef}) => (
               <ProfileFeedSection
                 ref={mediaSectionRef}
-                feed={`author|${profile.did}|posts_with_media`}
+                feed={`author|${profile.userId}|notes_with_media`}
                 headerHeight={headerHeight}
                 isFocused={isFocused}
                 scrollElRef={scrollElRef as ListRef}
-                ignoreFilterFor={profile.did}
+                ignoreFilterFor={profile.userId}
                 setScrollViewTag={setScrollViewTag}
               />
             )
@@ -441,11 +441,11 @@ function ProfileScreenLoaded({
           ? ({headerHeight, isFocused, scrollElRef}) => (
               <ProfileFeedSection
                 ref={videosSectionRef}
-                feed={`author|${profile.did}|posts_with_video`}
+                feed={`author|${profile.userId}|notes_with_video`}
                 headerHeight={headerHeight}
                 isFocused={isFocused}
                 scrollElRef={scrollElRef as ListRef}
-                ignoreFilterFor={profile.did}
+                ignoreFilterFor={profile.userId}
                 setScrollViewTag={setScrollViewTag}
               />
             )
@@ -454,11 +454,11 @@ function ProfileScreenLoaded({
           ? ({headerHeight, isFocused, scrollElRef}) => (
               <ProfileFeedSection
                 ref={likesSectionRef}
-                feed={`likes|${profile.did}`}
+                feed={`likes|${profile.userId}`}
                 headerHeight={headerHeight}
                 isFocused={isFocused}
                 scrollElRef={scrollElRef as ListRef}
-                ignoreFilterFor={profile.did}
+                ignoreFilterFor={profile.userId}
                 setScrollViewTag={setScrollViewTag}
               />
             )
@@ -467,7 +467,7 @@ function ProfileScreenLoaded({
           ? ({headerHeight, isFocused, scrollElRef}) => (
               <ProfileFeedgens
                 ref={feedsSectionRef}
-                did={profile.did}
+                userId={profile.userId}
                 scrollElRef={scrollElRef as ListRef}
                 headerOffset={headerHeight}
                 enabled={isFocused}
@@ -479,7 +479,7 @@ function ProfileScreenLoaded({
           ? ({headerHeight, isFocused, scrollElRef}) => (
               <ProfileStarterPacks
                 ref={starterPacksSectionRef}
-                did={profile.did}
+                userId={profile.userId}
                 isMe={isMe}
                 scrollElRef={scrollElRef as ListRef}
                 headerOffset={headerHeight}
@@ -492,7 +492,7 @@ function ProfileScreenLoaded({
           ? ({headerHeight, isFocused, scrollElRef}) => (
               <ProfileLists
                 ref={listsSectionRef}
-                did={profile.did}
+                userId={profile.userId}
                 scrollElRef={scrollElRef as ListRef}
                 headerOffset={headerHeight}
                 enabled={isFocused}
@@ -507,7 +507,7 @@ function ProfileScreenLoaded({
           onPress={onPressCompose}
           icon={<ComposeIcon2 strokeWidth={1.5} size={29} style={s.white} />}
           accessibilityRole="button"
-          accessibilityLabel={_(msg`New post`)}
+          accessibilityLabel={_(msg`New note`)}
           accessibilityHint=""
         />
       )}

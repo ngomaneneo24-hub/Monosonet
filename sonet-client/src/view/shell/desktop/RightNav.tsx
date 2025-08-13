@@ -97,7 +97,7 @@ export function DesktopRightNav({routeName}: {routeName: string}) {
             <InlineLinkText
               to={FEEDBACK_FORM_URL({
                 email: currentAccount?.email,
-                handle: currentAccount?.handle,
+                username: currentAccount?.username,
               })}
               label={_(msg`Feedback`)}>
               {_(msg`Feedback`)}
@@ -106,13 +106,13 @@ export function DesktopRightNav({routeName}: {routeName: string}) {
           </>
         )}
         <InlineLinkText
-          to="https://bsky.social/about/support/privacy-policy"
+          to="https://sonet.social/about/support/privacy-policy"
           label={_(msg`Privacy`)}>
           {_(msg`Privacy`)}
         </InlineLinkText>
         {' • '}
         <InlineLinkText
-          to="https://bsky.social/about/support/tos"
+          to="https://sonet.social/about/support/tos"
           label={_(msg`Terms`)}>
           {_(msg`Terms`)}
         </InlineLinkText>
@@ -127,9 +127,9 @@ export function DesktopRightNav({routeName}: {routeName: string}) {
           <Trans>
             Logo by{' '}
             <InlineLinkText
-              label={_(msg`Logo by @sawaratsuki.bsky.social`)}
-              to="/profile/sawaratsuki.bsky.social">
-              @sawaratsuki.bsky.social
+              label={_(msg`Logo by @sawaratsuki.sonet.social`)}
+              to="/profile/sawaratsuki.sonet.social">
+              @sawaratsuki.sonet.social
             </InlineLinkText>
           </Trans>
         </Text>

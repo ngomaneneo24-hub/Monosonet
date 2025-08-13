@@ -18,13 +18,13 @@ export const ProfileSearchScreen = ({route}: Props) => {
   const {currentAccount} = useSession()
 
   const {data: resolvedDid} = useResolveDidQuery(name)
-  const {data: profile} = useProfileQuery({did: resolvedDid})
+  const {data: profile} = useProfileQuery({userId: resolvedDid})
 
   const fixedParams = useMemo(
     () => ({
-      from: profile?.handle ?? name,
+      from: profile?.username ?? name,
     }),
-    [profile?.handle, name],
+    [profile?.username, name],
   )
 
   return (
@@ -32,14 +32,14 @@ export const ProfileSearchScreen = ({route}: Props) => {
       navButton="back"
       inputPlaceholder={
         profile
-          ? currentAccount?.did === profile.did
-            ? _(msg`Search my posts`)
-            : _(msg`Search @${profile.handle}'s posts`)
+          ? currentAccount?.userId === profile.userId
+            ? _(msg`Search my notes`)
+            : _(msg`Search @${profile.username}'s notes`)
           : _(msg`Search...`)
       }
       fixedParams={fixedParams}
       queryParam={queryParam}
-      testID="searchPostsScreen"
+      testID="searchNotesScreen"
     />
   )
 }

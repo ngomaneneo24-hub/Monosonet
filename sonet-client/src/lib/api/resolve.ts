@@ -1,10 +1,10 @@
 import {
-  type AppBskyFeedDefs,
-  type AppBskyGraphDefs,
-  type ComAtprotoRepoStrongRef,
-} from '@atproto/api'
-import {AtUri} from '@atproto/api'
-import {type BskyAgent} from '@atproto/api'
+  type SonetFeedDefs,
+  type SonetGraphDefs,
+  type SonetRepoStrongRef,
+} from '@sonet/api'
+import {AtUri} from '@sonet/api'
+import {type SonetAppAgent} from '@sonet/api'
 
 import {POST_IMG_MAX} from '#/lib/constants'
 import {getLinkMeta} from '#/lib/link-meta/link-meta'
@@ -17,7 +17,7 @@ import {
 import {
   isBskyCustomFeedUrl,
   isBskyListUrl,
-  isBskyPostUrl,
+  isBskyNoteUrl,
   isBskyStarterPackUrl,
   isBskyStartUrl,
   isShortLink,
@@ -36,37 +36,37 @@ type ResolvedExternalLink = {
   thumb: ComposerImage | undefined
 }
 
-type ResolvedPostRecord = {
+type ResolvedNoteRecord = {
   type: 'record'
-  record: ComAtprotoRepoStrongRef.Main
-  kind: 'post'
-  view: AppBskyFeedDefs.PostView
+  record: SonetRepoStrongRef.Main
+  kind: 'note'
+  view: SonetFeedDefs.NoteView
 }
 
 type ResolvedFeedRecord = {
   type: 'record'
-  record: ComAtprotoRepoStrongRef.Main
+  record: SonetRepoStrongRef.Main
   kind: 'feed'
-  view: AppBskyFeedDefs.GeneratorView
+  view: SonetFeedDefs.GeneratorView
 }
 
 type ResolvedListRecord = {
   type: 'record'
-  record: ComAtprotoRepoStrongRef.Main
+  record: SonetRepoStrongRef.Main
   kind: 'list'
-  view: AppBskyGraphDefs.ListView
+  view: SonetGraphDefs.ListView
 }
 
 type ResolvedStarterPackRecord = {
   type: 'record'
-  record: ComAtprotoRepoStrongRef.Main
+  record: SonetRepoStrongRef.Main
   kind: 'starter-pack'
-  view: AppBskyGraphDefs.StarterPackView
+  view: SonetGraphDefs.StarterPackView
 }
 
 export type ResolvedLink =
   | ResolvedExternalLink
-  | ResolvedPostRecord
+  | ResolvedNoteRecord
   | ResolvedFeedRecord
   | ResolvedListRecord
   | ResolvedStarterPackRecord
@@ -78,36 +78,36 @@ export class EmbeddingDisabledError extends Error {
 }
 
 export async function resolveLink(
-  agent: BskyAgent,
+  agent: SonetAppAgent,
   uri: string,
 ): Promise<ResolvedLink> {
   if (isShortLink(uri)) {
     uri = await resolveShortLink(uri)
   }
-  if (isBskyPostUrl(uri)) {
+  if (isBskyNoteUrl(uri)) {
     uri = convertBskyAppUrlIfNeeded(uri)
     const [_0, user, _1, rkey] = uri.split('/').filter(Boolean)
-    const recordUri = makeRecordUri(user, 'app.bsky.feed.post', rkey)
-    const post = await getPost({uri: recordUri})
-    if (post.viewer?.embeddingDisabled) {
+    const recordUri = makeRecordUri(user, 'app.sonet.feed.note', rkey)
+    const note = await getNote({uri: recordUri})
+    if (note.viewer?.embeddingDisabled) {
       throw new EmbeddingDisabledError()
     }
     return {
       type: 'record',
       record: {
-        cid: post.cid,
-        uri: post.uri,
+        cid: note.cid,
+        uri: note.uri,
       },
-      kind: 'post',
-      view: post,
+      kind: 'note',
+      view: note,
     }
   }
   if (isBskyCustomFeedUrl(uri)) {
     uri = convertBskyAppUrlIfNeeded(uri)
-    const [_0, handleOrDid, _1, rkey] = uri.split('/').filter(Boolean)
-    const did = await fetchDid(handleOrDid)
-    const feed = makeRecordUri(did, 'app.bsky.feed.generator', rkey)
-    const res = await agent.app.bsky.feed.getFeedGenerator({feed})
+    const [_0, usernameOrDid, _1, rkey] = uri.split('/').filter(Boolean)
+    const userId = await fetchDid(usernameOrDid)
+    const feed = makeRecordUri(userId, 'app.sonet.feed.generator', rkey)
+    const res = await agent.app.sonet.feed.getFeedGenerator({feed})
     return {
       type: 'record',
       record: {
@@ -120,10 +120,10 @@ export async function resolveLink(
   }
   if (isBskyListUrl(uri)) {
     uri = convertBskyAppUrlIfNeeded(uri)
-    const [_0, handleOrDid, _1, rkey] = uri.split('/').filter(Boolean)
-    const did = await fetchDid(handleOrDid)
-    const list = makeRecordUri(did, 'app.bsky.graph.list', rkey)
-    const res = await agent.app.bsky.graph.getList({list})
+    const [_0, usernameOrDid, _1, rkey] = uri.split('/').filter(Boolean)
+    const userId = await fetchDid(usernameOrDid)
+    const list = makeRecordUri(userId, 'app.sonet.graph.list', rkey)
+    const res = await agent.app.sonet.graph.getList({list})
     return {
       type: 'record',
       record: {
@@ -141,9 +141,9 @@ export async function resolveLink(
         'Unexpectedly called getStarterPackAsEmbed with a non-starterpack url',
       )
     }
-    const did = await fetchDid(parsed.name)
-    const starterPack = createStarterPackUri({did, rkey: parsed.rkey})
-    const res = await agent.app.bsky.graph.getStarterPack({starterPack})
+    const userId = await fetchDid(parsed.name)
+    const starterPack = createStarterPackUri({userId, rkey: parsed.rkey})
+    const res = await agent.app.sonet.graph.getStarterPack({starterPack})
     return {
       type: 'record',
       record: {
@@ -156,37 +156,37 @@ export async function resolveLink(
   }
   return resolveExternal(agent, uri)
 
-  // Forked from useGetPost. TODO: move into RQ.
-  async function getPost({uri}: {uri: string}) {
+  // Forked from useGetNote. TODO: move into RQ.
+  async function getNote({uri}: {uri: string}) {
     const urip = new AtUri(uri)
-    if (!urip.host.startsWith('did:')) {
-      const res = await agent.resolveHandle({
-        handle: urip.host,
+    if (!urip.host.startsWith('userId:')) {
+      const res = await agent.resolveUsername({
+        username: urip.host,
       })
-      urip.host = res.data.did
+      urip.host = res.data.userId
     }
-    const res = await agent.getPosts({
+    const res = await agent.getNotes({
       uris: [urip.toString()],
     })
-    if (res.success && res.data.posts[0]) {
-      return res.data.posts[0]
+    if (res.success && res.data.notes[0]) {
+      return res.data.notes[0]
     }
-    throw new Error('getPost: post not found')
+    throw new Error('getNote: note not found')
   }
 
   // Forked from useFetchDid. TODO: move into RQ.
-  async function fetchDid(handleOrDid: string) {
-    let identifier = handleOrDid
-    if (!identifier.startsWith('did:')) {
-      const res = await agent.resolveHandle({handle: identifier})
-      identifier = res.data.did
+  async function fetchDid(usernameOrDid: string) {
+    let identifier = usernameOrDid
+    if (!identifier.startsWith('userId:')) {
+      const res = await agent.resolveUsername({username: identifier})
+      identifier = res.data.userId
     }
     return identifier
   }
 }
 
 export async function resolveGif(
-  agent: BskyAgent,
+  agent: SonetAppAgent,
   gif: Gif,
 ): Promise<ResolvedExternalLink> {
   const uri = `${gif.media_formats.gif.url}?hh=${gif.media_formats.gif.dims[1]}&ww=${gif.media_formats.gif.dims[0]}`
@@ -200,7 +200,7 @@ export async function resolveGif(
 }
 
 async function resolveExternal(
-  agent: BskyAgent,
+  agent: SonetAppAgent,
   uri: string,
 ): Promise<ResolvedExternalLink> {
   const result = await getLinkMeta(agent, uri)

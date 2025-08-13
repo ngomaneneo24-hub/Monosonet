@@ -1,4 +1,4 @@
-import {type AppBskyLabelerDefs} from '@atproto/api'
+import {type SonetLabelerDefs} from '@sonet/api'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {z} from 'zod'
 
@@ -12,68 +12,68 @@ import {
 import {useAgent} from '#/state/session'
 
 const labelerInfoQueryKeyRoot = 'labeler-info'
-export const labelerInfoQueryKey = (did: string) => [
+export const labelerInfoQueryKey = (userId: string) => [
   labelerInfoQueryKeyRoot,
-  did,
+  userId,
 ]
 
 const labelersInfoQueryKeyRoot = 'labelers-info'
-export const labelersInfoQueryKey = (dids: string[]) => [
+export const labelersInfoQueryKey = (userIds: string[]) => [
   labelersInfoQueryKeyRoot,
-  dids.slice().sort(),
+  userIds.slice().sort(),
 ]
 
-export const labelersDetailedInfoQueryKey = (dids: string[]) => [
+export const labelersDetailedInfoQueryKey = (userIds: string[]) => [
   labelersDetailedInfoQueryKeyRoot,
-  dids,
+  userIds,
 ]
 
 export function useLabelerInfoQuery({
-  did,
+  userId,
   enabled,
 }: {
-  did?: string
+  userId?: string
   enabled?: boolean
 }) {
   const agent = useAgent()
   return useQuery({
-    enabled: !!did && enabled !== false,
-    queryKey: labelerInfoQueryKey(did as string),
+    enabled: !!userId && enabled !== false,
+    queryKey: labelerInfoQueryKey(userId as string),
     queryFn: async () => {
-      const res = await agent.app.bsky.labeler.getServices({
-        dids: [did!],
+      const res = await agent.app.sonet.labeler.getServices({
+        userIds: [userId!],
         detailed: true,
       })
-      return res.data.views[0] as AppBskyLabelerDefs.LabelerViewDetailed
+      return res.data.views[0] as SonetLabelerDefs.LabelerViewDetailed
     },
   })
 }
 
-export function useLabelersInfoQuery({dids}: {dids: string[]}) {
+export function useLabelersInfoQuery({userIds}: {userIds: string[]}) {
   const agent = useAgent()
   return useQuery({
-    enabled: !!dids.length,
-    queryKey: labelersInfoQueryKey(dids),
+    enabled: !!userIds.length,
+    queryKey: labelersInfoQueryKey(userIds),
     queryFn: async () => {
-      const res = await agent.app.bsky.labeler.getServices({dids})
-      return res.data.views as AppBskyLabelerDefs.LabelerView[]
+      const res = await agent.app.sonet.labeler.getServices({userIds})
+      return res.data.views as SonetLabelerDefs.LabelerView[]
     },
   })
 }
 
-export function useLabelersDetailedInfoQuery({dids}: {dids: string[]}) {
+export function useLabelersDetailedInfoQuery({userIds}: {userIds: string[]}) {
   const agent = useAgent()
   return useQuery({
-    enabled: !!dids.length,
-    queryKey: labelersDetailedInfoQueryKey(dids),
+    enabled: !!userIds.length,
+    queryKey: labelersDetailedInfoQueryKey(userIds),
     gcTime: 1000 * 60 * 60 * 6, // 6 hours
     staleTime: STALE.MINUTES.ONE,
     queryFn: async () => {
-      const res = await agent.app.bsky.labeler.getServices({
-        dids,
+      const res = await agent.app.sonet.labeler.getServices({
+        userIds,
         detailed: true,
       })
-      return res.data.views as AppBskyLabelerDefs.LabelerViewDetailed[]
+      return res.data.views as SonetLabelerDefs.LabelerViewDetailed[]
     },
   })
 }
@@ -84,12 +84,12 @@ export function useLabelerSubscriptionMutation() {
   const preferences = usePreferencesQuery()
 
   return useMutation({
-    async mutationFn({did, subscribe}: {did: string; subscribe: boolean}) {
+    async mutationFn({userId, subscribe}: {userId: string; subscribe: boolean}) {
       // TODO
       z.object({
-        did: z.string(),
+        userId: z.string(),
         subscribe: z.boolean(),
-      }).parse({did, subscribe})
+      }).parse({userId, subscribe})
 
       /**
        * If a user has invalid/takendown/deactivated labelers, we need to
@@ -102,27 +102,27 @@ export function useLabelerSubscriptionMutation() {
        */
       const labelerDids = (
         preferences.data?.moderationPrefs?.labelers ?? []
-      ).map(l => l.did)
+      ).map(l => l.userId)
       const invalidLabelers: string[] = []
       if (labelerDids.length) {
         const profiles = await agent.getProfiles({actors: labelerDids})
         if (profiles.data) {
-          for (const did of labelerDids) {
-            const exists = profiles.data.profiles.find(p => p.did === did)
+          for (const userId of labelerDids) {
+            const exists = profiles.data.profiles.find(p => p.userId === userId)
             if (exists) {
               // profile came back but it's not a valid labeler
               if (exists.associated && !exists.associated.labeler) {
-                invalidLabelers.push(did)
+                invalidLabelers.push(userId)
               }
             } else {
               // no response came back, might be deactivated or takendown
-              invalidLabelers.push(did)
+              invalidLabelers.push(userId)
             }
           }
         }
       }
       if (invalidLabelers.length) {
-        await Promise.all(invalidLabelers.map(did => agent.removeLabeler(did)))
+        await Promise.all(invalidLabelers.map(userId => agent.removeLabeler(userId)))
       }
 
       if (subscribe) {
@@ -130,9 +130,9 @@ export function useLabelerSubscriptionMutation() {
         if (labelerCount >= MAX_LABELERS) {
           throw new Error('MAX_LABELERS')
         }
-        await agent.addLabeler(did)
+        await agent.addLabeler(userId)
       } else {
-        await agent.removeLabeler(did)
+        await agent.removeLabeler(userId)
       }
     },
     async onSuccess() {

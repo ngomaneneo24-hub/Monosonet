@@ -1,7 +1,7 @@
 import {useMemo} from 'react'
 
 import {FeedTuner} from '#/lib/api/feed-manip'
-import {type FeedDescriptor} from '../queries/post-feed'
+import {type FeedDescriptor} from '../queries/note-feed'
 import {usePreferencesQuery} from '../queries/preferences'
 import {useSession} from '../session'
 import {useLanguagePrefs} from './languages'
@@ -13,9 +13,9 @@ export function useFeedTuners(feedDesc: FeedDescriptor) {
 
   return useMemo(() => {
     if (feedDesc.startsWith('author')) {
-      if (feedDesc.endsWith('|posts_with_replies')) {
+      if (feedDesc.endsWith('|notes_with_replies')) {
         // TODO: Do this on the server instead.
-        return [FeedTuner.removeReposts]
+        return [FeedTuner.removeRenotes]
       }
     }
     if (feedDesc.startsWith('feedgen')) {
@@ -27,20 +27,20 @@ export function useFeedTuners(feedDesc: FeedDescriptor) {
     if (feedDesc === 'following' || feedDesc.startsWith('list')) {
       const feedTuners = [FeedTuner.removeOrphans]
 
-      if (preferences?.feedViewPrefs.hideReposts) {
-        feedTuners.push(FeedTuner.removeReposts)
+      if (preferences?.feedViewPrefs.hideRenotes) {
+        feedTuners.push(FeedTuner.removeRenotes)
       }
       if (preferences?.feedViewPrefs.hideReplies) {
         feedTuners.push(FeedTuner.removeReplies)
       } else {
         feedTuners.push(
           FeedTuner.followedRepliesOnly({
-            userDid: currentAccount?.did || '',
+            userDid: currentAccount?.userId || '',
           }),
         )
       }
-      if (preferences?.feedViewPrefs.hideQuotePosts) {
-        feedTuners.push(FeedTuner.removeQuotePosts)
+      if (preferences?.feedViewPrefs.hideQuoteNotes) {
+        feedTuners.push(FeedTuner.removeQuoteNotes)
       }
       feedTuners.push(FeedTuner.dedupThreads)
       feedTuners.push(FeedTuner.removeMutedThreads)

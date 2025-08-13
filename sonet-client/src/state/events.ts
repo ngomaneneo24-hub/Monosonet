@@ -38,10 +38,10 @@ export function listenNetworkLost(fn: () => void): UnlistenFn {
   return () => emitter.off('network-lost', fn)
 }
 
-export function emitPostCreated() {
-  emitter.emit('post-created')
+export function emitNoteCreated() {
+  emitter.emit('note-created')
 }
-export function listenPostCreated(fn: () => void): UnlistenFn {
-  emitter.on('post-created', fn)
-  return () => emitter.off('post-created', fn)
+export function listenNoteCreated(fn: () => void): UnlistenFn {
+  emitter.on('note-created', fn)
+  return () => emitter.off('note-created', fn)
 }

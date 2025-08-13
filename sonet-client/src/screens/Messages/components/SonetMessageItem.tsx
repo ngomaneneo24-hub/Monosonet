@@ -76,7 +76,7 @@ export function SonetMessageItem({
     }
   }, [message.status, t, _])
 
-  const handleRetry = useCallback(() => {
+  const usernameRetry = useCallback(() => {
     if (onRetry) {
       onRetry()
     }
@@ -94,8 +94,8 @@ export function SonetMessageItem({
         <PreviewableUserAvatar
           size="sm"
           profile={{
-            did: message.sender_id,
-            handle: message.sender_id, // Placeholder
+            userId: message.sender_id,
+            username: message.sender_id, // Placeholder
             displayName: message.sender_id, // Placeholder
             avatar: undefined,
           }}
@@ -150,7 +150,7 @@ export function SonetMessageItem({
             size="small"
             variant="ghost"
             color="negative"
-            onPress={handleRetry}
+            onPress={usernameRetry}
             style={[a.mt_2]}>
             <ButtonText>
               <Trans>Retry</Trans>
@@ -163,8 +163,8 @@ export function SonetMessageItem({
         <PreviewableUserAvatar
           size="sm"
           profile={{
-            did: sessionState.currentAccount?.did || '',
-            handle: sessionState.currentAccount?.handle || '',
+            userId: sessionState.currentAccount?.userId || '',
+            username: sessionState.currentAccount?.username || '',
             displayName: sessionState.currentAccount?.displayName || '',
             avatar: undefined,
           }}

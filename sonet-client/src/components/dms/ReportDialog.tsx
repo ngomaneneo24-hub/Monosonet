@@ -2,11 +2,11 @@ import React, {memo, useMemo, useState} from 'react'
 import {View} from 'react-native'
 import {
   $Typed,
-  AppBskyActorDefs,
-  ChatBskyConvoDefs,
-  ComAtprotoModerationCreateReport,
+  SonetActorDefs,
+  SonetConvoDefs,
+  SonetModerationCreateReport,
   RichText as RichTextAPI,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {StackActions, useNavigation} from '@react-navigation/native'
@@ -40,7 +40,7 @@ import {MessageItemMetadata} from './MessageItem'
 type ReportDialogParams = {
   type: 'convoMessage'
   convoId: string
-  message: ChatBskyConvoDefs.MessageView
+  message: SonetConvoDefs.MessageView
 }
 
 let ReportDialog = ({
@@ -55,7 +55,7 @@ let ReportDialog = ({
   const {_} = useLingui()
   return (
     <Dialog.Outer control={control}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <Dialog.ScrollableInner label={_(msg`Report this message`)}>
         <DialogInner params={params} currentScreen={currentScreen} />
         <Dialog.Close />
@@ -74,7 +74,7 @@ function DialogInner({
   currentScreen: 'list' | 'conversation'
 }) {
   const {data: profile, isError} = useProfileQuery({
-    did: params.message.sender.did,
+    userId: params.message.sender.userId,
   })
   const [reportOption, setReportOption] = useState<ReportOption | null>(null)
   const [done, setDone] = useState(false)
@@ -155,18 +155,18 @@ function SubmitStep({
     mutationFn: async () => {
       if (params.type === 'convoMessage') {
         const {convoId, message} = params
-        const subject: $Typed<ChatBskyConvoDefs.MessageRef> = {
-          $type: 'chat.bsky.convo.defs#messageRef',
+        const subject: $Typed<SonetConvoDefs.MessageRef> = {
+          type: "sonet",
           messageId: message.id,
           convoId,
-          did: message.sender.did,
+          userId: message.sender.userId,
         }
 
         const report = {
           reasonType: reportOption.reason,
           subject,
           reason: details,
-        } satisfies ComAtprotoModerationCreateReport.InputSchema
+        } satisfies SonetModerationCreateReport.InputSchema
 
         await agent.createModerationReport(report)
       }
@@ -287,7 +287,7 @@ function DoneStep({
 }: {
   convoId: string
   currentScreen: 'list' | 'conversation'
-  profile: AppBskyActorDefs.ProfileViewDetailed
+  profile: SonetActorDefs.ProfileViewDetailed
 }) {
   const {_} = useLingui()
   const navigation = useNavigation<NavigationProp>()
@@ -395,7 +395,7 @@ function DoneStep({
   )
 }
 
-function PreviewMessage({message}: {message: ChatBskyConvoDefs.MessageView}) {
+function PreviewMessage({message}: {message: SonetConvoDefs.MessageView}) {
   const t = useTheme()
   const rt = useMemo(() => {
     return new RichTextAPI({text: message.text, facets: message.facets})

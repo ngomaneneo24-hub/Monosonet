@@ -1,25 +1,25 @@
 import {View} from 'react-native'
-import {type AppBskyActorDefs} from '@atproto/api'
+import {type SonetActorDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
-import {isInvalidHandle, sanitizeHandle} from '#/lib/strings/handles'
+import {isInvalidUsername, sanitizeUsername} from '#/lib/strings/usernames'
 import {isIOS} from '#/platform/detection'
 import {type Shadow} from '#/state/cache/types'
 import {atoms as a, useTheme, web} from '#/alf'
 import {NewskieDialog} from '#/components/NewskieDialog'
 import {Text} from '#/components/Typography'
 
-export function ProfileHeaderHandle({
+export function ProfileHeaderUsername({
   profile,
   disableTaps,
 }: {
-  profile: Shadow<AppBskyActorDefs.ProfileViewDetailed>
+  profile: Shadow<SonetActorDefs.ProfileViewDetailed>
   disableTaps?: boolean
 }) {
   const t = useTheme()
   const {_} = useLingui()
-  const invalidHandle = isInvalidHandle(profile.handle)
+  const invalidUsername = isInvalidUsername(profile.username)
   const blockHide = profile.viewer?.blocking || profile.viewer?.blockedBy
   return (
     <View
@@ -37,7 +37,7 @@ export function ProfileHeaderHandle({
         emoji
         numberOfLines={1}
         style={[
-          invalidHandle
+          invalidUsername
             ? [
                 a.border,
                 a.text_xs,
@@ -49,9 +49,9 @@ export function ProfileHeaderHandle({
             : [a.text_md, a.leading_snug, t.atoms.text_contrast_medium],
           web({wordBreak: 'break-all'}),
         ]}>
-        {invalidHandle
-          ? _(msg`⚠Invalid Handle`)
-          : sanitizeHandle(profile.handle, '@')}
+        {invalidUsername
+          ? _(msg`⚠Invalid Username`)
+          : sanitizeUsername(profile.username, '@')}
       </Text>
     </View>
   )

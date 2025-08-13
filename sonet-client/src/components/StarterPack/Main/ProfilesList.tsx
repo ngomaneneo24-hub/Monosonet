@@ -1,11 +1,11 @@
 import React, {useCallback} from 'react'
 import {ListRenderItemInfo, View} from 'react-native'
 import {
-  AppBskyActorDefs,
-  AppBskyGraphGetList,
+  SonetActorDefs,
+  SonetGraphGetList,
   AtUri,
   ModerationOpts,
-} from '@atproto/api'
+} from '@sonet/api'
 import {InfiniteData, UseInfiniteQueryResult} from '@tanstack/react-query'
 
 import {useBottomBarOffset} from '#/lib/hooks/useBottomBarOffset'
@@ -20,14 +20,14 @@ import {atoms as a, useTheme} from '#/alf'
 import {ListFooter, ListMaybePlaceholder} from '#/components/Lists'
 import {Default as ProfileCard} from '#/components/ProfileCard'
 
-function keyExtractor(item: AppBskyActorDefs.ProfileViewBasic, index: number) {
-  return `${item.did}-${index}`
+function keyExtractor(item: SonetActorDefs.ProfileViewBasic, index: number) {
+  return `${item.userId}-${index}`
 }
 
 interface ProfilesListProps {
   listUri: string
   listMembersQuery: UseInfiniteQueryResult<
-    InfiniteData<AppBskyGraphGetList.OutputSchema>
+    InfiniteData<SonetGraphGetList.OutputSchema>
   >
   moderationOpts: ModerationOpts
   headerHeight: number
@@ -55,13 +55,13 @@ export const ProfilesList = React.forwardRef<SectionRef, ProfilesListProps>(
       )
       .map(p => p.subject)
       .reverse()
-    const isOwn = new AtUri(listUri).host === currentAccount?.did
+    const isOwn = new AtUri(listUri).host === currentAccount?.userId
 
     const getSortedProfiles = () => {
       if (!profiles) return
       if (!isOwn) return profiles
 
-      const myIndex = profiles.findIndex(p => p.did === currentAccount?.did)
+      const myIndex = profiles.findIndex(p => p.userId === currentAccount?.userId)
       return myIndex !== -1
         ? [
             profiles[myIndex],
@@ -77,14 +77,14 @@ export const ProfilesList = React.forwardRef<SectionRef, ProfilesListProps>(
       })
     }, [scrollElRef, headerHeight])
 
-    React.useImperativeHandle(ref, () => ({
+    React.useImperativeUsername(ref, () => ({
       scrollToTop: onScrollToTop,
     }))
 
     const renderItem = ({
       item,
       index,
-    }: ListRenderItemInfo<AppBskyActorDefs.ProfileViewBasic>) => {
+    }: ListRenderItemInfo<SonetActorDefs.ProfileViewBasic>) => {
       return (
         <View
           style={[

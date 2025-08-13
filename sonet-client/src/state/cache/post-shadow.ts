@@ -1,79 +1,79 @@
 import {useEffect, useMemo, useState} from 'react'
 import {
-  AppBskyEmbedRecord,
-  AppBskyEmbedRecordWithMedia,
-  type AppBskyFeedDefs,
-} from '@atproto/api'
+  SonetEmbedRecord,
+  SonetEmbedRecordWithMedia,
+  type SonetFeedDefs,
+} from '@sonet/api'
 import {type QueryClient} from '@tanstack/react-query'
 import EventEmitter from 'eventemitter3'
 
 import {batchedUpdates} from '#/lib/batchedUpdates'
-import {findAllPostsInQueryData as findAllPostsInExploreFeedPreviewsQueryData} from '#/state/queries/explore-feed-previews'
-import {findAllPostsInQueryData as findAllPostsInNotifsQueryData} from '#/state/queries/notifications/feed'
-import {findAllPostsInQueryData as findAllPostsInFeedQueryData} from '#/state/queries/post-feed'
-import {findAllPostsInQueryData as findAllPostsInQuoteQueryData} from '#/state/queries/post-quotes'
-import {findAllPostsInQueryData as findAllPostsInThreadQueryData} from '#/state/queries/post-thread'
-import {findAllPostsInQueryData as findAllPostsInSearchQueryData} from '#/state/queries/search-posts'
-import {findAllPostsInQueryData as findAllPostsInThreadV2QueryData} from '#/state/queries/usePostThread/queryCache'
+import {findAllNotesInQueryData as findAllNotesInExploreFeedPreviewsQueryData} from '#/state/queries/explore-feed-previews'
+import {findAllNotesInQueryData as findAllNotesInNotifsQueryData} from '#/state/queries/notifications/feed'
+import {findAllNotesInQueryData as findAllNotesInFeedQueryData} from '#/state/queries/note-feed'
+import {findAllNotesInQueryData as findAllNotesInQuoteQueryData} from '#/state/queries/note-quotes'
+import {findAllNotesInQueryData as findAllNotesInThreadQueryData} from '#/state/queries/note-thread'
+import {findAllNotesInQueryData as findAllNotesInSearchQueryData} from '#/state/queries/search-notes'
+import {findAllNotesInQueryData as findAllNotesInThreadV2QueryData} from '#/state/queries/useNoteThread/queryCache'
 import {castAsShadow, type Shadow} from './types'
 export type {Shadow} from './types'
 
-export interface PostShadow {
+export interface NoteShadow {
   likeUri: string | undefined
-  repostUri: string | undefined
+  renoteUri: string | undefined
   isDeleted: boolean
-  embed: AppBskyEmbedRecord.View | AppBskyEmbedRecordWithMedia.View | undefined
+  embed: SonetEmbedRecord.View | SonetEmbedRecordWithMedia.View | undefined
   pinned: boolean
 }
 
-export const POST_TOMBSTONE = Symbol('PostTombstone')
+export const POST_TOMBSTONE = Symbol('NoteTombstone')
 
 const emitter = new EventEmitter()
 const shadows: WeakMap<
-  AppBskyFeedDefs.PostView,
-  Partial<PostShadow>
+  SonetFeedDefs.NoteView,
+  Partial<NoteShadow>
 > = new WeakMap()
 
-export function usePostShadow(
-  post: AppBskyFeedDefs.PostView,
-): Shadow<AppBskyFeedDefs.PostView> | typeof POST_TOMBSTONE {
-  const [shadow, setShadow] = useState(() => shadows.get(post))
-  const [prevPost, setPrevPost] = useState(post)
-  if (post !== prevPost) {
-    setPrevPost(post)
-    setShadow(shadows.get(post))
+export function useNoteShadow(
+  note: SonetFeedDefs.NoteView,
+): Shadow<SonetFeedDefs.NoteView> | typeof POST_TOMBSTONE {
+  const [shadow, setShadow] = useState(() => shadows.get(note))
+  const [prevNote, setPrevNote] = useState(note)
+  if (note !== prevNote) {
+    setPrevNote(note)
+    setShadow(shadows.get(note))
   }
 
   useEffect(() => {
     function onUpdate() {
-      setShadow(shadows.get(post))
+      setShadow(shadows.get(note))
     }
-    emitter.addListener(post.uri, onUpdate)
+    emitter.addListener(note.uri, onUpdate)
     return () => {
-      emitter.removeListener(post.uri, onUpdate)
+      emitter.removeListener(note.uri, onUpdate)
     }
-  }, [post, setShadow])
+  }, [note, setShadow])
 
   return useMemo(() => {
     if (shadow) {
-      return mergeShadow(post, shadow)
+      return mergeShadow(note, shadow)
     } else {
-      return castAsShadow(post)
+      return castAsShadow(note)
     }
-  }, [post, shadow])
+  }, [note, shadow])
 }
 
 function mergeShadow(
-  post: AppBskyFeedDefs.PostView,
-  shadow: Partial<PostShadow>,
-): Shadow<AppBskyFeedDefs.PostView> | typeof POST_TOMBSTONE {
+  note: SonetFeedDefs.NoteView,
+  shadow: Partial<NoteShadow>,
+): Shadow<SonetFeedDefs.NoteView> | typeof POST_TOMBSTONE {
   if (shadow.isDeleted) {
     return POST_TOMBSTONE
   }
 
-  let likeCount = post.likeCount ?? 0
+  let likeCount = note.likeCount ?? 0
   if ('likeUri' in shadow) {
-    const wasLiked = !!post.viewer?.like
+    const wasLiked = !!note.viewer?.like
     const isLiked = !!shadow.likeUri
     if (wasLiked && !isLiked) {
       likeCount--
@@ -83,86 +83,86 @@ function mergeShadow(
     likeCount = Math.max(0, likeCount)
   }
 
-  let repostCount = post.repostCount ?? 0
-  if ('repostUri' in shadow) {
-    const wasReposted = !!post.viewer?.repost
-    const isReposted = !!shadow.repostUri
-    if (wasReposted && !isReposted) {
-      repostCount--
-    } else if (!wasReposted && isReposted) {
-      repostCount++
+  let renoteCount = note.renoteCount ?? 0
+  if ('renoteUri' in shadow) {
+    const wasRenoteed = !!note.viewer?.renote
+    const isRenoteed = !!shadow.renoteUri
+    if (wasRenoteed && !isRenoteed) {
+      renoteCount--
+    } else if (!wasRenoteed && isRenoteed) {
+      renoteCount++
     }
-    repostCount = Math.max(0, repostCount)
+    renoteCount = Math.max(0, renoteCount)
   }
 
-  let embed: typeof post.embed
+  let embed: typeof note.embed
   if ('embed' in shadow) {
     if (
-      (AppBskyEmbedRecord.isView(post.embed) &&
-        AppBskyEmbedRecord.isView(shadow.embed)) ||
-      (AppBskyEmbedRecordWithMedia.isView(post.embed) &&
-        AppBskyEmbedRecordWithMedia.isView(shadow.embed))
+      (SonetEmbedRecord.isView(note.embed) &&
+        SonetEmbedRecord.isView(shadow.embed)) ||
+      (SonetEmbedRecordWithMedia.isView(note.embed) &&
+        SonetEmbedRecordWithMedia.isView(shadow.embed))
     ) {
       embed = shadow.embed
     }
   }
 
   return castAsShadow({
-    ...post,
-    embed: embed || post.embed,
+    ...note,
+    embed: embed || note.embed,
     likeCount: likeCount,
-    repostCount: repostCount,
+    renoteCount: renoteCount,
     viewer: {
-      ...(post.viewer || {}),
-      like: 'likeUri' in shadow ? shadow.likeUri : post.viewer?.like,
-      repost: 'repostUri' in shadow ? shadow.repostUri : post.viewer?.repost,
-      pinned: 'pinned' in shadow ? shadow.pinned : post.viewer?.pinned,
+      ...(note.viewer || {}),
+      like: 'likeUri' in shadow ? shadow.likeUri : note.viewer?.like,
+      renote: 'renoteUri' in shadow ? shadow.renoteUri : note.viewer?.renote,
+      pinned: 'pinned' in shadow ? shadow.pinned : note.viewer?.pinned,
     },
   })
 }
 
-export function updatePostShadow(
+export function updateNoteShadow(
   queryClient: QueryClient,
   uri: string,
-  value: Partial<PostShadow>,
+  value: Partial<NoteShadow>,
 ) {
-  const cachedPosts = findPostsInCache(queryClient, uri)
-  for (let post of cachedPosts) {
-    shadows.set(post, {...shadows.get(post), ...value})
+  const cachedNotes = findNotesInCache(queryClient, uri)
+  for (let note of cachedNotes) {
+    shadows.set(note, {...shadows.get(note), ...value})
   }
   batchedUpdates(() => {
     emitter.emit(uri)
   })
 }
 
-function* findPostsInCache(
+function* findNotesInCache(
   queryClient: QueryClient,
   uri: string,
-): Generator<AppBskyFeedDefs.PostView, void> {
-  for (let post of findAllPostsInFeedQueryData(queryClient, uri)) {
-    yield post
+): Generator<SonetFeedDefs.NoteView, void> {
+  for (let note of findAllNotesInFeedQueryData(queryClient, uri)) {
+    yield note
   }
-  for (let post of findAllPostsInNotifsQueryData(queryClient, uri)) {
-    yield post
+  for (let note of findAllNotesInNotifsQueryData(queryClient, uri)) {
+    yield note
   }
-  for (let node of findAllPostsInThreadQueryData(queryClient, uri)) {
-    if (node.type === 'post') {
-      yield node.post
+  for (let node of findAllNotesInThreadQueryData(queryClient, uri)) {
+    if (node.type === 'note') {
+      yield node.note
     }
   }
-  for (let post of findAllPostsInThreadV2QueryData(queryClient, uri)) {
-    yield post
+  for (let note of findAllNotesInThreadV2QueryData(queryClient, uri)) {
+    yield note
   }
-  for (let post of findAllPostsInSearchQueryData(queryClient, uri)) {
-    yield post
+  for (let note of findAllNotesInSearchQueryData(queryClient, uri)) {
+    yield note
   }
-  for (let post of findAllPostsInQuoteQueryData(queryClient, uri)) {
-    yield post
+  for (let note of findAllNotesInQuoteQueryData(queryClient, uri)) {
+    yield note
   }
-  for (let post of findAllPostsInExploreFeedPreviewsQueryData(
+  for (let note of findAllNotesInExploreFeedPreviewsQueryData(
     queryClient,
     uri,
   )) {
-    yield post
+    yield note
   }
 }

@@ -1,6 +1,6 @@
-import {useImperativeHandle, useRef, useState} from 'react'
+import {useImperativeUsername, useRef, useState} from 'react'
 import {Pressable, type StyleProp, View, type ViewStyle} from 'react-native'
-import {type AppBskyEmbedVideo} from '@atproto/api'
+import {type SonetEmbedVideo} from '@sonet/api'
 import {BlueskyVideoView} from '@haileyok/bluesky-video'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -14,7 +14,7 @@ import {Pause_Filled_Corner0_Rounded as PauseIcon} from '#/components/icons/Paus
 import {Play_Filled_Corner0_Rounded as PlayIcon} from '#/components/icons/Play'
 import {SpeakerVolumeFull_Stroke2_Corner0_Rounded as UnmuteIcon} from '#/components/icons/Speaker'
 import {MediaInsetBorder} from '#/components/MediaInsetBorder'
-import {useVideoMuteState} from '#/components/Post/Embed/VideoEmbed/VideoVolumeContext'
+import {useVideoMuteState} from '#/components/Note/Embed/VideoEmbed/VideoVolumeContext'
 import {TimeIndicator} from './TimeIndicator'
 
 export function VideoEmbedInnerNative({
@@ -25,7 +25,7 @@ export function VideoEmbedInnerNative({
   setIsActive,
 }: {
   ref: React.Ref<{togglePlayback: () => void}>
-  embed: AppBskyEmbedVideo.View
+  embed: SonetEmbedVideo.View
   setStatus: (status: 'playing' | 'paused') => void
   setIsLoading: (isLoading: boolean) => void
   setIsActive: (isActive: boolean) => void
@@ -40,7 +40,7 @@ export function VideoEmbedInnerNative({
   const [timeRemaining, setTimeRemaining] = useState(0)
   const [error, setError] = useState<string>()
 
-  useImperativeHandle(ref, () => ({
+  useImperativeUsername(ref, () => ({
     togglePlayback: () => {
       videoRef.current?.togglePlayback()
     },

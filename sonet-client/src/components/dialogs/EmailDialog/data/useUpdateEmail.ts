@@ -1,19 +1,16 @@
 import {useMutation} from '@tanstack/react-query'
-
-import {useAgent} from '#/state/session'
+import {sonetClient} from '@sonet/api'
 import {useRequestEmailUpdate} from '#/components/dialogs/EmailDialog/data/useRequestEmailUpdate'
 
 async function updateEmailAndRefreshSession(
-  agent: ReturnType<typeof useAgent>,
   email: string,
   token?: string,
 ) {
-  await agent.com.atproto.server.updateEmail({email: email.trim(), token})
-  await agent.resumeSession(agent.session!)
+  await sonetClient.updateEmail({email: email.trim(), token})
+  // Sonet usernames session refresh automatically
 }
 
 export function useUpdateEmail() {
-  const agent = useAgent()
   const {mutateAsync: requestEmailUpdate} = useRequestEmailUpdate()
 
   return useMutation<
@@ -23,7 +20,7 @@ export function useUpdateEmail() {
   >({
     mutationFn: async ({email, token}: {email: string; token?: string}) => {
       if (token) {
-        await updateEmailAndRefreshSession(agent, email, token)
+        await updateEmailAndRefreshSession(email, token)
         return {
           status: 'success',
         }
@@ -34,7 +31,7 @@ export function useUpdateEmail() {
             status: 'tokenRequired',
           }
         } else {
-          await updateEmailAndRefreshSession(agent, email, token)
+          await updateEmailAndRefreshSession(email, token)
           return {
             status: 'success',
           }

@@ -7,7 +7,7 @@ import {
 import {isAndroid} from '#/platform/detection'
 import {useHasCheckedForStarterPack} from '#/state/preferences/used-starter-packs'
 import {useSetActiveStarterPack} from '#/state/shell/starter-pack'
-import {Referrer, SharedPrefs} from '../../../modules/expo-bluesky-swiss-army'
+import {Referrer, SharedPrefs} from '../../../modules/expo-sonet-swiss-army'
 
 export function useStarterPackEntry() {
   const [ready, setReady] = React.useState(false)

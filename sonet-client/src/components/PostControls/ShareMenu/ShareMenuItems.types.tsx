@@ -1,22 +1,22 @@
 import {type PressableProps, type StyleProp, type ViewStyle} from 'react-native'
 import {
-  type AppBskyFeedDefs,
-  type AppBskyFeedPost,
-  type AppBskyFeedThreadgate,
+  type SonetFeedDefs,
+  type SonetFeedNote,
+  type SonetFeedThreadgate,
   type RichText as RichTextAPI,
-} from '@atproto/api'
+} from '@sonet/api'
 
-import {type Shadow} from '#/state/cache/post-shadow'
+import {type Shadow} from '#/state/cache/note-shadow'
 
 export interface ShareMenuItemsProps {
   testID: string
-  post: Shadow<AppBskyFeedDefs.PostView>
-  record: AppBskyFeedPost.Record
+  note: Shadow<SonetFeedDefs.NoteView>
+  record: SonetFeedNote.Record
   richText: RichTextAPI
   style?: StyleProp<ViewStyle>
   hitSlop?: PressableProps['hitSlop']
   size?: 'lg' | 'md' | 'sm'
   timestamp: string
-  threadgateRecord?: AppBskyFeedThreadgate.Record
+  threadgateRecord?: SonetFeedThreadgate.Record
   onShare: () => void
 }

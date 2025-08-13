@@ -1,6 +1,6 @@
 import React, {useCallback} from 'react'
 import {Dimensions, type StyleProp, View, type ViewStyle} from 'react-native'
-import {type AppBskyGraphDefs} from '@atproto/api'
+import {type SonetGraphDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -68,7 +68,7 @@ export function ListMembers({
   } = useListMembersQuery(list)
   const isEmpty = !isFetching && !data?.pages[0].items.length
   const isOwner =
-    currentAccount && data?.pages[0].list.creator.did === currentAccount.did
+    currentAccount && data?.pages[0].list.creator.userId === currentAccount.userId
 
   const items = React.useMemo(() => {
     let items: any[] = []
@@ -122,9 +122,9 @@ export function ListMembers({
     (profile: bsky.profile.AnyProfileView) => {
       openModal({
         name: 'user-add-remove-lists',
-        subject: profile.did,
-        displayName: profile.displayName || profile.handle,
-        handle: profile.handle,
+        subject: profile.userId,
+        displayName: profile.displayName || profile.username,
+        username: profile.username,
       })
     },
     [openModal],
@@ -157,7 +157,7 @@ export function ListMembers({
         return <ProfileCardFeedLoadingPlaceholder />
       }
 
-      const profile = (item as AppBskyGraphDefs.ListItemView).subject
+      const profile = (item as SonetGraphDefs.ListItemView).subject
       if (!moderationOpts) return null
 
       return (
@@ -170,13 +170,13 @@ export function ListMembers({
                   profile={profile}
                   moderationOpts={moderationOpts}
                 />
-                <ProfileCard.NameAndHandle
+                <ProfileCard.NameAndUsername
                   profile={profile}
                   moderationOpts={moderationOpts}
                 />
                 {isOwner && (
                   <Button
-                    testID={`user-${profile.handle}-editBtn`}
+                    testID={`user-${profile.username}-editBtn`}
                     label={_(msg({message: 'Edit', context: 'action'}))}
                     onPress={() => onPressEditMembership(profile)}
                     size="small"
@@ -239,7 +239,7 @@ export function ListMembers({
         testID={testID ? `${testID}-flatlist` : undefined}
         ref={scrollElRef}
         data={items}
-        keyExtractor={(item: any) => item.subject?.did || item._reactKey}
+        keyExtractor={(item: any) => item.subject?.userId || item._reactKey}
         renderItem={renderItem}
         ListHeaderComponent={!isEmpty ? renderHeader : undefined}
         ListFooterComponent={renderFooter}

@@ -8,7 +8,7 @@ import {
 import {useNotificationSettingsQuery} from '#/state/queries/notifications/settings'
 import {atoms as a} from '#/alf'
 import {Admonition} from '#/components/Admonition'
-import {RepostRepost_Stroke2_Corner2_Rounded as RepostRepostIcon} from '#/components/icons/Repost'
+import {RenoteRenote_Stroke2_Corner2_Rounded as RenoteRenoteIcon} from '#/components/icons/Renote'
 import * as Layout from '#/components/Layout'
 import * as SettingsList from '../components/SettingsList'
 import {ItemTextWithSubtitle} from './components/ItemTextWithSubtitle'
@@ -16,9 +16,9 @@ import {PreferenceControls} from './components/PreferenceControls'
 
 type Props = NativeStackScreenProps<
   AllNavigatorParams,
-  'RepostsOnRepostsNotificationSettings'
+  'RenotesOnRenotesNotificationSettings'
 >
-export function RepostsOnRepostsNotificationSettingsScreen({}: Props) {
+export function RenotesOnRenotesNotificationSettingsScreen({}: Props) {
   const {data: preferences, isError} = useNotificationSettingsQuery()
 
   return (
@@ -35,14 +35,14 @@ export function RepostsOnRepostsNotificationSettingsScreen({}: Props) {
       <Layout.Content>
         <SettingsList.Container>
           <SettingsList.Item style={[a.align_start]}>
-            <SettingsList.ItemIcon icon={RepostRepostIcon} />
+            <SettingsList.ItemIcon icon={RenoteRenoteIcon} />
             <ItemTextWithSubtitle
               bold
-              titleText={<Trans>Reposts of your reposts</Trans>}
+              titleText={<Trans>Renotes of your renotes</Trans>}
               subtitleText={
                 <Trans>
-                  Get notifications when people repost posts that you've
-                  reposted.
+                  Get notifications when people renote notes that you've
+                  renoteed.
                 </Trans>
               }
             />
@@ -55,8 +55,8 @@ export function RepostsOnRepostsNotificationSettingsScreen({}: Props) {
             </View>
           ) : (
             <PreferenceControls
-              name="repostViaRepost"
-              preference={preferences?.repostViaRepost}
+              name="renoteViaRenote"
+              preference={preferences?.renoteViaRenote}
             />
           )}
         </SettingsList.Container>

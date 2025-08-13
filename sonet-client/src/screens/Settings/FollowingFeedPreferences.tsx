@@ -15,7 +15,7 @@ import * as Toggle from '#/components/forms/Toggle'
 import {Beaker_Stroke2_Corner2_Rounded as BeakerIcon} from '#/components/icons/Beaker'
 import {Bubbles_Stroke2_Corner2_Rounded as BubblesIcon} from '#/components/icons/Bubble'
 import {CloseQuote_Stroke2_Corner1_Rounded as QuoteIcon} from '#/components/icons/Quote'
-import {Repost_Stroke2_Corner2_Rounded as RepostIcon} from '#/components/icons/Repost'
+import {Renote_Stroke2_Corner2_Rounded as RenoteIcon} from '#/components/icons/Renote'
 import * as Layout from '#/components/Layout'
 import * as SettingsList from './components/SettingsList'
 
@@ -34,12 +34,12 @@ export function FollowingFeedPreferencesScreen({}: Props) {
     variables?.hideReplies ?? preferences?.feedViewPrefs?.hideReplies
   )
 
-  const showReposts = !(
-    variables?.hideReposts ?? preferences?.feedViewPrefs?.hideReposts
+  const showRenotes = !(
+    variables?.hideRenotes ?? preferences?.feedViewPrefs?.hideRenotes
   )
 
-  const showQuotePosts = !(
-    variables?.hideQuotePosts ?? preferences?.feedViewPrefs?.hideQuotePosts
+  const showQuoteNotes = !(
+    variables?.hideQuoteNotes ?? preferences?.feedViewPrefs?.hideQuoteNotes
   )
 
   const mergeFeedEnabled = Boolean(
@@ -85,18 +85,18 @@ export function FollowingFeedPreferencesScreen({}: Props) {
           </Toggle.Item>
           <Toggle.Item
             type="checkbox"
-            name="show-reposts"
-            label={_(msg`Show reposts`)}
-            value={showReposts}
+            name="show-renotes"
+            label={_(msg`Show renotes`)}
+            value={showRenotes}
             onChange={value =>
               setFeedViewPref({
-                hideReposts: !value,
+                hideRenotes: !value,
               })
             }>
             <SettingsList.Item>
-              <SettingsList.ItemIcon icon={RepostIcon} />
+              <SettingsList.ItemIcon icon={RenoteIcon} />
               <SettingsList.ItemText>
-                <Trans>Show reposts</Trans>
+                <Trans>Show renotes</Trans>
               </SettingsList.ItemText>
               <Toggle.Platform />
             </SettingsList.Item>
@@ -104,17 +104,17 @@ export function FollowingFeedPreferencesScreen({}: Props) {
           <Toggle.Item
             type="checkbox"
             name="show-quotes"
-            label={_(msg`Show quote posts`)}
-            value={showQuotePosts}
+            label={_(msg`Show quote notes`)}
+            value={showQuoteNotes}
             onChange={value =>
               setFeedViewPref({
-                hideQuotePosts: !value,
+                hideQuoteNotes: !value,
               })
             }>
             <SettingsList.Item>
               <SettingsList.ItemIcon icon={QuoteIcon} />
               <SettingsList.ItemText>
-                <Trans>Show quote posts</Trans>
+                <Trans>Show quote notes</Trans>
               </SettingsList.ItemText>
               <Toggle.Platform />
             </SettingsList.Item>

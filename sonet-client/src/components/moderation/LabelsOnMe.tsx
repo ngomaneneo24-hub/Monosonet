@@ -1,5 +1,5 @@
 import {StyleProp, View, ViewStyle} from 'react-native'
-import {AppBskyFeedDefs, ComAtprotoLabelDefs} from '@atproto/api'
+import {SonetFeedDefs, SonetLabelDefs} from '@sonet/api'
 import {msg, Plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -19,7 +19,7 @@ export function LabelsOnMe({
   style,
 }: {
   type: 'account' | 'content'
-  labels: ComAtprotoLabelDefs.Label[] | undefined
+  labels: SonetLabelDefs.Label[] | undefined
   size?: ButtonSize
   style?: StyleProp<ViewStyle>
 }) {
@@ -74,18 +74,18 @@ export function LabelsOnMe({
   )
 }
 
-export function LabelsOnMyPost({
-  post,
+export function LabelsOnMyNote({
+  note,
   style,
 }: {
-  post: AppBskyFeedDefs.PostView
+  note: SonetFeedDefs.NoteView
   style?: StyleProp<ViewStyle>
 }) {
   const {currentAccount} = useSession()
-  if (post.author.did !== currentAccount?.did) {
+  if (note.author.userId !== currentAccount?.userId) {
     return null
   }
   return (
-    <LabelsOnMe type="content" labels={post.labels} size="tiny" style={style} />
+    <LabelsOnMe type="content" labels={note.labels} size="tiny" style={style} />
   )
 }

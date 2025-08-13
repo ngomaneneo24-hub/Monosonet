@@ -11,7 +11,7 @@ import {type PressableScale} from '#/lib/custom-animations/PressableScale'
 import {useNavigationTabState} from '#/lib/hooks/useNavigationTabState'
 import {getTabState, TabState} from '#/lib/routes/helpers'
 import {type NavigationProp} from '#/lib/routes/types'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {colors} from '#/lib/styles'
 import {isWeb} from '#/platform/detection'
 import {emitSoftReset} from '#/state/events'
@@ -66,7 +66,7 @@ let DrawerProfileCard = ({
 }): React.ReactNode => {
   const {_, i18n} = useLingui()
   const t = useTheme()
-  const {data: profile} = useProfileQuery({did: account.did})
+  const {data: profile} = useProfileQuery({userId: account.userId})
   const verification = useSimpleVerificationState({profile})
   const {isActive: live} = useActorStatus(profile)
 
@@ -91,7 +91,7 @@ let DrawerProfileCard = ({
             emoji
             style={[a.font_heavy, a.text_xl, a.mt_2xs, a.leading_tight]}
             numberOfLines={1}>
-            {profile?.displayName || account.handle}
+            {profile?.displayName || account.username}
           </Text>
           {verification.showBadge && (
             <View
@@ -109,7 +109,7 @@ let DrawerProfileCard = ({
           emoji
           style={[t.atoms.text_contrast_medium, a.text_md, a.leading_tight]}
           numberOfLines={1}>
-          {sanitizeHandle(account.handle, '@')}
+          {sanitizeUsername(account.username, '@')}
         </Text>
       </View>
       <Text style={[a.text_md, t.atoms.text_contrast_medium]}>
@@ -166,7 +166,7 @@ let DrawerContent = ({}: React.PropsWithoutRef<{}>): React.ReactNode => {
       if (isWeb) {
         // hack because we have flat navigator for web and MyProfile does not exist on the web navigator -ansh
         if (tab === 'MyProfile') {
-          navigation.navigate('Profile', {name: currentAccount!.handle})
+          navigation.navigate('Profile', {name: currentAccount!.username})
         } else {
           // @ts-expect-error struggles with string unions, apparently
           navigation.navigate(tab)
@@ -240,7 +240,7 @@ let DrawerContent = ({}: React.PropsWithoutRef<{}>): React.ReactNode => {
     Linking.openURL(
       FEEDBACK_FORM_URL({
         email: currentAccount?.email,
-        handle: currentAccount?.handle,
+        username: currentAccount?.username,
       }),
     )
   }, [currentAccount])
@@ -658,12 +658,12 @@ function ExtraLinks() {
       <InlineLinkText
         style={[a.text_md]}
         label={_(msg`Terms of Service`)}
-        to="https://bsky.social/about/support/tos">
+        to="https://sonet.social/about/support/tos">
         <Trans>Terms of Service</Trans>
       </InlineLinkText>
       <InlineLinkText
         style={[a.text_md]}
-        to="https://bsky.social/about/support/privacy-policy"
+        to="https://sonet.social/about/support/privacy-policy"
         label={_(msg`Privacy Policy`)}>
         <Trans>Privacy Policy</Trans>
       </InlineLinkText>
@@ -673,9 +673,9 @@ function ExtraLinks() {
             Logo by{' '}
             <InlineLinkText
               style={[a.text_md]}
-              to="/profile/sawaratsuki.bsky.social"
-              label="@sawaratsuki.bsky.social">
-              @sawaratsuki.bsky.social
+              to="/profile/sawaratsuki.sonet.social"
+              label="@sawaratsuki.sonet.social">
+              @sawaratsuki.sonet.social
             </InlineLinkText>
           </Trans>
         </Text>

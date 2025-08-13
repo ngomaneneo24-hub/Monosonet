@@ -159,9 +159,9 @@ export function useCreateStarterpackMutation() {
       return response
     },
     onSuccess: () => {
-      if (currentAccount?.did) {
+      if (currentAccount?.userId) {
         queryClient.invalidateQueries({
-          queryKey: RQKEY_USER_STARTERPACKS(currentAccount.did),
+          queryKey: RQKEY_USER_STARTERPACKS(currentAccount.userId),
         })
       }
     },
@@ -208,9 +208,9 @@ export function useDeleteStarterpackMutation() {
       queryClient.removeQueries({
         queryKey: RQKEY_STARTERPACK_ITEMS(starterpack_id),
       })
-      if (currentAccount?.did) {
+      if (currentAccount?.userId) {
         queryClient.invalidateQueries({
-          queryKey: RQKEY_USER_STARTERPACKS(currentAccount.did),
+          queryKey: RQKEY_USER_STARTERPACKS(currentAccount.userId),
         })
       }
     },

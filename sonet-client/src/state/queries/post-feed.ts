@@ -2,9 +2,9 @@ import React, {useCallback, useEffect, useRef} from 'react'
 import {AppState} from 'react-native'
 import {
   type SonetProfile,
-  type SonetPost,
-  type SonetPostRecord,
-  type SonetFeedViewPost,
+  type SonetNote,
+  type SonetNoteRecord,
+  type SonetFeedViewNote,
   type SonetInteraction,
 } from '#/types/sonet'
 import {
@@ -22,12 +22,12 @@ import {HomeFeedAPI} from '#/lib/api/feed/home'
 import {LikesFeedAPI} from '#/lib/api/feed/likes'
 import {ListFeedAPI} from '#/lib/api/feed/list'
 import {MergeFeedAPI} from '#/lib/api/feed/merge'
-import {PostListFeedAPI} from '#/lib/api/feed/posts'
+import {NoteListFeedAPI} from '#/lib/api/feed/notes'
 import {type FeedAPI, type ReasonFeedSource} from '#/lib/api/feed/types'
 import {aggregateUserInterests} from '#/lib/api/feed/utils'
 import {FeedTuner, type FeedTunerFn} from '#/lib/api/feed-manip'
 import {DISCOVER_FEED_URI} from '#/lib/constants'
-import {BSKY_FEED_OWNER_DIDS} from '#/lib/constants'
+import {BSKY_FEED_OWNER_UserIDS} from '#/lib/constants'
 import {logger} from '#/logger'
 import {useAgeAssuranceContext} from '#/state/ageAssurance'
 import {STALE} from '#/state/queries'
@@ -35,26 +35,26 @@ import {DEFAULT_LOGGED_OUT_PREFERENCES} from '#/state/queries/preferences/const'
 import {useAgent} from '#/state/session'
 import {useSonetApi, useSonetSession} from '#/state/session/sonet'
 import * as userActionHistory from '#/state/userActionHistory'
-import {KnownError} from '#/view/com/posts/PostFeedErrorMessage'
+import {KnownError} from '#/view/com/notes/NoteFeedErrorMessage'
 import {useFeedTuners} from '../preferences/feed-tuners'
 import {useModerationOpts} from '../preferences/moderation-opts'
 import {usePreferencesQuery} from './preferences'
 import {
-  didOrHandleUriMatches,
-  embedViewRecordToPostView,
-  getEmbeddedPost,
+  userIdOrUsernameUriMatches,
+  embedViewRecordToNoteView,
+  getEmbeddedNote,
 } from './util'
 
 type ActorDid = string
 export type AuthorFilter =
-  | 'posts_with_replies'
-  | 'posts_no_replies'
-  | 'posts_and_author_threads'
-  | 'posts_with_media'
-  | 'posts_with_video'
+  | 'notes_with_replies'
+  | 'notes_no_replies'
+  | 'notes_and_author_threads'
+  | 'notes_with_media'
+  | 'notes_with_video'
 type FeedUri = string
 type ListUri = string
-type PostsUriList = string
+type NotesUriList = string
 
 export type FeedDescriptor =
   | 'following'
@@ -62,7 +62,7 @@ export type FeedDescriptor =
   | `feedgen|${FeedUri}`
   | `likes|${ActorDid}`
   | `list|${ListUri}`
-  | `posts|${PostsUriList}`
+  | `notes|${NotesUriList}`
   | 'demo'
 export interface FeedParams {
   mergeFeedEnabled?: boolean
@@ -72,34 +72,34 @@ export interface FeedParams {
 
 type RQPageParam = {cursor: string | undefined; api: FeedAPI} | undefined
 
-export const RQKEY_ROOT = 'post-feed'
+export const RQKEY_ROOT = 'note-feed'
 export function RQKEY(feedDesc: FeedDescriptor, params?: FeedParams) {
   return [RQKEY_ROOT, feedDesc, params || {}]
 }
 
-export interface FeedPostSliceItem {
+export interface FeedNoteSliceItem {
   _reactKey: string
   uri: string
-  post: SonetPost
-  record: SonetPostRecord
+  note: SonetNote
+  record: SonetNoteRecord
   moderation: any // TODO: Replace with SonetModerationDecision type when created
   parentAuthor?: SonetProfile
   isParentBlocked?: boolean
   isParentNotFound?: boolean
 }
 
-export interface FeedPostSlice {
-  _isFeedPostSlice: boolean
+export interface FeedNoteSlice {
+  _isFeedNoteSlice: boolean
   _reactKey: string
-  items: FeedPostSliceItem[]
+  items: FeedNoteSliceItem[]
   isIncompleteThread: boolean
   isFallbackMarker: boolean
   feedContext: string | undefined
   reqId: string | undefined
-  feedPostUri: string
+  feedNoteUri: string
   reason?:
     | SonetReason
-    | AppBskyFeedDefs.ReasonPin
+    | SonetFeedDefs.ReasonPin
     | ReasonFeedSource
     | {[k: string]: unknown; $type: string}
 }
@@ -107,7 +107,7 @@ export interface FeedPostSlice {
 export interface FeedPageUnselected {
   api: FeedAPI
   cursor: string | undefined
-  feed: SonetFeedViewPost[]
+  feed: SonetFeedViewNote[]
   fetchedAt: number
 }
 
@@ -115,18 +115,18 @@ export interface FeedPage {
   api: FeedAPI
   tuner: FeedTuner
   cursor: string | undefined
-  slices: FeedPostSlice[]
+  slices: FeedNoteSlice[]
   fetchedAt: number
 }
 
 /**
- * The minimum number of posts we want in a single "page" of results. Since we
+ * The minimum number of notes we want in a single "page" of results. Since we
  * filter out unwanted content, we may fetch more than this number to ensure
  * that we get _at least_ this number.
  */
 const MIN_POSTS = 30
 
-export function usePostFeedQuery(
+export function useNoteFeedQuery(
   feedDesc: FeedDescriptor,
   params?: FeedParams,
   opts?: {enabled?: boolean; ignoreFilterFor?: string},
@@ -163,7 +163,7 @@ export function usePostFeedQuery(
   const isDiscover = feedDesc.includes(DISCOVER_FEED_URI)
 
   /**
-   * The number of posts to fetch in a single request. Because we filter
+   * The number of notes to fetch in a single request. Because we filter
    * unwanted content, we may over-fetch here to try and fill pages by
    * `MIN_POSTS`. But if you're doing this, ask @why if it's ok first.
    */
@@ -191,7 +191,7 @@ export function usePostFeedQuery(
     staleTime: STALE.INFINITY,
     queryKey: RQKEY(feedDesc, params),
     async queryFn({pageParam}: {pageParam: RQPageParam}) {
-      logger.debug('usePostFeedQuery', {feedDesc, cursor: pageParam?.cursor})
+      logger.debug('useNoteFeedQuery', {feedDesc, cursor: pageParam?.cursor})
       const {api, cursor} = pageParam
         ? pageParam
         : {
@@ -214,13 +214,13 @@ export function usePostFeedQuery(
         const res = await api.fetch({cursor, limit: fetchLimit})
 
         /*
-         * If this is a public view, we need to check if posts fail moderation.
+         * If this is a public view, we need to check if notes fail moderation.
          * If all fail, we throw an error. If only some fail, we continue and let
-         * moderations happen later, which results in some posts being shown and
+         * moderations happen later, which results in some notes being shown and
          * some not.
          */
         if (!agent.session) {
-          assertSomePostsPassModeration(
+          assertSomeNotesPassModeration(
             res.feed,
             preferences?.moderationPrefs ||
               DEFAULT_LOGGED_OUT_PREFERENCES.moderationPrefs,
@@ -239,7 +239,7 @@ export function usePostFeedQuery(
 
         if (
           feedDescParts[0] === 'feedgen' &&
-          BSKY_FEED_OWNER_DIDS.includes(feedOwnerDid)
+          BSKY_FEED_OWNER_UserIDS.includes(feedOwnerDid)
         ) {
           logger.error(`Bluesky feed may be offline: ${feedOwnerDid}`, {
             feedDesc,
@@ -313,13 +313,13 @@ export function usePostFeedQuery(
                 .tune(page.feed)
                 .map(slice => {
                   const moderations = slice.items.map(item =>
-                    moderatePost(item.post, moderationOpts!),
+                    moderateNote(item.note, moderationOpts!),
                   )
 
                   // apply moderation filter
                   for (let i = 0; i < slice.items.length; i++) {
                     const ignoreFilter =
-                      slice.items[i].post.author.did === ignoreFilterFor
+                      slice.items[i].note.author.userId === ignoreFilterFor
                     if (ignoreFilter) {
                       // remove mutes to avoid confused UIs
                       moderations[i].causes = moderations[i].causes.filter(
@@ -339,41 +339,41 @@ export function usePostFeedQuery(
                       slice.items.map(item => ({
                         feedContext: slice.feedContext,
                         reqId: slice.reqId,
-                        likeCount: item.post.likeCount ?? 0,
-                        repostCount: item.post.repostCount ?? 0,
-                        replyCount: item.post.replyCount ?? 0,
+                        likeCount: item.note.likeCount ?? 0,
+                        renoteCount: item.note.renoteCount ?? 0,
+                        replyCount: item.note.replyCount ?? 0,
                         isFollowedBy: Boolean(
-                          item.post.author.viewer?.followedBy,
+                          item.note.author.viewer?.followedBy,
                         ),
-                        uri: item.post.uri,
+                        uri: item.note.uri,
                       })),
                     )
                   }
 
-                  const feedPostSlice: FeedPostSlice = {
+                  const feedNoteSlice: FeedNoteSlice = {
                     _reactKey: slice._reactKey,
-                    _isFeedPostSlice: true,
+                    _isFeedNoteSlice: true,
                     isIncompleteThread: slice.isIncompleteThread,
                     isFallbackMarker: slice.isFallbackMarker,
                     feedContext: slice.feedContext,
                     reqId: slice.reqId,
                     reason: slice.reason,
-                    feedPostUri: slice.feedPostUri,
+                    feedNoteUri: slice.feedNoteUri,
                     items: slice.items.map((item, i) => {
-                      const feedPostSliceItem: FeedPostSliceItem = {
-                        _reactKey: `${slice._reactKey}-${i}-${item.post.uri}`,
-                        uri: item.post.uri,
-                        post: item.post,
+                      const feedNoteSliceItem: FeedNoteSliceItem = {
+                        _reactKey: `${slice._reactKey}-${i}-${item.note.uri}`,
+                        uri: item.note.uri,
+                        note: item.note,
                         record: item.record,
                         moderation: moderations[i],
                         parentAuthor: item.parentAuthor,
                         isParentBlocked: item.isParentBlocked,
                         isParentNotFound: item.isParentNotFound,
                       }
-                      return feedPostSliceItem
+                      return feedNoteSliceItem
                     }),
                   }
-                  return feedPostSlice
+                  return feedNoteSlice
                 })
                 .filter(n => !!n),
             })),
@@ -426,7 +426,7 @@ export function usePostFeedQuery(
       }
     } else if (hasNextPage) {
       // At this point we're not fetching anymore, so it's time to make a decision.
-      // If we didn't receive enough items from the server, paginate again until we do.
+      // If we userIdn't receive enough items from the server, paginate again until we do.
       if (itemCount < wantedItemCount.current) {
         autoPaginationAttemptCount.current++
         if (autoPaginationAttemptCount.current < 50 /* failsafe */) {
@@ -449,10 +449,10 @@ export async function pollLatest(page: FeedPage | undefined) {
     return
   }
 
-  logger.debug('usePostFeedQuery: pollLatest')
-  const post = await page.api.peekLatest()
-  if (post) {
-    const slices = page.tuner.tune([post], {
+  logger.debug('useNoteFeedQuery: pollLatest')
+  const note = await page.api.peekLatest()
+  if (note) {
+    const slices = page.tuner.tune([note], {
       dryRun: true,
     })
     if (slices[0]) {
@@ -497,7 +497,7 @@ function createApi({
     const [_, actor, filter] = feedDesc.split('|')
     if ((useSonetSession as any) && (useSonetSession as any)().hasSession) {
       const sonetApi = (useSonetApi as any)().getApi()
-      return new SonetAuthorFeedAPI({sonet: sonetApi, userId: actor.replace('did:', '')})
+      return new SonetAuthorFeedAPI({sonet: sonetApi, userId: actor.replace('userId:', '')})
     }
     return new AuthorFeedAPI({agent, feedParams: {actor, filter}})
   } else if (feedDesc.startsWith('likes')) {
@@ -513,9 +513,9 @@ function createApi({
   } else if (feedDesc.startsWith('list')) {
     const [_, list] = feedDesc.split('|')
     return new ListFeedAPI({agent, feedParams: {list}})
-  } else if (feedDesc.startsWith('posts')) {
+  } else if (feedDesc.startsWith('notes')) {
     const [_, uriList] = feedDesc.split('|')
-    return new PostListFeedAPI({agent, feedParams: {uris: uriList.split(',')}})
+    return new NoteListFeedAPI({agent, feedParams: {uris: uriList.split(',')}})
   } else if (feedDesc === 'demo') {
     return new DemoFeedAPI({agent})
   } else {
@@ -530,45 +530,45 @@ function createSonetHomeApi({sonet}: {sonet: ReturnType<typeof useSonetApi>['get
       const res = await sonet.getHomeTimeline({limit: 1})
       const items = Array.isArray(res.notes) ? res.notes : []
       const first = items[0]
-      return first ? mapSonetNoteToFeedViewPost(first) : {post: {uri: 'sonet://empty', cid: 'empty', author: {did: 'sonet:user', handle: 'user'} as any} as any}
+      return first ? mapSonetNoteToFeedViewNote(first) : {note: {uri: 'sonet://empty', cid: 'empty', author: {userId: 'sonet:user', username: 'user'} as any} as any}
     },
     async fetch({cursor, limit}) {
       const res = await sonet.getHomeTimeline({cursor, limit})
       const notes = Array.isArray(res.notes) ? res.notes : []
       return {
         cursor: res?.pagination?.cursor || undefined,
-        feed: notes.map(mapSonetNoteToFeedViewPost),
+        feed: notes.map(mapSonetNoteToFeedViewNote),
       }
     },
   }
   return api
 }
 
-function mapSonetNoteToFeedViewPost(n: any): SonetFeedViewPost {
-  // Map minimal Sonet note response to a FeedViewPost shape
+function mapSonetNoteToFeedViewNote(n: any): SonetFeedViewNote {
+  // Map minimal Sonet note response to a FeedViewNote shape
   const author = n.author || {}
-  const post: SonetPost = {
+  const note: SonetNote = {
     uri: `sonet://note/${n.id}`,
     cid: n.id,
     author: {
-      did: author.did || author.id || 'sonet:user',
-      handle: author.username || 'user',
+      userId: author.userId || author.id || 'sonet:user',
+      username: author.username || 'user',
       displayName: author.display_name,
       avatar: author.avatar_url,
     } as any,
     record: {text: n.content || n.text || ''} as any,
     likeCount: n.like_count || 0,
-    repostCount: n.renote_count || n.repost_count || 0,
+    renoteCount: n.renote_count || n.renote_count || 0,
     replyCount: n.reply_count || 0,
     indexedAt: n.created_at || new Date().toISOString(),
   }
-  return {post}
+  return {note}
 }
 
-export function* findAllPostsInQueryData(
+export function* findAllNotesInQueryData(
   queryClient: QueryClient,
   uri: string,
-): Generator<SonetPost, undefined> {
+): Generator<SonetNote, undefined> {
   const atUri = new SonetUri(uri)
 
   const queryDatas = queryClient.getQueriesData<
@@ -582,37 +582,37 @@ export function* findAllPostsInQueryData(
     }
     for (const page of queryData?.pages) {
       for (const item of page.feed) {
-        if (didOrHandleUriMatches(atUri, item.post)) {
-          yield item.post
+        if (userIdOrUsernameUriMatches(atUri, item.note)) {
+          yield item.note
         }
 
-        const quotedPost = getEmbeddedPost(item.post.embed)
-        if (quotedPost && didOrHandleUriMatches(atUri, quotedPost)) {
-          yield embedViewRecordToPostView(quotedPost)
+        const quotedNote = getEmbeddedNote(item.note.embed)
+        if (quotedNote && userIdOrUsernameUriMatches(atUri, quotedNote)) {
+          yield embedViewRecordToNoteView(quotedNote)
         }
 
-        if (AppBskyFeedDefs.isPostView(item.reply?.parent)) {
-          if (didOrHandleUriMatches(atUri, item.reply.parent)) {
+        if (SonetFeedDefs.isNoteView(item.reply?.parent)) {
+          if (userIdOrUsernameUriMatches(atUri, item.reply.parent)) {
             yield item.reply.parent
           }
 
-          const parentQuotedPost = getEmbeddedPost(item.reply.parent.embed)
+          const parentQuotedNote = getEmbeddedNote(item.reply.parent.embed)
           if (
-            parentQuotedPost &&
-            didOrHandleUriMatches(atUri, parentQuotedPost)
+            parentQuotedNote &&
+            userIdOrUsernameUriMatches(atUri, parentQuotedNote)
           ) {
-            yield embedViewRecordToPostView(parentQuotedPost)
+            yield embedViewRecordToNoteView(parentQuotedNote)
           }
         }
 
-        if (AppBskyFeedDefs.isPostView(item.reply?.root)) {
-          if (didOrHandleUriMatches(atUri, item.reply.root)) {
+        if (SonetFeedDefs.isNoteView(item.reply?.root)) {
+          if (userIdOrUsernameUriMatches(atUri, item.reply.root)) {
             yield item.reply.root
           }
 
-          const rootQuotedPost = getEmbeddedPost(item.reply.root.embed)
-          if (rootQuotedPost && didOrHandleUriMatches(atUri, rootQuotedPost)) {
-            yield embedViewRecordToPostView(rootQuotedPost)
+          const rootQuotedNote = getEmbeddedNote(item.reply.root.embed)
+          if (rootQuotedNote && userIdOrUsernameUriMatches(atUri, rootQuotedNote)) {
+            yield embedViewRecordToNoteView(rootQuotedNote)
           }
         }
       }
@@ -622,7 +622,7 @@ export function* findAllPostsInQueryData(
 
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
-  did: string,
+  userId: string,
 ): Generator<SonetProfile, undefined> {
   const queryDatas = queryClient.getQueriesData<
     InfiniteData<FeedPageUnselected>
@@ -635,22 +635,22 @@ export function* findAllProfilesInQueryData(
     }
     for (const page of queryData?.pages) {
       for (const item of page.feed) {
-        if (item.post.author.did === did) {
-          yield item.post.author
+        if (item.note.author.userId === userId) {
+          yield item.note.author
         }
-        const quotedPost = getEmbeddedPost(item.post.embed)
-        if (quotedPost?.author.did === did) {
-          yield quotedPost.author
+        const quotedNote = getEmbeddedNote(item.note.embed)
+        if (quotedNote?.author.userId === userId) {
+          yield quotedNote.author
         }
         if (
-          AppBskyFeedDefs.isPostView(item.reply?.parent) &&
-          item.reply?.parent?.author.did === did
+          SonetFeedDefs.isNoteView(item.reply?.parent) &&
+          item.reply?.parent?.author.userId === userId
         ) {
           yield item.reply.parent.author
         }
         if (
-          AppBskyFeedDefs.isPostView(item.reply?.root) &&
-          item.reply?.root?.author.did === did
+          SonetFeedDefs.isNoteView(item.reply?.root) &&
+          item.reply?.root?.author.userId === userId
         ) {
           yield item.reply.root.author
         }
@@ -659,34 +659,34 @@ export function* findAllProfilesInQueryData(
   }
 }
 
-function assertSomePostsPassModeration(
-  feed: SonetFeedViewPost[],
+function assertSomeNotesPassModeration(
+  feed: SonetFeedViewNote[],
   moderationPrefs: SonetModerationPrefs,
 ) {
-  // no posts in this feed
+  // no notes in this feed
   if (feed.length === 0) return true
 
   // assume false
-  let somePostsPassModeration = false
+  let someNotesPassModeration = false
 
   for (const item of feed) {
-    const moderation = moderatePost(item.post, {
+    const moderation = moderateNote(item.note, {
       userDid: undefined,
       prefs: moderationPrefs,
     })
 
     if (!moderation.ui('contentList').filter) {
-      // we have a sfw post
-      somePostsPassModeration = true
+      // we have a sfw note
+      someNotesPassModeration = true
     }
   }
 
-  if (!somePostsPassModeration) {
+  if (!someNotesPassModeration) {
     throw new Error(KnownError.FeedSignedInOnly)
   }
 }
 
-export function resetPostsFeedQueries(queryClient: QueryClient, timeout = 0) {
+export function resetNotesFeedQueries(queryClient: QueryClient, timeout = 0) {
   setTimeout(() => {
     queryClient.resetQueries({
       predicate: query => query.queryKey[0] === RQKEY_ROOT,
@@ -694,9 +694,9 @@ export function resetPostsFeedQueries(queryClient: QueryClient, timeout = 0) {
   }, timeout)
 }
 
-export function resetProfilePostsQueries(
+export function resetProfileNotesQueries(
   queryClient: QueryClient,
-  did: string,
+  userId: string,
   timeout = 0,
 ) {
   setTimeout(() => {
@@ -704,14 +704,14 @@ export function resetProfilePostsQueries(
       predicate: query =>
         !!(
           query.queryKey[0] === RQKEY_ROOT &&
-          (query.queryKey[1] as string)?.includes(did)
+          (query.queryKey[1] as string)?.includes(userId)
         ),
     })
   }, timeout)
 }
 
-export function isFeedPostSlice(v: any): v is FeedPostSlice {
+export function isFeedNoteSlice(v: any): v is FeedNoteSlice {
   return (
-    v && typeof v === 'object' && '_isFeedPostSlice' in v && v._isFeedPostSlice
+    v && typeof v === 'object' && '_isFeedNoteSlice' in v && v._isFeedNoteSlice
   )
 }

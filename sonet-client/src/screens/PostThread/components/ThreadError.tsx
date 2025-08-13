@@ -4,7 +4,7 @@ import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
 import {useCleanError} from '#/lib/hooks/useCleanError'
-import {OUTER_SPACE} from '#/screens/PostThread/const'
+import {OUTER_SPACE} from '#/screens/NoteThread/const'
 import {atoms as a, useTheme} from '#/alf'
 import {Button, ButtonIcon, ButtonText} from '#/components/Button'
 import {ArrowRotateCounterClockwise_Stroke2_Corner0_Rounded as RetryIcon} from '#/components/icons/ArrowRotateCounterClockwise'
@@ -23,13 +23,13 @@ export function ThreadError({
   const cleanError = useCleanError()
 
   const {title, message} = useMemo(() => {
-    let title = _(msg`Error loading post`)
+    let title = _(msg`Error loading note`)
     let message = _(msg`Something went wrong. Please try again in a moment.`)
 
     const {raw, clean} = cleanError(error)
 
-    if (error.message.startsWith('Post not found')) {
-      title = _(msg`Post not found`)
+    if (error.message.startsWith('Note not found')) {
+      title = _(msg`Note not found`)
       message = clean || raw || message
     }
 

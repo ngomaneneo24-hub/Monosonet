@@ -40,8 +40,8 @@ export function NewChat({
   })
 
   const onCreateChat = useCallback(
-    (did: string) => {
-      control.close(() => createChat([did]))
+    (userId: string) => {
+      control.close(() => createChat([userId]))
     },
     [control, createChat],
   )
@@ -69,7 +69,7 @@ export function NewChat({
       />
 
       <Dialog.Outer control={control} testID="newChatDialog">
-        <Dialog.Handle />
+        <Dialog.Username />
         <SearchablePeopleList
           title={_(msg`Start a new chat`)}
           onSelectChat={onCreateChat}

@@ -3,7 +3,7 @@
  * mobile experience (a single narrow column). We then place a UI
  * shell around the content if you're in desktop.
  *
- * Because scrolling is handled by components deep in the hierarchy,
+ * Because scrolling is usernamed by components deep in the hierarchy,
  * we can't just wrap the top-level element with a max width. The
  * centering has to be done at the ScrollView.
  *

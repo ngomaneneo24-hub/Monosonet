@@ -1,6 +1,6 @@
 import React from 'react'
 import {View} from 'react-native'
-import {ModerationDecision} from '@atproto/api'
+import {ModerationDecision} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 

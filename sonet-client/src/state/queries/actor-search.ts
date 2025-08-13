@@ -1,7 +1,7 @@
 import {
-  type AppBskyActorDefs,
-  type AppBskyActorSearchActors,
-} from '@atproto/api'
+  type SonetActorDefs,
+  type SonetActorSearchActors,
+} from '@sonet/api'
 import {
   type InfiniteData,
   keepPreviousData,
@@ -35,7 +35,7 @@ export function useActorSearch({
   const agent = useAgent()
   const sonet = useSonetApi()
   const sonetSession = useSonetSession()
-  return useQuery<AppBskyActorDefs.ProfileView[]>({
+  return useQuery<SonetActorDefs.ProfileView[]>({
     staleTime: STALE.MINUTES.ONE,
     queryKey: RQKEY(query || ''),
     async queryFn() {
@@ -43,8 +43,8 @@ export function useActorSearch({
         const res = await sonet.getApi().search(query, 'users', {limit: 25})
         const users = Array.isArray(res?.results) ? res.results : []
         return users.map((u: any) => ({
-          did: u.id || u.did || 'sonet:user',
-          handle: u.username,
+          userId: u.id || u.userId || 'sonet:user',
+          username: u.username,
           displayName: u.display_name,
           avatar: u.avatar_url,
         } as any))
@@ -73,9 +73,9 @@ export function useActorSearchPaginated({
   const sonet = useSonetApi()
   const sonetSession = useSonetSession()
   return useInfiniteQuery<
-    AppBskyActorSearchActors.OutputSchema,
+    SonetActorSearchActors.OutputSchema,
     Error,
-    InfiniteData<AppBskyActorSearchActors.OutputSchema>,
+    InfiniteData<SonetActorSearchActors.OutputSchema>,
     QueryKey,
     string | undefined
   >({
@@ -85,7 +85,7 @@ export function useActorSearchPaginated({
       if (sonetSession.hasSession) {
         const res = await sonet.getApi().search(query, 'users', {limit, cursor: pageParam})
         return {cursor: res?.pagination?.cursor, actors: (res?.results || []).map((u: any) => ({
-          did: u.id || u.did || 'sonet:user', handle: u.username, displayName: u.display_name, avatar: u.avatar_url,
+          userId: u.id || u.userId || 'sonet:user', username: u.username, displayName: u.display_name, avatar: u.avatar_url,
         } as any))} as any
       }
       const res = await agent.searchActors({
@@ -104,9 +104,9 @@ export function useActorSearchPaginated({
 
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
-  did: string,
+  userId: string,
 ) {
-  const queryDatas = queryClient.getQueriesData<AppBskyActorDefs.ProfileView[]>(
+  const queryDatas = queryClient.getQueriesData<SonetActorDefs.ProfileView[]>(
     {
       queryKey: [RQKEY_ROOT],
     },
@@ -116,14 +116,14 @@ export function* findAllProfilesInQueryData(
       continue
     }
     for (const actor of queryData) {
-      if (actor.did === did) {
+      if (actor.userId === userId) {
         yield actor
       }
     }
   }
 
   const queryDatasPaginated = queryClient.getQueriesData<
-    InfiniteData<AppBskyActorSearchActors.OutputSchema>
+    InfiniteData<SonetActorSearchActors.OutputSchema>
   >({
     queryKey: [RQKEY_ROOT_PAGINATED],
   })
@@ -132,7 +132,7 @@ export function* findAllProfilesInQueryData(
       continue
     }
     for (const actor of queryData.pages.flatMap(page => page.actors)) {
-      if (actor.did === did) {
+      if (actor.userId === userId) {
         yield actor
       }
     }

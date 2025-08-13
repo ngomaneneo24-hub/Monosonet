@@ -1,6 +1,6 @@
 import React from 'react'
 import {View} from 'react-native'
-import {BSKY_LABELER_DID, ModerationCause} from '@atproto/api'
+import {BSKY_LABELER_UserID, ModerationCause} from '@sonet/api'
 import {Trans} from '@lingui/macro'
 
 import {useModerationCauseDescription} from '#/lib/moderation/useModerationCauseDescription'
@@ -17,7 +17,7 @@ export type AppModerationCause =
   | ModerationCause
   | {
       type: 'reply-hidden'
-      source: {type: 'user'; did: string}
+      source: {type: 'user'; userId: string}
       priority: 6
       downgraded?: boolean
     }
@@ -65,7 +65,7 @@ export function Label({
   const desc = useModerationCauseDescription(cause)
   const isLabeler = Boolean(desc.sourceType && desc.sourceDid)
   const isBlueskyLabel =
-    desc.sourceType === 'labeler' && desc.sourceDid === BSKY_LABELER_DID
+    desc.sourceType === 'labeler' && desc.sourceDid === BSKY_LABELER_UserID
 
   const {outer, avi, text} = React.useMemo(() => {
     switch (size) {

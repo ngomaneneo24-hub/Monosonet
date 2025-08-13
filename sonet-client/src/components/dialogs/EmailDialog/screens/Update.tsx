@@ -121,14 +121,14 @@ export function Update(_props: ScreenProps<ScreenID.Update>) {
   const {mutateAsync: requestEmailUpdate} = useRequestEmailUpdate()
   const {mutateAsync: requestEmailVerification} = useRequestEmailVerification()
 
-  const handleEmailChange = (email: string) => {
+  const usernameEmailChange = (email: string) => {
     dispatch({
       type: 'setEmail',
       value: email,
     })
   }
 
-  const handleUpdateEmail = async () => {
+  const usernameUpdateEmail = async () => {
     if (state.step === 'token' && !isValidCode(state.token)) {
       dispatch({
         type: 'setError',
@@ -225,12 +225,12 @@ export function Update(_props: ScreenProps<ScreenID.Update>) {
               onChangeText={
                 state.mutationStatus === 'success'
                   ? undefined
-                  : handleEmailChange
+                  : usernameEmailChange
               }
               keyboardType="email-address"
               autoComplete="email"
               autoCapitalize="none"
-              onSubmitEditing={handleUpdateEmail}
+              onSubmitEditing={usernameUpdateEmail}
             />
           </TextField.Root>
         </View>
@@ -261,7 +261,7 @@ export function Update(_props: ScreenProps<ScreenID.Update>) {
                         })
                       }
                 }
-                onSubmitEditing={handleUpdateEmail}
+                onSubmitEditing={usernameUpdateEmail}
               />
               {state.mutationStatus !== 'success' && (
                 <ResendEmailText
@@ -301,7 +301,7 @@ export function Update(_props: ScreenProps<ScreenID.Update>) {
           size="large"
           variant="solid"
           color="primary"
-          onPress={handleUpdateEmail}
+          onPress={usernameUpdateEmail}
           disabled={
             !state.email ||
             (state.step === 'token' &&

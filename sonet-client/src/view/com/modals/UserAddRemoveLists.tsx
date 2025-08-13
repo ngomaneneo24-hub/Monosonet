@@ -5,14 +5,14 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
-import {AppBskyGraphDefs as GraphDefs} from '@atproto/api'
+import {SonetGraphDefs as GraphDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
 import {usePalette} from '#/lib/hooks/usePalette'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
 import {cleanError} from '#/lib/strings/errors'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {s} from '#/lib/styles'
 import {isAndroid, isMobileWeb, isWeb} from '#/platform/detection'
 import {useModalControls} from '#/state/modals'
@@ -34,13 +34,13 @@ export const snapPoints = ['fullscreen']
 
 export function Component({
   subject,
-  handle,
+  username,
   displayName,
   onAdd,
   onRemove,
 }: {
   subject: string
-  handle: string
+  username: string
   displayName: string
   onAdd?: (listUri: string) => void
   onRemove?: (listUri: string) => void
@@ -97,7 +97,7 @@ export function Component({
             list={list}
             memberships={memberships}
             subject={subject}
-            handle={handle}
+            username={username}
             onAdd={onAdd}
             onRemove={onRemove}
           />
@@ -125,7 +125,7 @@ function ListItem({
   list,
   memberships,
   subject,
-  handle,
+  username,
   onAdd,
   onRemove,
 }: {
@@ -133,7 +133,7 @@ function ListItem({
   list: GraphDefs.ListView
   memberships: ListMembersip[] | undefined
   subject: string
-  handle: string
+  username: string
   onAdd?: (listUri: string) => void
   onRemove?: (listUri: string) => void
 }) {
@@ -207,20 +207,20 @@ function ListItem({
           {sanitizeDisplayName(list.name)}
         </Text>
         <Text type="md" style={[pal.textLight]} numberOfLines={1}>
-          {list.purpose === 'app.bsky.graph.defs#curatelist' &&
-            (list.creator.did === currentAccount?.did ? (
+          {list.purpose === 'app.sonet.graph.defs#curatelist' &&
+            (list.creator.userId === currentAccount?.userId ? (
               <Trans>User list by you</Trans>
             ) : (
               <Trans>
-                User list by {sanitizeHandle(list.creator.handle, '@')}
+                User list by {sanitizeUsername(list.creator.username, '@')}
               </Trans>
             ))}
-          {list.purpose === 'app.bsky.graph.defs#modlist' &&
-            (list.creator.did === currentAccount?.did ? (
+          {list.purpose === 'app.sonet.graph.defs#modlist' &&
+            (list.creator.userId === currentAccount?.userId ? (
               <Trans>Moderation list by you</Trans>
             ) : (
               <Trans>
-                Moderation list by {sanitizeHandle(list.creator.handle, '@')}
+                Moderation list by {sanitizeUsername(list.creator.username, '@')}
               </Trans>
             ))}
         </Text>
@@ -230,7 +230,7 @@ function ListItem({
           <ActivityIndicator />
         ) : (
           <Button
-            testID={`user-${handle}-addBtn`}
+            testID={`user-${username}-addBtn`}
             type="default"
             label={membership === false ? _(msg`Add`) : _(msg`Remove`)}
             onPress={onToggleMembership}

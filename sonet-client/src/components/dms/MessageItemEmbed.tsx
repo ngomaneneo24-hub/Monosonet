@@ -1,16 +1,16 @@
 import React from 'react'
 import {useWindowDimensions, View} from 'react-native'
-import {type $Typed, type AppBskyEmbedRecord} from '@atproto/api'
+import {type $Typed, type SonetEmbedRecord} from '@sonet/api'
 
 import {atoms as a, native, tokens, useTheme, web} from '#/alf'
-import {PostEmbedViewContext} from '#/components/Post/Embed'
-import {Embed} from '#/components/Post/Embed'
+import {NoteEmbedViewContext} from '#/components/Note/Embed'
+import {Embed} from '#/components/Note/Embed'
 import {MessageContextProvider} from './MessageContext'
 
 let MessageItemEmbed = ({
   embed,
 }: {
-  embed: $Typed<AppBskyEmbedRecord.View>
+  embed: $Typed<SonetEmbedRecord.View>
 }): React.ReactNode => {
   const t = useTheme()
   const screen = useWindowDimensions()
@@ -36,7 +36,7 @@ let MessageItemEmbed = ({
           <Embed
             embed={embed}
             allowNestedQuotes
-            viewContext={PostEmbedViewContext.Feed}
+            viewContext={NoteEmbedViewContext.Feed}
           />
         </View>
       </View>

@@ -1,14 +1,14 @@
 import {useCallback, useEffect, useState} from 'react'
-import {BackHandler, useWindowDimensions, View} from 'react-native'
+import {BackUsernamer, useWindowDimensions, View} from 'react-native'
 import {Drawer} from 'react-native-drawer-layout'
 import {SystemBars} from 'react-native-edge-to-edge'
-import {Gesture} from 'react-native-gesture-handler'
+import {Gesture} from 'react-native-gesture-usernamer'
 import {useSafeAreaInsets} from 'react-native-safe-area-context'
 import {useNavigation, useNavigationState} from '@react-navigation/native'
 
 import {useDedupe} from '#/lib/hooks/useDedupe'
-import {useIntentHandler} from '#/lib/hooks/useIntentHandler'
-import {useNotificationsHandler} from '#/lib/hooks/useNotificationHandler'
+import {useIntentUsernamer} from '#/lib/hooks/useIntentUsernamer'
+import {useNotificationsUsernamer} from '#/lib/hooks/useNotificationUsernamer'
 import {useNotificationsRegistration} from '#/lib/notifications/notifications'
 import {isStateAtTabRoot} from '#/lib/routes/helpers'
 import {isAndroid, isIOS} from '#/platform/detection'
@@ -38,7 +38,7 @@ import {
 import {Outlet as PortalOutlet} from '#/components/Portal'
 import {RoutesContainer, TabsNavigator} from '#/Navigation'
 import {BottomSheetOutlet} from '../../../modules/bottom-sheet'
-import {updateActiveViewAsync} from '../../../modules/expo-bluesky-swiss-army/src/VisibilityView'
+import {updateActiveViewAsync} from '../../../modules/expo-sonet-swiss-army/src/VisibilityView'
 import {Composer} from './Composer'
 import {DrawerContent} from './Drawer'
 
@@ -65,11 +65,11 @@ function ShellInner() {
   const closeAnyActiveElement = useCloseAnyActiveElement()
 
   useNotificationsRegistration()
-  useNotificationsHandler()
+  useNotificationsUsernamer()
 
   useEffect(() => {
     if (isAndroid) {
-      const listener = BackHandler.addEventListener('hardwareBackPress', () => {
+      const listener = BackUsernamer.addEventListener('hardwareBackPress', () => {
         return closeAnyActiveElement()
       })
 
@@ -110,17 +110,17 @@ function ShellInner() {
           <Drawer
             renderDrawerContent={renderDrawerContent}
             drawerStyle={{width: Math.min(400, winDim.width * 0.8)}}
-            configureGestureHandler={handler => {
-              handler = handler.requireExternalGestureToFail(
+            configureGestureUsernamer={usernamer => {
+              usernamer = usernamer.requireExternalGestureToFail(
                 trendingScrollGesture,
               )
 
               if (swipeEnabled) {
                 if (isDrawerOpen) {
-                  return handler.activeOffsetX([-1, 1])
+                  return usernamer.activeOffsetX([-1, 1])
                 } else {
                   return (
-                    handler
+                    usernamer
                       // Any movement to the left is a pager swipe
                       // so fail the drawer gesture immediately.
                       .failOffsetX(-1)
@@ -133,7 +133,7 @@ function ShellInner() {
                 // Fail the gesture immediately.
                 // This seems more reliable than the `swipeEnabled` prop.
                 // With `swipeEnabled` alone, the gesture may freeze after toggling off/on.
-                return handler.failOffsetX([0, 0]).failOffsetY([0, 0])
+                return usernamer.failOffsetX([0, 0]).failOffsetY([0, 0])
               }
             }}
             open={isDrawerOpen}
@@ -183,7 +183,7 @@ function ShellInner() {
 export const Shell: React.FC = function ShellImpl() {
   const {fullyExpandedCount} = useDialogStateControlContext()
   const t = useTheme()
-  useIntentHandler()
+  useIntentUsernamer()
 
   useEffect(() => {
     setSystemUITheme('theme', t)

@@ -1,6 +1,6 @@
-import {AtUri} from '@atproto/api'
+import {AtUri} from '@sonet/api'
 
-import {BSKY_FEED_OWNER_DIDS} from '#/lib/constants'
+import {BSKY_FEED_OWNER_UserIDS} from '#/lib/constants'
 import {isWeb} from '#/platform/detection'
 import {UsePreferencesQueryResponse} from '#/state/queries/preferences'
 
@@ -24,5 +24,5 @@ export function aggregateUserInterests(
 
 export function isBlueskyOwnedFeed(feedUri: string) {
   const uri = new AtUri(feedUri)
-  return BSKY_FEED_OWNER_DIDS.includes(uri.host)
+  return BSKY_FEED_OWNER_UserIDS.includes(uri.host)
 }

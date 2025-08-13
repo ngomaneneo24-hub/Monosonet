@@ -7,17 +7,17 @@ import {
 } from 'react-native'
 import * as Clipboard from 'expo-clipboard'
 import {
-  type AppBskyFeedDefs,
-  AppBskyFeedPost,
-  type AppBskyFeedThreadgate,
+  type SonetFeedDefs,
+  SonetFeedNote,
+  type SonetFeedThreadgate,
   AtUri,
   type RichText as RichTextAPI,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
 
-import {DISCOVER_DEBUG_DIDS} from '#/lib/constants'
+import {DISCOVER_DEBUG_UserIDS} from '#/lib/constants'
 import {useOpenLink} from '#/lib/hooks/useOpenLink'
 import {getCurrentRoute} from '#/lib/routes/helpers'
 import {makeProfileLink} from '#/lib/routes/links'
@@ -30,18 +30,18 @@ import {richTextToString} from '#/lib/strings/rich-text-helpers'
 import {toShareUrl} from '#/lib/strings/url-helpers'
 import {getTranslatorLink} from '#/locale/helpers'
 import {logger} from '#/logger'
-import {type Shadow} from '#/state/cache/post-shadow'
+import {type Shadow} from '#/state/cache/note-shadow'
 import {useProfileShadow} from '#/state/cache/profile-shadow'
 import {useFeedFeedbackContext} from '#/state/feed-feedback'
 import {useLanguagePrefs} from '#/state/preferences'
-import {useHiddenPosts, useHiddenPostsApi} from '#/state/preferences'
-import {usePinnedPostMutation} from '#/state/queries/pinned-post'
+import {useHiddenNotes, useHiddenNotesApi} from '#/state/preferences'
+import {usePinnedNoteMutation} from '#/state/queries/pinned-note'
 import {
-  usePostDeleteMutation,
+  useNoteDeleteMutation,
   useThreadMuteMutationQueue,
-} from '#/state/queries/post'
-import {useToggleQuoteDetachmentMutation} from '#/state/queries/postgate'
-import {getMaybeDetachedQuoteEmbed} from '#/state/queries/postgate/util'
+} from '#/state/queries/note'
+import {useToggleQuoteDetachmentMutation} from '#/state/queries/notegate'
+import {getMaybeDetachedQuoteEmbed} from '#/state/queries/notegate/util'
 import {
   useProfileBlockMutationQueue,
   useProfileMuteMutationQueue,
@@ -53,9 +53,9 @@ import * as Toast from '#/view/com/util/Toast'
 import {useDialogControl} from '#/components/Dialog'
 import {useGlobalDialogsControlContext} from '#/components/dialogs/Context'
 import {
-  PostInteractionSettingsDialog,
-  usePrefetchPostInteractionSettings,
-} from '#/components/dialogs/PostInteractionSettingsDialog'
+  NoteInteractionSettingsDialog,
+  usePrefetchNoteInteractionSettings,
+} from '#/components/dialogs/NoteInteractionSettingsDialog'
 import {Atom_Stroke2_Corner0_Rounded as AtomIcon} from '#/components/icons/Atom'
 import {BubbleQuestion_Stroke2_Corner0_Rounded as Translate} from '#/components/icons/Bubble'
 import {Clipboard_Stroke2_Corner2_Rounded as ClipboardIcon} from '#/components/icons/Clipboard'
@@ -85,37 +85,37 @@ import * as Prompt from '#/components/Prompt'
 import {IS_INTERNAL} from '#/env'
 import * as bsky from '#/types/bsky'
 
-let PostMenuItems = ({
-  post,
-  postFeedContext,
-  postReqId,
+let NoteMenuItems = ({
+  note,
+  noteFeedContext,
+  noteReqId,
   record,
   richText,
   threadgateRecord,
   onShowLess,
 }: {
   testID: string
-  post: Shadow<AppBskyFeedDefs.PostView>
-  postFeedContext: string | undefined
-  postReqId: string | undefined
-  record: AppBskyFeedPost.Record
+  note: Shadow<SonetFeedDefs.NoteView>
+  noteFeedContext: string | undefined
+  noteReqId: string | undefined
+  record: SonetFeedNote.Record
   richText: RichTextAPI
   style?: StyleProp<ViewStyle>
   hitSlop?: PressableProps['hitSlop']
   size?: 'lg' | 'md' | 'sm'
   timestamp: string
-  threadgateRecord?: AppBskyFeedThreadgate.Record
-  onShowLess?: (interaction: AppBskyFeedDefs.Interaction) => void
+  threadgateRecord?: SonetFeedThreadgate.Record
+  onShowLess?: (interaction: SonetFeedDefs.Interaction) => void
 }): React.ReactNode => {
   const {hasSession, currentAccount} = useSession()
   const {_} = useLingui()
   const langPrefs = useLanguagePrefs()
-  const {mutateAsync: deletePostMutate} = usePostDeleteMutation()
-  const {mutateAsync: pinPostMutate, isPending: isPinPending} =
-    usePinnedPostMutation()
+  const {mutateAsync: deleteNoteMutate} = useNoteDeleteMutation()
+  const {mutateAsync: pinNoteMutate, isPending: isPinPending} =
+    usePinnedNoteMutation()
   const requireSignIn = useRequireAuth()
-  const hiddenPosts = useHiddenPosts()
-  const {hidePost} = useHiddenPostsApi()
+  const hiddenNotes = useHiddenNotes()
+  const {hideNote} = useHiddenNotesApi()
   const feedFeedback = useFeedFeedbackContext()
   const openLink = useOpenLink()
   const navigation = useNavigation<NavigationProp>()
@@ -124,74 +124,74 @@ let PostMenuItems = ({
   const reportDialogControl = useReportDialogControl()
   const deletePromptControl = useDialogControl()
   const hidePromptControl = useDialogControl()
-  const postInteractionSettingsDialogControl = useDialogControl()
-  const quotePostDetachConfirmControl = useDialogControl()
+  const noteInteractionSettingsDialogControl = useDialogControl()
+  const quoteNoteDetachConfirmControl = useDialogControl()
   const hideReplyConfirmControl = useDialogControl()
   const {mutateAsync: toggleReplyVisibility} =
     useToggleReplyVisibilityMutation()
 
-  const postUri = post.uri
-  const postCid = post.cid
-  const postAuthor = useProfileShadow(post.author)
+  const noteUri = note.uri
+  const noteCid = note.cid
+  const noteAuthor = useProfileShadow(note.author)
   const quoteEmbed = useMemo(() => {
-    if (!currentAccount || !post.embed) return
+    if (!currentAccount || !note.embed) return
     return getMaybeDetachedQuoteEmbed({
-      viewerDid: currentAccount.did,
-      post,
+      viewerDid: currentAccount.userId,
+      note,
     })
-  }, [post, currentAccount])
+  }, [note, currentAccount])
 
-  const rootUri = record.reply?.root?.uri || postUri
+  const rootUri = record.reply?.root?.uri || noteUri
   const isReply = Boolean(record.reply)
   const [isThreadMuted, muteThread, unmuteThread] = useThreadMuteMutationQueue(
-    post,
+    note,
     rootUri,
   )
-  const isPostHidden = hiddenPosts && hiddenPosts.includes(postUri)
-  const isAuthor = postAuthor.did === currentAccount?.did
-  const isRootPostAuthor = new AtUri(rootUri).host === currentAccount?.did
+  const isNoteHidden = hiddenNotes && hiddenNotes.includes(noteUri)
+  const isAuthor = noteAuthor.userId === currentAccount?.userId
+  const isRootNoteAuthor = new AtUri(rootUri).host === currentAccount?.userId
   const threadgateHiddenReplies = useMergedThreadgateHiddenReplies({
     threadgateRecord,
   })
-  const isReplyHiddenByThreadgate = threadgateHiddenReplies.has(postUri)
-  const isPinned = post.viewer?.pinned
+  const isReplyHiddenByThreadgate = threadgateHiddenReplies.has(noteUri)
+  const isPinned = note.viewer?.pinned
 
   const {mutateAsync: toggleQuoteDetachment, isPending: isDetachPending} =
     useToggleQuoteDetachmentMutation()
 
-  const [queueBlock] = useProfileBlockMutationQueue(postAuthor)
-  const [queueMute, queueUnmute] = useProfileMuteMutationQueue(postAuthor)
+  const [queueBlock] = useProfileBlockMutationQueue(noteAuthor)
+  const [queueMute, queueUnmute] = useProfileMuteMutationQueue(noteAuthor)
 
-  const prefetchPostInteractionSettings = usePrefetchPostInteractionSettings({
-    postUri: post.uri,
-    rootPostUri: rootUri,
+  const prefetchNoteInteractionSettings = usePrefetchNoteInteractionSettings({
+    noteUri: note.uri,
+    rootNoteUri: rootUri,
   })
 
   const href = useMemo(() => {
-    const urip = new AtUri(postUri)
-    return makeProfileLink(postAuthor, 'post', urip.rkey)
-  }, [postUri, postAuthor])
+    const urip = new AtUri(noteUri)
+    return makeProfileLink(noteAuthor, 'note', urip.rkey)
+  }, [noteUri, noteAuthor])
 
   const translatorUrl = getTranslatorLink(
     record.text,
     langPrefs.primaryLanguage,
   )
 
-  const onDeletePost = () => {
-    deletePostMutate({uri: postUri}).then(
+  const onDeleteNote = () => {
+    deleteNoteMutate({uri: noteUri}).then(
       () => {
-        Toast.show(_(msg({message: 'Post deleted', context: 'toast'})))
+        Toast.show(_(msg({message: 'Note deleted', context: 'toast'})))
 
         const route = getCurrentRoute(navigation.getState())
-        if (route.name === 'PostThread') {
-          const params = route.params as CommonNavigatorParams['PostThread']
+        if (route.name === 'NoteThread') {
+          const params = route.params as CommonNavigatorParams['NoteThread']
           if (
             currentAccount &&
             isAuthor &&
-            (params.name === currentAccount.handle ||
-              params.name === currentAccount.did)
+            (params.name === currentAccount.username ||
+              params.name === currentAccount.userId)
           ) {
-            const currentHref = makeProfileLink(postAuthor, 'post', params.rkey)
+            const currentHref = makeProfileLink(noteAuthor, 'note', params.rkey)
             if (currentHref === href && navigation.canGoBack()) {
               navigation.goBack()
             }
@@ -199,8 +199,8 @@ let PostMenuItems = ({
         }
       },
       e => {
-        logger.error('Failed to delete post', {message: e})
-        Toast.show(_(msg`Failed to delete post, please try again`), 'xmark')
+        logger.error('Failed to delete note', {message: e})
+        Toast.show(_(msg`Failed to delete note, please try again`), 'xmark')
       },
     )
   }
@@ -227,7 +227,7 @@ let PostMenuItems = ({
     }
   }
 
-  const onCopyPostText = () => {
+  const onCopyNoteText = () => {
     const str = richTextToString(richText, true)
 
     Clipboard.setStringAsync(str)
@@ -238,59 +238,59 @@ let PostMenuItems = ({
     await openLink(translatorUrl, true)
 
     if (
-      bsky.dangerousIsType<AppBskyFeedPost.Record>(
-        post.record,
-        AppBskyFeedPost.isRecord,
+      bsky.dangerousIsType<SonetFeedNote.Record>(
+        note.record,
+        SonetFeedNote.isRecord,
       )
     ) {
       logger.metric(
         'translate',
         {
-          sourceLanguages: post.record.langs ?? [],
+          sourceLanguages: note.record.langs ?? [],
           targetLanguage: langPrefs.primaryLanguage,
-          textLength: post.record.text.length,
+          textLength: note.record.text.length,
         },
         {statsig: false},
       )
     }
   }
 
-  const onHidePost = () => {
-    hidePost({uri: postUri})
+  const onHideNote = () => {
+    hideNote({uri: noteUri})
   }
 
-  const hideInPWI = !!postAuthor.labels?.find(
+  const hideInPWI = !!noteAuthor.labels?.find(
     label => label.val === '!no-unauthenticated',
   )
 
   const onPressShowMore = () => {
     feedFeedback.sendInteraction({
-      event: 'app.bsky.feed.defs#requestMore',
-      item: postUri,
-      feedContext: postFeedContext,
-      reqId: postReqId,
+      event: 'app.sonet.feed.defs#requestMore',
+      item: noteUri,
+      feedContext: noteFeedContext,
+      reqId: noteReqId,
     })
     Toast.show(_(msg({message: 'Feedback sent!', context: 'toast'})))
   }
 
   const onPressShowLess = () => {
     feedFeedback.sendInteraction({
-      event: 'app.bsky.feed.defs#requestLess',
-      item: postUri,
-      feedContext: postFeedContext,
-      reqId: postReqId,
+      event: 'app.sonet.feed.defs#requestLess',
+      item: noteUri,
+      feedContext: noteFeedContext,
+      reqId: noteReqId,
     })
     if (onShowLess) {
       onShowLess({
-        item: postUri,
-        feedContext: postFeedContext,
+        item: noteUri,
+        feedContext: noteFeedContext,
       })
     } else {
       Toast.show(_(msg({message: 'Feedback sent!', context: 'toast'})))
     }
   }
 
-  const onToggleQuotePostAttachment = async () => {
+  const onToggleQuoteNoteAttachment = async () => {
     if (!quoteEmbed) return
 
     const action = quoteEmbed.isDetached ? 'reattach' : 'detach'
@@ -298,14 +298,14 @@ let PostMenuItems = ({
 
     try {
       await toggleQuoteDetachment({
-        post,
+        note,
         quoteUri: quoteEmbed.uri,
         action: quoteEmbed.isDetached ? 'reattach' : 'detach',
       })
       Toast.show(
         isDetach
-          ? _(msg`Quote post was successfully detached`)
-          : _(msg`Quote post was re-attached`),
+          ? _(msg`Quote note was successfully detached`)
+          : _(msg`Quote note was re-attached`),
       )
     } catch (e: any) {
       Toast.show(
@@ -315,9 +315,9 @@ let PostMenuItems = ({
     }
   }
 
-  const canHidePostForMe = !isAuthor && !isPostHidden
+  const canHideNoteForMe = !isAuthor && !isNoteHidden
   const canHideReplyForEveryone =
-    !isAuthor && isRootPostAuthor && !isPostHidden && isReply
+    !isAuthor && isRootNoteAuthor && !isNoteHidden && isReply
   const canDetachQuote = quoteEmbed && quoteEmbed.isOwnedByViewer
 
   const onToggleReplyVisibility = async () => {
@@ -329,8 +329,8 @@ let PostMenuItems = ({
 
     try {
       await toggleReplyVisibility({
-        postUri: rootUri,
-        replyUri: postUri,
+        noteUri: rootUri,
+        replyUri: noteUri,
         action,
       })
       Toast.show(
@@ -347,10 +347,10 @@ let PostMenuItems = ({
   }
 
   const onPressPin = () => {
-    logEvent(isPinned ? 'post:unpin' : 'post:pin', {})
-    pinPostMutate({
-      postUri,
-      postCid,
+    logEvent(isPinned ? 'note:unpin' : 'note:pin', {})
+    pinNoteMutate({
+      noteUri,
+      noteCid,
       action: isPinned ? 'unpin' : 'pin',
     })
   }
@@ -368,7 +368,7 @@ let PostMenuItems = ({
   }
 
   const onMuteAuthor = async () => {
-    if (postAuthor.viewer?.muted) {
+    if (noteAuthor.viewer?.muted) {
       try {
         await queueUnmute()
         Toast.show(_(msg({message: 'Account unmuted', context: 'toast'})))
@@ -403,7 +403,7 @@ let PostMenuItems = ({
   const gate = useGate()
   const isDiscoverDebugUser =
     IS_INTERNAL ||
-    DISCOVER_DEBUG_DIDS[currentAccount?.did || ''] ||
+    DISCOVER_DEBUG_UserIDS[currentAccount?.userId || ''] ||
     gate('debug_show_feedcontext')
 
   return (
@@ -413,7 +413,7 @@ let PostMenuItems = ({
           <>
             <Menu.Group>
               <Menu.Item
-                testID="pinPostBtn"
+                testID="pinNoteBtn"
                 label={
                   isPinned
                     ? _(msg`Unpin from profile`)
@@ -440,7 +440,7 @@ let PostMenuItems = ({
           {!hideInPWI || hasSession ? (
             <>
               <Menu.Item
-                testID="postDropdownTranslateBtn"
+                testID="noteDropdownTranslateBtn"
                 label={_(msg`Translate`)}
                 onPress={onPressTranslate}>
                 <Menu.ItemText>{_(msg`Translate`)}</Menu.ItemText>
@@ -448,19 +448,19 @@ let PostMenuItems = ({
               </Menu.Item>
 
               <Menu.Item
-                testID="postDropdownCopyTextBtn"
-                label={_(msg`Copy post text`)}
-                onPress={onCopyPostText}>
-                <Menu.ItemText>{_(msg`Copy post text`)}</Menu.ItemText>
+                testID="noteDropdownCopyTextBtn"
+                label={_(msg`Copy note text`)}
+                onPress={onCopyNoteText}>
+                <Menu.ItemText>{_(msg`Copy note text`)}</Menu.ItemText>
                 <Menu.ItemIcon icon={ClipboardIcon} position="right" />
               </Menu.Item>
             </>
           ) : (
             <Menu.Item
-              testID="postDropdownSignInBtn"
-              label={_(msg`Sign in to view post`)}
+              testID="noteDropdownSignInBtn"
+              label={_(msg`Sign in to view note`)}
               onPress={onSignIn}>
-              <Menu.ItemText>{_(msg`Sign in to view post`)}</Menu.ItemText>
+              <Menu.ItemText>{_(msg`Sign in to view note`)}</Menu.ItemText>
               <Menu.ItemIcon icon={Eye} position="right" />
             </Menu.Item>
           )}
@@ -471,7 +471,7 @@ let PostMenuItems = ({
             <Menu.Divider />
             <Menu.Group>
               <Menu.Item
-                testID="postDropdownShowMoreBtn"
+                testID="noteDropdownShowMoreBtn"
                 label={_(msg`Show more like this`)}
                 onPress={onPressShowMore}>
                 <Menu.ItemText>{_(msg`Show more like this`)}</Menu.ItemText>
@@ -479,7 +479,7 @@ let PostMenuItems = ({
               </Menu.Item>
 
               <Menu.Item
-                testID="postDropdownShowLessBtn"
+                testID="noteDropdownShowLessBtn"
                 label={_(msg`Show less like this`)}
                 onPress={onPressShowLess}>
                 <Menu.ItemText>{_(msg`Show less like this`)}</Menu.ItemText>
@@ -491,7 +491,7 @@ let PostMenuItems = ({
 
         {isDiscoverDebugUser && (
           <Menu.Item
-            testID="postDropdownReportMisclassificationBtn"
+            testID="noteDropdownReportMisclassificationBtn"
             label={_(msg`Assign topic for algo`)}
             onPress={onReportMisclassification}>
             <Menu.ItemText>{_(msg`Assign topic for algo`)}</Menu.ItemText>
@@ -504,7 +504,7 @@ let PostMenuItems = ({
             <Menu.Divider />
             <Menu.Group>
               <Menu.Item
-                testID="postDropdownMuteThreadBtn"
+                testID="noteDropdownMuteThreadBtn"
                 label={
                   isThreadMuted ? _(msg`Unmute thread`) : _(msg`Mute thread`)
                 }
@@ -519,7 +519,7 @@ let PostMenuItems = ({
               </Menu.Item>
 
               <Menu.Item
-                testID="postDropdownMuteWordsBtn"
+                testID="noteDropdownMuteWordsBtn"
                 label={_(msg`Mute words & tags`)}
                 onPress={() => mutedWordsDialogControl.open()}>
                 <Menu.ItemText>{_(msg`Mute words & tags`)}</Menu.ItemText>
@@ -530,30 +530,30 @@ let PostMenuItems = ({
         )}
 
         {hasSession &&
-          (canHideReplyForEveryone || canDetachQuote || canHidePostForMe) && (
+          (canHideReplyForEveryone || canDetachQuote || canHideNoteForMe) && (
             <>
               <Menu.Divider />
               <Menu.Group>
-                {canHidePostForMe && (
+                {canHideNoteForMe && (
                   <Menu.Item
-                    testID="postDropdownHideBtn"
+                    testID="noteDropdownHideBtn"
                     label={
                       isReply
                         ? _(msg`Hide reply for me`)
-                        : _(msg`Hide post for me`)
+                        : _(msg`Hide note for me`)
                     }
                     onPress={() => hidePromptControl.open()}>
                     <Menu.ItemText>
                       {isReply
                         ? _(msg`Hide reply for me`)
-                        : _(msg`Hide post for me`)}
+                        : _(msg`Hide note for me`)}
                     </Menu.ItemText>
                     <Menu.ItemIcon icon={EyeSlash} position="right" />
                   </Menu.Item>
                 )}
                 {canHideReplyForEveryone && (
                   <Menu.Item
-                    testID="postDropdownHideBtn"
+                    testID="noteDropdownHideBtn"
                     label={
                       isReplyHiddenByThreadgate
                         ? _(msg`Show reply for everyone`)
@@ -579,7 +579,7 @@ let PostMenuItems = ({
                 {canDetachQuote && (
                   <Menu.Item
                     disabled={isDetachPending}
-                    testID="postDropdownHideBtn"
+                    testID="noteDropdownHideBtn"
                     label={
                       quoteEmbed.isDetached
                         ? _(msg`Re-attach quote`)
@@ -587,8 +587,8 @@ let PostMenuItems = ({
                     }
                     onPress={
                       quoteEmbed.isDetached
-                        ? onToggleQuotePostAttachment
-                        : () => quotePostDetachConfirmControl.open()
+                        ? onToggleQuoteNoteAttachment
+                        : () => quoteNoteDetachConfirmControl.open()
                     }>
                     <Menu.ItemText>
                       {quoteEmbed.isDetached
@@ -618,27 +618,27 @@ let PostMenuItems = ({
               {!isAuthor && (
                 <>
                   <Menu.Item
-                    testID="postDropdownMuteBtn"
+                    testID="noteDropdownMuteBtn"
                     label={
-                      postAuthor.viewer?.muted
+                      noteAuthor.viewer?.muted
                         ? _(msg`Unmute account`)
                         : _(msg`Mute account`)
                     }
                     onPress={onMuteAuthor}>
                     <Menu.ItemText>
-                      {postAuthor.viewer?.muted
+                      {noteAuthor.viewer?.muted
                         ? _(msg`Unmute account`)
                         : _(msg`Mute account`)}
                     </Menu.ItemText>
                     <Menu.ItemIcon
-                      icon={postAuthor.viewer?.muted ? UnmuteIcon : MuteIcon}
+                      icon={noteAuthor.viewer?.muted ? UnmuteIcon : MuteIcon}
                       position="right"
                     />
                   </Menu.Item>
 
-                  {!postAuthor.viewer?.blocking && (
+                  {!noteAuthor.viewer?.blocking && (
                     <Menu.Item
-                      testID="postDropdownBlockBtn"
+                      testID="noteDropdownBlockBtn"
                       label={_(msg`Block account`)}
                       onPress={() => blockPromptControl.open()}>
                       <Menu.ItemText>{_(msg`Block account`)}</Menu.ItemText>
@@ -647,10 +647,10 @@ let PostMenuItems = ({
                   )}
 
                   <Menu.Item
-                    testID="postDropdownReportBtn"
-                    label={_(msg`Report post`)}
+                    testID="noteDropdownReportBtn"
+                    label={_(msg`Report note`)}
                     onPress={() => reportDialogControl.open()}>
-                    <Menu.ItemText>{_(msg`Report post`)}</Menu.ItemText>
+                    <Menu.ItemText>{_(msg`Report note`)}</Menu.ItemText>
                     <Menu.ItemIcon icon={Warning} position="right" />
                   </Menu.Item>
                 </>
@@ -659,16 +659,16 @@ let PostMenuItems = ({
               {isAuthor && (
                 <>
                   <Menu.Item
-                    testID="postDropdownEditPostInteractions"
+                    testID="noteDropdownEditNoteInteractions"
                     label={_(msg`Edit interaction settings`)}
-                    onPress={() => postInteractionSettingsDialogControl.open()}
+                    onPress={() => noteInteractionSettingsDialogControl.open()}
                     {...(isAuthor
                       ? Platform.select({
                           web: {
-                            onHoverIn: prefetchPostInteractionSettings,
+                            onHoverIn: prefetchNoteInteractionSettings,
                           },
                           native: {
-                            onPressIn: prefetchPostInteractionSettings,
+                            onPressIn: prefetchNoteInteractionSettings,
                           },
                         })
                       : {})}>
@@ -678,10 +678,10 @@ let PostMenuItems = ({
                     <Menu.ItemIcon icon={Gear} position="right" />
                   </Menu.Item>
                   <Menu.Item
-                    testID="postDropdownDeleteBtn"
-                    label={_(msg`Delete post`)}
+                    testID="noteDropdownDeleteBtn"
+                    label={_(msg`Delete note`)}
                     onPress={() => deletePromptControl.open()}>
-                    <Menu.ItemText>{_(msg`Delete post`)}</Menu.ItemText>
+                    <Menu.ItemText>{_(msg`Delete note`)}</Menu.ItemText>
                     <Menu.ItemIcon icon={Trash} position="right" />
                   </Menu.Item>
                 </>
@@ -693,47 +693,47 @@ let PostMenuItems = ({
 
       <Prompt.Basic
         control={deletePromptControl}
-        title={_(msg`Delete this post?`)}
+        title={_(msg`Delete this note?`)}
         description={_(
-          msg`If you remove this post, you won't be able to recover it.`,
+          msg`If you remove this note, you won't be able to recover it.`,
         )}
-        onConfirm={onDeletePost}
+        onConfirm={onDeleteNote}
         confirmButtonCta={_(msg`Delete`)}
         confirmButtonColor="negative"
       />
 
       <Prompt.Basic
         control={hidePromptControl}
-        title={isReply ? _(msg`Hide this reply?`) : _(msg`Hide this post?`)}
+        title={isReply ? _(msg`Hide this reply?`) : _(msg`Hide this note?`)}
         description={_(
-          msg`This post will be hidden from feeds and threads. This cannot be undone.`,
+          msg`This note will be hidden from feeds and threads. This cannot be undone.`,
         )}
-        onConfirm={onHidePost}
+        onConfirm={onHideNote}
         confirmButtonCta={_(msg`Hide`)}
       />
 
       <ReportDialog
         control={reportDialogControl}
         subject={{
-          ...post,
-          $type: 'app.bsky.feed.defs#postView',
+          ...note,
+          type: "sonet",
         }}
       />
 
-      <PostInteractionSettingsDialog
-        control={postInteractionSettingsDialogControl}
-        postUri={post.uri}
-        rootPostUri={rootUri}
-        initialThreadgateView={post.threadgate}
+      <NoteInteractionSettingsDialog
+        control={noteInteractionSettingsDialogControl}
+        noteUri={note.uri}
+        rootNoteUri={rootUri}
+        initialThreadgateView={note.threadgate}
       />
 
       <Prompt.Basic
-        control={quotePostDetachConfirmControl}
-        title={_(msg`Detach quote post?`)}
+        control={quoteNoteDetachConfirmControl}
+        title={_(msg`Detach quote note?`)}
         description={_(
-          msg`This will remove your post from this quote post for all users, and replace it with a placeholder.`,
+          msg`This will remove your note from this quote note for all users, and replace it with a placeholder.`,
         )}
-        onConfirm={onToggleQuotePostAttachment}
+        onConfirm={onToggleQuoteNoteAttachment}
         confirmButtonCta={_(msg`Yes, detach`)}
       />
 
@@ -760,5 +760,5 @@ let PostMenuItems = ({
     </>
   )
 }
-PostMenuItems = memo(PostMenuItems)
-export {PostMenuItems}
+NoteMenuItems = memo(NoteMenuItems)
+export {NoteMenuItems}

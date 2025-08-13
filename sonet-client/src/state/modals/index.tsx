@@ -1,19 +1,19 @@
 import React from 'react'
-import {type AppBskyGraphDefs} from '@atproto/api'
+import {type SonetGraphDefs} from '@sonet/api'
 
 import {useNonReactiveCallback} from '#/lib/hooks/useNonReactiveCallback'
 
 export interface CreateOrEditListModal {
   name: 'create-or-edit-list'
   purpose?: string
-  list?: AppBskyGraphDefs.ListView
+  list?: SonetGraphDefs.ListView
   onSave?: (uri: string) => void
 }
 
 export interface UserAddRemoveListsModal {
   name: 'user-add-remove-lists'
   subject: string
-  handle: string
+  username: string
   displayName: string
   onAdd?: (listUri: string) => void
   onRemove?: (listUri: string) => void
@@ -35,8 +35,8 @@ export interface ContentLanguagesSettingsModal {
   name: 'content-languages-settings'
 }
 
-export interface PostLanguagesSettingsModal {
-  name: 'post-languages-settings'
+export interface NoteLanguagesSettingsModal {
+  name: 'note-languages-settings'
 }
 
 export interface ChangePasswordModal {
@@ -53,7 +53,7 @@ export type Modal =
 
   // Curation
   | ContentLanguagesSettingsModal
-  | PostLanguagesSettingsModal
+  | NoteLanguagesSettingsModal
 
   // Lists
   | CreateOrEditListModal

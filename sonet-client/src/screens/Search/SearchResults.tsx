@@ -1,6 +1,6 @@
 import {memo, useCallback, useMemo, useState} from 'react'
 import {ActivityIndicator, View} from 'react-native'
-import { type SonetPost, type SonetProfile, type SonetFeedGenerator, type SonetPostRecord, type SonetFeedViewPost, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
+import { type SonetNote, type SonetProfile, type SonetFeedGenerator, type SonetNoteRecord, type SonetFeedViewNote, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -8,13 +8,13 @@ import {usePalette} from '#/lib/hooks/usePalette'
 import {augmentSearchQuery} from '#/lib/strings/helpers'
 import {useActorSearch} from '#/state/queries/actor-search'
 import {usePopularFeedsSearch} from '#/state/queries/feed'
-import {useSearchPostsQuery} from '#/state/queries/search-posts'
+import {useSearchNotesQuery} from '#/state/queries/search-notes'
 import {useSession} from '#/state/session'
 import {useLoggedOutViewControls} from '#/state/shell/logged-out'
 import {useCloseAllActiveElements} from '#/state/util'
 import {Pager} from '#/view/com/pager/Pager'
 import {TabBar} from '#/view/com/pager/TabBar'
-import {Post} from '#/view/com/post/Post'
+import {Note} from '#/view/com/note/Note'
 import {ProfileCardWithFollowBtn} from '#/view/com/profile/ProfileCard'
 import {List} from '#/view/com/util/List'
 import {atoms as a, useTheme, web} from '#/alf'
@@ -46,7 +46,7 @@ let SearchResults = ({
       {
         title: _(msg`Top`),
         component: (
-          <SearchScreenPostResults
+          <SearchScreenNoteResults
             query={queryWithParams}
             sort="top"
             active={activeTab === 0}
@@ -56,7 +56,7 @@ let SearchResults = ({
       {
         title: _(msg`Latest`),
         component: (
-          <SearchScreenPostResults
+          <SearchScreenNoteResults
             query={queryWithParams}
             sort="latest"
             active={activeTab === 1}
@@ -155,16 +155,16 @@ function EmptyState({
 
 type SearchResultSlice =
   | {
-      type: 'post'
+      type: 'note'
       key: string
-      post: SonetPost
+      note: SonetNote
     }
   | {
       type: 'loadingMore'
       key: string
     }
 
-let SearchScreenPostResults = ({
+let SearchScreenNoteResults = ({
   query,
   sort,
   active,
@@ -176,10 +176,10 @@ let SearchScreenPostResults = ({
   const {_} = useLingui()
   const {currentAccount} = useSession()
   const [isPTR, setIsPTR] = useState(false)
-  const isLoggedin = Boolean(currentAccount?.did)
+  const isLoggedin = Boolean(currentAccount?.userId)
 
   const augmentedQuery = useMemo(() => {
-    return augmentSearchQuery(query || '', {did: currentAccount?.did})
+    return augmentSearchQuery(query || '', {userId: currentAccount?.userId})
   }, [query, currentAccount])
 
   const {
@@ -191,7 +191,7 @@ let SearchScreenPostResults = ({
     fetchNextPage,
     isFetchingNextPage,
     hasNextPage,
-  } = useSearchPostsQuery({query: augmentedQuery, sort, enabled: active})
+  } = useSearchNotesQuery({query: augmentedQuery, sort, enabled: active})
 
   const pal = usePalette('default')
   const t = useTheme()
@@ -205,23 +205,23 @@ let SearchScreenPostResults = ({
     fetchNextPage()
   }, [isFetching, error, hasNextPage, fetchNextPage])
 
-  const posts = useMemo(() => {
-    return results?.pages.flatMap(page => page.posts) || []
+  const notes = useMemo(() => {
+    return results?.pages.flatMap(page => page.notes) || []
   }, [results])
   const items = useMemo(() => {
     let temp: SearchResultSlice[] = []
 
     const seenUris = new Set()
-    for (const post of posts) {
-      if (seenUris.has(post.uri)) {
+    for (const note of notes) {
+      if (seenUris.has(note.uri)) {
         continue
       }
       temp.push({
-        type: 'post',
-        key: post.uri,
-        post,
+        type: 'note',
+        key: note.uri,
+        note,
       })
-      seenUris.add(post.uri)
+      seenUris.add(note.uri)
     }
 
     if (isFetchingNextPage) {
@@ -232,7 +232,7 @@ let SearchScreenPostResults = ({
     }
 
     return temp
-  }, [posts, isFetchingNextPage])
+  }, [notes, isFetchingNextPage])
 
   const closeAllActiveElements = useCloseAllActiveElements()
   const {requestSwitchToAccount} = useLoggedOutViewControls()
@@ -290,12 +290,12 @@ let SearchScreenPostResults = ({
     <>
       {isFetched ? (
         <>
-          {posts.length ? (
+          {notes.length ? (
             <List
               data={items}
               renderItem={({item}) => {
-                if (item.type === 'post') {
-                  return <Post post={item.post} />
+                if (item.type === 'note') {
+                  return <Note note={item.note} />
                 } else {
                   return null
                 }
@@ -317,7 +317,7 @@ let SearchScreenPostResults = ({
     </>
   )
 }
-SearchScreenPostResults = memo(SearchScreenPostResults)
+SearchScreenNoteResults = memo(SearchScreenNoteResults)
 
 let SearchScreenUserResults = ({
   query,
@@ -339,7 +339,7 @@ let SearchScreenUserResults = ({
         <List
           data={results}
           renderItem={({item}) => <ProfileCardWithFollowBtn profile={item} />}
-          keyExtractor={item => item.did}
+          keyExtractor={item => item.userId}
           desktopFixedHeight
           contentContainerStyle={{paddingBottom: 100}}
         />

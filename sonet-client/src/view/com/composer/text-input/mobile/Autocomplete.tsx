@@ -1,11 +1,11 @@
 import {View} from 'react-native'
 import Animated, {FadeInDown, FadeOut} from 'react-native-reanimated'
-import {type AppBskyActorDefs} from '@atproto/api'
+import {type SonetActorDefs} from '@sonet/api'
 import {Trans} from '@lingui/macro'
 
 import {PressableScale} from '#/lib/custom-animations/PressableScale'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {useActorAutocompleteQuery} from '#/state/queries/actor-autocomplete'
 import {UserAvatar} from '#/view/com/util/UserAvatar'
 import {atoms as a, platform, useTheme} from '#/alf'
@@ -46,12 +46,12 @@ export function Autocomplete({
         suggestions.slice(0, 5).map((item, index, arr) => {
           return (
             <AutocompleteProfileCard
-              key={item.did}
+              key={item.userId}
               profile={item}
               itemIndex={index}
               totalItems={arr.length}
               onPress={() => {
-                onSelect(item.handle)
+                onSelect(item.username)
               }}
             />
           )
@@ -71,7 +71,7 @@ function AutocompleteProfileCard({
   totalItems,
   onPress,
 }: {
-  profile: AppBskyActorDefs.ProfileViewBasic
+  profile: SonetActorDefs.ProfileViewBasic
   itemIndex: number
   totalItems: number
   onPress: () => void
@@ -79,7 +79,7 @@ function AutocompleteProfileCard({
   const t = useTheme()
   const state = useSimpleVerificationState({profile})
   const displayName = sanitizeDisplayName(
-    profile.displayName || sanitizeHandle(profile.handle),
+    profile.displayName || sanitizeUsername(profile.username),
   )
   return (
     <View
@@ -89,12 +89,12 @@ function AutocompleteProfileCard({
         a.px_sm,
         a.py_md,
       ]}
-      key={profile.did}>
+      key={profile.userId}>
       <PressableScale
         testID="autocompleteButton"
         style={[a.flex_row, a.gap_lg, a.justify_between, a.align_center]}
         onPress={onPress}
-        accessibilityLabel={`Select ${profile.handle}`}
+        accessibilityLabel={`Select ${profile.username}`}
         accessibilityHint="">
         <View style={[a.flex_row, a.gap_sm, a.align_center, a.flex_1]}>
           <UserAvatar
@@ -133,7 +133,7 @@ function AutocompleteProfileCard({
         <Text
           style={[t.atoms.text_contrast_medium, a.text_right, a.leading_snug]}
           numberOfLines={1}>
-          {sanitizeHandle(profile.handle, '@')}
+          {sanitizeUsername(profile.username, '@')}
         </Text>
       </PressableScale>
     </View>

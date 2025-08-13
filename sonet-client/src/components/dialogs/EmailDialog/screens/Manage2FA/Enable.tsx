@@ -66,7 +66,7 @@ export function Enable() {
     status: 'default',
   })
 
-  const handleManageEmail2FA = async () => {
+  const usernameManageEmail2FA = async () => {
     dispatch({type: 'setStatus', status: 'pending'})
 
     try {
@@ -105,7 +105,7 @@ export function Enable() {
           size="large"
           variant="solid"
           color="primary"
-          onPress={handleManageEmail2FA}
+          onPress={usernameManageEmail2FA}
           disabled={state.status === 'pending'}>
           <ButtonText>
             <Trans>Enable</Trans>

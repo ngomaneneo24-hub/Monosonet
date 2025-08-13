@@ -29,7 +29,7 @@ export function SaveDraftDialog({
   const t = useTheme()
   const createDraft = useCreateDraftMutation()
 
-  const handleSave = useCallback(async () => {
+  const usernameSave = useCallback(async () => {
     if (!content) {
       Toast.show(_(msg`No content to save`), 'xmark')
       return
@@ -47,17 +47,17 @@ export function SaveDraftDialog({
     }
   }, [createDraft, onSave, _, content])
 
-  const handleDiscard = useCallback(() => {
+  const usernameDiscard = useCallback(() => {
     onDiscard()
   }, [onDiscard])
 
-  const handleCancel = useCallback(() => {
+  const usernameCancel = useCallback(() => {
     onCancel()
   }, [onCancel])
 
   return (
     <Dialog.Outer control={control}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <Dialog.Inner>
         <View style={[a.p_lg, a.gap_lg]}>
           <View style={[a.align_center, a.gap_md]}>
@@ -74,7 +74,7 @@ export function SaveDraftDialog({
               label={_(msg`Cancel`)}
               variant="ghost"
               color="secondary"
-              onPress={handleCancel}>
+              onPress={usernameCancel}>
               <ButtonText>
                 <Trans>Cancel</Trans>
               </ButtonText>
@@ -83,7 +83,7 @@ export function SaveDraftDialog({
               label={_(msg`Save`)}
               variant="solid"
               color="primary"
-              onPress={handleSave}
+              onPress={usernameSave}
               disabled={createDraft.isPending}>
               <ButtonText>
                 <Trans>Save</Trans>
@@ -93,7 +93,7 @@ export function SaveDraftDialog({
               label={_(msg`Discard`)}
               variant="solid"
               color="negative"
-              onPress={handleDiscard}>
+              onPress={usernameDiscard}>
               <ButtonText>
                 <Trans>Discard</Trans>
               </ButtonText>

@@ -30,7 +30,7 @@ type Props = NativeStackScreenProps<CommonNavigatorParams, 'PreferencesThreads'>
 export function ThreadPreferencesScreen({}: Props) {
   const gate = useGate()
 
-  return gate('post_threads_v2_unspecced') ? (
+  return gate('note_threads_v2_unspecced') ? (
     <ThreadPreferencesV2 />
   ) : (
     <ThreadPreferencesV1 />
@@ -69,7 +69,7 @@ export function ThreadPreferencesV2() {
             </SettingsList.ItemText>
             <View style={[a.w_full, a.gap_md]}>
               <Text style={[a.flex_1, t.atoms.text_contrast_medium]}>
-                <Trans>Sort replies to the same post by:</Trans>
+                <Trans>Sort replies to the same note by:</Trans>
               </Text>
               <Toggle.Group
                 label={_(msg`Sort replies by`)}
@@ -140,7 +140,7 @@ export function ThreadPreferencesV2() {
               }
               style={[a.w_full, a.gap_md]}>
               <Toggle.LabelText style={[a.flex_1]}>
-                <Trans>Show post replies in a threaded tree view</Trans>
+                <Trans>Show note replies in a threaded tree view</Trans>
               </Toggle.LabelText>
               <Toggle.Platform />
             </Toggle.Item>
@@ -190,7 +190,7 @@ export function ThreadPreferencesV1() {
             </SettingsList.ItemText>
             <View style={[a.w_full, a.gap_md]}>
               <Text style={[a.flex_1, t.atoms.text_contrast_medium]}>
-                <Trans>Sort replies to the same post by:</Trans>
+                <Trans>Sort replies to the same note by:</Trans>
               </Text>
               <Toggle.Group
                 label={_(msg`Sort replies by`)}
@@ -230,10 +230,10 @@ export function ThreadPreferencesV1() {
                   </Toggle.Item>
                   <Toggle.Item
                     name="random"
-                    label={_(msg`Random (aka "Poster's Roulette")`)}>
+                    label={_(msg`Random (aka "Noteer's Roulette")`)}>
                     <Toggle.Radio />
                     <Toggle.LabelText>
-                      <Trans>Random (aka "Poster's Roulette")</Trans>
+                      <Trans>Random (aka "Noteer's Roulette")</Trans>
                     </Toggle.LabelText>
                   </Toggle.Item>
                 </View>

@@ -1,7 +1,7 @@
 import {useCallback} from 'react'
 import {View} from 'react-native'
 import {Image} from 'expo-image'
-import {type AppBskyActorDefs, type AppBskyEmbedExternal} from '@atproto/api'
+import {type SonetActorDefs, type SonetEmbedExternal} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
@@ -9,7 +9,7 @@ import {useQueryClient} from '@tanstack/react-query'
 
 import {useOpenLink} from '#/lib/hooks/useOpenLink'
 import {type NavigationProp} from '#/lib/routes/types'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {toNiceDomain} from '#/lib/strings/url-helpers'
 import {logger} from '#/logger'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
@@ -31,13 +31,13 @@ export function LiveStatusDialog({
 }: {
   control: Dialog.DialogControlProps
   profile: bsky.profile.AnyProfileView
-  status: AppBskyActorDefs.StatusView
-  embed: AppBskyEmbedExternal.View
+  status: SonetActorDefs.StatusView
+  embed: SonetEmbedExternal.View
 }) {
   const navigation = useNavigation<NavigationProp>()
   return (
     <Dialog.Outer control={control} nativeOptions={{preventExpansion: true}}>
-      <Dialog.Handle difference={!!embed.external.thumb} />
+      <Dialog.Username difference={!!embed.external.thumb} />
       <DialogInner profile={profile} embed={embed} navigation={navigation} />
     </Dialog.Outer>
   )
@@ -49,7 +49,7 @@ function DialogInner({
   navigation,
 }: {
   profile: bsky.profile.AnyProfileView
-  embed: AppBskyEmbedExternal.View
+  embed: SonetEmbedExternal.View
   navigation: NavigationProp
 }) {
   const {_} = useLingui()
@@ -58,14 +58,14 @@ function DialogInner({
   const onPressOpenProfile = useCallback(() => {
     control.close(() => {
       navigation.push('Profile', {
-        name: profile.handle,
+        name: profile.username,
       })
     })
-  }, [navigation, profile.handle, control])
+  }, [navigation, profile.username, control])
 
   return (
     <Dialog.ScrollableInner
-      label={_(msg`${sanitizeHandle(profile.handle)} is live`)}
+      label={_(msg`${sanitizeUsername(profile.username)} is live`)}
       contentContainerStyle={[a.pt_0, a.px_0]}
       style={[web({maxWidth: 420}), a.overflow_hidden]}>
       <LiveStatus
@@ -85,7 +85,7 @@ export function LiveStatus({
   onPressOpenProfile,
 }: {
   profile: bsky.profile.AnyProfileView
-  embed: AppBskyEmbedExternal.View
+  embed: SonetEmbedExternal.View
   padding?: 'lg' | 'xl'
   onPressOpenProfile: () => void
 }) {
@@ -160,7 +160,7 @@ export function LiveStatus({
           onPress={() => {
             logger.metric(
               'live:card:watch',
-              {subject: profile.did},
+              {subject: profile.userId},
               {statsig: true},
             )
             openLink(embed.external.uri, false)
@@ -180,7 +180,7 @@ export function LiveStatus({
             />
             {/* Ensure wide enough on web hover */}
             <View style={[a.flex_1, web({minWidth: 100})]}>
-              <ProfileCard.NameAndHandle
+              <ProfileCard.NameAndUsername
                 profile={profile}
                 moderationOpts={moderationOpts}
               />
@@ -193,7 +193,7 @@ export function LiveStatus({
               onPress={() => {
                 logger.metric(
                   'live:card:openProfile',
-                  {subject: profile.did},
+                  {subject: profile.userId},
                   {statsig: true},
                 )
                 unstableCacheProfileView(queryClient, profile)

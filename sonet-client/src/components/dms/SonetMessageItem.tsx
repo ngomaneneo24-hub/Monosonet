@@ -68,7 +68,7 @@ let MessageItem = ({
 
   const isFromSelf = isOwnMessage
 
-  const isNextFromSelf = nextMessage ? nextMessage.senderId === currentAccount?.did : false
+  const isNextFromSelf = nextMessage ? nextMessage.senderId === currentAccount?.userId : false
   const isNextFromSameSender = isNextFromSelf === isFromSelf
 
   const isNewDay = useMemo(() => {
@@ -110,7 +110,7 @@ let MessageItem = ({
           message,
           isOwnMessage,
           onPress: () => {
-            // Handle message actions
+            // Username message actions
           },
         })
       }
@@ -119,7 +119,7 @@ let MessageItem = ({
   )
 
   const onPress = useCallback(() => {
-    // Handle message press
+    // Username message press
   }, [])
 
   const layoutAnimation: LayoutAnimationConfig = {

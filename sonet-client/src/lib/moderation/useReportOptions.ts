@@ -1,5 +1,5 @@
 import {useMemo} from 'react'
-import {ComAtprotoModerationDefs} from '@atproto/api'
+import {SonetModerationDefs} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -11,7 +11,7 @@ export interface ReportOption {
 
 interface ReportOptions {
   account: ReportOption[]
-  post: ReportOption[]
+  note: ReportOption[]
   list: ReportOption[]
   starterpack: ReportOption[]
   feedgen: ReportOption[]
@@ -23,18 +23,18 @@ export function useReportOptions(): ReportOptions {
   const {_} = useLingui()
   return useMemo(() => {
     const other = {
-      reason: ComAtprotoModerationDefs.REASONOTHER,
+      reason: SonetModerationDefs.REASONOTHER,
       title: _(msg`Other`),
       description: _(msg`An issue not included in these options`),
     }
     const common = [
       {
-        reason: ComAtprotoModerationDefs.REASONRUDE,
+        reason: SonetModerationDefs.REASONRUDE,
         title: _(msg`Anti-Social Behavior`),
         description: _(msg`Harassment, trolling, or intolerance`),
       },
       {
-        reason: ComAtprotoModerationDefs.REASONVIOLATION,
+        reason: SonetModerationDefs.REASONVIOLATION,
         title: _(msg`Illegal and Urgent`),
         description: _(msg`Glaring violations of law or terms of service`),
       },
@@ -43,37 +43,37 @@ export function useReportOptions(): ReportOptions {
     return {
       account: [
         {
-          reason: ComAtprotoModerationDefs.REASONMISLEADING,
+          reason: SonetModerationDefs.REASONMISLEADING,
           title: _(msg`Misleading Account`),
           description: _(
             msg`Impersonation or false claims about identity or affiliation`,
           ),
         },
         {
-          reason: ComAtprotoModerationDefs.REASONSPAM,
-          title: _(msg`Frequently Posts Unwanted Content`),
+          reason: SonetModerationDefs.REASONSPAM,
+          title: _(msg`Frequently Notes Unwanted Content`),
           description: _(msg`Spam; excessive mentions or replies`),
         },
         {
-          reason: ComAtprotoModerationDefs.REASONVIOLATION,
+          reason: SonetModerationDefs.REASONVIOLATION,
           title: _(msg`Name or Description Violates Community Standards`),
           description: _(msg`Terms used violate community standards`),
         },
         other,
       ],
-      post: [
+      note: [
         {
-          reason: ComAtprotoModerationDefs.REASONMISLEADING,
-          title: _(msg`Misleading Post`),
+          reason: SonetModerationDefs.REASONMISLEADING,
+          title: _(msg`Misleading Note`),
           description: _(msg`Impersonation, misinformation, or false claims`),
         },
         {
-          reason: ComAtprotoModerationDefs.REASONSPAM,
+          reason: SonetModerationDefs.REASONSPAM,
           title: _(msg`Spam`),
           description: _(msg`Excessive mentions or replies`),
         },
         {
-          reason: ComAtprotoModerationDefs.REASONSEXUAL,
+          reason: SonetModerationDefs.REASONSEXUAL,
           title: _(msg`Unwanted Sexual Content`),
           description: _(msg`Nudity or adult content not labeled as such`),
         },
@@ -81,12 +81,12 @@ export function useReportOptions(): ReportOptions {
       ],
       convoMessage: [
         {
-          reason: ComAtprotoModerationDefs.REASONSPAM,
+          reason: SonetModerationDefs.REASONSPAM,
           title: _(msg`Spam`),
           description: _(msg`Excessive or unwanted messages`),
         },
         {
-          reason: ComAtprotoModerationDefs.REASONSEXUAL,
+          reason: SonetModerationDefs.REASONSEXUAL,
           title: _(msg`Unwanted Sexual Content`),
           description: _(msg`Inappropriate messages or explicit links`),
         },
@@ -94,7 +94,7 @@ export function useReportOptions(): ReportOptions {
       ],
       list: [
         {
-          reason: ComAtprotoModerationDefs.REASONVIOLATION,
+          reason: SonetModerationDefs.REASONVIOLATION,
           title: _(msg`Name or Description Violates Community Standards`),
           description: _(msg`Terms used violate community standards`),
         },
@@ -102,7 +102,7 @@ export function useReportOptions(): ReportOptions {
       ],
       starterpack: [
         {
-          reason: ComAtprotoModerationDefs.REASONVIOLATION,
+          reason: SonetModerationDefs.REASONVIOLATION,
           title: _(msg`Name or Description Violates Community Standards`),
           description: _(msg`Terms used violate community standards`),
         },
@@ -110,7 +110,7 @@ export function useReportOptions(): ReportOptions {
       ],
       feedgen: [
         {
-          reason: ComAtprotoModerationDefs.REASONVIOLATION,
+          reason: SonetModerationDefs.REASONVIOLATION,
           title: _(msg`Name or Description Violates Community Standards`),
           description: _(msg`Terms used violate community standards`),
         },

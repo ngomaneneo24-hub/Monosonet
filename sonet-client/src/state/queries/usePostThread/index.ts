@@ -10,30 +10,30 @@ import {
   TREE_VIEW_BELOW,
   TREE_VIEW_BELOW_DESKTOP,
   TREE_VIEW_BF,
-} from '#/state/queries/usePostThread/const'
+} from '#/state/queries/useNoteThread/const'
 import {
   createCacheMutator,
   getThreadPlaceholder,
-} from '#/state/queries/usePostThread/queryCache'
+} from '#/state/queries/useNoteThread/queryCache'
 import {
   buildThread,
   sortAndAnnotateThreadItems,
-} from '#/state/queries/usePostThread/traversal'
+} from '#/state/queries/useNoteThread/traversal'
 import {
-  createPostThreadOtherQueryKey,
-  createPostThreadQueryKey,
+  createNoteThreadOtherQueryKey,
+  createNoteThreadQueryKey,
   type ThreadItem,
-  type UsePostThreadQueryResult,
-} from '#/state/queries/usePostThread/types'
-import {getThreadgateRecord} from '#/state/queries/usePostThread/utils'
-import * as views from '#/state/queries/usePostThread/views'
+  type UseNoteThreadQueryResult,
+} from '#/state/queries/useNoteThread/types'
+import {getThreadgateRecord} from '#/state/queries/useNoteThread/utils'
+import * as views from '#/state/queries/useNoteThread/views'
 import {useAgent, useSession} from '#/state/session'
 import {useMergeThreadgateHiddenReplies} from '#/state/threadgate-hidden-replies'
 import {useBreakpoints} from '#/alf'
 
-export * from '#/state/queries/usePostThread/types'
+export * from '#/state/queries/useNoteThread/types'
 
-export function usePostThread({anchor}: {anchor?: string}) {
+export function useNoteThread({anchor}: {anchor?: string}) {
   const qc = useQueryClient()
   const agent = useAgent()
   const {hasSession} = useSession()
@@ -56,22 +56,22 @@ export function usePostThread({anchor}: {anchor?: string}) {
         : TREE_VIEW_BELOW
   }, [view, gtPhone])
 
-  const postThreadQueryKey = createPostThreadQueryKey({
+  const noteThreadQueryKey = createNoteThreadQueryKey({
     anchor,
     sort,
     view,
     prioritizeFollowedUsers,
   })
-  const postThreadOtherQueryKey = createPostThreadOtherQueryKey({
+  const noteThreadOtherQueryKey = createNoteThreadOtherQueryKey({
     anchor,
     prioritizeFollowedUsers,
   })
 
-  const query = useQuery<UsePostThreadQueryResult>({
+  const query = useQuery<UseNoteThreadQueryResult>({
     enabled: isThreadPreferencesLoaded && !!anchor && !!moderationOpts,
-    queryKey: postThreadQueryKey,
+    queryKey: noteThreadQueryKey,
     async queryFn(ctx) {
-      const {data} = await agent.app.bsky.unspecced.getPostThreadV2({
+      const {data} = await agent.app.sonet.unspecced.getNoteThreadV2({
         anchor: anchor!,
         branchingFactor: view === 'linear' ? LINEAR_VIEW_BF : TREE_VIEW_BF,
         below,
@@ -105,7 +105,7 @@ export function usePostThread({anchor}: {anchor?: string}) {
         result.threadgate.record = record
       }
 
-      return result as UsePostThreadQueryResult
+      return result as UseNoteThreadQueryResult
     },
     placeholderData() {
       if (!anchor) return
@@ -139,18 +139,18 @@ export function usePostThread({anchor}: {anchor?: string}) {
   const [otherItemsVisible, setOtherItemsVisible] = useState(false)
 
   /**
-   * Creates a mutator for the post thread cache. This is used to insert
-   * replies into the thread cache after posting.
+   * Creates a mutator for the note thread cache. This is used to insert
+   * replies into the thread cache after noteing.
    */
   const mutator = useMemo(
     () =>
       createCacheMutator({
         params: {view, below},
-        postThreadQueryKey,
-        postThreadOtherQueryKey,
+        noteThreadQueryKey,
+        noteThreadOtherQueryKey,
         queryClient: qc,
       }),
-    [qc, view, below, postThreadQueryKey, postThreadOtherQueryKey],
+    [qc, view, below, noteThreadQueryKey, noteThreadOtherQueryKey],
   )
 
   /**
@@ -160,9 +160,9 @@ export function usePostThread({anchor}: {anchor?: string}) {
   const additionalQueryEnabled = hasOtherThreadItems && otherItemsVisible
   const additionalItemsQuery = useQuery({
     enabled: additionalQueryEnabled,
-    queryKey: postThreadOtherQueryKey,
+    queryKey: noteThreadOtherQueryKey,
     async queryFn() {
-      const {data} = await agent.app.bsky.unspecced.getPostThreadOtherV2({
+      const {data} = await agent.app.sonet.unspecced.getNoteThreadOtherV2({
         anchor: anchor!,
         prioritizeFollowedUsers,
       })

@@ -2,26 +2,26 @@ import {useCallback, useMemo, useState} from 'react'
 import {LayoutAnimation, Pressable, View} from 'react-native'
 import {Image} from 'expo-image'
 import {
-  AppBskyEmbedImages,
-  AppBskyEmbedRecord,
-  AppBskyEmbedRecordWithMedia,
-  AppBskyFeedPost,
-} from '@atproto/api'
+  SonetEmbedImages,
+  SonetEmbedRecord,
+  SonetEmbedRecordWithMedia,
+  SonetFeedNote,
+} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
-import {type ComposerOptsPostRef} from '#/state/shell/composer'
+import {sanitizeUsername} from '#/lib/strings/usernames'
+import {type ComposerOptsNoteRef} from '#/state/shell/composer'
 import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
 import {atoms as a, useTheme, web} from '#/alf'
-import {QuoteEmbed} from '#/components/Post/Embed'
+import {QuoteEmbed} from '#/components/Note/Embed'
 import {Text} from '#/components/Typography'
 import {useSimpleVerificationState} from '#/components/verification'
 import {VerificationCheck} from '#/components/verification/VerificationCheck'
-import {parseEmbed} from '#/types/bsky/post'
+import {parseEmbed} from '#/types/bsky/note'
 
-export function ComposerReplyTo({replyTo}: {replyTo: ComposerOptsPostRef}) {
+export function ComposerReplyTo({replyTo}: {replyTo: ComposerOptsNoteRef}) {
   const t = useTheme()
   const {_} = useLingui()
   const {embed} = replyTo
@@ -38,15 +38,15 @@ export function ComposerReplyTo({replyTo}: {replyTo: ComposerOptsPostRef}) {
 
   const quoteEmbed = useMemo(() => {
     if (
-      AppBskyEmbedRecord.isView(embed) &&
-      AppBskyEmbedRecord.isViewRecord(embed.record) &&
-      AppBskyFeedPost.isRecord(embed.record.value)
+      SonetEmbedRecord.isView(embed) &&
+      SonetEmbedRecord.isViewRecord(embed.record) &&
+      SonetFeedNote.isRecord(embed.record.value)
     ) {
       return embed
     } else if (
-      AppBskyEmbedRecordWithMedia.isView(embed) &&
-      AppBskyEmbedRecord.isViewRecord(embed.record.record) &&
-      AppBskyFeedPost.isRecord(embed.record.record.value)
+      SonetEmbedRecordWithMedia.isView(embed) &&
+      SonetEmbedRecord.isViewRecord(embed.record.record) &&
+      SonetFeedNote.isRecord(embed.record.record.value)
     ) {
       return embed.record
     }
@@ -54,17 +54,17 @@ export function ComposerReplyTo({replyTo}: {replyTo: ComposerOptsPostRef}) {
   }, [embed])
   const parsedQuoteEmbed = quoteEmbed
     ? parseEmbed({
-        $type: 'app.bsky.embed.record#view',
+        type: "sonet",
         ...quoteEmbed,
       })
     : null
 
   const images = useMemo(() => {
-    if (AppBskyEmbedImages.isView(embed)) {
+    if (SonetEmbedImages.isView(embed)) {
       return embed.images
     } else if (
-      AppBskyEmbedRecordWithMedia.isView(embed) &&
-      AppBskyEmbedImages.isView(embed.media)
+      SonetEmbedRecordWithMedia.isView(embed) &&
+      SonetEmbedImages.isView(embed.media)
     ) {
       return embed.media.images
     }
@@ -88,7 +88,7 @@ export function ComposerReplyTo({replyTo}: {replyTo: ComposerOptsPostRef}) {
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={_(
-        msg`Expand or collapse the full post you are replying to`,
+        msg`Expand or collapse the full note you are replying to`,
       )}
       accessibilityHint="">
       <PreviewableUserAvatar
@@ -106,7 +106,7 @@ export function ComposerReplyTo({replyTo}: {replyTo: ComposerOptsPostRef}) {
             emoji>
             {sanitizeDisplayName(
               replyTo.author.displayName ||
-                sanitizeHandle(replyTo.author.handle),
+                sanitizeUsername(replyTo.author.username),
             )}
           </Text>
           {verification.showBadge && (
@@ -131,7 +131,7 @@ export function ComposerReplyTo({replyTo}: {replyTo: ComposerOptsPostRef}) {
             <ComposerReplyToImages images={images} showFull={showFull} />
           )}
         </View>
-        {showFull && parsedQuoteEmbed && parsedQuoteEmbed.type === 'post' && (
+        {showFull && parsedQuoteEmbed && parsedQuoteEmbed.type === 'note' && (
           <QuoteEmbed embed={parsedQuoteEmbed} />
         )}
       </View>
@@ -142,7 +142,7 @@ export function ComposerReplyTo({replyTo}: {replyTo: ComposerOptsPostRef}) {
 function ComposerReplyToImages({
   images,
 }: {
-  images: AppBskyEmbedImages.ViewImage[]
+  images: SonetEmbedImages.ViewImage[]
   showFull: boolean
 }) {
   return (

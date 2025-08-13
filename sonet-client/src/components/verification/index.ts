@@ -47,14 +47,14 @@ export function useFullVerificationState({
       viewerState &&
         viewerState.role === 'verifier' &&
         profileState.role === 'default' &&
-        verifications.find(v => v.issuer === currentAccount?.did),
+        verifications.find(v => v.issuer === currentAccount?.userId),
     )
 
     return {
       profile: {
         ...profileState,
         wasVerified,
-        isViewer: profile.did === currentAccount?.did,
+        isViewer: profile.userId === currentAccount?.userId,
         showBadge: profileState.showBadge,
       },
       viewer:

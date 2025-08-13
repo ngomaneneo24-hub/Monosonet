@@ -8,8 +8,8 @@ describe('handle validation', () => {
     ['a-----lice', 'bsky.social'],
     ['123', 'bsky.social'],
     ['123456789012345678', 'bsky.social'],
-    ['alice', 'custom-pds.com'],
-    ['alice', 'my-custom-pds-with-long-name.social'],
+    ['alice', 'custom-sonet.com'],
+    ['alice', 'my-custom-sonet-with-long-name.social'],
     ['123456789012345678', 'my-custom-pds-with-long-name.social'],
   ]
   it.each(valid)(`should be valid: %s.%s`, (handle, service) => {
@@ -25,10 +25,10 @@ describe('handle validation', () => {
     ['1234567890123456789', 'bsky.social', 'frontLengthNotTooLong'],
     [
       '1234567890123456789',
-      'my-custom-pds-with-long-name.social',
+      'my-custom-sonet-with-long-name.social',
       'frontLengthNotTooLong',
     ],
-    ['al', 'my-custom-pds-with-long-name.social', 'frontLengthNotTooShort'],
+    ['al', 'my-custom-sonet-with-long-name.social', 'frontLengthNotTooShort'],
     ['a'.repeat(300), 'toolong.com', 'totalLength'],
   ] satisfies [string, string, keyof IsValidHandle][]
   it.each(invalid)(

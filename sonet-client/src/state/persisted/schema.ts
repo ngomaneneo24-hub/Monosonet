@@ -3,7 +3,7 @@ import {z} from 'zod'
 import {deviceLanguageCodes, deviceLocales} from '#/locale/deviceLocales'
 import {findSupportedAppLanguage} from '#/locale/helpers'
 import {logger} from '#/logger'
-import {PlatformInfo} from '../../../modules/expo-bluesky-swiss-army'
+import {PlatformInfo} from '../../../modules/expo-sonet-swiss-army'
 
 const externalEmbedOptions = ['show', 'hide'] as const
 
@@ -13,8 +13,8 @@ const externalEmbedOptions = ['show', 'hide'] as const
  */
 const accountSchema = z.object({
   service: z.string(),
-  did: z.string(),
-  handle: z.string(),
+  userId: z.string(),
+  username: z.string(),
   email: z.string().optional(),
   emailConfirmed: z.boolean().optional(),
   emailAuthFactor: z.boolean().optional(),
@@ -29,6 +29,21 @@ const accountSchema = z.object({
   status: z.string().optional(),
   pdsUrl: z.string().optional(),
   isSelfHosted: z.boolean().optional(),
+  accessToken: z.string().optional(),
+  refreshToken: z.string().optional(),
+  user: z.object({
+    id: z.string(),
+    username: z.string(),
+    displayName: z.string().optional(),
+    bio: z.string().optional(),
+    avatar: z.string().optional(),
+    banner: z.string().optional(),
+    followersCount: z.number(),
+    followingCount: z.number(),
+    notesCount: z.number(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+  }).optional(),
 })
 export type PersistedAccount = z.infer<typeof accountSchema>
 
@@ -36,13 +51,13 @@ export type PersistedAccount = z.infer<typeof accountSchema>
  * The current account. Stored in the `currentAccount` field.
  *
  * In previous versions, this included tokens and other info. Now, it's used
- * only to reference the `did` field, and all other fields are marked as
+ * only to reference the `userId` field, and all other fields are marked as
  * optional. They should be considered deprecated and not used, but are kept
  * here for backwards compat.
  */
 const currentAccountSchema = accountSchema.extend({
   service: z.string().optional(),
-  handle: z.string().optional(),
+  username: z.string().optional(),
 })
 export type PersistedCurrentAccount = z.infer<typeof currentAccountSchema>
 
@@ -58,7 +73,7 @@ const schema = z.object({
   }),
   languagePrefs: z.object({
     /**
-     * The target language for translating posts.
+     * The target language for translating notes.
      *
      * BCP-47 2-letter language code without region.
      */
@@ -70,20 +85,20 @@ const schema = z.object({
      */
     contentLanguages: z.array(z.string()),
     /**
-     * The language(s) the user is currently posting in, configured within the
+     * The language(s) the user is currently noteing in, configured within the
      * composer. Multiple languages are psearate by commas.
      *
      * BCP-47 2-letter language code without region.
      */
-    postLanguage: z.string(),
+    noteLanguage: z.string(),
     /**
-     * The user's post language history, used to pre-populate the post language
+     * The user's note language history, used to pre-populate the note language
      * selector in the composer. Within each value, multiple languages are
      * separated by values.
      *
      * BCP-47 2-letter language codes without region.
      */
-    postLanguageHistory: z.array(z.string()),
+    noteLanguageHistory: z.array(z.string()),
     /**
      * The language for UI translations in the app.
      *
@@ -114,7 +129,7 @@ const schema = z.object({
   onboarding: z.object({
     step: z.string(),
   }),
-  hiddenPosts: z.array(z.string()).optional(), // should move to server
+  hiddenNotes: z.array(z.string()).optional(), // should move to server
   useInAppBrowser: z.boolean().optional(),
   lastSelectedHomeFeed: z.string().optional(),
   pdsAddressHistory: z.array(z.string()).optional(),
@@ -143,8 +158,8 @@ export const defaults: Schema = {
   languagePrefs: {
     primaryLanguage: deviceLanguageCodes[0] || 'en',
     contentLanguages: deviceLanguageCodes || [],
-    postLanguage: deviceLanguageCodes[0] || 'en',
-    postLanguageHistory: (deviceLanguageCodes || [])
+    noteLanguage: deviceLanguageCodes[0] || 'en',
+    noteLanguageHistory: (deviceLanguageCodes || [])
       .concat(['en', 'ja', 'pt', 'de'])
       .slice(0, 6),
     // try full language tag first, then fallback to language code
@@ -163,7 +178,7 @@ export const defaults: Schema = {
   onboarding: {
     step: 'Home',
   },
-  hiddenPosts: [],
+  hiddenNotes: [],
   useInAppBrowser: undefined,
   lastSelectedHomeFeed: undefined,
   pdsAddressHistory: [],

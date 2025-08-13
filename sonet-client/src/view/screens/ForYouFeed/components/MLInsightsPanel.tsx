@@ -9,11 +9,11 @@ import {CloseIcon, BrainIcon, TrendingIcon, HeartIcon, SparklesIcon} from '#/lib
 import {BottomSheet} from '#/view/com/util/BottomSheet'
 
 interface MLInsightsPanelProps {
-  post: ForYouFeedItemType
+  note: ForYouFeedItemType
   onClose: () => void
 }
 
-export function MLInsightsPanel({post, onClose}: MLInsightsPanelProps) {
+export function MLInsightsPanel({note, onClose}: MLInsightsPanelProps) {
   const {_} = useLingui()
 
   const getInsightIcon = (factor: string) => {
@@ -62,16 +62,16 @@ export function MLInsightsPanel({post, onClose}: MLInsightsPanelProps) {
             </Text>
             <View style={styles.scoreContainer}>
               <Text style={styles.scoreValue}>
-                {Math.round(post.ranking.score * 100)}
+                {Math.round(note.ranking.score * 100)}
               </Text>
               <Text style={styles.scoreLabel}>
                 {_(msg`out of 100`)}
               </Text>
             </View>
             <Text style={styles.scoreDescription}>
-              {post.ranking.score >= 0.8 
+              {note.ranking.score >= 0.8 
                 ? _(msg`This content is highly recommended for you!`)
-                : post.ranking.score >= 0.6
+                : note.ranking.score >= 0.6
                 ? _(msg`This content should be interesting to you.`)
                 : _(msg`This content might be relevant to your interests.`)
               }
@@ -84,7 +84,7 @@ export function MLInsightsPanel({post, onClose}: MLInsightsPanelProps) {
               {_(msg`Content Ranking Factors`)}
             </Text>
             <View style={styles.factorsList}>
-              {Object.entries(post.ranking.factors)
+              {Object.entries(note.ranking.factors)
                 .sort(([,a], [,b]) => (b as number) - (a as number))
                 .map(([factor, value]) => (
                   <View key={factor} style={styles.factorRow}>
@@ -116,13 +116,13 @@ export function MLInsightsPanel({post, onClose}: MLInsightsPanelProps) {
           </View>
 
           {/* Personalization Reasons */}
-          {post.ranking.personalization.length > 0 && (
+          {note.ranking.personalization.length > 0 && (
             <View style={styles.reasonsSection}>
               <Text style={styles.sectionTitle}>
                 {_(msg`Personalization Reasons`)}
               </Text>
               <View style={styles.reasonsList}>
-                {post.ranking.personalization.map((reason, index) => (
+                {note.ranking.personalization.map((reason, index) => (
                   <View key={index} style={styles.reasonItem}>
                     <View style={styles.reasonBullet} />
                     <Text style={styles.reasonText}>
@@ -135,7 +135,7 @@ export function MLInsightsPanel({post, onClose}: MLInsightsPanelProps) {
           )}
 
           {/* ML Insights */}
-          {post.mlInsights && (
+          {note.mlInsights && (
             <View style={styles.insightsSection}>
               <Text style={styles.sectionTitle}>
                 {_(msg`Machine Learning Insights`)}
@@ -146,7 +146,7 @@ export function MLInsightsPanel({post, onClose}: MLInsightsPanelProps) {
                     {_(msg`Engagement Prediction`)}
                   </Text>
                   <Text style={styles.insightValue}>
-                    {Math.round(post.mlInsights.engagementPrediction * 100)}%
+                    {Math.round(note.mlInsights.engagementPrediction * 100)}%
                   </Text>
                   <Text style={styles.insightDescription}>
                     {_(msg`Likelihood you'll engage`)}
@@ -157,7 +157,7 @@ export function MLInsightsPanel({post, onClose}: MLInsightsPanelProps) {
                     {_(msg`Content Quality`)}
                   </Text>
                   <Text style={styles.insightValue}>
-                    {Math.round(post.mlInsights.contentQuality * 100)}%
+                    {Math.round(note.mlInsights.contentQuality * 100)}%
                   </Text>
                   <Text style={styles.insightDescription}>
                     {_(msg`Overall content quality`)}
@@ -168,7 +168,7 @@ export function MLInsightsPanel({post, onClose}: MLInsightsPanelProps) {
                     {_(msg`Diversity Score`)}
                   </Text>
                   <Text style={styles.insightValue}>
-                    {Math.round(post.mlInsights.diversityScore * 100)}%
+                    {Math.round(note.mlInsights.diversityScore * 100)}%
                   </Text>
                   <Text style={styles.insightDescription}>
                     {_(msg`Content diversity`)}
@@ -179,7 +179,7 @@ export function MLInsightsPanel({post, onClose}: MLInsightsPanelProps) {
                     {_(msg`Novelty Score`)}
                   </Text>
                   <Text style={styles.insightValue}>
-                    {Math.round(post.mlInsights.noveltyScore * 100)}%
+                    {Math.round(note.mlInsights.noveltyScore * 100)}%
                   </Text>
                   <Text style={styles.insightDescription}>
                     {_(msg`Content freshness`)}

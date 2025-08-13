@@ -4,7 +4,7 @@ import {Modal, View} from 'react-native'
 import {useDialogStateControlContext} from '#/state/dialogs'
 import {useComposerState} from '#/state/shell/composer'
 import {atoms as a, useTheme} from '#/alf'
-import {ComposePost, useComposerCancelRef} from '../com/composer/Composer'
+import {ComposeNote, useComposerCancelRef} from '../com/composer/Composer'
 
 export function Composer({}: {winHeight: number}) {
   const {setFullyExpandedCount} = useDialogStateControlContext()
@@ -33,11 +33,11 @@ export function Composer({}: {winHeight: number}) {
       animationType="slide"
       onRequestClose={() => ref.current?.onPressCancel()}>
       <View style={[t.atoms.bg, a.flex_1]}>
-        <ComposePost
+        <ComposeNote
           cancelRef={ref}
           replyTo={state?.replyTo}
-          onPost={state?.onPost}
-          onPostSuccess={state?.onPostSuccess}
+          onNote={state?.onNote}
+          onNoteSuccess={state?.onNoteSuccess}
           quote={state?.quote}
           mention={state?.mention}
           text={state?.text}

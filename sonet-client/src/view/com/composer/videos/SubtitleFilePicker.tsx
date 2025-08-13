@@ -19,11 +19,11 @@ export function SubtitleFilePicker({
   const {_} = useLingui()
   const ref = useRef<HTMLInputElement>(null)
 
-  const handleClick = () => {
+  const usernameClick = () => {
     ref.current?.click()
   }
 
-  const handlePick = (evt: React.ChangeEvent<HTMLInputElement>) => {
+  const usernamePick = (evt: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = evt.target.files?.[0]
     if (selectedFile) {
       if (
@@ -49,13 +49,13 @@ export function SubtitleFilePicker({
         accept=".vtt"
         ref={ref}
         style={a.hidden}
-        onChange={handlePick}
+        onChange={usernamePick}
         disabled={disabled}
         aria-disabled={disabled}
       />
       <View style={a.flex_row}>
         <Button
-          onPress={handleClick}
+          onPress={usernameClick}
           label={_(msg`Select subtitle file (.vtt)`)}
           size="large"
           color="primary"

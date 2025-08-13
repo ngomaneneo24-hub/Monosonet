@@ -1,7 +1,7 @@
 import {Pressable, type StyleProp, View, type ViewStyle} from 'react-native'
 import {type AnimatedRef} from 'react-native-reanimated'
 import {Image, type ImageStyle} from 'expo-image'
-import {type AppBskyEmbedImages} from '@atproto/api'
+import {type SonetEmbedImages} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import type React from 'react'
@@ -10,13 +10,13 @@ import {type Dimensions} from '#/lib/media/types'
 import {useLargeAltBadgeEnabled} from '#/state/preferences/large-alt-badge'
 import {atoms as a, useTheme} from '#/alf'
 import {MediaInsetBorder} from '#/components/MediaInsetBorder'
-import {PostEmbedViewContext} from '#/components/Post/Embed/types'
+import {NoteEmbedViewContext} from '#/components/Note/Embed/types'
 import {Text} from '#/components/Typography'
 
 type EventFunction = (index: number) => void
 
 interface Props {
-  images: AppBskyEmbedImages.ViewImage[]
+  images: SonetEmbedImages.ViewImage[]
   index: number
   onPress?: (
     index: number,
@@ -26,7 +26,7 @@ interface Props {
   onLongPress?: EventFunction
   onPressIn?: EventFunction
   imageStyle?: StyleProp<ImageStyle>
-  viewContext?: PostEmbedViewContext
+  viewContext?: NoteEmbedViewContext
   insetBorderStyle?: StyleProp<ViewStyle>
   containerRefs: AnimatedRef<any>[]
   thumbDimsRef: React.MutableRefObject<(Dimensions | null)[]>
@@ -50,7 +50,7 @@ export function GalleryItem({
   const image = images[index]
   const hasAlt = !!image.alt
   const hideBadges =
-    viewContext === PostEmbedViewContext.FeedEmbedRecordWithMedia
+    viewContext === NoteEmbedViewContext.FeedEmbedRecordWithMedia
   return (
     <View style={a.flex_1} ref={containerRefs[index]} collapsable={false}>
       <Pressable

@@ -1,10 +1,10 @@
 import {useMemo, useState} from 'react'
 import {View} from 'react-native'
 import {
-  type AppBskyActorDefs,
-  AppBskyActorStatus,
-  type AppBskyEmbedExternal,
-} from '@atproto/api'
+  type SonetActorDefs,
+  SonetActorStatus,
+  type SonetEmbedExternal,
+} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {differenceInMinutes} from 'date-fns'
@@ -35,12 +35,12 @@ export function EditLiveDialog({
   embed,
 }: {
   control: Dialog.DialogControlProps
-  status: AppBskyActorDefs.StatusView
-  embed: AppBskyEmbedExternal.View
+  status: SonetActorDefs.StatusView
+  embed: SonetEmbedExternal.View
 }) {
   return (
     <Dialog.Outer control={control} nativeOptions={{preventExpansion: true}}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <DialogInner status={status} embed={embed} />
     </Dialog.Outer>
   )
@@ -50,8 +50,8 @@ function DialogInner({
   status,
   embed,
 }: {
-  status: AppBskyActorDefs.StatusView
-  embed: AppBskyEmbedExternal.View
+  status: SonetActorDefs.StatusView
+  embed: SonetEmbedExternal.View
 }) {
   const control = Dialog.useDialogContext()
   const {_, i18n} = useLingui()
@@ -74,8 +74,8 @@ function DialogInner({
   } = useLiveLinkMetaQuery(debouncedUrl)
 
   const record = useMemo(() => {
-    if (!AppBskyActorStatus.isRecord(status.record)) return null
-    const validation = AppBskyActorStatus.validateRecord(status.record)
+    if (!SonetActorStatus.isRecord(status.record)) return null
+    const validation = SonetActorStatus.validateRecord(status.record)
     if (validation.success) {
       return validation.value
     }

@@ -40,9 +40,9 @@ export const useVideoPlayback = ({
   const appStateRef = useRef(AppState.currentState)
   const playbackTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Handle app state changes
+  // Username app state changes
   useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+    const usernameAppStateChange = (nextAppState: AppStateStatus) => {
       if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
         // App came to foreground
         if (isVisible && isActive) {
@@ -59,12 +59,12 @@ export const useVideoPlayback = ({
       appStateRef.current = nextAppState
     }
 
-    const subscription = AppState.addEventListener('change', handleAppStateChange)
+    const subscription = AppState.addEventListener('change', usernameAppStateChange)
     return () => subscription?.remove()
   }, [isVisible, isActive])
 
-  // Handle playback status updates
-  const handlePlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
+  // Username playback status updates
+  const usernamePlaybackStatusUpdate = useCallback((status: AVPlaybackStatus) => {
     setPlaybackState(prev => ({
       ...prev,
       isPlaying: status.isLoaded ? status.isPlaying : false,
@@ -112,8 +112,8 @@ export const useVideoPlayback = ({
     setViewTracked(false)
   }, [])
 
-  // Handle video error
-  const handleVideoError = useCallback((error: string) => {
+  // Username video error
+  const usernameVideoError = useCallback((error: string) => {
     setPlaybackState(prev => ({
       ...prev,
       hasError: true,
@@ -181,7 +181,7 @@ export const useVideoPlayback = ({
     setVideoVisible,
     setVideoActive,
     resetPlayback,
-    handlePlaybackStatusUpdate,
-    handleVideoError
+    usernamePlaybackStatusUpdate,
+    usernameVideoError
   }
 }

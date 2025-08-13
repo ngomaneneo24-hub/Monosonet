@@ -1,12 +1,12 @@
 import {Pressable, ScrollView, View} from 'react-native'
-import {moderateProfile, type ModerationOpts} from '@atproto/api'
+import {moderateProfile, type ModerationOpts} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
 import {createHitslop, HITSLOP_10} from '#/lib/constants'
 import {makeProfileLink} from '#/lib/routes/links'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
 import {UserAvatar} from '#/view/com/util/UserAvatar'
 import {BlockDrawerGesture} from '#/view/shell/BlockDrawerGesture'
@@ -41,7 +41,7 @@ export function SearchHistory({
   return (
     <Layout.Content
       keyboardDismissMode="interactive"
-      keyboardShouldPersistTaps="handled">
+      keyboardShouldPersistTaps="usernamed">
       <View style={[a.w_full, a.gap_md]}>
         {(searchHistory.length > 0 || selectedProfiles.length > 0) && (
           <View style={[a.px_lg, a.pt_sm]}>
@@ -56,7 +56,7 @@ export function SearchHistory({
             <BlockDrawerGesture>
               <ScrollView
                 horizontal
-                keyboardShouldPersistTaps="handled"
+                keyboardShouldPersistTaps="usernamed"
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={[
                   a.px_lg,
@@ -67,7 +67,7 @@ export function SearchHistory({
                 {moderationOpts &&
                   selectedProfiles.map(profile => (
                     <RecentProfileItem
-                      key={profile.did}
+                      key={profile.userId}
                       profile={profile}
                       moderationOpts={moderationOpts}
                       onPress={() => onProfileClick(profile)}
@@ -124,7 +124,7 @@ function RecentProfileItem({
 
   const moderation = moderateProfile(profile, moderationOpts)
   const name = sanitizeDisplayName(
-    profile.displayName || sanitizeHandle(profile.handle),
+    profile.displayName || sanitizeUsername(profile.username),
     moderation.ui('displayName'),
   )
   const verification = useSimpleVerificationState({profile})
@@ -133,7 +133,7 @@ function RecentProfileItem({
     <View style={[a.relative]}>
       <Link
         to={makeProfileLink(profile)}
-        label={profile.handle}
+        label={profile.username}
         onPress={onPress}
         style={[
           a.flex_col,

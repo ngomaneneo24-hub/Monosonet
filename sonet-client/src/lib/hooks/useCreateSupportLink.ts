@@ -5,10 +5,10 @@ import {useLingui} from '@lingui/react'
 import {useSession} from '#/state/session'
 
 export const ZENDESK_SUPPORT_URL =
-  'https://blueskyweb.zendesk.com/hc/requests/new'
+  'https://sonetweb.zendesk.com/hc/requests/new'
 
 export enum SupportCode {
-  AA_DID = 'AA_DID',
+  AA_UserID = 'AA_UserID',
 }
 
 /**
@@ -29,7 +29,7 @@ export function useCreateSupportLink() {
           /**
            * Custom field specific to {@link ZENDESK_SUPPORT_URL} form
            */
-          tf_17205412673421: currentAccount.handle + ` (${currentAccount.did})`,
+          tf_17205412673421: currentAccount.username + ` (${currentAccount.userId})`,
         }).toString()
       }
       return url.toString()

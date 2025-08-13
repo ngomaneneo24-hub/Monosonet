@@ -7,7 +7,7 @@ import Animated, {
   runOnUI,
   useAnimatedRef,
 } from 'react-native-reanimated'
-import {type AppBskyGraphDefs} from '@atproto/api'
+import {type SonetGraphDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
@@ -16,7 +16,7 @@ import {usePalette} from '#/lib/hooks/usePalette'
 import {useWebMediaQueries} from '#/lib/hooks/useWebMediaQueries'
 import {makeProfileLink} from '#/lib/routes/links'
 import {type NavigationProp} from '#/lib/routes/types'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {emitSoftReset} from '#/state/events'
 import {useLightboxControls} from '#/state/lightbox'
 import {TextLink} from '#/view/com/util/Link'
@@ -42,11 +42,11 @@ export function ProfileSubpageHeader({
   title: string | undefined
   avatar: string | undefined
   isOwner: boolean | undefined
-  purpose: AppBskyGraphDefs.ListPurpose | undefined
+  purpose: SonetGraphDefs.ListPurpose | undefined
   creator:
     | {
-        did: string
-        handle: string
+        userId: string
+        username: string
       }
     | undefined
   avatarType: UserAvatarType | 'starter-pack'
@@ -153,40 +153,40 @@ export function ProfileSubpageHeader({
             <LoadingPlaceholder width={50} height={8} />
           ) : (
             <Text type="lg" style={[pal.textLight]} numberOfLines={1}>
-              {purpose === 'app.bsky.graph.defs#curatelist' ? (
+              {purpose === 'app.sonet.graph.defs#curatelist' ? (
                 isOwner ? (
                   <Trans>List by you</Trans>
                 ) : (
                   <Trans>
                     List by{' '}
                     <TextLink
-                      text={sanitizeHandle(creator.handle || '', '@')}
+                      text={sanitizeUsername(creator.username || '', '@')}
                       href={makeProfileLink(creator)}
                       style={pal.textLight}
                     />
                   </Trans>
                 )
-              ) : purpose === 'app.bsky.graph.defs#modlist' ? (
+              ) : purpose === 'app.sonet.graph.defs#modlist' ? (
                 isOwner ? (
                   <Trans>Moderation list by you</Trans>
                 ) : (
                   <Trans>
                     Moderation list by{' '}
                     <TextLink
-                      text={sanitizeHandle(creator.handle || '', '@')}
+                      text={sanitizeUsername(creator.username || '', '@')}
                       href={makeProfileLink(creator)}
                       style={pal.textLight}
                     />
                   </Trans>
                 )
-              ) : purpose === 'app.bsky.graph.defs#referencelist' ? (
+              ) : purpose === 'app.sonet.graph.defs#referencelist' ? (
                 isOwner ? (
                   <Trans>Starter pack by you</Trans>
                 ) : (
                   <Trans>
                     Starter pack by{' '}
                     <TextLink
-                      text={sanitizeHandle(creator.handle || '', '@')}
+                      text={sanitizeUsername(creator.username || '', '@')}
                       href={makeProfileLink(creator)}
                       style={pal.textLight}
                     />

@@ -1,39 +1,37 @@
-import {type AppBskyGraphDefs, AtUri} from '@atproto/api'
-
-import {isInvalidHandle} from '#/lib/strings/handles'
+import {isInvalidUsername} from '#/lib/strings/usernames'
 
 export function makeProfileLink(
   info: {
-    did: string
-    handle: string
+    id: string
+    username: string
   },
   ...segments: string[]
 ) {
-  let handleSegment = info.did
-  if (info.handle && !isInvalidHandle(info.handle)) {
-    handleSegment = info.handle
+  let usernameSegment = info.id
+  if (info.username && !isInvalidUsername(info.username)) {
+    usernameSegment = info.username
   }
-  return [`/profile`, handleSegment, ...segments].join('/')
+  return [`/profile`, usernameSegment, ...segments].join('/')
 }
 
 export function makeCustomFeedLink(
-  did: string,
-  rkey: string,
+  userId: string,
+  feedId: string,
   segment?: string | undefined,
   feedCacheKey?: 'discover' | 'explore' | undefined,
 ) {
   return (
-    [`/profile`, did, 'feed', rkey, ...(segment ? [segment] : [])].join('/') +
+    [`/profile`, userId, 'feed', feedId, ...(segment ? [segment] : [])].join('/') +
     (feedCacheKey ? `?feedCacheKey=${encodeURIComponent(feedCacheKey)}` : '')
   )
 }
 
-export function makeListLink(did: string, rkey: string, ...segments: string[]) {
-  return [`/profile`, did, 'lists', rkey, ...segments].join('/')
+export function makeListLink(userId: string, listId: string, ...segments: string[]) {
+  return [`/profile`, userId, 'lists', listId, ...segments].join('/')
 }
 
-export function makeTagLink(did: string) {
-  return `/search?q=${encodeURIComponent(did)}`
+export function makeTagLink(tag: string) {
+  return `/search?q=${encodeURIComponent(tag)}`
 }
 
 export function makeSearchLink(props: {query: string; from?: 'me' | string}) {
@@ -43,16 +41,15 @@ export function makeSearchLink(props: {query: string; from?: 'me' | string}) {
 }
 
 export function makeStarterPackLink(
-  starterPackOrName:
-    | AppBskyGraphDefs.StarterPackViewBasic
-    | AppBskyGraphDefs.StarterPackView
-    | string,
-  rkey?: string,
+  starterPackOrName: any | string,
+  id?: string,
 ) {
   if (typeof starterPackOrName === 'string') {
-    return `https://bsky.app/start/${starterPackOrName}/${rkey}`
+    return `https://sonet.app/start/${starterPackOrName}/${id}`
   } else {
-    const uriRkey = new AtUri(starterPackOrName.uri).rkey
-    return `https://bsky.app/start/${starterPackOrName.creator.handle}/${uriRkey}`
+    // Simplified for Sonet - extract ID from URI or use creator username
+    const packId = id || 'default'
+    const creatorUsername = starterPackOrName.creator?.username || 'unknown'
+    return `https://sonet.app/start/${creatorUsername}/${packId}`
   }
 }

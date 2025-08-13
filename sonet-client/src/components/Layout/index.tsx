@@ -143,7 +143,7 @@ export const KeyboardAwareContent = memo(function LayoutKeyboardAwareContent({
         scrollViewStyles.contentContainer,
         contentContainerStyle,
       ]}
-      keyboardShouldPersistTaps="handled"
+      keyboardShouldPersistTaps="usernamed"
       {...props}>
       {isWeb ? <Center>{children}</Center> : children}
     </KeyboardAwareScrollView>
