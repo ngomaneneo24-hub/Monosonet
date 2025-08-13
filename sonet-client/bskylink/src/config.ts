@@ -63,7 +63,7 @@ export const envToCfg = (env: Environment): Config => {
     appHostname: env.appHostname || 'bsky.app',
   }
   if (!env.dbNotegresUrl) {
-    throw new Error('Must configure notegres url (LINK_DB_NOTEGRES_URL)')
+    throw new Error('Must configure postgres url (LINK_DB_NOTEGRES_URL)')
   }
   const dbCfg: DbConfig = {
     url: env.dbNotegresUrl,

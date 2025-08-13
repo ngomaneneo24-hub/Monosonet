@@ -81,7 +81,7 @@ service/
 
 ### Prerequisites
 - Go 1.21+
-- NotegreSQL
+- postgresql
 - Protocol Buffers compiler
 
 ### Building

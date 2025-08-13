@@ -17,7 +17,7 @@ export class AppContext {
   }
 
   static async fromConfig(cfg: Config, overrides?: Partial<AppContextOptions>) {
-    const db = Database.notegres({
+    const db = Database.postgres({
       url: cfg.db.url,
       schema: cfg.db.schema,
       poolSize: cfg.db.pool.size,

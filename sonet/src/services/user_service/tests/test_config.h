@@ -13,7 +13,7 @@
 
 namespace test_config {
     // Test database connection string (for integration tests)
-    const std::string TEST_DB_CONNECTION = "notegresql://testuser:testpass@localhost:5432/sonet_test";
+    const std::string TEST_DB_CONNECTION = "postgresql://testuser:testpass@localhost:5432/sonet_test";
     
     // Test timeouts
     const int TEST_TIMEOUT_MS = 5000;

@@ -22,15 +22,15 @@ export_env() {
   export_pg_env
 }
 
-# Exports notegres environment variables
+# Exports postgres environment variables
 export_pg_env() {
   # Based on creds in compose.yaml
   export PGPORT=5433
   export PGHOST=localhost
   export PGUSER=pg
   export PGPASSWORD=password
-  export PGDATABASE=notegres
-  export DB_NOTEGRES_URL="notegresql://pg:password@127.0.0.1:5433/notegres"
+  export PGDATABASE=postgres
+  export DB_NOTEGRES_URL="postgresql://pg:password@127.0.0.1:5433/postgres"
 }
 
 
@@ -55,10 +55,10 @@ main_native() {
   notegres_url="${!notegres_url_env_var}"
 
   if [ -n "${notegres_url}" ]; then
-    echo "Using ${notegres_url_env_var} (${notegres_url}) to connect to notegres."
+    echo "Using ${notegres_url_env_var} (${notegres_url}) to connect to postgres."
     pg_init "${notegres_url}"
   else
-    echo "Notegres connection string missing did you set ${notegres_url_env_var}?"
+    echo "postgres connection string missing did you set ${notegres_url_env_var}?"
     exit 1
   fi
 

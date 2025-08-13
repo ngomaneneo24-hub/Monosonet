@@ -123,12 +123,12 @@ node scripts/env-manager.js setup
 #### **Database Configuration**
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `NOTEGRES_HOST` | NotegreSQL host | `localhost` | No |
-| `NOTEGRES_PORT` | NotegreSQL port | `5432` | No |
-| `NOTEGRES_USER` | NotegreSQL user | `sonet` | No |
-| `NOTEGRES_PASSWORD` | NotegreSQL password | `sonet_dev_password` | **Yes** |
-| `NOTEGRES_DB` | NotegreSQL database | `sonet_dev` | No |
-| `NOTEGRES_SSL_MODE` | SSL mode | `disable` | No |
+| `postgres_host` | postgresql host | `localhost` | No |
+| `postgres_port` | postgresql port | `5432` | No |
+| `postgres_user` | postgresql user | `sonet` | No |
+| `postgres_password` | postgresql password | `sonet_dev_password` | **Yes** |
+| `postgres_db` | postgresql database | `sonet_dev` | No |
+| `postgres_ssl_mode` | SSL mode | `disable` | No |
 
 #### **Redis Configuration**
 | Variable | Description | Default | Required |
@@ -165,7 +165,7 @@ node scripts/env-manager.js setup
 
 ### **Required Variables**
 - `JWT_SECRET` - Must be changed in production
-- `NOTEGRES_PASSWORD` - Database password
+- `postgres_password` - Database password
 
 ### **Production Requirements**
 - All default passwords must be changed
@@ -278,7 +278,7 @@ console.log(config.jwt.secret)         // JWT secret
 console.log(config.jwt.expiresIn)      // 7d
 
 // Access database configuration
-console.log(config.database.notegres.host)     // localhost
+console.log(config.database.postgres.host)     // localhost
 console.log(config.database.redis.url)         // redis://localhost:6379
 ```
 
@@ -392,7 +392,7 @@ CDN_SECRET_ACCESS_KEY=your-secret-key
 ### **Test Database Configuration**
 ```bash
 # Test environment variables
-TEST_DATABASE_URL=notegresql://sonet:sonet_test_password@localhost:5433/sonet_test
+TEST_DATABASE_URL=postgresql://sonet:sonet_test_password@localhost:5433/sonet_test
 TEST_REDIS_URL=redis://localhost:6380
 
 # Test configuration
@@ -425,8 +425,8 @@ ENVIRONMENT=production
 LOG_LEVEL=warn
 
 # Production overrides
-NOTEGRES_HOST=${DB_HOST}
-NOTEGRES_PASSWORD=${DB_PASSWORD}
+postgres_host=${DB_HOST}
+postgres_password=${DB_PASSWORD}
 REDIS_HOST=${REDIS_HOST}
 JWT_SECRET=${JWT_SECRET}
 

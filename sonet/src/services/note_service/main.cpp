@@ -226,7 +226,7 @@ int main(int argc, char* argv[]) {
  * 🐳 Docker Deployment:
  * docker build -t sonet-note-service .
  * docker run -d -p 8080:8080 -p 9090:9090 -p 8081:8081 \
- *   -e DATABASE_URL=notegresql://... \
+ *   -e DATABASE_URL=postgresql://... \
  *   -e REDIS_URL=redis://... \
  *   sonet-note-service
  * 

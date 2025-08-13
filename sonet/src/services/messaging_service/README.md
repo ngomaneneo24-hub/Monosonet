@@ -161,7 +161,7 @@ const ws = new WebSocket('wss://localhost:9096/ws?token=<jwt-token>');
 - **Partitioning**: Messages partitioned by month for query performance
 - **Indexing**: Optimized indexes for common query patterns
 - **Caching**: Redis caching for active conversations
-- **Full-Text Search**: NotegreSQL tsvector for message search
+- **Full-Text Search**: postgresql tsvector for message search
 
 ## Configuration
 

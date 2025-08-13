@@ -94,15 +94,15 @@ public:
  * Database configuration
  */
 struct DatabaseConfig {
-    std::string host = Environment::get("NOTEGRES_HOST", "localhost");
-    int port = Environment::getInt("NOTEGRES_PORT", 5432);
-    std::string user = Environment::get("NOTEGRES_USER", "sonet");
-    std::string password = Environment::get("NOTEGRES_PASSWORD", "sonet_dev_password");
-    std::string database = Environment::get("NOTEGRES_DB", "sonet_dev");
-    std::string sslMode = Environment::get("NOTEGRES_SSL_MODE", "disable");
+    std::string host = Environment::get("postgres_host", "localhost");
+    int port = Environment::getInt("postgres_port", 5432);
+    std::string user = Environment::get("postgres_user", "sonet");
+    std::string password = Environment::get("postgres_password", "sonet_dev_password");
+    std::string database = Environment::get("postgres_db", "sonet_dev");
+    std::string sslMode = Environment::get("postgres_ssl_mode", "disable");
     
     std::string getConnectionString() const {
-        return "notegresql://" + user + ":" + password + "@" + host + ":" + std::to_string(port) + "/" + database;
+        return "postgresql://" + user + ":" + password + "@" + host + ":" + std::to_string(port) + "/" + database;
     }
 };
 
@@ -225,7 +225,7 @@ public:
         
         // Check required fields
         if (database.password.empty()) {
-            std::cerr << "❌ NOTEGRES_PASSWORD is required" << std::endl;
+            std::cerr << "❌ postgres_password is required" << std::endl;
             valid = false;
         }
         
