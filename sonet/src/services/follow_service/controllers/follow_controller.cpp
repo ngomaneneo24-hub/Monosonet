@@ -52,7 +52,7 @@ HttpResponse FollowController::follow_user(const HttpRequest& request) {
     auto start = high_resolution_clock::now();
     
     try {
-        spdlog::debug("📝 POST /api/v1/follow/{} from {}", request.path_params.at("user_id"), 
+        spdlog::debug("📝 NOTE /api/v1/follow/{} from {}", request.path_params.at("user_id"), 
                      request.headers.value("user-id", "unknown"));
         
         // Authentication and validation
@@ -400,7 +400,7 @@ HttpResponse FollowController::create_success_response(int status_code, const js
     
     if (enable_cors_) {
         response.headers["Access-Control-Allow-Origin"] = "*";
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS";
+        response.headers["Access-Control-Allow-Methods"] = "GET, NOTE, PUT, DELETE, OPTIONS";
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With";
     }
     
@@ -423,7 +423,7 @@ HttpResponse FollowController::create_error_response(int status_code, const std:
     
     if (enable_cors_) {
         response.headers["Access-Control-Allow-Origin"] = "*";
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS";
+        response.headers["Access-Control-Allow-Methods"] = "GET, NOTE, PUT, DELETE, OPTIONS";
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With";
     }
     

@@ -33,7 +33,7 @@ public:
 
     // HTTP request structure
     struct HttpRequest {
-        std::string method;          // GET, POST, PUT, DELETE, etc.
+        std::string method;          // GET, NOTE, PUT, DELETE, etc.
         std::string path;           // /api/v1/auth/login
         std::string query_string;   // ?param=value
         std::string body;           // JSON request body

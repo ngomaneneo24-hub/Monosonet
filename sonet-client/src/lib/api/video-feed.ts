@@ -282,7 +282,7 @@ export class VideoFeedAPI {
     const url = `${this.baseUrl}/v1/video-feed`
     
     const response = await fetch(url, {
-      method: 'POST',
+      method: 'NOTE',
       headers: this.getHeaders(),
       body: JSON.stringify(request)
     })
@@ -299,7 +299,7 @@ export class VideoFeedAPI {
     const url = `${this.baseUrl}/v1/video-feed/personalized`
     
     const response = await fetch(url, {
-      method: 'POST',
+      method: 'NOTE',
       headers: this.getHeaders(),
       body: JSON.stringify(request)
     })
@@ -316,7 +316,7 @@ export class VideoFeedAPI {
     const url = `${this.baseUrl}/v1/video-feed/engagement`
     
     const response = await fetch(url, {
-      method: 'POST',
+      method: 'NOTE',
       headers: this.getHeaders(),
       body: JSON.stringify(event)
     })
@@ -333,7 +333,7 @@ export class VideoFeedAPI {
     const url = `${this.baseUrl}/v1/video-feed/insights`
     
     const response = await fetch(url, {
-      method: 'POST',
+      method: 'NOTE',
       headers: this.getHeaders(),
       body: JSON.stringify(request)
     })
@@ -469,7 +469,7 @@ export class VideoFeedAPI {
     const url = `${this.baseUrl}/v1/video-feed/engagement/batch`
     
     const response = await fetch(url, {
-      method: 'POST',
+      method: 'NOTE',
       headers: this.getHeaders(),
       body: JSON.stringify({events})
     })

@@ -29,7 +29,7 @@
 #include "../core/network/http_server.h"
 #include "../core/network/websocket_server.h"
 #include "../core/cache/redis_client.h"
-#include "../core/database/postgres_client.h"
+#include "../core/database/notegres_client.h"
 #include "../core/security/auth_service.h"
 #include "../core/security/rate_limiter.h"
 #include "../core/config/service_config.h"
@@ -188,7 +188,7 @@ private:
     std::shared_ptr<core::config::ServiceConfig> config_;
 
     // ========== CORE INFRASTRUCTURE ==========
-    std::shared_ptr<core::database::PostgresClient> postgres_client_;
+    std::shared_ptr<core::database::NotegresClient> notegres_client_;
     std::shared_ptr<core::cache::RedisClient> redis_client_;
     std::shared_ptr<core::security::AuthService> auth_service_;
     std::shared_ptr<core::security::RateLimiter> rate_limiter_;
@@ -301,7 +301,7 @@ private:
     int get_grpc_port() const;
     int get_websocket_port() const;
     std::string get_redis_url() const;
-    std::string get_postgres_url() const;
+    std::string get_notegres_url() const;
     json get_rate_limit_config() const;
     json get_cache_config() const;
 

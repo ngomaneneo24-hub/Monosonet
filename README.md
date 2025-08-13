@@ -59,7 +59,7 @@ Sonet is a distributed social media platform designed to handle Twitter-scale tr
                                  │
                     ┌────────────▼─────────────┐
                     │     Data Layer           │
-                    │ PostgreSQL │ Redis       │
+                    │ NotegreSQL │ Redis       │
                     │ Cassandra  │ Elasticsearch│
                     └──────────────────────────┘
 ```
@@ -69,13 +69,13 @@ Sonet is a distributed social media platform designed to handle Twitter-scale tr
 ### Core Services
 | Service | Purpose | Technology Stack |
 |---------|---------|------------------|
-| **User Service** | Authentication, user profiles, sessions | PostgreSQL, Redis, JWT |
+| **User Service** | Authentication, user profiles, sessions | NotegreSQL, Redis, JWT |
 | **Note Service** | Content creation, storage, retrieval | Cassandra, Redis |
-| **Timeline Service** | Feed generation, ranking algorithms | Redis, PostgreSQL |
+| **Timeline Service** | Feed generation, ranking algorithms | Redis, NotegreSQL |
 | **Fanout Service** | Content distribution to followers | Redis, Message Queues |
-| **Follow Service** | Social graph, relationships | PostgreSQL, Graph DB |
+| **Follow Service** | Social graph, relationships | NotegreSQL, Graph DB |
 | **Media Service** | Image/video processing, CDN | S3, Image Processing |
-| **Messaging Service** | Direct messages, group chats, real-time messaging | PostgreSQL, Redis, WebSocket |
+| **Messaging Service** | Direct messages, group chats, real-time messaging | NotegreSQL, Redis, WebSocket |
 | **Search Service** | Full-text search, trending topics | Elasticsearch |
 | **Notification Service** | Push notifications, email, websockets | Redis, WebSocket |
 | **Analytics Service** | Real-time metrics, user insights | ClickHouse, Kafka |
@@ -143,12 +143,12 @@ make -j$(nproc)
 ### Authentication
 ```bash
 # Register user
-curl -X POST http://localhost:8080/api/v1/auth/register \
+curl -X NOTE http://localhost:8080/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username": "john_doe", "email": "john@example.com", "password": "secure123"}'
 
 # Login
-curl -X POST http://localhost:8080/api/v1/auth/login \
+curl -X NOTE http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "john@example.com", "password": "secure123"}'
 ```
@@ -156,7 +156,7 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
 ### Notes (Tweets)
 ```bash
 # Create note
-curl -X POST http://localhost:8080/api/v1/notes \
+curl -X NOTE http://localhost:8080/api/v1/notes \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"content": "Hello Sonet! 🚀", "visibility": "public"}'
@@ -169,7 +169,7 @@ curl -X GET http://localhost:8080/api/v1/timeline/home \
 ### Social Features
 ```bash
 # Follow user
-curl -X POST http://localhost:8080/api/v1/follow/123 \
+curl -X NOTE http://localhost:8080/api/v1/follow/123 \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 # Search
@@ -180,13 +180,13 @@ curl -X GET "http://localhost:8080/api/v1/search?q=hello&type=notes" \
 ### Messaging Features
 ```bash
 # Send direct message
-curl -X POST http://localhost:8080/api/v1/messages \
+curl -X NOTE http://localhost:8080/api/v1/messages \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"chat_id": "chat_123", "content": "Hello there! 👋", "type": "text"}'
 
 # Create group chat
-curl -X POST http://localhost:8080/api/v1/chats \
+curl -X NOTE http://localhost:8080/api/v1/chats \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"name": "Dev Team", "type": "group", "participant_ids": ["user1", "user2", "user3"]}'
@@ -196,7 +196,7 @@ curl -X GET "http://localhost:8080/api/v1/chats/chat_123/messages?limit=50" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 # Upload attachment
-curl -X POST http://localhost:8080/api/v1/messages/attachments \
+curl -X NOTE http://localhost:8080/api/v1/messages/attachments \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -F "file=@image.jpg"
 ```
@@ -245,11 +245,11 @@ cd tests/load
 ### Environment Variables
 ```bash
 # Database
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DB=sonet
-POSTGRES_USER=sonet_user
-POSTGRES_PASSWORD=secure_password
+NOTEGRES_HOST=localhost
+NOTEGRES_PORT=5432
+NOTEGRES_DB=sonet
+NOTEGRES_USER=sonet_user
+NOTEGRES_PASSWORD=secure_password
 
 # Redis
 REDIS_HOST=localhost

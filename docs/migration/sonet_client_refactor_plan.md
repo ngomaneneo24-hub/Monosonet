@@ -1,19 +1,19 @@
 # Sonet Client Refactor & AT Protocol Removal Plan
 
 ## Objective
-Transition the existing rebranded `sonet-client` codebase from Bluesky/AT Protocol dependencies to a centralized Sonet backend (gRPC/REST + WebSocket) while retaining core social functionality (feed, posting, interactions, profiles, search, notifications) and simplifying moderation & identity.
+Transition the existing rebranded `sonet-client` codebase from Bluesky/AT Protocol dependencies to a centralized Sonet backend (gRPC/REST + WebSocket) while retaining core social functionality (feed, noteing, interactions, profiles, search, notifications) and simplifying moderation & identity.
 
 ## Scope Summary
 | Area | Current (AT Proto) | Target (Sonet) | Notes |
 |------|--------------------|----------------|-------|
 | Identity | DIDs (`did:plc:*`) | `user_id` (UUID/ULID) | Optional one-time import mapping |
 | URIs | `at://` scheme | Plain IDs / REST paths | Translation shim in Phase 1 only |
-| Collections | `app.bsky.feed.post`, `graph.*` | REST/gRPC resources (notes, follow) | Flatten hierarchy |
+| Collections | `app.bsky.feed.note`, `graph.*` | REST/gRPC resources (notes, follow) | Flatten hierarchy |
 | Rich Text | Facets (mentions/links) | Simple extracted tokens | Regex parse client-side |
 | Feeds | Generators & custom feeds | Timeline sources (following/recommended/trending) | Query param `source` |
 | Moderation | Labeler DID + multi-label logic | Server flags + simple client gating | Provide unified flags |
-| Posting | Repo record ops (CreateRecord) | POST /notes | Unified endpoint |
-| Reactions | Record-based like/repost | POST /notes/:id/react | `type` param |
+| Noteing | Repo record ops (CreateRecord) | NOTE /notes | Unified endpoint |
+| Reactions | Record-based like/renote | NOTE /notes/:id/react | `type` param |
 | Realtime | Firehose/XRPC (if used) | WebSocket channel | JSON messages |
 | Auth | Session agent + DID | JWT (access + refresh) | Local secure storage |
 | Media | Blob endpoints | /media/upload (TBD) | Standard multipart |
@@ -32,8 +32,8 @@ Transition the existing rebranded `sonet-client` codebase from Bluesky/AT Protoc
 - Introduce `Note` & `TimelineResponse` TS interfaces.
 - ESLint rule to warn on new `@atproto/` imports.
 
-### Phase 2: Posting, Interactions, Realtime
-- Endpoints: `POST /notes`, `POST /notes/:id/react`, `DELETE /notes/:id/react`.
+### Phase 2: Noteing, Interactions, Realtime
+- Endpoints: `NOTE /notes`, `NOTE /notes/:id/react`, `DELETE /notes/:id/react`.
 - WebSocket client for timeline & notification deltas.
 - Remove record mutation utilities & RichText facet builder.
 - Introduce server-provided moderation flags.
@@ -84,7 +84,7 @@ interface MediaAsset {
 
 interface NoteMetrics {
   likes: number;
-  reposts: number;
+  renotes: number;
   comments: number;
   views: number;
 }
@@ -115,17 +115,17 @@ interface TimelineResponse {
 ## Endpoint Contract Draft
 | Method | Path | Purpose | Query/Body | Returns |
 |--------|------|---------|------------|---------|
-| POST | /auth/login | Login | { identifier, password } | { access_token, refresh_token, user } |
-| POST | /auth/refresh | Refresh token | { refresh_token } | { access_token } |
+| NOTE | /auth/login | Login | { identifier, password } | { access_token, refresh_token, user } |
+| NOTE | /auth/refresh | Refresh token | { refresh_token } | { access_token } |
 | GET | /timeline | Fetch feed | source, cursor, limit | `TimelineResponse` |
-| POST | /timeline/refresh | Force refresh | { source? } | `TimelineResponse` |
-| POST | /notes | Create note | { content, reply_to?, media?, mentions?, hashtags? } | `Note` |
+| NOTE | /timeline/refresh | Force refresh | { source? } | `TimelineResponse` |
+| NOTE | /notes | Create note | { content, reply_to?, media?, mentions?, hashtags? } | `Note` |
 | GET | /notes/:id | Get note | - | `Note` |
-| POST | /notes/:id/react | React | { type } | { success } |
+| NOTE | /notes/:id/react | React | { type } | { success } |
 | DELETE | /notes/:id/react | Remove reaction | type (query) | { success } |
 | GET | /users/:id | Get profile | - | `UserSummary & { bio, followers, following }` |
 | PATCH | /users/:id | Update profile | { displayName?, bio?, avatar? } | updated profile |
-| POST | /follow | Follow user | { target_user_id } | { success } |
+| NOTE | /follow | Follow user | { target_user_id } | { success } |
 | DELETE | /follow/:target_user_id | Unfollow | - | { success } |
 | GET | /search | Search | q, type=user|note, cursor | { results, nextCursor } |
 | GET | /notifications | List notifications | cursor | { notifications, nextCursor } |
@@ -162,7 +162,7 @@ interface TimelineResponse {
 ## Success Criteria
 - No `@atproto` packages in `package.json` by Phase 4.
 - All feeds load exclusively via `/timeline` endpoint.
-- Posting & reactions use Sonet endpoints end-to-end.
+- Noteing & reactions use Sonet endpoints end-to-end.
 - All tests updated: zero references to `app.bsky.` outside `migration/` folder until removed.
 - Realtime updates append or update feed within <250ms average (local).
 

@@ -164,7 +164,7 @@ message EngagementMetrics {
   uint32 view_count = 1;
   uint32 unique_viewers = 2;
   uint32 like_count = 3;
-  uint32 repost_count = 4;
+  uint32 renote_count = 4;
   uint32 reply_count = 5;
   uint32 share_count = 6;
   uint32 bookmark_count = 7;
@@ -253,7 +253,7 @@ message PerformanceMetrics {
 message EngagementEvent {
   string user_id = 1;
   string video_id = 2;
-  string event_type = 3;  // "view", "like", "repost", "reply", "share", "bookmark", "skip", "report"
+  string event_type = 3;  // "view", "like", "renote", "reply", "share", "bookmark", "skip", "report"
   string timestamp = 4;
   
   // Event-specific data
@@ -304,7 +304,7 @@ message WatchPatterns {
 // Engagement Trends
 message EngagementTrends {
   double like_rate = 1;
-  double repost_rate = 2;
+  double renote_rate = 2;
   double reply_rate = 3;
   double share_rate = 4;
   double skip_rate = 5;

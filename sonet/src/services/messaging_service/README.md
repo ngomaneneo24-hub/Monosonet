@@ -56,7 +56,7 @@ All endpoints require JWT authentication via `Authorization: Bearer <token>` hea
 
 #### Send Message
 ```http
-POST /api/v1/messages
+NOTE /api/v1/messages
 Content-Type: application/json
 Authorization: Bearer <token>
 
@@ -79,7 +79,7 @@ Note: For encrypted chats, the server returns ciphertext envelopes as-is and doe
 
 #### Create Chat
 ```http
-POST /api/v1/chats
+NOTE /api/v1/chats
 Content-Type: application/json
 Authorization: Bearer <token>
 
@@ -97,7 +97,7 @@ Authorization: Bearer <token>
 
 #### Upload Attachment
 ```http
-POST /api/v1/messages/attachments
+NOTE /api/v1/messages/attachments
 Content-Type: multipart/form-data
 Authorization: Bearer <token>
 
@@ -161,7 +161,7 @@ const ws = new WebSocket('wss://localhost:9096/ws?token=<jwt-token>');
 - **Partitioning**: Messages partitioned by month for query performance
 - **Indexing**: Optimized indexes for common query patterns
 - **Caching**: Redis caching for active conversations
-- **Full-Text Search**: PostgreSQL tsvector for message search
+- **Full-Text Search**: NotegreSQL tsvector for message search
 
 ## Configuration
 

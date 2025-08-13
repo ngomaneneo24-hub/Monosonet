@@ -57,7 +57,7 @@ public:
     /**
      * @brief Block a user
      * 
-     * POST /api/v1/blocks
+     * NOTE /api/v1/blocks
      * Body: {"user_id": "user123"}
      * 
      * Response: 201 Created
@@ -136,7 +136,7 @@ public:
     /**
      * @brief Block multiple users (batch operation)
      * 
-     * POST /api/v1/blocks/batch
+     * NOTE /api/v1/blocks/batch
      * Body: {
      *   "user_ids": ["user1", "user2", "user3"],
      *   "block_reason": "spam_campaign",
@@ -286,7 +286,7 @@ public:
     /**
      * @brief Report a user and automatically block
      * 
-     * POST /api/v1/blocks/report-and-block
+     * NOTE /api/v1/blocks/report-and-block
      * Body: {
      *   "user_id": "user123",
      *   "report_reason": "harassment",

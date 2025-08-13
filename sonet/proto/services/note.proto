@@ -75,7 +75,7 @@ message GeoLocation {
 // Engagement metrics
 message NoteMetrics {
   int64 like_count = 1;
-  int64 renote_count = 2;                // formerly repost_count
+  int64 renote_count = 2;                // formerly renote_count
   int64 reply_count = 3;
   int64 quote_count = 4;                 // Quote renotes with commentary
   int64 bookmark_count = 5;

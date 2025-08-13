@@ -42,7 +42,7 @@ find . -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx"
   -not -path "./node_modules/*" \
   -exec sed -i 's/Bluesky/Sonet/g' {} +
 
-# Replace all instances of "Post", "Repost", etc with "Note", "Renote", etc
+# Replace all instances of "Note", "Renote", etc with "Note", "Renote", etc
 
 # Replace package.json references
 find . -name "package.json" -not -path "./node_modules/*" \
@@ -149,7 +149,7 @@ export class SonetApiClient {
 
   // User Service API calls
   async login(email: string, password: string) {
-    const response = await this.client.post('/api/v1/auth/login', {
+    const response = await this.client.note('/api/v1/auth/login', {
       email,
       password,
     });
@@ -157,7 +157,7 @@ export class SonetApiClient {
   }
 
   async register(username: string, email: string, password: string) {
-    const response = await this.client.post('/api/v1/auth/register', {
+    const response = await this.client.note('/api/v1/auth/register', {
       username,
       email,
       password,
@@ -195,7 +195,7 @@ export class SonetApiClient {
 
   // Note Service API calls
   async createNote(content: string, mediaIds?: string[], replyTo?: string) {
-    const response = await this.client.post('/api/v1/notes', {
+    const response = await this.client.note('/api/v1/notes', {
       content,
       media_ids: mediaIds,
       reply_to: replyTo,
@@ -214,7 +214,7 @@ export class SonetApiClient {
   }
 
   async likeNote(noteId: string) {
-    const response = await this.client.post(`/api/v1/notes/${noteId}/like`);
+    const response = await this.client.note(`/api/v1/notes/${noteId}/like`);
     return response.data;
   }
 
@@ -224,13 +224,13 @@ export class SonetApiClient {
   }
 
   async shareNote(noteId: string) {
-    const response = await this.client.post(`/api/v1/notes/${noteId}/share`);
+    const response = await this.client.note(`/api/v1/notes/${noteId}/share`);
     return response.data;
   }
 
   // Follow Service API calls
   async followUser(userId: string) {
-    const response = await this.client.post(`/api/v1/follow/${userId}`);
+    const response = await this.client.note(`/api/v1/follow/${userId}`);
     return response.data;
   }
 
@@ -285,7 +285,7 @@ export class SonetApiClient {
     const formData = new FormData();
     formData.append('media', file);
     
-    const response = await this.client.post('/api/v1/media/upload', formData, {
+    const response = await this.client.note('/api/v1/media/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -308,7 +308,7 @@ export class SonetApiClient {
   }
 
   async sendMessage(recipientId: string, content: string, mediaIds?: string[]) {
-    const response = await this.client.post('/api/v1/messages', {
+    const response = await this.client.note('/api/v1/messages', {
       recipient_id: recipientId,
       content,
       media_ids: mediaIds,
@@ -323,15 +323,15 @@ export class SonetApiClient {
   }
 
   async addNoteToSelf(content: string, mediaIds?: string[]) {
-    const response = await this.client.post('/api/v1/messages/note-to-self', {
+    const response = await this.client.note('/api/v1/messages/note-to-self', {
       content,
       media_ids: mediaIds,
     });
     return response.data;
   }
 
-  async postFromNoteToSelf(noteToSelfId: string) {
-    const response = await this.client.post(`/api/v1/messages/note-to-self/${noteToSelfId}/post`);
+  async noteFromNoteToSelf(noteToSelfId: string) {
+    const response = await this.client.note(`/api/v1/messages/note-to-self/${noteToSelfId}/note`);
     return response.data;
   }
 

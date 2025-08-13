@@ -82,7 +82,7 @@ public:
     
     /**
      * @brief Create a new note
-     * POST /api/v1/notes
+     * NOTE /api/v1/notes
      * 
      * Features:
      * - 300 character limit (Twitter-like)
@@ -145,7 +145,7 @@ public:
     
     /**
      * @brief Renote (retweet) a note
-     * POST /api/v1/notes/:note_id/renote
+     * NOTE /api/v1/notes/:note_id/renote
      * 
      * Rate limit: 150 requests/minute per user
      */
@@ -159,7 +159,7 @@ public:
 
     /**
      * @brief Quote renote (retweet with comment)
-     * POST /api/v1/notes/:note_id/quote
+     * NOTE /api/v1/notes/:note_id/quote
      * 
      * Features:
      * - Original note embedding
@@ -178,7 +178,7 @@ public:
     
     /**
      * @brief Like a note
-     * POST /api/v1/notes/:note_id/like
+     * NOTE /api/v1/notes/:note_id/like
      * 
      * Rate limit: 300 requests/minute per user
      */
@@ -192,7 +192,7 @@ public:
 
     /**
      * @brief Bookmark a note for later reading
-     * POST /api/v1/notes/:note_id/bookmark
+     * NOTE /api/v1/notes/:note_id/bookmark
      */
     core::network::HttpResponse bookmark_note(const core::network::HttpRequest& request);
 
@@ -204,7 +204,7 @@ public:
 
     /**
      * @brief Report a note for policy violations
-     * POST /api/v1/notes/:note_id/report
+     * NOTE /api/v1/notes/:note_id/report
      * 
      * Features:
      * - Automatic content review triggering
@@ -314,7 +314,7 @@ public:
 
     /**
      * @brief Advanced search with AI-powered relevance
-     * POST /api/v1/search/advanced
+     * NOTE /api/v1/search/advanced
      */
     core::network::HttpResponse advanced_search(const core::network::HttpRequest& request);
 
@@ -354,7 +354,7 @@ public:
     
     /**
      * @brief Get multiple notes by IDs (for efficient loading)
-     * POST /api/v1/notes/batch
+     * NOTE /api/v1/notes/batch
      * 
      * Features:
      * - Parallel data retrieval
@@ -379,7 +379,7 @@ public:
     
     /**
      * @brief Schedule note for future publishing
-     * POST /api/v1/notes/schedule
+     * NOTE /api/v1/notes/schedule
      */
     core::network::HttpResponse schedule_note(const core::network::HttpRequest& request);
 
@@ -391,7 +391,7 @@ public:
 
     /**
      * @brief Save note as draft
-     * POST /api/v1/notes/draft
+     * NOTE /api/v1/notes/draft
      */
     core::network::HttpResponse save_draft(const core::network::HttpRequest& request);
 

@@ -87,10 +87,10 @@ public:
 };
 
 /**
- * PostgreSQL implementation of NoteRepository
+ * NotegreSQL implementation of NoteRepository
  * Provides full-featured note persistence with Cassandra-like performance optimizations
  */
-class PostgreSQLNoteRepository : public NoteRepository {
+class NotegreSQLNoteRepository : public NoteRepository {
 private:
     std::shared_ptr<pqxx::connection> db_connection_;
     std::string notes_table_;
@@ -101,8 +101,8 @@ private:
     std::string user_interactions_table_;
     
 public:
-    explicit PostgreSQLNoteRepository(std::shared_ptr<pqxx::connection> connection);
-    ~PostgreSQLNoteRepository() override = default;
+    explicit NotegreSQLNoteRepository(std::shared_ptr<pqxx::connection> connection);
+    ~NotegreSQLNoteRepository() override = default;
     
     // Core CRUD operations
     bool create(const Note& note) override;
@@ -225,7 +225,7 @@ private:
  */
 class NoteRepositoryFactory {
 public:
-    static std::unique_ptr<PostgreSQLNoteRepository> create_postgresql_repository(const std::string& connection_string);
+    static std::unique_ptr<NotegreSQLNoteRepository> create_notegresql_repository(const std::string& connection_string);
     static std::shared_ptr<pqxx::connection> create_database_connection(const std::string& connection_string);
     
 private:

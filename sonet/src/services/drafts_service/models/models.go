@@ -6,7 +6,7 @@ import (
 	pb "sonet/src/services/drafts_service/proto"
 )
 
-// Draft represents a post draft
+// Draft represents a note draft
 type Draft struct {
 	DraftID              string    `json:"draft_id"`
 	UserID               string    `json:"user_id"`

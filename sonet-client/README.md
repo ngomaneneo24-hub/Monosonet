@@ -42,7 +42,7 @@ The Sonet Social application encompasses a set of schemas and APIs built for the
 - Check for existing issues before filing a new one please.
 - Open an issue and give some time for discussion before submitting a PR.
 - Stay away from PRs like...
-  - Changing "Note" to "Post."
+  - Changing "Note" to "Note."
   - Refactoring the codebase, e.g., to replace React Query with Redux Toolkit or something.
   - Adding entirely new features without prior discussion. 
 

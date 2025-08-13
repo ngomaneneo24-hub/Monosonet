@@ -5,7 +5,7 @@ import {
   AppBskyEmbedRecordWithMedia,
   AppBskyEmbedVideo,
   AppBskyFeedDefs,
-  AppBskyFeedPost,
+  AppBskyFeedNote,
   AppBskyGraphDefs,
   AppBskyGraphStarterpack,
   AppBskyLabelerDefs,
@@ -25,8 +25,8 @@ export function Embed({
   labels,
   hideRecord,
 }: {
-  content: AppBskyFeedDefs.PostView['embed']
-  labels: AppBskyFeedDefs.PostView['labels']
+  content: AppBskyFeedDefs.NoteView['embed']
+  labels: AppBskyFeedDefs.NoteView['labels']
   hideRecord?: boolean
 }) {
   const labelInfo = useMemo(() => labelsToInfo(labels), [labels])
@@ -44,7 +44,7 @@ export function Embed({
       return <ExternalEmbed content={content} labelInfo={labelInfo} />
     }
 
-    // Case 3: Record (quote or linked post)
+    // Case 3: Record (quote or linked note)
     if (AppBskyEmbedRecord.isView(content)) {
       if (hideRecord) {
         return null
@@ -52,7 +52,7 @@ export function Embed({
 
       const record = content.record
 
-      // Case 3.1: Post
+      // Case 3.1: Note
       if (AppBskyEmbedRecord.isViewRecord(record)) {
         const pwiOptOut = !!record.author.labels?.find(
           label => label.val === '!no-unauthenticated',
@@ -60,14 +60,14 @@ export function Embed({
         if (pwiOptOut) {
           return (
             <Info>
-              The author of the quoted post has requested their posts not be
+              The author of the quoted note has requested their notes not be
               displayed on external sites.
             </Info>
           )
         }
 
         let text
-        if (AppBskyFeedPost.isRecord(record.value)) {
+        if (AppBskyFeedNote.isRecord(record.value)) {
           text = record.value.text
         }
 
@@ -77,7 +77,7 @@ export function Embed({
 
         return (
           <Link
-            href={`/profile/${record.author.did}/post/${getRkey(record)}`}
+            href={`/profile/${record.author.did}/note/${getRkey(record)}`}
             className="transition-colors hover:bg-neutral-100 dark:hover:bg-slate-700 border dark:border-slate-600 rounded-xl p-2 gap-1.5 w-full flex flex-col">
             <div className="flex gap-1.5 items-center">
               <div className="w-4 h-4 overflow-hidden rounded-full bg-neutral-300 dark:bg-slate-700 shrink-0">
@@ -147,17 +147,17 @@ export function Embed({
         return <StarterPackEmbed content={record} />
       }
 
-      // Case 3.6: Post not found
+      // Case 3.6: Note not found
       if (AppBskyEmbedRecord.isViewNotFound(record)) {
-        return <Info>Quoted post not found, it may have been deleted.</Info>
+        return <Info>Quoted note not found, it may have been deleted.</Info>
       }
 
-      // Case 3.7: Post blocked
+      // Case 3.7: Note blocked
       if (AppBskyEmbedRecord.isViewBlocked(record)) {
-        return <Info>The quoted post is blocked.</Info>
+        return <Info>The quoted note is blocked.</Info>
       }
 
-      // Case 3.8: Detached quote post
+      // Case 3.8: Detached quote note
       if (AppBskyEmbedRecord.isViewDetached(record)) {
         // Just don't show anything
         return null

@@ -317,7 +317,7 @@ void MessagingController::handle_http_connection(boost::asio::ip::tcp::socket so
 boost::beast::http::response<boost::beast::http::string_body> 
 MessagingController::handle_messages_endpoint(const boost::beast::http::request<boost::beast::http::string_body>& req) {
     
-    if (req.method() == boost::beast::http::verb::post) {
+    if (req.method() == boost::beast::http::verb::note) {
         return handle_send_message(req);
     } else if (req.method() == boost::beast::http::verb::get) {
         return handle_get_messages(req);
@@ -806,7 +806,7 @@ MessagingController::create_http_response(int status_code, const std::string& re
     response.set(http::field::server, "Sonet Messaging Service v1.0");
     response.set(http::field::content_type, "application/json");
     response.set(http::field::access_control_allow_origin, "*");
-    response.set(http::field::access_control_allow_methods, "GET, POST, PUT, DELETE, OPTIONS");
+    response.set(http::field::access_control_allow_methods, "GET, NOTE, PUT, DELETE, OPTIONS");
     response.set(http::field::access_control_allow_headers, "Content-Type, Authorization");
     
     Json::StreamWriterBuilder builder;

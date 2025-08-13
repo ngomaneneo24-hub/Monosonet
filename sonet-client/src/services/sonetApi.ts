@@ -74,7 +74,7 @@ export class SonetApi {
     if (this.tokens?.accessToken) {
       headers['authorization'] = `Bearer ${this.tokens.accessToken}`
     }
-    const res = await fetch(url, {method: 'POST', headers, body: form})
+    const res = await fetch(url, {method: 'NOTE', headers, body: form})
     const text = await res.text()
     const body = safeJson(text)
     if (!res.ok) {
@@ -86,7 +86,7 @@ export class SonetApi {
   // Auth
   async register(input: {username: string; email: string; password: string; display_name?: string}) {
     return this.fetchJson('/v1/auth/register', {
-      method: 'POST',
+      method: 'NOTE',
       body: JSON.stringify({
         username: input.username,
         email: input.email,
@@ -100,7 +100,7 @@ export class SonetApi {
 
   async login(input: {username: string; password: string}) {
     const body = await this.fetchJson('/v1/auth/login', {
-      method: 'POST',
+      method: 'NOTE',
       body: JSON.stringify({username: input.username, password: input.password}),
     })
     const tokens: AuthTokens = {accessToken: body.access_token, refreshToken: body.refresh_token}
@@ -110,7 +110,7 @@ export class SonetApi {
 
   async refreshToken(refreshToken: string) {
     return this.fetchJson('/v1/auth/refresh', {
-      method: 'POST',
+      method: 'NOTE',
       body: JSON.stringify({refresh_token: refreshToken}),
     }, false)
   }
@@ -118,7 +118,7 @@ export class SonetApi {
   async logout(sessionId?: string, all?: boolean) {
     try {
       await this.fetchJson('/v1/auth/logout', {
-        method: 'POST',
+        method: 'NOTE',
         body: JSON.stringify({session_id: sessionId || '', logout_all_devices: !!all}),
       })
     } finally {
@@ -141,7 +141,7 @@ export class SonetApi {
 
   // Notes
   async createNote(input: {text: string; reply_to_id?: string; quote_note_id?: string; attachments?: any[]; visibility?: number; is_sensitive?: boolean}) {
-    return this.fetchJson('/v1/notes', {method: 'POST', body: JSON.stringify(input)})
+    return this.fetchJson('/v1/notes', {method: 'NOTE', body: JSON.stringify(input)})
   }
   async getNote(id: string, opts?: {include_thread?: boolean}) {
     const q = opts?.include_thread ? '?include_thread=true' : ''
@@ -152,11 +152,11 @@ export class SonetApi {
     return this.fetchJson(`/v1/notes/${encodeURIComponent(id)}${q}`, {method: 'DELETE'})
   }
   async likeNote(id: string, like = true) {
-    if (like) return this.fetchJson(`/v1/notes/${encodeURIComponent(id)}/like`, {method: 'POST', body: JSON.stringify({like: true})})
+    if (like) return this.fetchJson(`/v1/notes/${encodeURIComponent(id)}/like`, {method: 'NOTE', body: JSON.stringify({like: true})})
     return this.fetchJson(`/v1/notes/${encodeURIComponent(id)}/like`, {method: 'DELETE'})
   }
   async renote(id: string, renote = true) {
-    return this.fetchJson(`/v1/notes/${encodeURIComponent(id)}/renote`, {method: 'POST', body: JSON.stringify({renote})})
+    return this.fetchJson(`/v1/notes/${encodeURIComponent(id)}/renote`, {method: 'NOTE', body: JSON.stringify({renote})})
   }
 
   // Timeline

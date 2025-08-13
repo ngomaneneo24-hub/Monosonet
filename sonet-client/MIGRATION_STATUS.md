@@ -113,8 +113,8 @@
 ## 📝 Migration Patterns
 
 ### AT Protocol → Sonet
-- `Post` → `Note`
-- `Repost` → `Renote`
+- `Note` → `Note`
+- `Renote` → `Renote`
 - `Handle` → `Username`
 - `PDS` → `Sonet Service`
 - `Firehose` → `WebSocket Stream`

@@ -47,7 +47,7 @@ export interface VideoCandidate {
   creatorId: string
   viewCount: number
   likeCount: number
-  repostCount: number
+  renoteCount: number
   replyCount: number
   shareCount: number
   completionRate: number
@@ -187,7 +187,7 @@ export class VideoFeedRepository {
       // Get trending videos based on engagement velocity
       const videos = await this.database.query(
         `SELECT v.*, 
-                (v.like_count + v.repost_count * 2 + v.reply_count * 3) / 
+                (v.like_count + v.renote_count * 2 + v.reply_count * 3) / 
                 GREATEST(TIMESTAMPDIFF(HOUR, v.created_at, NOW()), 1) as velocity
          FROM videos v
          WHERE v.created_at > ?
@@ -255,13 +255,13 @@ export class VideoFeedRepository {
       // Update database
       await this.database.query(
         `UPDATE videos 
-         SET view_count = ?, like_count = ?, repost_count = ?, reply_count = ?, 
+         SET view_count = ?, like_count = ?, renote_count = ?, reply_count = ?, 
              share_count = ?, completion_rate = ?, average_watch_time = ?
          WHERE id = ?`,
         [
           metrics.viewCount || 0,
           metrics.likeCount || 0,
-          metrics.repostCount || 0,
+          metrics.renoteCount || 0,
           metrics.replyCount || 0,
           metrics.shareCount || 0,
           metrics.completionRate || 0,
@@ -437,7 +437,7 @@ export class VideoFeedRepository {
       creatorId: row.creator_id,
       viewCount: row.view_count,
       likeCount: row.like_count,
-      repostCount: row.repost_count,
+      renoteCount: row.renote_count,
       replyCount: row.reply_count,
       shareCount: row.share_count,
       completionRate: row.completion_rate,
@@ -537,7 +537,7 @@ export class VideoFeedRepository {
         creatorId: 'fallback_user',
         viewCount: 100,
         likeCount: 10,
-        repostCount: 2,
+        renoteCount: 2,
         replyCount: 5,
         shareCount: 1,
         completionRate: 0.7,

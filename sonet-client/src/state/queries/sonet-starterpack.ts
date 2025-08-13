@@ -153,7 +153,7 @@ export function useCreateStarterpackMutation() {
   return useMutation<{starterpack: SonetStarterpack}, Error, CreateStarterpackRequest>({
     mutationFn: async (data) => {
       const response = await apiRequest('/v1/starterpacks', {
-        method: 'POST',
+        method: 'NOTE',
         body: JSON.stringify(data),
       })
       return response
@@ -223,7 +223,7 @@ export function useAddStarterpackItemMutation() {
   return useMutation<{item: SonetStarterpackItem}, Error, AddStarterpackItemRequest>({
     mutationFn: async (data) => {
       const response = await apiRequest(`/v1/starterpacks/${data.starterpack_id}/items`, {
-        method: 'POST',
+        method: 'NOTE',
         body: JSON.stringify({
           item_type: data.item_type,
           item_uri: data.item_uri,

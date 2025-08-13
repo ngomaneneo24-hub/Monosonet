@@ -13,7 +13,7 @@ This document summarizes the complete integration of private profiles functional
 - **FollowDialog**: Updated to use `PrivateProfileFollowButton` for consistent behavior
 - **FeedInterstitials**: Integrated private profile follow functionality
 - **ExploreSuggestedAccounts**: Enhanced with private profile detection
-- **PostThreadFollowBtn**: Updated to use new private profile components
+- **NoteThreadFollowBtn**: Updated to use new private profile components
 
 #### **2. New Components Created**
 - **PrivateProfileToggle**: Settings toggle for private/public profiles
@@ -73,7 +73,7 @@ gRPC Client → User Service (Go)
     ↓
 Repository Layer
     ↓
-PostgreSQL Database
+NotegreSQL Database
 ```
 
 ## **Key Features Implemented**

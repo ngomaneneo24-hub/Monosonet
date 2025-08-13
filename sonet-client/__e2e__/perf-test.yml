@@ -66,9 +66,9 @@ appId: xyz.blueskyweb.app
 - "scroll"
 - "scroll"
 - "scroll"
-# Click on post
+# Click on note
 - tapOn:
-    id: "postText"
+    id: "noteText"
     index: 0
 - "scroll"
 - "scroll"

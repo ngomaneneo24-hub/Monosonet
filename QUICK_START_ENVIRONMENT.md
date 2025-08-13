@@ -32,7 +32,7 @@ Edit your `.env` files and update these **required** values:
 
 ```bash
 # Root .env
-POSTGRES_PASSWORD=your_secure_password_here
+NOTEGRES_PASSWORD=your_secure_password_here
 JWT_SECRET=your_super_secret_jwt_key_here
 
 # sonet-client/.env
@@ -44,7 +44,7 @@ JWT_SECRET=your_super_secret_jwt_key_here
 GATEWAY_PORT=8080
 
 # sonet/.env
-POSTGRES_PASSWORD=your_secure_password_here
+NOTEGRES_PASSWORD=your_secure_password_here
 JWT_SECRET=your_super_secret_jwt_key_here
 ```
 
@@ -88,7 +88,7 @@ npm run docker:down
 - **Client**: React Native app with Sonet API integration
 - **Gateway**: Express.js API gateway with JWT auth
 - **Services**: C++ microservices (users, notes, messaging, etc.)
-- **Database**: PostgreSQL with Redis caching
+- **Database**: NotegreSQL with Redis caching
 - **Real-time**: WebSocket support for live updates
 
 ## **⚠️ Important Notes**

@@ -126,7 +126,7 @@ nlohmann::json UserDocument::to_elasticsearch_document() const {
         {"is_bot_likely", analysis.is_bot_likely},
         {"bot_confidence", analysis.bot_confidence},
         {"account_age_days", analysis.account_age_days},
-        {"posting_frequency", analysis.posting_frequency},
+        {"noteing_frequency", analysis.noteing_frequency},
         {"interaction_patterns", analysis.interaction_patterns},
         {"content_diversity", analysis.content_diversity},
         {"network_diversity", analysis.network_diversity},
@@ -344,9 +344,9 @@ UserBehaviorAnalysis ProfileAnalyzer::analyze_user_behavior(const UserDocument& 
     auto now = std::chrono::system_clock::now();
     behavior.account_age_days = std::chrono::duration_cast<std::chrono::hours>(now - user.created_at).count() / 24;
     
-    // Calculate posting frequency
+    // Calculate noteing frequency
     if (behavior.account_age_days > 0) {
-        behavior.posting_frequency = static_cast<float>(user.metrics.notes_count) / behavior.account_age_days;
+        behavior.noteing_frequency = static_cast<float>(user.metrics.notes_count) / behavior.account_age_days;
     }
     
     // Analyze follower/following ratio
@@ -530,13 +530,13 @@ float ProfileAnalyzer::calculate_bot_likelihood(const UserDocument& user) {
         bot_score += 0.2f;  // Following way more than followers
     }
     
-    // Check posting frequency
+    // Check noteing frequency
     auto now = std::chrono::system_clock::now();
     auto account_age_days = std::chrono::duration_cast<std::chrono::hours>(now - user.created_at).count() / 24;
     
     if (account_age_days > 0) {
-        float posts_per_day = static_cast<float>(user.metrics.notes_count) / account_age_days;
-        if (posts_per_day > 50) {  // More than 50 posts per day
+        float notes_per_day = static_cast<float>(user.metrics.notes_count) / account_age_days;
+        if (notes_per_day > 50) {  // More than 50 notes per day
             bot_score += 0.3f;
         }
     }
@@ -747,16 +747,16 @@ float ReputationCalculator::calculate_activity_consistency_score(const UserDocum
     
     if (age_days == 0 || user.metrics.notes_count == 0) return 0.5f;
     
-    float posts_per_day = static_cast<float>(user.metrics.notes_count) / age_days;
+    float notes_per_day = static_cast<float>(user.metrics.notes_count) / age_days;
     
-    // Ideal posting frequency is 1-5 posts per day
-    if (posts_per_day >= 1.0f && posts_per_day <= 5.0f) {
+    // Ideal noteing frequency is 1-5 notes per day
+    if (notes_per_day >= 1.0f && notes_per_day <= 5.0f) {
         return 1.0f;
-    } else if (posts_per_day < 1.0f) {
-        return posts_per_day;  // Linear decrease for less frequent posting
+    } else if (notes_per_day < 1.0f) {
+        return notes_per_day;  // Linear decrease for less frequent noteing
     } else {
-        // Exponential decrease for excessive posting
-        return std::max(0.1f, 1.0f / (posts_per_day / 5.0f));
+        // Exponential decrease for excessive noteing
+        return std::max(0.1f, 1.0f / (notes_per_day / 5.0f));
     }
 }
 

@@ -18,7 +18,7 @@ const config: UserConfig = {
     rollupOptions: {
       input: {
         index: resolve(__dirname, 'index.html'),
-        post: resolve(__dirname, 'post.html'),
+        note: resolve(__dirname, 'note.html'),
       },
     },
   },

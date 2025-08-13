@@ -13,7 +13,7 @@ import {type FeedAPI, type FeedAPIResponse} from './types'
 // we use this fallback marker note to drive this instead. see Feed.tsx
 // for the usage.
 // -prf
-export const FALLBACK_MARKER_POST: SonetFeedDefs.FeedViewNote = {
+export const FALLBACK_MARKER_NOTE: SonetFeedDefs.FeedViewNote = {
   note: {
     uri: 'fallback-marker-note',
     cid: 'fake',
@@ -88,7 +88,7 @@ export class HomeFeedAPI implements FeedAPI {
       notes = notes.concat(res.feed)
       if (!returnCursor) {
         cursor = ''
-        notes.push(FALLBACK_MARKER_POST)
+        notes.push(FALLBACK_MARKER_NOTE)
         this.usingDiscover = true
       }
     }

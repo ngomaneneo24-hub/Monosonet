@@ -80,7 +80,7 @@ message UserStats {
   int64 following_count = 2;
   int64 note_count = 3;
   int64 like_count = 4;
-  int64 repost_count = 5;
+  int64 renote_count = 5;
   int64 comment_count = 6;
 }
 

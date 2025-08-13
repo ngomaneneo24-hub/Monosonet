@@ -79,8 +79,8 @@ sudo journalctl -u sonet.service -f
 
 ### Step 5: Database Initialization
 ```bash
-# Connect to PostgreSQL
-sudo docker exec -it sonet_postgres_prod psql -U sonet_app -d sonet_production
+# Connect to NotegreSQL
+sudo docker exec -it sonet_notegres_prod psql -U sonet_app -d sonet_production
 
 # Run database migrations
 \i /opt/sonet/database/migrations/001_create_moderation_tables.sql
@@ -89,7 +89,7 @@ sudo docker exec -it sonet_postgres_prod psql -U sonet_app -d sonet_production
 \dt
 \dt moderation.*
 
-# Exit PostgreSQL
+# Exit NotegreSQL
 \q
 ```
 
@@ -213,7 +213,7 @@ cat manifest.json
 sudo systemctl stop sonet.service
 
 # Restore database
-gunzip -c database.sql.gz | sudo docker exec -i sonet_postgres_prod psql -U sonet_app sonet_production
+gunzip -c database.sql.gz | sudo docker exec -i sonet_notegres_prod psql -U sonet_app sonet_production
 
 # Restore configuration
 sudo cp -r config/* /opt/sonet/config/
@@ -337,7 +337,7 @@ sudo systemctl status sonet.service
 curl -f https://sonet.com/health
 ```
 
-## 📋 Post-Deployment Checklist
+## 📋 Note-Deployment Checklist
 
 ### Service Verification
 - [ ] All services running and healthy
@@ -387,7 +387,7 @@ sudo docker ps
 sudo docker logs sonet_moderation_service_prod
 
 # Database access
-sudo docker exec -it sonet_postgres_prod psql -U sonet_app -d sonet_production
+sudo docker exec -it sonet_notegres_prod psql -U sonet_app -d sonet_production
 
 # Log analysis
 sudo tail -f /var/log/nginx/access.log

@@ -3,7 +3,7 @@
 
 <https://oembed.com/>
 
-* URL scheme: `https://bsky.app/profile/*/post/*`
+* URL scheme: `https://bsky.app/profile/*/note/*`
 * API endpoint: `https://embed.bsky.app/oembed`
 
 Request params:
@@ -35,18 +35,18 @@ Not used:
 Only `json` is supported; `xml` is a 501.
 
 ```
-<link rel="alternate" type="application/json+oembed" href="https://embed.bsky.app/oembed?format=json&url=https://bsky.app/profile/bnewbold.net/post/abc123" />
+<link rel="alternate" type="application/json+oembed" href="https://embed.bsky.app/oembed?format=json&url=https://bsky.app/profile/bnewbold.net/note/abc123" />
 ```
 
 
 ## iframe URL
 
-`https://embed.bsky.app/embed/<did>/app.bsky.feed.post/<rkey>`
+`https://embed.bsky.app/embed/<did>/app.bsky.feed.note/<rkey>`
 `https://embed.bsky.app/static/embed.js`
 
 ```
-<blockquote class="bluesky-post" data-lang="en" data-align="center">
-  <p lang="en" dir="ltr">{{ post-text }}</p>
+<blockquote class="bluesky-note" data-lang="en" data-align="center">
+  <p lang="en" dir="ltr">{{ note-text }}</p>
   &mdash; US Department of the Interior (@Interior) <a href="https://twitter.com/Interior/status/463440424141459456?ref_src=twsrc%5Etfw">May 5, 2014</a>
 </blockquote>
 ```

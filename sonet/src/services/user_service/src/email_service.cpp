@@ -177,7 +177,7 @@ public:
             
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
             curl_easy_setopt(curl, CURLOPT_URL, "https://api.sendgrid.com/v3/mail/send");
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_string.c_str());
+            curl_easy_setopt(curl, CURLOPT_NOTEFIELDS, json_string.c_str());
             
             // Response handling
             std::string response;

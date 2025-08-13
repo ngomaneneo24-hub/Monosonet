@@ -64,7 +64,7 @@ make clean
 
 - **Gateway Service**: API gateway and load balancer
 - **User Service**: User management and authentication
-- **Note Service**: Posts and content management
+- **Note Service**: Notes and content management
 - **Media Service**: File uploads and media handling
 - **Follow Service**: Social connections and relationships
 - **Notification Service**: Real-time notifications
@@ -78,7 +78,7 @@ make clean
 ## Tech Stack
 
 - **Language**: C++17/20
-- **Databases**: PostgreSQL, Redis, Cassandra, Elasticsearch
+- **Databases**: NotegreSQL, Redis, Cassandra, Elasticsearch
 - **Communication**: gRPC, HTTP/REST, WebSockets
 - **Containerization**: Docker, Kubernetes
 - **Monitoring**: Prometheus, Grafana, Jaeger

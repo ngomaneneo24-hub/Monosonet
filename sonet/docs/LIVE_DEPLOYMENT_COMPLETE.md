@@ -10,7 +10,7 @@ This guide provides the complete roadmap for deploying the Sonet founder moderat
 - **Founder System**: Complete anonymity with moderation privileges
 - **Moderation Service**: C++/gRPC backend for high performance
 - **API Gateway**: Go-based REST API with security middleware
-- **Database**: PostgreSQL with advanced moderation schemas
+- **Database**: NotegreSQL with advanced moderation schemas
 - **Caching**: Redis for performance optimization
 - **Load Balancer**: Nginx with SSL termination and security headers
 - **Monitoring**: Prometheus, Grafana, ELK stack
@@ -232,10 +232,10 @@ sudo systemctl start sonet-backup.service
 ```bash
 # Test from whitelisted IP only
 # These endpoints require founder authentication:
-# - POST /api/v1/moderation/accounts/flag
-# - POST /api/v1/moderation/accounts/shadowban
-# - POST /api/v1/moderation/accounts/suspend
-# - POST /api/v1/moderation/accounts/ban
+# - NOTE /api/v1/moderation/accounts/flag
+# - NOTE /api/v1/moderation/accounts/shadowban
+# - NOTE /api/v1/moderation/accounts/suspend
+# - NOTE /api/v1/moderation/accounts/ban
 # - DELETE /api/v1/moderation/notes/{noteId}
 ```
 
@@ -269,7 +269,7 @@ sudo systemctl start sonet-backup.service
 - [ ] Check monitoring dashboards
 - [ ] Verify backup completion
 
-### **Post-Go-Live (First 24 Hours)**
+### **Note-Go-Live (First 24 Hours)**
 - [ ] Monitor all services continuously
 - [ ] Check error rates and response times
 - [ ] Verify backup completion
@@ -279,7 +279,7 @@ sudo systemctl start sonet-backup.service
 - [ ] Monitor DNS propagation
 - [ ] Verify SSL certificate status
 
-### **Post-Go-Live (First Week)**
+### **Note-Go-Live (First Week)**
 - [ ] Review performance metrics
 - [ ] Check security logs
 - [ ] Verify monitoring alerts
@@ -321,13 +321,13 @@ sudo /opt/sonet/scripts/renew-ssl.sh
 #### **Database Connection Issues**
 ```bash
 # Check database status
-sudo docker exec sonet_postgres_prod pg_isready -U sonet_app
+sudo docker exec sonet_notegres_prod pg_isready -U sonet_app
 
 # Check logs
-sudo docker logs sonet_postgres_prod
+sudo docker logs sonet_notegres_prod
 
 # Test connection
-sudo docker exec -it sonet_postgres_prod psql -U sonet_app -d sonet_production
+sudo docker exec -it sonet_notegres_prod psql -U sonet_app -d sonet_production
 ```
 
 #### **Performance Issues**
@@ -373,10 +373,10 @@ free -h
 ### **Performance Tuning**
 ```bash
 # Database optimization
-sudo docker exec -it sonet_postgres_prod psql -U sonet_app -d sonet_production -c "ANALYZE;"
+sudo docker exec -it sonet_notegres_prod psql -U sonet_app -d sonet_production -c "ANALYZE;"
 
 # Check slow queries
-sudo docker exec -it sonet_postgres_prod psql -U sonet_app -d sonet_production -c "SELECT query, calls, total_time, mean_time FROM pg_stat_statements ORDER BY mean_time DESC LIMIT 10;"
+sudo docker exec -it sonet_notegres_prod psql -U sonet_app -d sonet_production -c "SELECT query, calls, total_time, mean_time FROM pg_stat_statements ORDER BY mean_time DESC LIMIT 10;"
 
 # Redis optimization
 sudo docker exec sonet_redis_prod redis-cli CONFIG SET maxmemory-policy allkeys-lru

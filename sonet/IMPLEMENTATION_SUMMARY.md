@@ -10,13 +10,13 @@ This document summarizes the complete implementation of Lists and Starterpacks s
 
 1. **Lists Service** (`sonet/src/services/list_service/`)
    - Go microservice with gRPC API
-   - PostgreSQL database backend
+   - NotegreSQL database backend
    - Full CRUD operations for lists and list members
    - Permission-based access control
 
 2. **Starterpacks Service** (`sonet/src/services/starterpack_service/`)
    - Go microservice with gRPC API
-   - PostgreSQL database backend
+   - NotegreSQL database backend
    - Full CRUD operations for starterpacks and items
    - Discovery and suggestion features
 
@@ -85,23 +85,23 @@ CREATE TABLE starterpack_items (
 ## API Endpoints
 
 ### Lists API (`/api/v1/lists`)
-- `POST /` - Create new list
+- `NOTE /` - Create new list
 - `GET /{listId}` - Get list details
 - `PUT /{listId}` - Update list
 - `DELETE /{listId}` - Delete list
 - `GET /users/{userId}/lists` - Get user's lists
-- `POST /{listId}/members` - Add member to list
+- `NOTE /{listId}/members` - Add member to list
 - `DELETE /{listId}/members/{userId}` - Remove member from list
 - `GET /{listId}/members` - Get list members
 - `GET /{listId}/members/{userId}/check` - Check if user is in list
 
 ### Starterpacks API (`/api/v1/starterpacks`)
-- `POST /` - Create new starterpack
+- `NOTE /` - Create new starterpack
 - `GET /{starterpackId}` - Get starterpack details
 - `PUT /{starterpackId}` - Update starterpack
 - `DELETE /{starterpackId}` - Delete starterpack
 - `GET /users/{userId}/starterpacks` - Get user's starterpacks
-- `POST /{starterpackId}/items` - Add item to starterpack
+- `NOTE /{starterpackId}/items` - Add item to starterpack
 - `DELETE /{starterpackId}/items/{itemId}` - Remove item from starterpack
 - `GET /{starterpackId}/items` - Get starterpack items
 - `GET /suggested` - Get suggested starterpacks

@@ -1,6 +1,6 @@
 import '../index.css'
 
-import {AppBskyFeedDefs, AppBskyFeedPost, AtpAgent, AtUri} from '@atproto/api'
+import {AppBskyFeedDefs, AppBskyFeedNote, AtpAgent, AtUri} from '@atproto/api'
 import {h, render} from 'preact'
 import {useEffect, useMemo, useRef, useState} from 'preact/hooks'
 
@@ -13,12 +13,12 @@ import {
 } from '../color-mode'
 import {Container} from '../components/container'
 import {Link} from '../components/link'
-import {Post} from '../components/post'
+import {Note} from '../components/note'
 import {niceDate} from '../utils'
 
-const DEFAULT_POST = 'https://bsky.app/profile/emilyliu.me/post/3jzn6g7ixgq2y'
+const DEFAULT_NOTE = 'https://bsky.app/profile/emilyliu.me/note/3jzn6g7ixgq2y'
 const DEFAULT_URI =
-  'at://did:plc:vjug55kidv6sye7ykr5faxxn/app.bsky.feed.post/3jzn6g7ixgq2y'
+  'at://did:plc:vjug55kidv6sye7ykr5faxxn/app.bsky.feed.note/3jzn6g7ixgq2y'
 
 export const EMBED_SERVICE = 'https://embed.bsky.app'
 export const EMBED_SCRIPT = `${EMBED_SERVICE}/static/embed.js`
@@ -39,7 +39,7 @@ function LandingPage() {
   const [colorMode, setColorMode] = useState<ColorModeValues>('system')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [thread, setThread] = useState<AppBskyFeedDefs.ThreadViewPost | null>(
+  const [thread, setThread] = useState<AppBskyFeedDefs.ThreadViewNote | null>(
     null,
   )
 
@@ -65,7 +65,7 @@ function LandingPage() {
                 throw new Error('Invalid pathname')
               }
               const [profile, didOrHandle, type, rkey] = split
-              if (profile !== 'profile' || type !== 'post') {
+              if (profile !== 'profile' || type !== 'note') {
                 throw new Error('Invalid profile or type')
               }
 
@@ -80,7 +80,7 @@ function LandingPage() {
                 did = resolution.data.did
               }
 
-              atUri = `at://${did}/app.bsky.feed.post/${rkey}`
+              atUri = `at://${did}/app.bsky.feed.note/${rkey}`
             } catch (err) {
               console.log(err)
               throw new Error('Invalid Bluesky URL')
@@ -88,21 +88,21 @@ function LandingPage() {
           }
         }
 
-        const {data} = await agent.getPostThread({
+        const {data} = await agent.getNoteThread({
           uri: atUri,
           depth: 0,
           parentHeight: 0,
         })
 
-        if (!AppBskyFeedDefs.isThreadViewPost(data.thread)) {
-          throw new Error('Post not found')
+        if (!AppBskyFeedDefs.isThreadViewNote(data.thread)) {
+          throw new Error('Note not found')
         }
-        const pwiOptOut = !!data.thread.post.author.labels?.find(
+        const pwiOptOut = !!data.thread.note.author.labels?.find(
           label => label.val === '!no-unauthenticated',
         )
         if (pwiOptOut) {
           throw new Error(
-            'The author of this post has requested their posts not be displayed on external sites.',
+            'The author of this note has requested their notes not be displayed on external sites.',
           )
         }
         setThread(data.thread)
@@ -123,7 +123,7 @@ function LandingPage() {
         <img src={logo} className="h-10" />
       </Link>
 
-      <h1 className="text-4xl font-bold text-center">Embed a Bluesky Post</h1>
+      <h1 className="text-4xl font-bold text-center">Embed a Bluesky Note</h1>
 
       <div className="flex flex-col w-full max-w-[600px] gap-6">
         <input
@@ -131,7 +131,7 @@ function LandingPage() {
           value={uri}
           onInput={e => setUri(e.currentTarget.value)}
           className="border rounded-lg py-3 px-4 dark:bg-dimmedBg dark:border-slate-500"
-          placeholder={DEFAULT_POST}
+          placeholder={DEFAULT_NOTE}
         />
 
         <div className="flex flex-col gap-1.5">
@@ -167,7 +167,7 @@ function LandingPage() {
             <Snippet thread={thread} colorMode={colorMode} />
           )}
           <div className={colorMode}>
-            {!error && thread && <Post thread={thread} key={thread.post.uri} />}
+            {!error && thread && <Note thread={thread} key={thread.note.uri} />}
           </div>
           {error && (
             <div className="w-full border border-red-500 bg-red-500/10 px-4 py-3 rounded-lg">
@@ -203,7 +203,7 @@ function Snippet({
   thread,
   colorMode,
 }: {
-  thread: AppBskyFeedDefs.ThreadViewPost
+  thread: AppBskyFeedDefs.ThreadViewNote
   colorMode: ColorModeValues
 }) {
   const ref = useRef<HTMLInputElement>(null)
@@ -220,19 +220,19 @@ function Snippet({
   }, [copied])
 
   const snippet = useMemo(() => {
-    const record = thread.post.record
+    const record = thread.note.record
 
-    if (!AppBskyFeedPost.isRecord(record)) {
+    if (!AppBskyFeedNote.isRecord(record)) {
       return ''
     }
 
     const lang = record.langs && record.langs.length > 0 ? record.langs[0] : ''
     const profileHref = toShareUrl(
-      ['/profile', thread.post.author.did].join('/'),
+      ['/profile', thread.note.author.did].join('/'),
     )
-    const urip = new AtUri(thread.post.uri)
+    const urip = new AtUri(thread.note.uri)
     const href = toShareUrl(
-      ['/profile', thread.post.author.did, 'post', urip.rkey].join('/'),
+      ['/profile', thread.note.author.did, 'note', urip.rkey].join('/'),
     )
 
     // x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x
@@ -240,9 +240,9 @@ function Snippet({
     // Also, keep this code synced with the app code in Embed.tsx.
     // x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x
     return `<blockquote class="bluesky-embed" data-bluesky-uri="${escapeHtml(
-      thread.post.uri,
+      thread.note.uri,
     )}" data-bluesky-cid="${escapeHtml(
-      thread.post.cid,
+      thread.note.cid,
     )}" data-bluesky-embed-color-mode="${escapeHtml(
       colorMode,
     )}"><p lang="${escapeHtml(lang)}">${escapeHtml(record.text)}${
@@ -250,11 +250,11 @@ function Snippet({
         ? `<br><br><a href="${escapeHtml(href)}">[image or embed]</a>`
         : ''
     }</p>&mdash; ${escapeHtml(
-      thread.post.author.displayName || thread.post.author.handle,
+      thread.note.author.displayName || thread.note.author.handle,
     )} (<a href="${escapeHtml(profileHref)}">@${escapeHtml(
-      thread.post.author.handle,
+      thread.note.author.handle,
     )}</a>) <a href="${escapeHtml(href)}">${escapeHtml(
-      niceDate(thread.post.indexedAt),
+      niceDate(thread.note.indexedAt),
     )}</a></blockquote><script async src="${EMBED_SCRIPT}" charset="utf-8"></script>`
   }, [thread, colorMode])
 

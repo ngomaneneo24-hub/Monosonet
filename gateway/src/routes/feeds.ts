@@ -47,7 +47,7 @@ export function registerFeedRoutes(router: Router, clients: GrpcClients) {
 
       // Transform response for client consumption
       const feedItems = (resp?.items || []).map((item: any) => ({
-        post: item.note,
+        note: item.note,
         ranking: {
           score: item.ml_score,
           factors: item.ranking_factors,
@@ -101,7 +101,7 @@ export function registerFeedRoutes(router: Router, clients: GrpcClients) {
       }
 
       const videoItems = (resp?.items || []).map((item: any) => ({
-        post: item.note,
+        note: item.note,
         video: {
           duration: item.video_duration,
           quality: item.video_quality,
@@ -161,7 +161,7 @@ export function registerFeedRoutes(router: Router, clients: GrpcClients) {
       }
 
       const followingItems = (resp?.items || []).map((item: any) => ({
-        post: item.note,
+        note: item.note,
         feedContext: 'following',
         cursor: item.cursor
       }));
@@ -175,7 +175,7 @@ export function registerFeedRoutes(router: Router, clients: GrpcClients) {
   });
 
   // Feed Interaction Tracking - For ML training
-  router.post('/v1/feeds/interactions', (req: Request, res: Response) => {
+  router.note('/v1/feeds/interactions', (req: Request, res: Response) => {
     const userId = userIdFromAuth(req);
     const { interactions } = req.body;
 
@@ -197,7 +197,7 @@ export function registerFeedRoutes(router: Router, clients: GrpcClients) {
     const request = {
       user_id: userId,
       interactions: interactions.map((interaction: any) => ({
-        post_id: interaction.item,
+        note_id: interaction.item,
         event_type: interaction.event,
         feed_context: interaction.feedContext,
         timestamp: new Date().toISOString(),

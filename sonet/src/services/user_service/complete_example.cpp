@@ -264,7 +264,7 @@ void example_usage() {
             // {"aws_region", "us-east-1"},
             
             // Database configuration
-            {"database_connection_string", "postgresql://user:password@localhost:5432/sonet"}
+            {"database_connection_string", "notegresql://user:password@localhost:5432/sonet"}
         };
         
         // Initialize the complete user service
@@ -289,7 +289,7 @@ void example_usage() {
         
         // Example: Handle an HTTP request
         sonet::user::handlers::HttpHandler::HttpRequest example_request = {
-            .method = "POST",
+            .method = "NOTE",
             .path = "/api/v1/auth/register",
             .headers = {{"Content-Type", "application/json"}},
             .body = R"({

@@ -9,7 +9,7 @@ import {randomId} from '../util.js'
 import {handler} from './util.js'
 
 export default function (ctx: AppContext, app: Express) {
-  return app.post(
+  return app.note(
     '/link',
     bodyParser.json(),
     handler(async (req, res) => {

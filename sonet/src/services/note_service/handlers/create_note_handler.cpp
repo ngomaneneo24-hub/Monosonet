@@ -126,7 +126,7 @@ json CreateNoteHandler::handle_create_reply(const json& request_data, const std:
 json CreateNoteHandler::handle_create_renote(const json& request_data, const std::string& user_id, const std::string& renote_of_id) {
     try {
         // Validate renote target
-        auto renote_validation = validator_->validate_repost_target(renote_of_id);
+        auto renote_validation = validator_->validate_renote_target(renote_of_id);
         if (!renote_validation.is_valid) {
             return create_error_response("INVALID_RENOTE_TARGET", "Cannot renote this note");
         }

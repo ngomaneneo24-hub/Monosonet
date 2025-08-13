@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <postgresql/libpq-fe.h>
+#include <notegresql/libpq-fe.h>
 #include <vector>
 #include <string>
 #include <memory>
@@ -195,7 +195,7 @@ public:
         // Add a test stats row
         result->add_row({
             "test-user-123",           // user_id
-            "100",                     // total_posts
+            "100",                     // total_notes
             "50",                      // total_followers
             "25",                      // total_following
             "1000",                    // total_likes_received

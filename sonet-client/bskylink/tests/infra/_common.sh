@@ -22,15 +22,15 @@ export_env() {
   export_pg_env
 }
 
-# Exports postgres environment variables
+# Exports notegres environment variables
 export_pg_env() {
   # Based on creds in compose.yaml
   export PGPORT=5433
   export PGHOST=localhost
   export PGUSER=pg
   export PGPASSWORD=password
-  export PGDATABASE=postgres
-  export DB_POSTGRES_URL="postgresql://pg:password@127.0.0.1:5433/postgres"
+  export PGDATABASE=notegres
+  export DB_NOTEGRES_URL="notegresql://pg:password@127.0.0.1:5433/notegres"
 }
 
 
@@ -50,23 +50,23 @@ pg_init() {
 
 main_native() {
   local services=${SERVICES}
-  local postgres_url_env_var=`[[ $services == *"db_test"* ]] && echo "DB_TEST_POSTGRES_URL" || echo "DB_POSTGRES_URL"`
+  local notegres_url_env_var=`[[ $services == *"db_test"* ]] && echo "DB_TEST_NOTEGRES_URL" || echo "DB_NOTEGRES_URL"`
 
-  postgres_url="${!postgres_url_env_var}"
+  notegres_url="${!notegres_url_env_var}"
 
-  if [ -n "${postgres_url}" ]; then
-    echo "Using ${postgres_url_env_var} (${postgres_url}) to connect to postgres."
-    pg_init "${postgres_url}"
+  if [ -n "${notegres_url}" ]; then
+    echo "Using ${notegres_url_env_var} (${notegres_url}) to connect to notegres."
+    pg_init "${notegres_url}"
   else
-    echo "Postgres connection string missing did you set ${postgres_url_env_var}?"
+    echo "Notegres connection string missing did you set ${notegres_url_env_var}?"
     exit 1
   fi
 
   cleanup() {
     local services=$@
 
-    if [ -n "${postgres_url}" ] && [[ $services == *"db_test"* ]]; then
-      pg_clear "${postgres_url}" &> /dev/null
+    if [ -n "${notegres_url}" ] && [[ $services == *"db_test"* ]]; then
+      pg_clear "${notegres_url}" &> /dev/null
     fi
   }
 
@@ -78,7 +78,7 @@ main_native() {
   }
 
   # Run the arguments as a command
-  DB_POSTGRES_URL="${postgres_url}" \
+  DB_NOTEGRES_URL="${notegres_url}" \
   "$@"
   code=$?
 

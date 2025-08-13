@@ -4,7 +4,7 @@ This directory contains the complete database schemas for all microservices in t
 
 ## Overview
 
-The SoNet system uses PostgreSQL as its primary database with separate schemas for each microservice. This approach provides:
+The SoNet system uses NotegreSQL as its primary database with separate schemas for each microservice. This approach provides:
 - **Service Isolation**: Each service has its own schema and can be deployed independently
 - **Data Consistency**: ACID transactions within each service
 - **Performance**: Optimized indexes and queries for each service's specific needs
@@ -18,8 +18,8 @@ The SoNet system uses PostgreSQL as its primary database with separate schemas f
 - **Features**: JWT token management, 2FA support, password reset functionality, user activity tracking
 
 ### 2. Note Service Schema (`note_schema.sql`)
-- **Purpose**: Handles social media posts, content management, and engagement
-- **Key Tables**: `notes`, `note_media`, `note_likes`, `note_reposts`, `note_comments`, `note_bookmarks`, `note_hashtags`, `note_mentions`, `note_stats`, `note_visibility`
+- **Purpose**: Handles social media notes, content management, and engagement
+- **Key Tables**: `notes`, `note_media`, `note_likes`, `note_renotes`, `note_comments`, `note_bookmarks`, `note_hashtags`, `note_mentions`, `note_stats`, `note_visibility`
 - **Features**: Full-text search, media attachments, engagement tracking, hashtag management
 
 ### 3. Media Service Schema (`media_schema.sql`)
@@ -61,14 +61,14 @@ The SoNet system uses PostgreSQL as its primary database with separate schemas f
 
 ### Docker Compose Setup
 The system uses Docker Compose with the following configuration:
-- **PostgreSQL 15**: Main database with multiple schemas
+- **NotegreSQL 15**: Main database with multiple schemas
 - **Redis 7**: Caching and session storage
 - **Multiple Databases**: Each service gets its own database instance
 
 ### Environment Variables
 Each service connects to its database using:
 ```bash
-DATABASE_URL=postgresql://sonet:sonet_dev_password@postgres:5432/{service_name}
+DATABASE_URL=notegresql://sonet:sonet_dev_password@notegres:5432/{service_name}
 REDIS_URL=redis://redis:6379
 ```
 
@@ -166,7 +166,7 @@ Each schema includes common utility functions:
 4. **Lock contention**: Identify and resolve long-running transactions
 
 ### Debugging Tools
-- PostgreSQL logs and error messages
+- NotegreSQL logs and error messages
 - Query performance analysis with `pg_stat_statements`
 - Connection monitoring with `pg_stat_activity`
 - Index usage statistics

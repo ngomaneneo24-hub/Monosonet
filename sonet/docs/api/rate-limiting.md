@@ -7,12 +7,12 @@ Purpose: Protect core services (auth, notes, timeline, media, messaging) from ab
 |----------|-----------|-------------|------------------------------------------|
 | Auth | /v1/auth/login, /v1/auth/register, 2FA verify | High | 5 attempts / 5 min / IP + user; burst 10 |
 | Token Refresh | /v1/auth/refresh | Medium | 30 / hour |
-| Notes Create | POST /v1/notes | High | 300 / day; 30 / 15 min |
+| Notes Create | NOTE /v1/notes | High | 300 / day; 30 / 15 min |
 | Engagement | like/renote/bookmark | High | 1000 / day; 60 / min |
 | Timeline Fetch | /v1/timeline/* | Medium | 1200 / hour; 30 / min |
 | Search | /v1/search/notes | High | 60 / 5 min |
 | Media Upload Init | /v1/media/upload | High | 50 / day |
-| Messaging Send | POST /v1/messages | High | 1000 / day; 60 / min; adaptive for spam |
+| Messaging Send | NOTE /v1/messages | High | 1000 / day; 60 / min; adaptive for spam |
 | Fanout Metrics/Admin | /v1/fanout/* | Admin | 120 / hour (admin) |
 
 IP-based global caps layered above user-specific for unauth endpoints.
@@ -67,7 +67,7 @@ OnRPC(ctx, method):
 |----------|--------|-----------|
 | Credential Stuffing | High-rate login attempts | IP + user buckets; captcha after N failures |
 | Timeline Crawling | Rapid pagination | Cursor invalidation + rate limit + anomaly detector |
-| Engagement Inflation | Automated like/repost | Behavioral heuristics + per-action caps + delayed write path if suspicious |
+| Engagement Inflation | Automated like/renote | Behavioral heuristics + per-action caps + delayed write path if suspicious |
 | Media Exhaustion | Large file floods | Enforce max file size + per-day byte quota + virus scanning queue |
 | Messaging Spam | DM flood to many users | Recipient-based rate limit (messages received per sender), spam scoring |
 

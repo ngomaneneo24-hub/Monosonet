@@ -52,7 +52,7 @@ HttpResponse BlockController::block_user(const HttpRequest& request) {
     auto start = high_resolution_clock::now();
     
     try {
-        spdlog::debug("🚫 POST /api/v1/block/{} from {}", request.path_params.at("user_id"), 
+        spdlog::debug("🚫 NOTE /api/v1/block/{} from {}", request.path_params.at("user_id"), 
                      request.headers.value("user-id", "unknown"));
         
         // Authentication and validation
@@ -276,7 +276,7 @@ HttpResponse BlockController::mute_user(const HttpRequest& request) {
     auto start = high_resolution_clock::now();
     
     try {
-        spdlog::debug("🔇 POST /api/v1/mute/{} from {}", request.path_params.at("user_id"), 
+        spdlog::debug("🔇 NOTE /api/v1/mute/{} from {}", request.path_params.at("user_id"), 
                      request.headers.value("user-id", "unknown"));
         
         // Authentication and validation
@@ -449,7 +449,7 @@ HttpResponse BlockController::bulk_block(const HttpRequest& request) {
     auto start = high_resolution_clock::now();
     
     try {
-        spdlog::debug("📦 POST /api/v1/block/bulk from {}", 
+        spdlog::debug("📦 NOTE /api/v1/block/bulk from {}", 
                      request.headers.value("user-id", "unknown"));
         
         // Authentication and validation
@@ -674,7 +674,7 @@ HttpResponse BlockController::create_success_response(int status_code, const jso
     
     if (enable_cors_) {
         response.headers["Access-Control-Allow-Origin"] = "*";
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS";
+        response.headers["Access-Control-Allow-Methods"] = "GET, NOTE, PUT, DELETE, OPTIONS";
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With";
     }
     
@@ -697,7 +697,7 @@ HttpResponse BlockController::create_error_response(int status_code, const std::
     
     if (enable_cors_) {
         response.headers["Access-Control-Allow-Origin"] = "*";
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS";
+        response.headers["Access-Control-Allow-Methods"] = "GET, NOTE, PUT, DELETE, OPTIONS";
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With";
     }
     

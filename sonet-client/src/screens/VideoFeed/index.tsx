@@ -53,7 +53,7 @@ import {sanitizeUsername} from '#/lib/strings/usernames'
 import {isAndroid} from '#/platform/detection'
 import {useA11y} from '#/state/a11y'
 import {
-  POST_TOMBSTONE,
+  NOTE_TOMBSTONE,
   type Shadow,
   useNoteShadow,
 } from '#/state/cache/note-shadow'
@@ -501,7 +501,7 @@ let VideoItem = ({
 
   return (
     <View style={[a.relative, {height, width}]}>
-      {noteShadow === POST_TOMBSTONE ? (
+      {noteShadow === NOTE_TOMBSTONE ? (
         <View
           style={[
             a.absolute,

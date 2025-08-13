@@ -168,7 +168,7 @@ export function useCreateDraftMutation() {
   return useMutation<{draft: Draft}, Error, CreateDraftRequest>({
     mutationFn: async (data) => {
       const response = await apiRequest('/v1/drafts', {
-        method: 'POST',
+        method: 'NOTE',
         body: JSON.stringify(data),
       })
       return response
@@ -237,7 +237,7 @@ export function useAutoSaveDraftMutation() {
   return useMutation<{draft: Draft}, Error, AutoSaveDraftRequest>({
     mutationFn: async (data) => {
       const response = await apiRequest('/v1/drafts/auto-save', {
-        method: 'POST',
+        method: 'NOTE',
         body: JSON.stringify(data),
       })
       return response

@@ -80,8 +80,8 @@ std::unique_ptr<VideoProcessor> CreateVideoProcessor();
 std::unique_ptr<GifProcessor> CreateGifProcessor();
 std::unique_ptr<NsfwScanner> CreateBasicScanner(bool enable);
 
-// Optional Postgres repository factory (returns nullptr if not available/configured)
-std::unique_ptr<MediaRepository> CreatePostgresRepo(const std::string& conn_str);
+// Optional Notegres repository factory (returns nullptr if not available/configured)
+std::unique_ptr<MediaRepository> CreateNotegresRepo(const std::string& conn_str);
 
 class MediaServiceImpl final : public ::sonet::media::MediaService::Service {
 public:

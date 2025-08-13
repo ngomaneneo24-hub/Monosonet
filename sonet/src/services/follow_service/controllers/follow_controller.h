@@ -47,7 +47,7 @@ public:
     // ========== CORE RELATIONSHIP OPERATIONS ==========
     
     /**
-     * @brief POST /api/v1/follow/{user_id}
+     * @brief NOTE /api/v1/follow/{user_id}
      * Follow a user
      * 
      * @param user_id User to follow
@@ -68,7 +68,7 @@ public:
     json unfollow_user(const std::string& user_id, const std::string& requesting_user_id);
     
     /**
-     * @brief POST /api/v1/block/{user_id}
+     * @brief NOTE /api/v1/block/{user_id}
      * Block a user
      * 
      * @param user_id User to block
@@ -89,7 +89,7 @@ public:
     json unblock_user(const std::string& user_id, const std::string& requesting_user_id);
     
     /**
-     * @brief POST /api/v1/mute/{user_id}
+     * @brief NOTE /api/v1/mute/{user_id}
      * Mute a user
      * 
      * @param user_id User to mute
@@ -275,7 +275,7 @@ public:
     // ========== BULK OPERATIONS ==========
     
     /**
-     * @brief POST /api/v1/follow/bulk
+     * @brief NOTE /api/v1/follow/bulk
      * Follow multiple users in one request
      * 
      * @param request_data Request body with array of user IDs to follow
@@ -340,7 +340,7 @@ public:
     // ========== VALIDATION AND UTILITIES ==========
     
     /**
-     * @brief POST /api/v1/validate/follow-request
+     * @brief NOTE /api/v1/validate/follow-request
      * Validate a follow request before attempting
      * 
      * @param request_data Request body with target user ID

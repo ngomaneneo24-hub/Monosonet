@@ -48,7 +48,7 @@ func NewDatabaseConnection() (*DatabaseConnection, error) {
 		host, port, user, password, dbname)
 
 	// Open database connection
-	db, err := sql.Open("postgres", connStr)
+	db, err := sql.Open("notegres", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database connection: %w", err)
 	}

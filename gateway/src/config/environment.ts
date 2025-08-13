@@ -70,13 +70,13 @@ export const SERVICE_ENDPOINTS = {
  * Database Configuration
  */
 export const DATABASE_CONFIG = {
-  postgres: {
-    host: process.env.POSTGRES_HOST || 'localhost',
-    port: parseInt(process.env.POSTGRES_PORT || '5432', 10),
-    user: process.env.POSTGRES_USER || 'sonet',
-    password: process.env.POSTGRES_PASSWORD || 'sonet_dev_password',
-    database: process.env.POSTGRES_DB || 'sonet_dev',
-    sslMode: process.env.POSTGRES_SSL_MODE || 'disable',
+  notegres: {
+    host: process.env.NOTEGRES_HOST || 'localhost',
+    port: parseInt(process.env.NOTEGRES_PORT || '5432', 10),
+    user: process.env.NOTEGRES_USER || 'sonet',
+    password: process.env.NOTEGRES_PASSWORD || 'sonet_dev_password',
+    database: process.env.NOTEGRES_DB || 'sonet_dev',
+    sslMode: process.env.NOTEGRES_SSL_MODE || 'disable',
   },
   redis: {
     host: process.env.REDIS_HOST || 'localhost',
@@ -193,7 +193,7 @@ export const getCurrentEnvConfig = () => {
 export const validateEnvironment = (): boolean => {
   const required = [
     'JWT_SECRET',
-    'POSTGRES_PASSWORD',
+    'NOTEGRES_PASSWORD',
   ]
 
   const missing = required.filter(key => !process.env[key])

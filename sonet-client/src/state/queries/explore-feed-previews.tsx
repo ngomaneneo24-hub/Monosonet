@@ -34,7 +34,7 @@ const RQKEY_ROOT = 'feed-previews'
 const RQKEY = (feeds: string[]) => [RQKEY_ROOT, feeds]
 
 const LIMIT = 8 // sliced to 6, overfetch to account for moderation
-const PINNED_POST_URIS: Record<string, boolean> = {
+const PINNED_NOTE_URIS: Record<string, boolean> = {
   // 📰 News
   'sonet://userId:plc:kkf4naxqmweop7dv4l2iqqf5/app.sonet.feed.note/3lgh27w2ngc2b': true,
   // Gardening
@@ -210,7 +210,7 @@ export function useFeedPreviews(
                 items: item.items
                   .slice(0, 6)
                   .filter(subItem => {
-                    return !PINNED_POST_URIS[subItem.note.uri]
+                    return !PINNED_NOTE_URIS[subItem.note.uri]
                   })
                   .map((subItem, i) => {
                     const feedNoteSliceItem: FeedNoteSliceItem = {

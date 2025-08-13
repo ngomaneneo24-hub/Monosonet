@@ -38,7 +38,7 @@ bool User::can_login() const {
            (suspended_until.has_value() ? *suspended_until < std::time(nullptr) : true);
 }
 
-bool User::can_post() const {
+bool User::can_note() const {
     return can_login() && status != UserStatus::SUSPENDED;
 }
 

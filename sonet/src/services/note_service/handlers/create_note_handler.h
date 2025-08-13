@@ -51,7 +51,7 @@ public:
     json handle_create_reply(const json& request_data, const std::string& user_id, const std::string& reply_to_id);
     
     /**
-     * @brief Create a renote (repost)
+     * @brief Create a renote (renote)
      */
     json handle_create_renote(const json& request_data, const std::string& user_id, const std::string& renote_of_id);
     
@@ -66,7 +66,7 @@ public:
     json handle_create_thread_note(const json& request_data, const std::string& user_id, const std::string& thread_id, int position);
     
     /**
-     * @brief Schedule a note for future posting
+     * @brief Schedule a note for future noteing
      */
     json handle_schedule_note(const json& request_data, const std::string& user_id, std::time_t scheduled_at);
 

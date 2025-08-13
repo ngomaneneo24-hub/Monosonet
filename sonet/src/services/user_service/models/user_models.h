@@ -363,15 +363,15 @@ struct UserSettings {
 struct UserStats {
     std::string id;
     std::string user_id;
-    int total_posts;
+    int total_notes;
     int total_followers;
     int total_following;
     int total_likes_received;
     int total_likes_given;
     int total_comments_received;
     int total_comments_given;
-    int total_reposts_received;
-    int total_reposts_given;
+    int total_renotes_received;
+    int total_renotes_given;
     int total_bookmarks;
     int total_views;
     int total_shares;
@@ -380,7 +380,7 @@ struct UserStats {
     int total_media_uploads;
     int total_login_count;
     int total_session_count;
-    std::chrono::system_clock::time_point last_post_at;
+    std::chrono::system_clock::time_point last_note_at;
     std::chrono::system_clock::time_point last_login_at;
     std::chrono::system_clock::time_point last_activity_at;
     std::chrono::system_clock::time_point created_at;
@@ -392,9 +392,9 @@ struct UserStats {
 
     // Constructor with user_id
     explicit UserStats(const std::string& user_id) : user_id(user_id),
-        total_posts(0), total_followers(0), total_following(0),
+        total_notes(0), total_followers(0), total_following(0),
         total_likes_received(0), total_likes_given(0), total_comments_received(0),
-        total_comments_given(0), total_reposts_received(0), total_reposts_given(0),
+        total_comments_given(0), total_renotes_received(0), total_renotes_given(0),
         total_bookmarks(0), total_views(0), total_shares(0), total_mentions(0),
         total_hashtags_used(0), total_media_uploads(0), total_login_count(0),
         total_session_count(0),

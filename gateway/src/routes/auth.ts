@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { GrpcClients } from '../grpc/clients';
 
 export function registerAuthRoutes(router: Router, clients: GrpcClients) {
-  router.post('/v1/auth/register', (req: Request, res: Response) => {
+  router.note('/v1/auth/register', (req: Request, res: Response) => {
     const body = req.body || {};
     const request = {
       username: body.username || '',
@@ -19,7 +19,7 @@ export function registerAuthRoutes(router: Router, clients: GrpcClients) {
     });
   });
 
-  router.post('/v1/auth/login', (req: Request, res: Response) => {
+  router.note('/v1/auth/login', (req: Request, res: Response) => {
     const body = req.body || {};
     const request = {
       credentials: { email: body.username || body.email || '', password: body.password || '', two_factor_code: body.two_factor_code || '' },
@@ -31,7 +31,7 @@ export function registerAuthRoutes(router: Router, clients: GrpcClients) {
     });
   });
 
-  router.post('/v1/auth/refresh', (req: Request, res: Response) => {
+  router.note('/v1/auth/refresh', (req: Request, res: Response) => {
     const request = { refresh_token: req.body?.refresh_token || '' };
     clients.user.RefreshToken(request, (err: any, resp: any) => {
       if (err) return res.status(400).json({ ok: false, message: err.message });
@@ -39,7 +39,7 @@ export function registerAuthRoutes(router: Router, clients: GrpcClients) {
     });
   });
 
-  router.post('/v1/auth/logout', (req: Request, res: Response) => {
+  router.note('/v1/auth/logout', (req: Request, res: Response) => {
     const request = { session_id: req.body?.session_id || '', logout_all_devices: !!req.body?.logout_all_devices };
     clients.user.LogoutUser(request, (err: any, resp: any) => {
       if (err) return res.status(400).json({ ok: false, message: err.message });

@@ -27,8 +27,8 @@ The Sonet client has been successfully migrated from AT Protocol/Bluesky to a ce
 - ✅ **Moderation System**: Multi-layer content filtering
 
 ### **🔄 Terminology Migration (100% Complete)**
-- ✅ **Post → Note**: All references updated
-- ✅ **Repost → Renote**: All references updated  
+- ✅ **Note → Note**: All references updated
+- ✅ **Renote → Renote**: All references updated  
 - ✅ **Handle → Username**: All references updated
 - ✅ **DID → UserID**: All references updated
 - ✅ **at:// → sonet://**: All URI schemes updated

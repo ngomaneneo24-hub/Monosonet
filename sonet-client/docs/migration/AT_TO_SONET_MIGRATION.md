@@ -19,7 +19,7 @@ Client → AT Protocol → Multiple PDS instances → IPFS/Blockchain
 
 ### After (Sonet)
 ```
-Client → Sonet Gateway → Go Microservices → PostgreSQL
+Client → Sonet Gateway → Go Microservices → NotegreSQL
 ```
 
 ## API Endpoints
@@ -31,9 +31,9 @@ Client → Sonet Gateway → Go Microservices → PostgreSQL
 | AT Protocol | Sonet | Description |
 |-------------|-------|-------------|
 | `app.bsky.graph.getList` | `GET /api/v1/lists/{listId}` | Get list details |
-| `app.bsky.graph.list.create` | `POST /api/v1/lists` | Create new list |
+| `app.bsky.graph.list.create` | `NOTE /api/v1/lists` | Create new list |
 | `app.bsky.graph.list.delete` | `DELETE /api/v1/lists/{listId}` | Delete list |
-| `app.bsky.graph.listitem.add` | `POST /api/v1/lists/{listId}/members` | Add member to list |
+| `app.bsky.graph.listitem.add` | `NOTE /api/v1/lists/{listId}/members` | Add member to list |
 | `app.bsky.graph.listitem.remove` | `DELETE /api/v1/lists/{listId}/members/{userId}` | Remove member from list |
 
 #### New Sonet-Specific Endpoints
@@ -49,13 +49,13 @@ Client → Sonet Gateway → Go Microservices → PostgreSQL
 | AT Protocol | Sonet | Description |
 |-------------|-------|-------------|
 | `app.bsky.graph.getStarterPack` | `GET /api/v1/starterpacks/{starterpackId}` | Get starterpack details |
-| `app.bsky.graph.starterpack.create` | `POST /api/v1/starterpacks` | Create new starterpack |
+| `app.bsky.graph.starterpack.create` | `NOTE /api/v1/starterpacks` | Create new starterpack |
 | `app.bsky.graph.starterpack.delete` | `DELETE /api/v1/starterpacks/{starterpackId}` | Delete starterpack |
 
 #### New Sonet-Specific Endpoints
 - `GET /api/v1/users/{userId}/starterpacks` - Get user's starterpacks
 - `PUT /api/v1/starterpacks/{starterpackId}` - Update starterpack
-- `POST /api/v1/starterpacks/{starterpackId}/items` - Add item to starterpack
+- `NOTE /api/v1/starterpacks/{starterpackId}/items` - Add item to starterpack
 - `DELETE /api/v1/starterpacks/{starterpackId}/items/{itemId}` - Remove item from starterpack
 - `GET /api/v1/starterpacks/{starterpackId}/items` - Get starterpack items
 - `GET /api/v1/starterpacks/suggested` - Get suggested starterpacks
@@ -293,7 +293,7 @@ curl -H "Authorization: Bearer $JWT" \
 ```typescript
 // Test list creation
 const response = await fetch('/api/v1/lists', {
-  method: 'POST',
+  method: 'NOTE',
   headers: {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json'

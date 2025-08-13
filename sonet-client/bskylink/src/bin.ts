@@ -4,7 +4,7 @@ async function main() {
   const env = readEnv()
   const cfg = envToCfg(env)
   if (cfg.db.migrationUrl) {
-    const migrateDb = Database.postgres({
+    const migrateDb = Database.notegres({
       url: cfg.db.migrationUrl,
       schema: cfg.db.schema,
     })

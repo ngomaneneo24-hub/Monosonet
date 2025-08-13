@@ -31,37 +31,37 @@ describe('linkRequiresWarning', () => {
     ['http://site.pages', 'http://site.pages.dev', true],
     ['http://site.pages.dev', 'site.pages', true],
     ['http://site.pages', 'site.pages.dev', true],
-    ['http://bsky.app/profile/bob.test/post/3kbeuduu7m22v', 'my post', false],
-    ['https://bsky.app/profile/bob.test/post/3kbeuduu7m22v', 'my post', false],
+    ['http://bsky.app/profile/bob.test/note/3kbeuduu7m22v', 'my note', false],
+    ['https://bsky.app/profile/bob.test/note/3kbeuduu7m22v', 'my note', false],
     ['http://bsky.app/', 'bluesky', false],
     ['https://bsky.app/', 'bluesky', false],
     [
-      'http://bsky.app/profile/bob.test/post/3kbeuduu7m22v',
-      'http://bsky.app/profile/bob.test/post/3kbeuduu7m22v',
+      'http://bsky.app/profile/bob.test/note/3kbeuduu7m22v',
+      'http://bsky.app/profile/bob.test/note/3kbeuduu7m22v',
       false,
     ],
     [
-      'https://bsky.app/profile/bob.test/post/3kbeuduu7m22v',
-      'http://bsky.app/profile/bob.test/post/3kbeuduu7m22v',
+      'https://bsky.app/profile/bob.test/note/3kbeuduu7m22v',
+      'http://bsky.app/profile/bob.test/note/3kbeuduu7m22v',
       false,
     ],
     [
       'http://bsky.app/',
-      'http://bsky.app/profile/bob.test/post/3kbeuduu7m22v',
+      'http://bsky.app/profile/bob.test/note/3kbeuduu7m22v',
       false,
     ],
     [
       'https://bsky.app/',
-      'http://bsky.app/profile/bob.test/post/3kbeuduu7m22v',
+      'http://bsky.app/profile/bob.test/note/3kbeuduu7m22v',
       false,
     ],
     [
-      'http://bsky.app/profile/bob.test/post/3kbeuduu7m22v',
+      'http://bsky.app/profile/bob.test/note/3kbeuduu7m22v',
       'https://google.com',
       true,
     ],
     [
-      'https://bsky.app/profile/bob.test/post/3kbeuduu7m22v',
+      'https://bsky.app/profile/bob.test/note/3kbeuduu7m22v',
       'https://google.com',
       true,
     ],
@@ -78,7 +78,7 @@ describe('linkRequiresWarning', () => {
     ['/profile', 'Username', false],
     ['#', 'Show More', false],
     ['https://docs.bsky.app', 'https://docs.bsky.app', false],
-    ['https://bsky.app/compose/intent?text=test', 'Compose a post', false],
+    ['https://bsky.app/compose/intent?text=test', 'Compose a note', false],
   ]
 
   it.each(cases)(

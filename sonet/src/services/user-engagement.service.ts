@@ -4,7 +4,7 @@ import {Logger} from '../utils/logger'
 export interface UserEngagementEvent {
   userId: string
   videoId: string
-  eventType: 'view' | 'like' | 'repost' | 'reply' | 'share' | 'bookmark' | 'skip' | 'report'
+  eventType: 'view' | 'like' | 'renote' | 'reply' | 'share' | 'bookmark' | 'skip' | 'report'
   timestamp: Date
   duration?: number // For view events
   completionRate?: number // For view events
@@ -30,7 +30,7 @@ export interface UserEngagementProfile {
     completionRate: number
     skipRate: number
     likeRate: number
-    repostRate: number
+    renoteRate: number
     replyRate: number
     shareRate: number
     activeHours: number[]
@@ -51,7 +51,7 @@ export interface EngagementMetrics {
   viewCount: number
   uniqueViewers: number
   likeCount: number
-  repostCount: number
+  renoteCount: number
   replyCount: number
   shareCount: number
   bookmarkCount: number
@@ -367,7 +367,7 @@ export class UserEngagementService {
         completionRate: 0.75,
         skipRate: 0.15,
         likeRate: 0.25,
-        repostRate: 0.05,
+        renoteRate: 0.05,
         replyRate: 0.08,
         shareRate: 0.03,
         activeHours: [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22],
@@ -392,7 +392,7 @@ export class UserEngagementService {
       viewCount: 1250,
       uniqueViewers: 980,
       likeCount: 89,
-      repostCount: 12,
+      renoteCount: 12,
       replyCount: 23,
       shareCount: 8,
       bookmarkCount: 15,
@@ -429,7 +429,7 @@ export class UserEngagementService {
     const boostMap: Record<string, number> = {
       'view': 0.01,
       'like': 0.05,
-      'repost': 0.1,
+      'renote': 0.1,
       'reply': 0.08,
       'share': 0.12,
       'bookmark': 0.15,

@@ -8,7 +8,7 @@ import {
 
 import * as bsky from '#/types/bsky'
 import {isNoteInLanguage} from '../../locale/helpers'
-import {FALLBACK_MARKER_POST} from './feed/home'
+import {FALLBACK_MARKER_NOTE} from './feed/home'
 import {type ReasonFeedSource} from './feed/types'
 
 type FeedViewNote = SonetFeedDefs.FeedViewNote
@@ -64,7 +64,7 @@ export class FeedViewNotesSlice {
         ? feedNote.reason.indexedAt
         : note.indexedAt
     }`
-    if (feedNote.note.uri === FALLBACK_MARKER_POST.note.uri) {
+    if (feedNote.note.uri === FALLBACK_MARKER_NOTE.note.uri) {
       this.isFallbackMarker = true
       return
     }

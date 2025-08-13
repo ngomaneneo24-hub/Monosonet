@@ -30,14 +30,14 @@ Two distinct Note services (`note.proto` and `note_service.proto`) define overla
 
 | Domain | Key Fields / Notes |
 |--------|--------------------|
-| Note (basic) | id, author_id, text, visibility, content_warning, media_ids, entities (mentions/hashtags/links), reply & repost context, metrics, language_code, flags |
+| Note (basic) | id, author_id, text, visibility, content_warning, media_ids, entities (mentions/hashtags/links), reply & renote context, metrics, language_code, flags |
 | Note (high‑perf) | note_id, author_id, content, reply/quote/thread IDs, granular metrics (like/renote/bookmark/view), attachments (rich typed), location, engagement & user interaction state, analytics structs |
 | TimelineItem | note, source, ranking_signals (affinity, quality, velocity, recency, personalization, diversity), final_score, injection_reason |
 | UserProfile | username, email, display_name, stats, settings, privacy_settings |
 | Media | id, owner_user_id, type, mime/size/dimensions, variant URLs |
 | Message | message_id, chat_id, sender_id, content, type/status/encryption, attachments, reply_to, timestamps |
 
-Model fragmentation: high‑perf `Note` vs basic `Note` diverge (naming: content vs text, renote vs repost). Standardize before client binding.
+Model fragmentation: high‑perf `Note` vs basic `Note` diverge (naming: content vs text, renote vs renote). Standardize before client binding.
 
 ---
 ## 3. Proposed Public REST Mapping (Phase 1 Adapter)
@@ -46,27 +46,27 @@ While gRPC proto is canonical, the mobile client currently consumes REST. Provid
 
 | REST Endpoint | Method | Maps To RPC | Request Params | Notes |
 |---------------|--------|-------------|----------------|-------|
-| /v1/auth/register | POST | RegisterUser | body | Returns user + verification_token |
-| /v1/auth/login | POST | LoginUser | body | Returns access & refresh tokens |
-| /v1/auth/refresh | POST | RefreshToken | body | Standard refresh rotation |
-| /v1/auth/logout | POST | LogoutUser | body/session header | Support logout_all_devices flag |
+| /v1/auth/register | NOTE | RegisterUser | body | Returns user + verification_token |
+| /v1/auth/login | NOTE | LoginUser | body | Returns access & refresh tokens |
+| /v1/auth/refresh | NOTE | RefreshToken | body | Standard refresh rotation |
+| /v1/auth/logout | NOTE | LogoutUser | body/session header | Support logout_all_devices flag |
 | /v1/users/:id | GET | GetUserProfile | path id | Auth required if private |
 | /v1/users/:id | PATCH | UpdateUserProfile | path id + body | Partial updates; restrict immutable fields |
-| /v1/notes | POST | CreateNote | body | Validate length, media limits |
+| /v1/notes | NOTE | CreateNote | body | Validate length, media limits |
 | /v1/notes/:id | GET | GetNote | path id | include_thread param |
 | /v1/notes/:id | DELETE | DeleteNote | path id | Soft delete semantics |
-| /v1/notes/:id/like | POST | LikeNote | path id | Body { like: boolean } |
-| /v1/notes/:id/renote | POST | RenoteNote | path id | Quote via is_quote_renote |
-| /v1/notes/:id/bookmark | POST | BookmarkNote | high‑perf variant | Optional early deferral |
+| /v1/notes/:id/like | NOTE | LikeNote | path id | Body { like: boolean } |
+| /v1/notes/:id/renote | NOTE | RenoteNote | path id | Quote via is_quote_renote |
+| /v1/notes/:id/bookmark | NOTE | BookmarkNote | high‑perf variant | Optional early deferral |
 | /v1/timeline/home | GET | GetTimeline/GetHomeTimeline | query pagination | algorithm param (chrono|algo|hybrid) |
 | /v1/timeline/user/:id | GET | GetUserTimeline | path id | include_replies, include_renotes flags |
 | /v1/timeline/refresh | GET | RefreshTimeline | since param | Returns new items only |
 | /v1/timeline/preferences | GET | GetTimelinePreferences | auth user | |
 | /v1/timeline/preferences | PUT | UpdateTimelinePreferences | body | Validate lists size |
-| /v1/media/upload | POST (multipart) | Upload | chunked alt | Provide resumable later |
+| /v1/media/upload | NOTE (multipart) | Upload | chunked alt | Provide resumable later |
 | /v1/media/:id | GET | GetMedia | path id | Signed URL handing |
 | /v1/media/:id | DELETE | DeleteMedia | path id | Owner/admin only |
-| /v1/messages | POST | SendMessage | body | Validate encryption selection |
+| /v1/messages | NOTE | SendMessage | body | Validate encryption selection |
 | /v1/chats | GET | GetChats | query pagination | Filter by type |
 | /v1/chats/:id/messages | GET | GetMessages | path id + pagination | before/after cursors |
 | /v1/search/notes | GET | SearchNotes (basic) | query params | Filters mapped to RPC fields |
@@ -84,8 +84,8 @@ Streaming: Use WebSocket endpoints `/ws/timeline` and `/ws/engagement` bridging 
 | (Resolved) follow.proto empty | Implemented FollowService | — | — |
 | (Resolved) notification.proto empty | Implemented NotificationService | — | — |
 | Empty search.proto / analytics.proto | Specialized search & analytics absent | Forced overloading of NoteService | Split advanced search & analytics for separation of concerns |
-| Dual Note services | Basic vs high‑perf duplicates with naming divergence | Drift & client confusion | Merge or mark one as internal; adopt consistent field names (text vs content, repost vs renote) |
-| Inconsistent naming (Renote/Repost, Like vs Bookmark vs Favorite not unified) | Semantic friction | Developer cognitive load | (Resolved) Standardize on renote; verbs: like, renote, quote, bookmark |
+| Dual Note services | Basic vs high‑perf duplicates with naming divergence | Drift & client confusion | Merge or mark one as internal; adopt consistent field names (text vs content, renote vs renote) |
+| Inconsistent naming (Renote/Renote, Like vs Bookmark vs Favorite not unified) | Semantic friction | Developer cognitive load | (Resolved) Standardize on renote; verbs: like, renote, quote, bookmark |
 | Security context absent in many RPCs | Most requests just carry user_id | Spoof risk | Enforce auth via metadata (JWT) and drop explicit user_id where derivable; add server-side authorization checks |
 | No rate limit schema in protos | DDoS / abuse risk | Hard to communicate limits | Add RateLimit headers in REST, and a RateLimit service/status RPC for introspection |
 | Lack of error codes taxonomy | Mixed success bool + error_message | Hard to programmatically handle | Introduce enum ErrorCode across services; replace freeform strings |
@@ -105,7 +105,7 @@ Streaming: Use WebSocket endpoints `/ws/timeline` and `/ws/engagement` bridging 
 7. Rate Limiting Blindness: No feedback headers; clients can't self‑throttle—risk of cascading failures. Add standard X-RateLimit-* response headers.
 8. Overexposed Analytics: Live engagement streaming could leak view counts to non-author viewers; restrict metrics scope.
 9. Sensitive Lists: TimelinePreferences includes muted_keywords/users; ensure not leaked in other endpoints.
-10. Lack of Soft Delete Handling: Deleted notes have `deleted_at` but RPCs (e.g., GetNote) may still return full content. Mask text & attachments post delete (except for moderators).
+10. Lack of Soft Delete Handling: Deleted notes have `deleted_at` but RPCs (e.g., GetNote) may still return full content. Mask text & attachments note delete (except for moderators).
 
 ---
 ## 6. Standardization Recommendations
@@ -114,7 +114,7 @@ Streaming: Use WebSocket endpoints `/ws/timeline` and `/ws/engagement` bridging 
 |---------|---------|-------------------|
 | ID Field Naming | mix of id, note_id, message_id | Use `<entity>_id` internally; REST path uses plain `:id` |
 | Text Field | text vs content | Adopt `text` for user-authored plain text; `content` reserved for enriched/HTML (if ever) |
-| Repost Verb | renote/repost | Pick `repost` externally; keep `renote` only if legacy compat required |
+| Renote Verb | renote/renote | Pick `renote` externally; keep `renote` only if legacy compat required |
 | Timestamps | string RFC3339 vs structured Timestamp | Use proto Timestamp everywhere; REST returns ISO8601 Z format |
 | Pagination | offset/limit & page/page_size mix | Cursor-based: `cursor` + `limit`; responses include `next_cursor` |
 | Success/Error | success bool + error_message | Remove success when using gRPC Status; else unify `{ ok: boolean, code, message }` |
@@ -136,7 +136,7 @@ Phase C: Merge Timeline logic: either keep dedicated `timeline.proto` (clean sep
 
 Prioritize these for first Sonet client integration:
 1. Auth: RegisterUser, LoginUser, RefreshToken, GetUserProfile
-2. Notes: CreateNote, GetNote, LikeNote (repost/quote later), GetUserNotes
+2. Notes: CreateNote, GetNote, LikeNote (renote/quote later), GetUserNotes
 3. Timeline: GetTimeline (home), GetUserTimeline
 4. Media: Upload, GetMedia
 5. Messaging (defer) – only if launch scope requires DMs
@@ -145,7 +145,7 @@ Prioritize these for first Sonet client integration:
 ## 9. Actionable Next Steps
 
 Immediate (Week 1):
-- Renote naming unified (repost removed). Add deprecation notices if legacy clients existed.
+- Renote naming unified (renote removed). Add deprecation notices if legacy clients existed.
 - Idempotency fields added (CreateNote, UploadInit).
 - Follow & Notification services added.
 
@@ -172,7 +172,7 @@ Observability:
 | Renote | Sharing another user's note into your timeline |
 | Quote Renote | Renote with additional commentary |
 | Timeline Algorithm | Ranking strategy determining item order |
-| Engagement | Aggregated interactions (likes, reposts, replies, views) |
+| Engagement | Aggregated interactions (likes, renotes, replies, views) |
 
 ---
 Generated automatically from current proto files; update after any service schema changes.

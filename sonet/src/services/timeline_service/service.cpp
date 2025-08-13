@@ -857,7 +857,7 @@ grpc::Status TimelineServiceImpl::GetUserTimeline(
         TimelineConfig config = GetUserTimelineConfig(target_user_id);
         auto since = std::chrono::system_clock::now() - std::chrono::hours(std::max(1, config.max_age_hours));
 
-        // Generate sample posts authored by target user
+        // Generate sample notes authored by target user
         std::vector<::sonet::note::Note> authored_notes;
         authored_notes.reserve(50);
 
@@ -873,7 +873,7 @@ grpc::Status TimelineServiceImpl::GetUserTimeline(
             ::sonet::note::Note note;
             note.set_id("user_note_" + std::to_string(i + 1));
             note.set_author_id(target_user_id);
-            note.set_content("Post #" + std::to_string(i + 1) + " by " + target_user_id);
+            note.set_content("Note #" + std::to_string(i + 1) + " by " + target_user_id);
             note.set_visibility(::sonet::note::VISIBILITY_PUBLIC);
             *note.mutable_created_at() = ToProtoTimestamp(created_time);
             *note.mutable_updated_at() = ToProtoTimestamp(created_time);

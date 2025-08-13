@@ -57,7 +57,7 @@ endif()
 find_package(asio REQUIRED)
 
 # Database libraries
-find_package(PostgreSQL REQUIRED)
+find_package(NotegreSQL REQUIRED)
 pkg_check_modules(LIBPQXX REQUIRED libpqxx)
 
 # Redis client library
@@ -83,7 +83,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/../../external
     ${WEBSOCKETPP_INCLUDE_DIR}
     ${Boost_INCLUDE_DIRS}
-    ${PostgreSQL_INCLUDE_DIRS}
+    ${NotegreSQL_INCLUDE_DIRS}
     ${LIBPQXX_INCLUDE_DIRS}
 )
 
@@ -170,7 +170,7 @@ target_link_libraries(messaging_service
     ${JSONCPP_LIBRARIES}
     mls_protocol
     pqc_algorithms
-    ${POSTGRESQL_LIBRARIES}
+    ${NOTEGRESQL_LIBRARIES}
     ${LIBPQXX_LIBRARIES}
     ${HIREDIS_LIBRARIES}
     ${LIBSODIUM_LIBRARIES}
@@ -383,7 +383,7 @@ set(CPACK_DEBIAN_PACKAGE_SECTION "net")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
 
 set(CPACK_RPM_PACKAGE_GROUP "Applications/Internet")
-set(CPACK_RPM_PACKAGE_REQUIRES "glibc, openssl-libs, postgresql-libs, hiredis, jsoncpp")
+set(CPACK_RPM_PACKAGE_REQUIRES "glibc, openssl-libs, notegresql-libs, hiredis, jsoncpp")
 
 include(CPack)
 

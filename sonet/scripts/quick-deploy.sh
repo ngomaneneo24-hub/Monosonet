@@ -56,7 +56,7 @@ wait_for_health() {
     log "Waiting for services to be healthy..."
     
     local timeout=300
-    local services=("postgres" "redis" "moderation_service" "api_gateway" "nginx")
+    local services=("notegres" "redis" "moderation_service" "api_gateway" "nginx")
     
     while [[ $timeout -gt 0 ]]; do
         local healthy=true
@@ -100,7 +100,7 @@ run_health_checks() {
     fi
     
     # Check database connectivity
-    if docker exec sonet_postgres_prod pg_isready -U sonet_app > /dev/null 2>&1; then
+    if docker exec sonet_notegres_prod pg_isready -U sonet_app > /dev/null 2>&1; then
         log "Database: OK"
     else
         warning "Database: Failed"

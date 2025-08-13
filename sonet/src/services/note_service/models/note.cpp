@@ -798,8 +798,8 @@ bool Note::can_user_reply(const std::string& user_id) const {
     return allow_replies && is_visible_to_user(user_id);
 }
 
-bool Note::can_user_repost(const std::string& user_id) const {
-    return allow_reposts && is_visible_to_user(user_id) && user_id != author_id;
+bool Note::can_user_renote(const std::string& user_id) const {
+    return allow_renotes && is_visible_to_user(user_id) && user_id != author_id;
 }
 
 bool Note::can_user_quote(const std::string& user_id) const {
@@ -834,7 +834,7 @@ nlohmann::json Note::to_json() const {
     // Relationships
     if (reply_to_id.has_value()) j["reply_to_id"] = reply_to_id.value();
     if (reply_to_user_id.has_value()) j["reply_to_user_id"] = reply_to_user_id.value();
-    if (repost_of_id.has_value()) j["repost_of_id"] = repost_of_id.value();
+    if (renote_of_id.has_value()) j["renote_of_id"] = renote_of_id.value();
     if (quote_of_id.has_value()) j["quote_of_id"] = quote_of_id.value();
     if (thread_id.has_value()) j["thread_id"] = thread_id.value();
     j["thread_position"] = thread_position;
@@ -866,7 +866,7 @@ nlohmann::json Note::to_json() const {
     
     // Engagement metrics
     j["like_count"] = like_count;
-    j["repost_count"] = repost_count;
+    j["renote_count"] = renote_count;
     j["reply_count"] = reply_count;
     j["quote_count"] = quote_count;
     j["view_count"] = view_count;
@@ -902,7 +902,7 @@ nlohmann::json Note::to_json() const {
     j["is_promoted"] = is_promoted;
     j["is_verified_author"] = is_verified_author;
     j["allow_replies"] = allow_replies;
-    j["allow_reposts"] = allow_reposts;
+    j["allow_renotes"] = allow_renotes;
     j["allow_quotes"] = allow_quotes;
     
     return j;
@@ -924,8 +924,8 @@ void Note::from_json(const nlohmann::json& j) {
     if (j.contains("reply_to_user_id") && !j["reply_to_user_id"].is_null()) {
         reply_to_user_id = j["reply_to_user_id"].get<std::string>();
     }
-    if (j.contains("repost_of_id") && !j["repost_of_id"].is_null()) {
-        repost_of_id = j["repost_of_id"].get<std::string>();
+    if (j.contains("renote_of_id") && !j["renote_of_id"].is_null()) {
+        renote_of_id = j["renote_of_id"].get<std::string>();
     }
     if (j.contains("quote_of_id") && !j["quote_of_id"].is_null()) {
         quote_of_id = j["quote_of_id"].get<std::string>();
@@ -957,7 +957,7 @@ void Note::from_json(const nlohmann::json& j) {
     
     // Engagement metrics
     if (j.contains("like_count")) j.at("like_count").get_to(like_count);
-    if (j.contains("repost_count")) j.at("repost_count").get_to(repost_count);
+    if (j.contains("renote_count")) j.at("renote_count").get_to(renote_count);
     if (j.contains("reply_count")) j.at("reply_count").get_to(reply_count);
     if (j.contains("quote_count")) j.at("quote_count").get_to(quote_count);
     if (j.contains("view_count")) j.at("view_count").get_to(view_count);
@@ -1001,7 +1001,7 @@ void Note::from_json(const nlohmann::json& j) {
     if (j.contains("is_promoted")) j.at("is_promoted").get_to(is_promoted);
     if (j.contains("is_verified_author")) j.at("is_verified_author").get_to(is_verified_author);
     if (j.contains("allow_replies")) j.at("allow_replies").get_to(allow_replies);
-    if (j.contains("allow_reposts")) j.at("allow_reposts").get_to(allow_reposts);
+    if (j.contains("allow_renotes")) j.at("allow_renotes").get_to(allow_renotes);
     if (j.contains("allow_quotes")) j.at("allow_quotes").get_to(allow_quotes);
 }
 
@@ -1045,7 +1045,7 @@ std::string Note::get_relative_timestamp() const {
 
 std::string Note::get_engagement_summary() const {
     std::stringstream ss;
-    ss << like_count << " likes, " << repost_count << " reposts, " 
+    ss << like_count << " likes, " << renote_count << " renotes, " 
        << reply_count << " replies, " << quote_count << " quotes";
     return ss.str();
 }
@@ -1108,8 +1108,8 @@ bool Note::is_reply() const {
     return type == NoteType::REPLY;
 }
 
-bool Note::is_repost() const {
-    return type == NoteType::REPOST;
+bool Note::is_renote() const {
+    return type == NoteType::RENOTE;
 }
 
 bool Note::is_quote() const {
@@ -1206,10 +1206,10 @@ double Note::get_likes_per_hour() const {
     return static_cast<double>(like_count) / age_hours;
 }
 
-double Note::get_reposts_per_hour() const {
+double Note::get_renotes_per_hour() const {
     auto age_hours = get_age_hours();
     if (age_hours == 0) age_hours = 1;
-    return static_cast<double>(repost_count) / age_hours;
+    return static_cast<double>(renote_count) / age_hours;
 }
 
 double Note::get_replies_per_hour() const {
@@ -1354,7 +1354,7 @@ std::string note_type_to_string(NoteType type) {
     switch (type) {
         case NoteType::ORIGINAL: return "original";
         case NoteType::REPLY: return "reply";
-        case NoteType::REPOST: return "repost";
+        case NoteType::RENOTE: return "renote";
         case NoteType::QUOTE: return "quote";
         case NoteType::THREAD: return "thread";
         default: return "unknown";
@@ -1364,7 +1364,7 @@ std::string note_type_to_string(NoteType type) {
 NoteType string_to_note_type(const std::string& type_str) {
     if (type_str == "original") return NoteType::ORIGINAL;
     if (type_str == "reply") return NoteType::REPLY;
-    if (type_str == "repost") return NoteType::REPOST;
+    if (type_str == "renote") return NoteType::RENOTE;
     if (type_str == "quote") return NoteType::QUOTE;
     if (type_str == "thread") return NoteType::THREAD;
     return NoteType::ORIGINAL;
@@ -1515,7 +1515,7 @@ nlohmann::json NoteMetrics::to_json() const {
         {"note_id", note_id},
         {"calculated_at", calculated_at},
         {"total_likes", total_likes},
-        {"total_reposts", total_reposts},
+        {"total_renotes", total_renotes},
         {"total_replies", total_replies},
         {"total_quotes", total_quotes},
         {"total_views", total_views},
@@ -1541,7 +1541,7 @@ void NoteMetrics::from_json(const nlohmann::json& j) {
     j.at("note_id").get_to(note_id);
     j.at("calculated_at").get_to(calculated_at);
     if (j.contains("total_likes")) j.at("total_likes").get_to(total_likes);
-    if (j.contains("total_reposts")) j.at("total_reposts").get_to(total_reposts);
+    if (j.contains("total_renotes")) j.at("total_renotes").get_to(total_renotes);
     if (j.contains("total_replies")) j.at("total_replies").get_to(total_replies);
     if (j.contains("total_quotes")) j.at("total_quotes").get_to(total_quotes);
     if (j.contains("total_views")) j.at("total_views").get_to(total_views);

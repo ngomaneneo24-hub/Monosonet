@@ -3,7 +3,7 @@ appId: xyz.blueskyweb.app
 - runScript:
     file: ../setupServer.js
     env:
-        SERVER_PATH: "?users&follows&posts"
+        SERVER_PATH: "?users&follows&notes"
 - runFlow:
     file: ../setupApp.yml
 - tapOn:
@@ -106,9 +106,9 @@ appId: xyz.blueskyweb.app
     direction: DOWN
 - assertVisible: "View Bob's profile"
 
-- tapOn: "Posts"
+- tapOn: "Notes"
 - assertVisible:
-    label: "Shows posts by the users in the list"
+    label: "Shows notes by the users in the list"
     id: "feedItem-by-bob.test"
 
 - tapOn:
@@ -146,7 +146,7 @@ appId: xyz.blueskyweb.app
 
 - tapOn:
     id: "bottomBarSearchBtn"
-- tapOn: "Search for posts, users, or feeds"
+- tapOn: "Search for notes, users, or feeds"
 - inputText: "bob"
 - tapOn:
     id: "searchAutoCompleteResult-bob.test"

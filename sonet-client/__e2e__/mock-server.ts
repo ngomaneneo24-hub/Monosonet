@@ -7,7 +7,7 @@ async function main() {
   let server: TestSonet
   createHTTPServer(async (req, res) => {
     const url = parse(req.url || '/', true)
-    if (req.method !== 'POST') {
+    if (req.method !== 'NOTE') {
       return res.writeHead(200).end()
     }
     try {
@@ -48,10 +48,10 @@ async function main() {
           await server.mocker.follow('carla', 'alice')
           await server.mocker.follow('carla', 'bob')
         }
-        if ('posts' in url.query) {
-          console.log('Generating mock posts')
+        if ('notes' in url.query) {
+          console.log('Generating mock notes')
           for (let user in server.mocker.users) {
-            await server.mocker.users[user].agent.post({text: 'Post'})
+            await server.mocker.users[user].agent.note({text: 'Note'})
           }
         }
         if ('feeds' in url.query) {
@@ -59,11 +59,11 @@ async function main() {
           await server.mocker.createFeed('alice', 'alice-favs', [])
         }
         if ('thread' in url.query) {
-          console.log('Generating mock posts')
-          const res = await server.mocker.users.bob.agent.post({
+          console.log('Generating mock notes')
+          const res = await server.mocker.users.bob.agent.note({
             text: 'Thread root',
           })
-          await server.mocker.users.carla.agent.post({
+          await server.mocker.users.carla.agent.note({
             text: 'Thread reply',
             reply: {
               parent: {cid: res.cid, uri: res.uri},
@@ -96,8 +96,8 @@ async function main() {
           console.log('Generating mock follows')
           await server.mocker.follow('alice', 'bob')
           await server.mocker.follow('alice', 'carla')
-          console.log('Generating mock posts')
-          let posts: Record<string, any[]> = {
+          console.log('Generating mock notes')
+          let notes: Record<string, any[]> = {
             alice: [],
             bob: [],
             carla: [],
@@ -106,8 +106,8 @@ async function main() {
           for (let i = 0; i < 10; i++) {
             for (let user in server.mocker.users) {
               if (user === 'alice') continue
-              posts[user].push(
-                await server.mocker.createPost(user, `Post ${i}`),
+              notes[user].push(
+                await server.mocker.createNote(user, `Note ${i}`),
               )
             }
           }
@@ -116,70 +116,70 @@ async function main() {
               if (user === 'alice') continue
               if (i % 5 === 0) {
                 await server.mocker.createReply(user, 'Self reply', {
-                  cid: posts[user][i].cid,
-                  uri: posts[user][i].uri,
+                  cid: notes[user][i].cid,
+                  uri: notes[user][i].uri,
                 })
               }
               if (i % 5 === 1) {
                 await server.mocker.createReply(user, 'Reply to bob', {
-                  cid: posts.bob[i].cid,
-                  uri: posts.bob[i].uri,
+                  cid: notes.bob[i].cid,
+                  uri: notes.bob[i].uri,
                 })
               }
               if (i % 5 === 2) {
                 await server.mocker.createReply(user, 'Reply to dan', {
-                  cid: posts.dan[i].cid,
-                  uri: posts.dan[i].uri,
+                  cid: notes.dan[i].cid,
+                  uri: notes.dan[i].uri,
                 })
               }
-              await server.mocker.users[user].agent.post({text: `Post ${i}`})
+              await server.mocker.users[user].agent.note({text: `Note ${i}`})
             }
           }
           console.log('Generating mock feeds')
           await server.mocker.createFeed(
             'alice',
             'alice-favs',
-            posts.dan.map(p => p.uri),
+            notes.dan.map(p => p.uri),
           )
           await server.mocker.createFeed(
             'alice',
             'alice-favs2',
-            posts.dan.map(p => p.uri),
+            notes.dan.map(p => p.uri),
           )
         }
         if ('labels' in url.query) {
           console.log('Generating naughty users with labels')
 
-          const anchorPost = await server.mocker.createPost(
+          const anchorNote = await server.mocker.createNote(
             'alice',
-            'Anchor post',
+            'Anchor note',
           )
 
           for (const user of [
             'dmca-account',
             'dmca-profile',
-            'dmca-posts',
+            'dmca-notes',
             'porn-account',
             'porn-profile',
-            'porn-posts',
+            'porn-notes',
             'nudity-account',
             'nudity-profile',
-            'nudity-posts',
+            'nudity-notes',
             'scam-account',
             'scam-profile',
-            'scam-posts',
+            'scam-notes',
             'unknown-account',
             'unknown-profile',
-            'unknown-posts',
+            'unknown-notes',
             'hide-account',
             'hide-profile',
-            'hide-posts',
+            'hide-notes',
             'no-promote-account',
             'no-promote-profile',
-            'no-promote-posts',
+            'no-promote-notes',
             'warn-account',
             'warn-profile',
-            'warn-posts',
+            'warn-notes',
             'muted-account',
             'muted-by-list-account',
             'blocking-account',
@@ -189,104 +189,104 @@ async function main() {
             await server.mocker.createUser(user)
             await server.mocker.follow('alice', user)
             await server.mocker.follow(user, 'alice')
-            await server.mocker.createPost(user, `Unlabeled post from ${user}`)
+            await server.mocker.createNote(user, `Unlabeled note from ${user}`)
             await server.mocker.createReply(
               user,
               `Unlabeled reply from ${user}`,
-              anchorPost,
+              anchorNote,
             )
-            await server.mocker.like(user, anchorPost)
+            await server.mocker.like(user, anchorNote)
           }
 
           await server.mocker.labelAccount('dmca-violation', 'dmca-account')
           await server.mocker.labelProfile('dmca-violation', 'dmca-profile')
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             'dmca-violation',
-            await server.mocker.createPost('dmca-posts', 'dmca post'),
+            await server.mocker.createNote('dmca-notes', 'dmca note'),
           )
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             'dmca-violation',
-            await server.mocker.createQuotePost(
-              'dmca-posts',
-              'dmca quote post',
-              anchorPost,
+            await server.mocker.createQuoteNote(
+              'dmca-notes',
+              'dmca quote note',
+              anchorNote,
             ),
           )
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             'dmca-violation',
             await server.mocker.createReply(
-              'dmca-posts',
+              'dmca-notes',
               'dmca reply',
-              anchorPost,
+              anchorNote,
             ),
           )
 
           await server.mocker.labelAccount('porn', 'porn-account')
           await server.mocker.labelProfile('porn', 'porn-profile')
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             'porn',
-            await server.mocker.createImagePost('porn-posts', 'porn post'),
+            await server.mocker.createImageNote('porn-notes', 'porn note'),
           )
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             'porn',
-            await server.mocker.createQuotePost(
-              'porn-posts',
-              'porn quote post',
-              anchorPost,
+            await server.mocker.createQuoteNote(
+              'porn-notes',
+              'porn quote note',
+              anchorNote,
             ),
           )
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             'porn',
             await server.mocker.createReply(
-              'porn-posts',
+              'porn-notes',
               'porn reply',
-              anchorPost,
+              anchorNote,
             ),
           )
 
           await server.mocker.labelAccount('nudity', 'nudity-account')
           await server.mocker.labelProfile('nudity', 'nudity-profile')
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             'nudity',
-            await server.mocker.createImagePost('nudity-posts', 'nudity post'),
+            await server.mocker.createImageNote('nudity-notes', 'nudity note'),
           )
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             'nudity',
-            await server.mocker.createQuotePost(
-              'nudity-posts',
-              'nudity quote post',
-              anchorPost,
+            await server.mocker.createQuoteNote(
+              'nudity-notes',
+              'nudity quote note',
+              anchorNote,
             ),
           )
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             'nudity',
             await server.mocker.createReply(
-              'nudity-posts',
+              'nudity-notes',
               'nudity reply',
-              anchorPost,
+              anchorNote,
             ),
           )
 
           await server.mocker.labelAccount('scam', 'scam-account')
           await server.mocker.labelProfile('scam', 'scam-profile')
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             'scam',
-            await server.mocker.createPost('scam-posts', 'scam post'),
+            await server.mocker.createNote('scam-notes', 'scam note'),
           )
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             'scam',
-            await server.mocker.createQuotePost(
-              'scam-posts',
-              'scam quote post',
-              anchorPost,
+            await server.mocker.createQuoteNote(
+              'scam-notes',
+              'scam quote note',
+              anchorNote,
             ),
           )
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             'scam',
             await server.mocker.createReply(
-              'scam-posts',
+              'scam-notes',
               'scam reply',
-              anchorPost,
+              anchorNote,
             ),
           )
 
@@ -298,110 +298,110 @@ async function main() {
             'not-a-real-label',
             'unknown-profile',
           )
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             'not-a-real-label',
-            await server.mocker.createPost('unknown-posts', 'unknown post'),
+            await server.mocker.createNote('unknown-notes', 'unknown note'),
           )
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             'not-a-real-label',
-            await server.mocker.createQuotePost(
-              'unknown-posts',
-              'unknown quote post',
-              anchorPost,
+            await server.mocker.createQuoteNote(
+              'unknown-notes',
+              'unknown quote note',
+              anchorNote,
             ),
           )
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             'not-a-real-label',
             await server.mocker.createReply(
-              'unknown-posts',
+              'unknown-notes',
               'unknown reply',
-              anchorPost,
+              anchorNote,
             ),
           )
 
           await server.mocker.labelAccount('!hide', 'hide-account')
           await server.mocker.labelProfile('!hide', 'hide-profile')
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             '!hide',
-            await server.mocker.createPost('hide-posts', 'hide post'),
+            await server.mocker.createNote('hide-notes', 'hide note'),
           )
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             '!hide',
-            await server.mocker.createQuotePost(
-              'hide-posts',
-              'hide quote post',
-              anchorPost,
+            await server.mocker.createQuoteNote(
+              'hide-notes',
+              'hide quote note',
+              anchorNote,
             ),
           )
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             '!hide',
             await server.mocker.createReply(
-              'hide-posts',
+              'hide-notes',
               'hide reply',
-              anchorPost,
+              anchorNote,
             ),
           )
 
           await server.mocker.labelAccount('!no-promote', 'no-promote-account')
           await server.mocker.labelProfile('!no-promote', 'no-promote-profile')
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             '!no-promote',
-            await server.mocker.createPost(
-              'no-promote-posts',
-              'no-promote post',
+            await server.mocker.createNote(
+              'no-promote-notes',
+              'no-promote note',
             ),
           )
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             '!no-promote',
-            await server.mocker.createQuotePost(
-              'no-promote-posts',
-              'no-promote quote post',
-              anchorPost,
+            await server.mocker.createQuoteNote(
+              'no-promote-notes',
+              'no-promote quote note',
+              anchorNote,
             ),
           )
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             '!no-promote',
             await server.mocker.createReply(
-              'no-promote-posts',
+              'no-promote-notes',
               'no-promote reply',
-              anchorPost,
+              anchorNote,
             ),
           )
 
           await server.mocker.labelAccount('!warn', 'warn-account')
           await server.mocker.labelProfile('!warn', 'warn-profile')
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             '!warn',
-            await server.mocker.createPost('warn-posts', 'warn post'),
+            await server.mocker.createNote('warn-notes', 'warn note'),
           )
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             '!warn',
-            await server.mocker.createQuotePost(
-              'warn-posts',
-              'warn quote post',
-              anchorPost,
+            await server.mocker.createQuoteNote(
+              'warn-notes',
+              'warn quote note',
+              anchorNote,
             ),
           )
-          await server.mocker.labelPost(
+          await server.mocker.labelNote(
             '!warn',
             await server.mocker.createReply(
-              'warn-posts',
+              'warn-notes',
               'warn reply',
-              anchorPost,
+              anchorNote,
             ),
           )
 
           await server.mocker.users.alice.agent.mute('muted-account.test')
-          await server.mocker.createPost('muted-account', 'muted post')
-          await server.mocker.createQuotePost(
+          await server.mocker.createNote('muted-account', 'muted note')
+          await server.mocker.createQuoteNote(
             'muted-account',
-            'muted quote post',
-            anchorPost,
+            'muted quote note',
+            anchorNote,
           )
           await server.mocker.createReply(
             'muted-account',
             'muted reply',
-            anchorPost,
+            anchorNote,
           )
 
           const list = await server.mocker.createMuteList(
@@ -413,28 +413,28 @@ async function main() {
             list,
             server.mocker.users['muted-by-list-account'].did,
           )
-          await server.mocker.createPost('muted-by-list-account', 'muted post')
-          await server.mocker.createQuotePost(
+          await server.mocker.createNote('muted-by-list-account', 'muted note')
+          await server.mocker.createQuoteNote(
             'muted-by-list-account',
-            'account quote post',
-            anchorPost,
+            'account quote note',
+            anchorNote,
           )
           await server.mocker.createReply(
             'muted-by-list-account',
             'account reply',
-            anchorPost,
+            anchorNote,
           )
 
-          await server.mocker.createPost('blocking-account', 'blocking post')
-          await server.mocker.createQuotePost(
+          await server.mocker.createNote('blocking-account', 'blocking note')
+          await server.mocker.createQuoteNote(
             'blocking-account',
-            'blocking quote post',
-            anchorPost,
+            'blocking quote note',
+            anchorNote,
           )
           await server.mocker.createReply(
             'blocking-account',
             'blocking reply',
-            anchorPost,
+            anchorNote,
           )
           await server.mocker.users.alice.agent.app.bsky.graph.block.create(
             {
@@ -446,16 +446,16 @@ async function main() {
             },
           )
 
-          await server.mocker.createPost('blockedby-account', 'blockedby post')
-          await server.mocker.createQuotePost(
+          await server.mocker.createNote('blockedby-account', 'blockedby note')
+          await server.mocker.createQuoteNote(
             'blockedby-account',
-            'blockedby quote post',
-            anchorPost,
+            'blockedby quote note',
+            anchorNote,
           )
           await server.mocker.createReply(
             'blockedby-account',
             'blockedby reply',
-            anchorPost,
+            anchorNote,
           )
           await server.mocker.users[
             'blockedby-account'
@@ -469,19 +469,19 @@ async function main() {
             },
           )
 
-          await server.mocker.createPost(
+          await server.mocker.createNote(
             'mutual-block-account',
-            'mutual-block post',
+            'mutual-block note',
           )
-          await server.mocker.createQuotePost(
+          await server.mocker.createQuoteNote(
             'mutual-block-account',
-            'mutual-block quote post',
-            anchorPost,
+            'mutual-block quote note',
+            anchorNote,
           )
           await server.mocker.createReply(
             'mutual-block-account',
             'mutual-block reply',
-            anchorPost,
+            anchorNote,
           )
           await server.mocker.users.alice.agent.app.bsky.graph.block.create(
             {

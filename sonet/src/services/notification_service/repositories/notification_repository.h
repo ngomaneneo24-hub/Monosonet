@@ -4,7 +4,7 @@
  * This file is part of Sonet - a social media platform built for real connections.
  * 
  * This is the repository interface for notifications. I designed this to be
- * database-agnostic so we can switch from PostgreSQL to something else if needed.
+ * database-agnostic so we can switch from NotegreSQL to something else if needed.
  * The interface is clean but powerful enough to handle millions of notifications.
  */
 
@@ -227,10 +227,10 @@ public:
 };
 
 /**
- * PostgreSQL implementation of NotificationRepository
+ * NotegreSQL implementation of NotificationRepository
  * I optimized this for Sonet-scale notification handling with multi-layer caching
  */
-class PostgreSQLNotificationRepository : public NotificationRepository {
+class NotegreSQLNotificationRepository : public NotificationRepository {
 public:
     // Configuration for database connection and caching
     struct Config {
@@ -258,8 +258,8 @@ public:
         bool enable_query_logging = false;
     };
     
-    explicit PostgreSQLNotificationRepository(const Config& config);
-    virtual ~PostgreSQLNotificationRepository();
+    explicit NotegreSQLNotificationRepository(const Config& config);
+    virtual ~NotegreSQLNotificationRepository();
     
     // Implement all virtual methods from base class
     std::future<std::optional<models::Notification>> get_notification(
@@ -374,7 +374,7 @@ public:
     void clear_all_caches() override;
     std::future<std::unordered_map<std::string, std::string>> get_cache_stats() override;
     
-    // Additional methods specific to PostgreSQL implementation
+    // Additional methods specific to NotegreSQL implementation
     std::future<bool> initialize_database();
     std::future<bool> migrate_schema();
     std::future<bool> create_indexes();
@@ -429,7 +429,7 @@ private:
 class NotificationRepositoryFactory {
 public:
     enum class RepositoryType {
-        POSTGRESQL,
+        NOTEGRESQL,
         MONGODB,
         MEMORY // For testing
     };
@@ -437,8 +437,8 @@ public:
     static std::unique_ptr<NotificationRepository> create(
         RepositoryType type, const nlohmann::json& config);
     
-    static std::unique_ptr<NotificationRepository> create_postgresql(
-        const PostgreSQLNotificationRepository::Config& config);
+    static std::unique_ptr<NotificationRepository> create_notegresql(
+        const NotegreSQLNotificationRepository::Config& config);
 };
 
 } // namespace repositories

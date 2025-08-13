@@ -5,7 +5,7 @@ import {
   Migrator,
   type PluginTransformQueryArgs,
   type PluginTransformResultArgs,
-  PostgresDialect,
+  NotegresDialect,
   type QueryResult,
   type RootOperationNode,
   type UnknownRow,
@@ -32,7 +32,7 @@ export class Database {
     })
   }
 
-  static postgres(opts: PgOptions): Database {
+  static notegres(opts: PgOptions): Database {
     const {schema, url, txLockNonce} = opts
     const pool =
       opts.pool ??
@@ -48,13 +48,13 @@ export class Database {
 
     // Setup schema usage, primarily for test parallelism (each test suite runs in its own pg schema)
     if (schema && !/^[a-z_]+$/i.test(schema)) {
-      throw new Error(`Postgres schema must only contain [A-Za-z_]: ${schema}`)
+      throw new Error(`Notegres schema must only contain [A-Za-z_]: ${schema}`)
     }
 
     pool.on('error', onPoolError)
 
     const db = new Kysely<DbSchema>({
-      dialect: new PostgresDialect({pool}),
+      dialect: new NotegresDialect({pool}),
     })
 
     return new Database(db, {

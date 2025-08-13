@@ -3,7 +3,7 @@ appId: xyz.blueskyweb.app
 - runScript:
     file: ../setupServer.js
     env:
-        SERVER_PATH: "?users&posts&feeds"
+        SERVER_PATH: "?users&notes&feeds"
 - runFlow:
     file: ../setupApp.yml
 - tapOn:
@@ -15,7 +15,7 @@ appId: xyz.blueskyweb.app
         id: "bottomBarSearchBtn"
 - tapOn:
     id: "bottomBarSearchBtn"
-- tapOn: "Search for posts, users, or feeds"
+- tapOn: "Search for notes, users, or feeds"
 - inputText: "b"
 - tapOn:
     id: "searchAutoCompleteResult-bob.test"

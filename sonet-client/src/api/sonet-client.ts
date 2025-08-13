@@ -25,7 +25,7 @@ export class SonetClient {
   async login(identifier: string, password: string): Promise<SonetAuthResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/auth/login`, {
-        method: 'POST',
+        method: 'NOTE',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -49,7 +49,7 @@ export class SonetClient {
   async register(username: string, email: string, password: string): Promise<SonetAuthResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/auth/register`, {
-        method: 'POST',
+        method: 'NOTE',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -74,7 +74,7 @@ export class SonetClient {
     try {
       if (this.accessToken) {
         await fetch(`${this.baseUrl}/api/v1/auth/logout`, {
-          method: 'POST',
+          method: 'NOTE',
           headers: {
             'Authorization': `Bearer ${this.accessToken}`,
           },
@@ -91,7 +91,7 @@ export class SonetClient {
 
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/auth/activate`, {
-        method: 'POST',
+        method: 'NOTE',
         headers: {
           'Authorization': `Bearer ${this.accessToken}`,
         },
@@ -112,7 +112,7 @@ export class SonetClient {
 
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/notes`, {
-        method: 'POST',
+        method: 'NOTE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.accessToken}`,
@@ -182,7 +182,7 @@ export class SonetClient {
 
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/notes/${noteId}/react`, {
-        method: 'POST',
+        method: 'NOTE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.accessToken}`,
@@ -227,7 +227,7 @@ export class SonetClient {
 
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/follow`, {
-        method: 'POST',
+        method: 'NOTE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.accessToken}`,

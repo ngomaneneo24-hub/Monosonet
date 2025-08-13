@@ -15,8 +15,8 @@
 
 namespace sonet::user::repositories {
 
-// PostgreSQLUserRepository implementation
-PostgreSQLUserRepository::PostgreSQLUserRepository(std::shared_ptr<pqxx::connection> connection)
+// NotegreSQLUserRepository implementation
+NotegreSQLUserRepository::NotegreSQLUserRepository(std::shared_ptr<pqxx::connection> connection)
     : db_connection_(connection), 
       table_name_("users"),
       user_stats_table_("user_stats"),
@@ -30,13 +30,13 @@ PostgreSQLUserRepository::PostgreSQLUserRepository(std::shared_ptr<pqxx::connect
     setup_prepared_statements();
 }
 
-void PostgreSQLUserRepository::ensure_connection() {
+void NotegreSQLUserRepository::ensure_connection() {
     if (!db_connection_ || !test_connection()) {
         reconnect_if_needed();
     }
 }
 
-void PostgreSQLUserRepository::reconnect_if_needed() {
+void NotegreSQLUserRepository::reconnect_if_needed() {
     try {
         if (db_connection_) {
             db_connection_.reset();
@@ -49,7 +49,7 @@ void PostgreSQLUserRepository::reconnect_if_needed() {
     }
 }
 
-bool PostgreSQLUserRepository::test_connection() {
+bool NotegreSQLUserRepository::test_connection() {
     try {
         if (!db_connection_) return false;
         pqxx::work txn(*db_connection_);
@@ -62,7 +62,7 @@ bool PostgreSQLUserRepository::test_connection() {
     }
 }
 
-std::string PostgreSQLUserRepository::build_select_query(const std::vector<std::string>& fields) const {
+std::string NotegreSQLUserRepository::build_select_query(const std::vector<std::string>& fields) const {
     std::stringstream query;
     query << "SELECT ";
     
@@ -79,7 +79,7 @@ std::string PostgreSQLUserRepository::build_select_query(const std::vector<std::
     return query.str();
 }
 
-std::string PostgreSQLUserRepository::build_insert_query(const User& user) const {
+std::string NotegreSQLUserRepository::build_insert_query(const User& user) const {
     return R"(
         INSERT INTO users (
             user_id, username, email, phone_number, password_hash, salt,
@@ -105,7 +105,7 @@ std::string PostgreSQLUserRepository::build_insert_query(const User& user) const
     )";
 }
 
-std::string PostgreSQLUserRepository::build_update_query(const User& user) const {
+std::string NotegreSQLUserRepository::build_update_query(const User& user) const {
     return R"(
         UPDATE users SET
             username = $2, email = $3, phone_number = $4, password_hash = $5,
@@ -131,7 +131,7 @@ std::string PostgreSQLUserRepository::build_update_query(const User& user) const
     )";
 }
 
-User PostgreSQLUserRepository::map_row_to_user(const pqxx::row& row) const {
+User NotegreSQLUserRepository::map_row_to_user(const pqxx::row& row) const {
     User user;
     
     try {
@@ -215,7 +215,7 @@ User PostgreSQLUserRepository::map_row_to_user(const pqxx::row& row) const {
     return user;
 }
 
-std::vector<User> PostgreSQLUserRepository::map_result_to_users(const pqxx::result& result) const {
+std::vector<User> NotegreSQLUserRepository::map_result_to_users(const pqxx::result& result) const {
     std::vector<User> users;
     users.reserve(result.size());
     
@@ -226,7 +226,7 @@ std::vector<User> PostgreSQLUserRepository::map_result_to_users(const pqxx::resu
     return users;
 }
 
-bool PostgreSQLUserRepository::validate_user_data(const User& user) const {
+bool NotegreSQLUserRepository::validate_user_data(const User& user) const {
     auto errors = user.get_validation_errors();
     if (!errors.empty()) {
         spdlog::error("User validation failed: {}", nlohmann::json(errors).dump());
@@ -235,7 +235,7 @@ bool PostgreSQLUserRepository::validate_user_data(const User& user) const {
     return true;
 }
 
-bool PostgreSQLUserRepository::check_unique_constraints(const User& user, bool is_update) const {
+bool NotegreSQLUserRepository::check_unique_constraints(const User& user, bool is_update) const {
     try {
         ensure_connection();
         pqxx::work txn(*db_connection_);
@@ -256,11 +256,11 @@ bool PostgreSQLUserRepository::check_unique_constraints(const User& user, bool i
     }
 }
 
-void PostgreSQLUserRepository::log_user_operation(const std::string& operation, const std::string& user_id) const {
+void NotegreSQLUserRepository::log_user_operation(const std::string& operation, const std::string& user_id) const {
     spdlog::info("User operation: {} for user_id: {}", operation, user_id);
 }
 
-bool PostgreSQLUserRepository::create(const User& user) {
+bool NotegreSQLUserRepository::create(const User& user) {
     try {
         if (!validate_user_data(user)) {
             return false;
@@ -314,7 +314,7 @@ bool PostgreSQLUserRepository::create(const User& user) {
     }
 }
 
-std::optional<User> PostgreSQLUserRepository::get_by_id(const std::string& user_id) {
+std::optional<User> NotegreSQLUserRepository::get_by_id(const std::string& user_id) {
     try {
         ensure_connection();
         pqxx::work txn(*db_connection_);
@@ -334,7 +334,7 @@ std::optional<User> PostgreSQLUserRepository::get_by_id(const std::string& user_
     }
 }
 
-std::optional<User> PostgreSQLUserRepository::get_by_username(const std::string& username) {
+std::optional<User> NotegreSQLUserRepository::get_by_username(const std::string& username) {
     try {
         ensure_connection();
         pqxx::work txn(*db_connection_);
@@ -354,7 +354,7 @@ std::optional<User> PostgreSQLUserRepository::get_by_username(const std::string&
     }
 }
 
-std::optional<User> PostgreSQLUserRepository::get_by_email(const std::string& email) {
+std::optional<User> NotegreSQLUserRepository::get_by_email(const std::string& email) {
     try {
         ensure_connection();
         pqxx::work txn(*db_connection_);
@@ -374,7 +374,7 @@ std::optional<User> PostgreSQLUserRepository::get_by_email(const std::string& em
     }
 }
 
-bool PostgreSQLUserRepository::update(const User& user) {
+bool NotegreSQLUserRepository::update(const User& user) {
     try {
         if (!validate_user_data(user)) {
             return false;
@@ -430,7 +430,7 @@ bool PostgreSQLUserRepository::update(const User& user) {
     }
 }
 
-bool PostgreSQLUserRepository::delete_user(const std::string& user_id, const std::string& reason) {
+bool NotegreSQLUserRepository::delete_user(const std::string& user_id, const std::string& reason) {
     try {
         ensure_connection();
         pqxx::work txn(*db_connection_);
@@ -447,7 +447,7 @@ bool PostgreSQLUserRepository::delete_user(const std::string& user_id, const std
     }
 }
 
-std::vector<User> PostgreSQLUserRepository::get_by_ids(const std::vector<std::string>& user_ids) {
+std::vector<User> NotegreSQLUserRepository::get_by_ids(const std::vector<std::string>& user_ids) {
     try {
         if (user_ids.empty()) {
             return {};
@@ -478,7 +478,7 @@ std::vector<User> PostgreSQLUserRepository::get_by_ids(const std::vector<std::st
 }
 
 // Additional complex methods implementation
-void PostgreSQLUserRepository::update_user_relationships(pqxx::work& txn, const User& user) {
+void NotegreSQLUserRepository::update_user_relationships(pqxx::work& txn, const User& user) {
     // Clear existing relationships
     txn.exec_params("DELETE FROM blocked_users WHERE user_id = $1", user.user_id);
     txn.exec_params("DELETE FROM muted_users WHERE user_id = $1", user.user_id);
@@ -501,7 +501,7 @@ void PostgreSQLUserRepository::update_user_relationships(pqxx::work& txn, const 
     }
 }
 
-void PostgreSQLUserRepository::handle_user_deletion(pqxx::work& txn, const std::string& user_id, const std::string& reason) {
+void NotegreSQLUserRepository::handle_user_deletion(pqxx::work& txn, const std::string& user_id, const std::string& reason) {
     auto now = std::time(nullptr);
     
     // Soft delete: mark as deleted but keep data
@@ -516,7 +516,7 @@ void PostgreSQLUserRepository::handle_user_deletion(pqxx::work& txn, const std::
     txn.exec_params("DELETE FROM close_friends WHERE user_id = $1 OR friend_user_id = $1", user_id);
 }
 
-bool PostgreSQLUserRepository::increment_stat(const std::string& user_id, const std::string& stat_name, int amount) {
+bool NotegreSQLUserRepository::increment_stat(const std::string& user_id, const std::string& stat_name, int amount) {
     try {
         ensure_connection();
         pqxx::work txn(*db_connection_);
@@ -532,7 +532,7 @@ bool PostgreSQLUserRepository::increment_stat(const std::string& user_id, const 
     }
 }
 
-void PostgreSQLUserRepository::update_user_statistics(pqxx::work& txn, const std::string& user_id, 
+void NotegreSQLUserRepository::update_user_statistics(pqxx::work& txn, const std::string& user_id, 
                                                       const std::string& stat_name, int delta) {
     std::string column_name;
     if (stat_name == "followers") column_name = "followers_count";
@@ -549,7 +549,7 @@ void PostgreSQLUserRepository::update_user_statistics(pqxx::work& txn, const std
     txn.exec_params(query.str(), user_id, delta, std::time(nullptr));
 }
 
-std::vector<std::string> PostgreSQLUserRepository::get_blocked_users(const std::string& user_id) {
+std::vector<std::string> NotegreSQLUserRepository::get_blocked_users(const std::string& user_id) {
     try {
         ensure_connection();
         pqxx::work txn(*db_connection_);
@@ -569,7 +569,7 @@ std::vector<std::string> PostgreSQLUserRepository::get_blocked_users(const std::
     }
 }
 
-std::vector<std::string> PostgreSQLUserRepository::get_muted_users(const std::string& user_id) {
+std::vector<std::string> NotegreSQLUserRepository::get_muted_users(const std::string& user_id) {
     try {
         ensure_connection();
         pqxx::work txn(*db_connection_);
@@ -589,7 +589,7 @@ std::vector<std::string> PostgreSQLUserRepository::get_muted_users(const std::st
     }
 }
 
-std::vector<std::string> PostgreSQLUserRepository::get_close_friends(const std::string& user_id) {
+std::vector<std::string> NotegreSQLUserRepository::get_close_friends(const std::string& user_id) {
     try {
         ensure_connection();
         pqxx::work txn(*db_connection_);
@@ -609,7 +609,7 @@ std::vector<std::string> PostgreSQLUserRepository::get_close_friends(const std::
     }
 }
 
-void PostgreSQLUserRepository::setup_prepared_statements() {
+void NotegreSQLUserRepository::setup_prepared_statements() {
     try {
         ensure_connection();
         
@@ -630,7 +630,7 @@ void PostgreSQLUserRepository::setup_prepared_statements() {
     }
 }
 
-void PostgreSQLUserRepository::create_database_schema() {
+void NotegreSQLUserRepository::create_database_schema() {
     try {
         ensure_connection();
         pqxx::work txn(*db_connection_);
@@ -742,202 +742,202 @@ void PostgreSQLUserRepository::create_database_schema() {
     }
 }
 
-void PostgreSQLUserRepository::handle_database_error(const std::exception& e, const std::string& operation) const {
+void NotegreSQLUserRepository::handle_database_error(const std::exception& e, const std::string& operation) const {
     spdlog::error("Database error during {}: {}", operation, e.what());
 }
 
 // Stub implementations for remaining interface methods
-bool PostgreSQLUserRepository::update_multiple(const std::vector<User>& users) {
+bool NotegreSQLUserRepository::update_multiple(const std::vector<User>& users) {
     // Implementation would batch update users
     return false;
 }
 
-bool PostgreSQLUserRepository::delete_multiple(const std::vector<std::string>& user_ids, const std::string& reason) {
+bool NotegreSQLUserRepository::delete_multiple(const std::vector<std::string>& user_ids, const std::string& reason) {
     // Implementation would batch delete users
     return false;
 }
 
-SearchResult<User> PostgreSQLUserRepository::search(const UserSearchCriteria& criteria) {
+SearchResult<User> NotegreSQLUserRepository::search(const UserSearchCriteria& criteria) {
     // Implementation would build dynamic search query
     return SearchResult<User>{};
 }
 
-std::vector<User> PostgreSQLUserRepository::get_recently_active(int limit, int hours_back) {
+std::vector<User> NotegreSQLUserRepository::get_recently_active(int limit, int hours_back) {
     // Implementation would query recent activity
     return {};
 }
 
-std::vector<User> PostgreSQLUserRepository::get_new_users(int limit, int days_back) {
+std::vector<User> NotegreSQLUserRepository::get_new_users(int limit, int days_back) {
     // Implementation would query new registrations
     return {};
 }
 
-std::vector<User> PostgreSQLUserRepository::get_users_by_status(UserStatus status, int limit, int offset) {
+std::vector<User> NotegreSQLUserRepository::get_users_by_status(UserStatus status, int limit, int offset) {
     // Implementation would query by status
     return {};
 }
 
-bool PostgreSQLUserRepository::decrement_stat(const std::string& user_id, const std::string& stat_name, int amount) {
+bool NotegreSQLUserRepository::decrement_stat(const std::string& user_id, const std::string& stat_name, int amount) {
     return increment_stat(user_id, stat_name, -amount);
 }
 
-UserStats PostgreSQLUserRepository::get_user_stats(const std::string& user_id) {
+UserStats NotegreSQLUserRepository::get_user_stats(const std::string& user_id) {
     // Implementation would return user statistics
     return UserStats{};
 }
 
-bool PostgreSQLUserRepository::update_user_stats(const std::string& user_id, const UserStats& stats) {
+bool NotegreSQLUserRepository::update_user_stats(const std::string& user_id, const UserStats& stats) {
     // Implementation would update user statistics
     return false;
 }
 
-bool PostgreSQLUserRepository::verify_email(const std::string& user_id, const std::string& verification_token) {
+bool NotegreSQLUserRepository::verify_email(const std::string& user_id, const std::string& verification_token) {
     // Implementation would verify email with token
     return false;
 }
 
-bool PostgreSQLUserRepository::verify_phone(const std::string& user_id, const std::string& verification_code) {
+bool NotegreSQLUserRepository::verify_phone(const std::string& user_id, const std::string& verification_code) {
     // Implementation would verify phone with code
     return false;
 }
 
-bool PostgreSQLUserRepository::update_password(const std::string& user_id, const std::string& password_hash, const std::string& salt) {
+bool NotegreSQLUserRepository::update_password(const std::string& user_id, const std::string& password_hash, const std::string& salt) {
     // Implementation would update password
     return false;
 }
 
-bool PostgreSQLUserRepository::reset_password(const std::string& user_id, const std::string& new_password_hash, const std::string& salt, const std::string& reset_token) {
+bool NotegreSQLUserRepository::reset_password(const std::string& user_id, const std::string& new_password_hash, const std::string& salt, const std::string& reset_token) {
     // Implementation would reset password with token
     return false;
 }
 
-bool PostgreSQLUserRepository::block_user(const std::string& user_id, const std::string& blocked_user_id) {
+bool NotegreSQLUserRepository::block_user(const std::string& user_id, const std::string& blocked_user_id) {
     // Implementation would add to blocked users
     return false;
 }
 
-bool PostgreSQLUserRepository::unblock_user(const std::string& user_id, const std::string& blocked_user_id) {
+bool NotegreSQLUserRepository::unblock_user(const std::string& user_id, const std::string& blocked_user_id) {
     // Implementation would remove from blocked users
     return false;
 }
 
-bool PostgreSQLUserRepository::mute_user(const std::string& user_id, const std::string& muted_user_id) {
+bool NotegreSQLUserRepository::mute_user(const std::string& user_id, const std::string& muted_user_id) {
     // Implementation would add to muted users
     return false;
 }
 
-bool PostgreSQLUserRepository::unmute_user(const std::string& user_id, const std::string& muted_user_id) {
+bool NotegreSQLUserRepository::unmute_user(const std::string& user_id, const std::string& muted_user_id) {
     // Implementation would remove from muted users
     return false;
 }
 
-bool PostgreSQLUserRepository::add_close_friend(const std::string& user_id, const std::string& friend_user_id) {
+bool NotegreSQLUserRepository::add_close_friend(const std::string& user_id, const std::string& friend_user_id) {
     // Implementation would add to close friends
     return false;
 }
 
-bool PostgreSQLUserRepository::remove_close_friend(const std::string& user_id, const std::string& friend_user_id) {
+bool NotegreSQLUserRepository::remove_close_friend(const std::string& user_id, const std::string& friend_user_id) {
     // Implementation would remove from close friends
     return false;
 }
 
-bool PostgreSQLUserRepository::suspend_user(const std::string& user_id, const std::string& reason, std::time_t until_timestamp) {
+bool NotegreSQLUserRepository::suspend_user(const std::string& user_id, const std::string& reason, std::time_t until_timestamp) {
     // Implementation would suspend user
     return false;
 }
 
-bool PostgreSQLUserRepository::unsuspend_user(const std::string& user_id) {
+bool NotegreSQLUserRepository::unsuspend_user(const std::string& user_id) {
     // Implementation would unsuspend user
     return false;
 }
 
-bool PostgreSQLUserRepository::ban_user(const std::string& user_id, const std::string& reason) {
+bool NotegreSQLUserRepository::ban_user(const std::string& user_id, const std::string& reason) {
     // Implementation would ban user
     return false;
 }
 
-bool PostgreSQLUserRepository::unban_user(const std::string& user_id) {
+bool NotegreSQLUserRepository::unban_user(const std::string& user_id) {
     // Implementation would unban user
     return false;
 }
 
-bool PostgreSQLUserRepository::deactivate_user(const std::string& user_id) {
+bool NotegreSQLUserRepository::deactivate_user(const std::string& user_id) {
     // Implementation would deactivate user
     return false;
 }
 
-bool PostgreSQLUserRepository::reactivate_user(const std::string& user_id) {
+bool NotegreSQLUserRepository::reactivate_user(const std::string& user_id) {
     // Implementation would reactivate user
     return false;
 }
 
-std::vector<User> PostgreSQLUserRepository::find_users_by_email_domain(const std::string& domain, int limit) {
+std::vector<User> NotegreSQLUserRepository::find_users_by_email_domain(const std::string& domain, int limit) {
     // Implementation would find users by email domain
     return {};
 }
 
-std::vector<User> PostgreSQLUserRepository::find_users_by_location(const std::string& location, int limit) {
+std::vector<User> NotegreSQLUserRepository::find_users_by_location(const std::string& location, int limit) {
     // Implementation would find users by location
     return {};
 }
 
-std::vector<User> PostgreSQLUserRepository::get_verified_users(int limit, int offset) {
+std::vector<User> NotegreSQLUserRepository::get_verified_users(int limit, int offset) {
     // Implementation would get verified users
     return {};
 }
 
-std::vector<User> PostgreSQLUserRepository::get_premium_users(int limit, int offset) {
+std::vector<User> NotegreSQLUserRepository::get_premium_users(int limit, int offset) {
     // Implementation would get premium users
     return {};
 }
 
-int PostgreSQLUserRepository::count_total_users() {
+int NotegreSQLUserRepository::count_total_users() {
     // Implementation would count total users
     return 0;
 }
 
-int PostgreSQLUserRepository::count_active_users(int days_back) {
+int NotegreSQLUserRepository::count_active_users(int days_back) {
     // Implementation would count active users
     return 0;
 }
 
-int PostgreSQLUserRepository::count_users_by_status(UserStatus status) {
+int NotegreSQLUserRepository::count_users_by_status(UserStatus status) {
     // Implementation would count users by status
     return 0;
 }
 
-std::map<std::string, int> PostgreSQLUserRepository::get_user_registration_stats(int days_back) {
+std::map<std::string, int> NotegreSQLUserRepository::get_user_registration_stats(int days_back) {
     // Implementation would get registration statistics
     return {};
 }
 
-std::map<std::string, int> PostgreSQLUserRepository::get_user_activity_stats(int days_back) {
+std::map<std::string, int> NotegreSQLUserRepository::get_user_activity_stats(int days_back) {
     // Implementation would get activity statistics
     return {};
 }
 
-bool PostgreSQLUserRepository::cleanup_deleted_users(int days_old) {
+bool NotegreSQLUserRepository::cleanup_deleted_users(int days_old) {
     // Implementation would cleanup old deleted users
     return false;
 }
 
-bool PostgreSQLUserRepository::vacuum_user_data() {
+bool NotegreSQLUserRepository::vacuum_user_data() {
     // Implementation would vacuum database
     return false;
 }
 
-bool PostgreSQLUserRepository::reindex_user_tables() {
+bool NotegreSQLUserRepository::reindex_user_tables() {
     // Implementation would reindex tables
     return false;
 }
 
-DatabaseHealthStatus PostgreSQLUserRepository::check_database_health() {
+DatabaseHealthStatus NotegreSQLUserRepository::check_database_health() {
     // Implementation would check database health
     return DatabaseHealthStatus{};
 }
 
 // Session Repository implementation stubs
-PostgreSQLSessionRepository::PostgreSQLSessionRepository(std::shared_ptr<pqxx::connection> connection)
+NotegreSQLSessionRepository::NotegreSQLSessionRepository(std::shared_ptr<pqxx::connection> connection)
     : db_connection_(connection),
       sessions_table_("sessions"),
       session_devices_table_("session_devices"),
@@ -946,58 +946,58 @@ PostgreSQLSessionRepository::PostgreSQLSessionRepository(std::shared_ptr<pqxx::c
     ensure_connection();
 }
 
-void PostgreSQLSessionRepository::ensure_connection() {
+void NotegreSQLSessionRepository::ensure_connection() {
     if (!db_connection_) {
         throw std::runtime_error("Database connection is null");
     }
 }
 
-Session PostgreSQLSessionRepository::map_row_to_session(const pqxx::row& row) const {
+Session NotegreSQLSessionRepository::map_row_to_session(const pqxx::row& row) const {
     // Implementation would map database row to session
     return Session{};
 }
 
-std::vector<Session> PostgreSQLSessionRepository::map_result_to_sessions(const pqxx::result& result) const {
+std::vector<Session> NotegreSQLSessionRepository::map_result_to_sessions(const pqxx::result& result) const {
     // Implementation would map result set to sessions
     return {};
 }
 
-void PostgreSQLSessionRepository::update_session_activity(pqxx::work& txn, const std::string& session_id) {
+void NotegreSQLSessionRepository::update_session_activity(pqxx::work& txn, const std::string& session_id) {
     // Implementation would update session activity
 }
 
-void PostgreSQLSessionRepository::cleanup_expired_sessions(pqxx::work& txn) {
+void NotegreSQLSessionRepository::cleanup_expired_sessions(pqxx::work& txn) {
     // Implementation would cleanup expired sessions
 }
 
 // All session repository method stubs
-bool PostgreSQLSessionRepository::create_session(const Session& session) { return false; }
-std::optional<Session> PostgreSQLSessionRepository::get_session(const std::string& session_id) { return std::nullopt; }
-std::optional<Session> PostgreSQLSessionRepository::get_by_access_token(const std::string& access_token) { return std::nullopt; }
-bool PostgreSQLSessionRepository::update_session(const Session& session) { return false; }
-bool PostgreSQLSessionRepository::delete_session(const std::string& session_id) { return false; }
-bool PostgreSQLSessionRepository::expire_session(const std::string& session_id) { return false; }
-bool PostgreSQLSessionRepository::revoke_session(const std::string& session_id, const std::string& reason) { return false; }
-std::vector<Session> PostgreSQLSessionRepository::get_user_sessions(const std::string& user_id, bool active_only) { return {}; }
-bool PostgreSQLSessionRepository::revoke_all_user_sessions(const std::string& user_id, const std::string& reason, const std::string& except_session_id) { return false; }
-bool PostgreSQLSessionRepository::revoke_user_sessions_except(const std::string& user_id, const std::vector<std::string>& keep_session_ids) { return false; }
-int PostgreSQLSessionRepository::count_active_sessions(const std::string& user_id) { return 0; }
-int PostgreSQLSessionRepository::count_sessions_by_device_type(DeviceType device_type) { return 0; }
-std::vector<Session> PostgreSQLSessionRepository::get_suspicious_sessions() { return {}; }
-std::vector<Session> PostgreSQLSessionRepository::get_expired_sessions(int hours_old) { return {}; }
-bool PostgreSQLSessionRepository::cleanup_expired_sessions(int hours_old) { return false; }
-bool PostgreSQLSessionRepository::cleanup_revoked_sessions(int days_old) { return false; }
-SessionCleanupResult PostgreSQLSessionRepository::perform_maintenance() { return SessionCleanupResult{}; }
+bool NotegreSQLSessionRepository::create_session(const Session& session) { return false; }
+std::optional<Session> NotegreSQLSessionRepository::get_session(const std::string& session_id) { return std::nullopt; }
+std::optional<Session> NotegreSQLSessionRepository::get_by_access_token(const std::string& access_token) { return std::nullopt; }
+bool NotegreSQLSessionRepository::update_session(const Session& session) { return false; }
+bool NotegreSQLSessionRepository::delete_session(const std::string& session_id) { return false; }
+bool NotegreSQLSessionRepository::expire_session(const std::string& session_id) { return false; }
+bool NotegreSQLSessionRepository::revoke_session(const std::string& session_id, const std::string& reason) { return false; }
+std::vector<Session> NotegreSQLSessionRepository::get_user_sessions(const std::string& user_id, bool active_only) { return {}; }
+bool NotegreSQLSessionRepository::revoke_all_user_sessions(const std::string& user_id, const std::string& reason, const std::string& except_session_id) { return false; }
+bool NotegreSQLSessionRepository::revoke_user_sessions_except(const std::string& user_id, const std::vector<std::string>& keep_session_ids) { return false; }
+int NotegreSQLSessionRepository::count_active_sessions(const std::string& user_id) { return 0; }
+int NotegreSQLSessionRepository::count_sessions_by_device_type(DeviceType device_type) { return 0; }
+std::vector<Session> NotegreSQLSessionRepository::get_suspicious_sessions() { return {}; }
+std::vector<Session> NotegreSQLSessionRepository::get_expired_sessions(int hours_old) { return {}; }
+bool NotegreSQLSessionRepository::cleanup_expired_sessions(int hours_old) { return false; }
+bool NotegreSQLSessionRepository::cleanup_revoked_sessions(int days_old) { return false; }
+SessionCleanupResult NotegreSQLSessionRepository::perform_maintenance() { return SessionCleanupResult{}; }
 
 // RepositoryFactory implementation
-std::unique_ptr<PostgreSQLUserRepository> RepositoryFactory::create_user_repository(const std::string& connection_string) {
+std::unique_ptr<NotegreSQLUserRepository> RepositoryFactory::create_user_repository(const std::string& connection_string) {
     auto connection = create_database_connection(connection_string);
-    return std::make_unique<PostgreSQLUserRepository>(connection);
+    return std::make_unique<NotegreSQLUserRepository>(connection);
 }
 
-std::unique_ptr<PostgreSQLSessionRepository> RepositoryFactory::create_session_repository(const std::string& connection_string) {
+std::unique_ptr<NotegreSQLSessionRepository> RepositoryFactory::create_session_repository(const std::string& connection_string) {
     auto connection = create_database_connection(connection_string);
-    return std::make_unique<PostgreSQLSessionRepository>(connection);
+    return std::make_unique<NotegreSQLSessionRepository>(connection);
 }
 
 std::shared_ptr<pqxx::connection> RepositoryFactory::create_database_connection(const std::string& connection_string) {

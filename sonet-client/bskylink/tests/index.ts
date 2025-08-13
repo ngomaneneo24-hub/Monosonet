@@ -13,10 +13,10 @@ describe('link service', async () => {
       ...env,
       hostnames: ['test.bsky.link'],
       appHostname: 'test.bsky.app',
-      dbPostgresSchema: 'link_test',
-      dbPostgresUrl: process.env.DB_POSTGRES_URL,
+      dbNotegresSchema: 'link_test',
+      dbNotegresUrl: process.env.DB_NOTEGRES_URL,
     })
-    const migrateDb = Database.postgres({
+    const migrateDb = Database.notegres({
       url: cfg.db.url,
       schema: cfg.db.schema,
     })
@@ -111,7 +111,7 @@ describe('link service', async () => {
 
   async function getLink(path: string): Promise<string> {
     const res = await fetch(new URL('/link', baseUrl), {
-      method: 'post',
+      method: 'note',
       headers: {'content-type': 'application/json'},
       body: JSON.stringify({path}),
     })

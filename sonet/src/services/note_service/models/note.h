@@ -32,7 +32,7 @@ enum class NoteVisibility {
 enum class NoteType {
     ORIGINAL = 0,        // Original note
     REPLY = 1,           // Reply to another note
-    RENOST = 2,          // Repost of another note
+    RENOST = 2,          // Renote of another note
     QUOTE = 3,           // Quote with additional content
     THREAD = 4           // Part of a thread
 };
@@ -54,7 +54,7 @@ enum class NoteStatus {
     HIDDEN = 2,          // Hidden by moderators
     FLAGGED = 3,         // Flagged for review
     DRAFT = 4,           // Saved as draft
-    SCHEDULED = 5        // Scheduled for future posting
+    SCHEDULED = 5        // Scheduled for future noteing
 };
 
 // Validation error types
@@ -89,7 +89,7 @@ class NoteHashtag;
 class NoteMetrics;
 
 /**
- * Core Note model representing a Twitter-style tweet/post
+ * Core Note model representing a Twitter-style tweet/note
  * Maximum content length: 300 characters
  */
 class Note {
@@ -150,11 +150,11 @@ public:
     // Timestamps
     std::time_t created_at;
     std::time_t updated_at;
-    std::optional<std::time_t> scheduled_at;    // For scheduled posts
+    std::optional<std::time_t> scheduled_at;    // For scheduled notes
     std::optional<std::time_t> deleted_at;      // Soft delete timestamp
     
     // Client information
-    std::string client_name;           // App/client used to post
+    std::string client_name;           // App/client used to note
     std::string client_version;
     std::string user_agent;
     std::string ip_address;

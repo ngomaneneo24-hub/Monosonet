@@ -180,11 +180,11 @@ NOTIFICATION_GRPC_ADDR=notification-service:9097`;
 # Copy this to .env and fill in your values
 
 # Database Configuration
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_USER=sonet
-POSTGRES_PASSWORD=sonet_dev_password
-POSTGRES_DB=sonet_dev
+NOTEGRES_HOST=localhost
+NOTEGRES_PORT=5432
+NOTEGRES_USER=sonet
+NOTEGRES_PASSWORD=sonet_dev_password
+NOTEGRES_DB=sonet_dev
 
 # Redis Configuration
 REDIS_HOST=localhost
@@ -233,7 +233,7 @@ SERVICE_NAME=sonet-service`;
     
     // Update environment variables
     const updates = {
-      'POSTGRES_PASSWORD': env.POSTGRES_PASSWORD || 'sonet_dev_password',
+      'NOTEGRES_PASSWORD': env.NOTEGRES_PASSWORD || 'sonet_dev_password',
       'JWT_SECRET': env.JWT_SECRET || 'dev_jwt_secret_key_change_in_production',
       'USER_GRPC_ADDR': env.USER_GRPC_ADDR || 'user-service:9090',
       'NOTE_GRPC_ADDR': env.NOTE_GRPC_ADDR || 'note-service:9090',
@@ -263,8 +263,8 @@ SERVICE_NAME=sonet-service`;
       LOG_LEVEL: 'info',
       
       // Production overrides
-      POSTGRES_HOST: '${DB_HOST}',
-      POSTGRES_PASSWORD: '${DB_PASSWORD}',
+      NOTEGRES_HOST: '${DB_HOST}',
+      NOTEGRES_PASSWORD: '${DB_PASSWORD}',
       REDIS_HOST: '${REDIS_HOST}',
       JWT_SECRET: '${JWT_SECRET}',
       

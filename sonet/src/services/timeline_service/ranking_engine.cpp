@@ -301,7 +301,7 @@ double MLRankingEngine::CalculatePersonalizationScore(
     auto created_hour = std::chrono::duration_cast<std::chrono::hours>(
         created_time.time_since_epoch()).count() % 24;
     
-    // Boost content posted during user's typical active hours
+    // Boost content noteed during user's typical active hours
     // For simplicity, assume users are most active 9 AM - 11 PM
     if (created_hour >= 9 && created_hour <= 23) {
         personalization += 0.1;
@@ -348,9 +348,9 @@ void MLRankingEngine::ApplyDiversityBoosts(
         double diversity_adjustment = 0.0;
         
         // Penalize overrepresented authors
-        int author_posts = author_count[item.note.author_id()];
-        if (author_posts > 3) {
-            diversity_adjustment -= (author_posts - 3) * 0.05; // Penalty for author spam
+        int author_notes = author_count[item.note.author_id()];
+        if (author_notes > 3) {
+            diversity_adjustment -= (author_notes - 3) * 0.05; // Penalty for author spam
         }
         
         // Boost unique content (novel hashtags)

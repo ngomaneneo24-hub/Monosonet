@@ -23,7 +23,7 @@ export function Container({
         height += 2 // border top and bottom
         if (height !== prevHeight.current) {
           prevHeight.current = height
-          window.parent.postMessage(
+          window.parent.noteMessage(
             {height, id: new URLSearchParams(window.location.search).get('id')},
             '*',
           )

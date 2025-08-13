@@ -67,7 +67,7 @@ message EngagementMetrics {
   uint32 view_count = 1;
   uint32 unique_viewers = 2;
   uint32 like_count = 3;
-  uint32 repost_count = 4;
+  uint32 renote_count = 4;
   uint32 reply_count = 5;
   uint32 share_count = 6;
   uint32 bookmark_count = 7;

@@ -37,7 +37,7 @@ nlohmann::json ProfileController::handle_get_public_profile(const GetPublicProfi
         profile["is_private"] = false;
         profile["followers_count"] = 1234;
         profile["following_count"] = 567;
-        profile["posts_count"] = 89;
+        profile["notes_count"] = 89;
         profile["joined_date"] = "2024-01-01";
         
         // Check if viewer is following (would require actual logic)
@@ -471,7 +471,7 @@ nlohmann::json ProfileController::filter_profile_data(const nlohmann::json& prof
     nlohmann::json filtered = profile_data;
     filtered.erase("followers_count");
     filtered.erase("following_count");
-    filtered.erase("posts_count");
+    filtered.erase("notes_count");
     filtered["bio"] = "";  // Hide bio for private accounts
     filtered["location"] = "";
     filtered["website"] = "";

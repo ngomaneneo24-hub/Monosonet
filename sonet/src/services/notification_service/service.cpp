@@ -73,7 +73,7 @@ struct NotificationService::Impl {
             repo_config.enable_caching = config.enable_caching;
             
             repository = std::shared_ptr<repositories::NotificationRepository>{
-                repositories::NotificationRepositoryFactory::create_postgresql({
+                repositories::NotificationRepositoryFactory::create_notegresql({
                     .connection_string = config.database_url,
                     .max_connections = config.database_pool_size,
                     .enable_redis_cache = config.enable_caching,

@@ -46,7 +46,7 @@ class FlaggingService {
   async flagAccount(request: FlagAccountRequest): Promise<FlagAccountResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/accounts/flag`, {
-        method: 'POST',
+        method: 'NOTE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.getAuthToken()}`,
@@ -122,7 +122,7 @@ class FlaggingService {
   async shadowbanAccount(request: Omit<FlagAccountRequest, 'warning_message'>): Promise<FlagAccountResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/accounts/shadowban`, {
-        method: 'POST',
+        method: 'NOTE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.getAuthToken()}`,
@@ -163,7 +163,7 @@ class FlaggingService {
   ): Promise<FlagAccountResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/accounts/suspend`, {
-        method: 'POST',
+        method: 'NOTE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.getAuthToken()}`,
@@ -205,7 +205,7 @@ class FlaggingService {
   ): Promise<FlagAccountResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/accounts/ban`, {
-        method: 'POST',
+        method: 'NOTE',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.getAuthToken()}`,

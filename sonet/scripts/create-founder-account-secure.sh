@@ -47,7 +47,7 @@ check_prerequisites() {
     fi
     
     # Check if database is accessible
-    if ! docker exec sonet_postgres_prod pg_isready -U sonet_app > /dev/null 2>&1; then
+    if ! docker exec sonet_notegres_prod pg_isready -U sonet_app > /dev/null 2>&1; then
         error "Database is not accessible"
     fi
     
@@ -86,7 +86,7 @@ get_account_details() {
     fi
     
     # Check if username already exists
-    local existing_user=$(docker exec sonet_postgres_prod psql -U sonet_app -d sonet_production -t -c "
+    local existing_user=$(docker exec sonet_notegres_prod psql -U sonet_app -d sonet_production -t -c "
         SELECT COUNT(*) FROM users WHERE username = '$USERNAME';
     " | tr -d ' ')
     
@@ -106,7 +106,7 @@ get_account_details() {
     fi
     
     # Check if email already exists
-    local existing_email=$(docker exec sonet_postgres_prod psql -U sonet_app -d sonet_production -t -c "
+    local existing_email=$(docker exec sonet_notegres_prod psql -U sonet_app -d sonet_production -t -c "
         SELECT COUNT(*) FROM users WHERE email = '$EMAIL';
     " | tr -d ' ')
     
@@ -192,7 +192,7 @@ create_user_account() {
     local current_timestamp=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
     
     # Connect to database and create user
-    docker exec sonet_postgres_prod psql -U sonet_app -d sonet_production << EOF
+    docker exec sonet_notegres_prod psql -U sonet_app -d sonet_production << EOF
 -- Begin transaction
 BEGIN;
 
@@ -315,7 +315,7 @@ verify_account_creation() {
     log "Verifying account creation..."
     
     # Check if user exists in database
-    local user_exists=$(docker exec sonet_postgres_prod psql -U sonet_app -d sonet_production -t -c "
+    local user_exists=$(docker exec sonet_notegres_prod psql -U sonet_app -d sonet_production -t -c "
         SELECT COUNT(*) FROM users WHERE username = '$USERNAME';
     " | tr -d ' ')
     
@@ -324,7 +324,7 @@ verify_account_creation() {
     fi
     
     # Check founder status
-    local founder_status=$(docker exec sonet_postgres_prod psql -U sonet_app -d sonet_production -t -c "
+    local founder_status=$(docker exec sonet_notegres_prod psql -U sonet_app -d sonet_production -t -c "
         SELECT is_founder, verification_status FROM users WHERE username = '$USERNAME';
     " | tr -d ' ')
     
@@ -337,7 +337,7 @@ verify_account_creation() {
     fi
     
     # Check email verification
-    local email_verified=$(docker exec sonet_postgres_prod psql -U sonet_app -d sonet_production -t -c "
+    local email_verified=$(docker exec sonet_notegres_prod psql -U sonet_app -d sonet_production -t -c "
         SELECT is_email_verified FROM users WHERE username = '$USERNAME';
     " | tr -d ' ')
     
@@ -393,7 +393,7 @@ create_founder_access_token() {
     
     local jwt_payload=$(cat << EOF
 {
-    "user_id": "$(docker exec sonet_postgres_prod psql -U sonet_app -d sonet_production -t -c "SELECT id FROM users WHERE username = '$USERNAME';" | tr -d ' ')",
+    "user_id": "$(docker exec sonet_notegres_prod psql -U sonet_app -d sonet_production -t -c "SELECT id FROM users WHERE username = '$USERNAME';" | tr -d ' ')",
     "username": "$USERNAME",
     "role": "founder",
     "iat": $current_time,
@@ -518,7 +518,7 @@ test_founder_login() {
     # This would typically test the actual login API
     # For now, we'll verify the account can be found
     
-    local user_data=$(docker exec sonet_postgres_prod psql -U sonet_app -d sonet_production -t -c "
+    local user_data=$(docker exec sonet_notegres_prod psql -U sonet_app -d sonet_production -t -c "
         SELECT 
             username,
             email,

@@ -85,7 +85,7 @@ HttpHandler::HttpResponse HttpHandler::handle_request(const HttpRequest& request
 HttpHandler::HttpResponse HttpHandler::handle_auth_routes(const HttpRequest& request) {
     nlohmann::json response_data;
     
-    if (request.path == "/api/v1/auth/register" && request.method == "POST") {
+    if (request.path == "/api/v1/auth/register" && request.method == "NOTE") {
         auto body = parse_json_body(request.body);
         
         controllers::AuthController::RegisterRequest auth_request;
@@ -99,7 +99,7 @@ HttpHandler::HttpResponse HttpHandler::handle_auth_routes(const HttpRequest& req
         
         response_data = auth_controller_->handle_register(auth_request);
         
-    } else if (request.path == "/api/v1/auth/login" && request.method == "POST") {
+    } else if (request.path == "/api/v1/auth/login" && request.method == "NOTE") {
         auto body = parse_json_body(request.body);
         
         controllers::AuthController::LoginRequest auth_request;
@@ -110,7 +110,7 @@ HttpHandler::HttpResponse HttpHandler::handle_auth_routes(const HttpRequest& req
         
         response_data = auth_controller_->handle_login(auth_request);
         
-    } else if (request.path == "/api/v1/auth/refresh" && request.method == "POST") {
+    } else if (request.path == "/api/v1/auth/refresh" && request.method == "NOTE") {
         auto body = parse_json_body(request.body);
         
         controllers::AuthController::RefreshTokenRequest auth_request;
@@ -118,7 +118,7 @@ HttpHandler::HttpResponse HttpHandler::handle_auth_routes(const HttpRequest& req
         
         response_data = auth_controller_->handle_refresh_token(auth_request);
         
-    } else if (request.path == "/api/v1/auth/logout" && request.method == "POST") {
+    } else if (request.path == "/api/v1/auth/logout" && request.method == "NOTE") {
         auto body = parse_json_body(request.body);
         auto auth_header = request.headers.find("Authorization");
         
@@ -130,7 +130,7 @@ HttpHandler::HttpResponse HttpHandler::handle_auth_routes(const HttpRequest& req
         
         response_data = auth_controller_->handle_logout(auth_request);
         
-    } else if (request.path == "/api/v1/auth/verify-email" && request.method == "POST") {
+    } else if (request.path == "/api/v1/auth/verify-email" && request.method == "NOTE") {
         auto body = parse_json_body(request.body);
         
         controllers::AuthController::VerifyEmailRequest auth_request;
@@ -138,7 +138,7 @@ HttpHandler::HttpResponse HttpHandler::handle_auth_routes(const HttpRequest& req
         
         response_data = auth_controller_->handle_verify_email(auth_request);
         
-    } else if (request.path == "/api/v1/auth/forgot-password" && request.method == "POST") {
+    } else if (request.path == "/api/v1/auth/forgot-password" && request.method == "NOTE") {
         auto body = parse_json_body(request.body);
         
         controllers::AuthController::ForgotPasswordRequest auth_request;
@@ -146,7 +146,7 @@ HttpHandler::HttpResponse HttpHandler::handle_auth_routes(const HttpRequest& req
         
         response_data = auth_controller_->handle_forgot_password(auth_request);
         
-    } else if (request.path == "/api/v1/auth/reset-password" && request.method == "POST") {
+    } else if (request.path == "/api/v1/auth/reset-password" && request.method == "NOTE") {
         auto body = parse_json_body(request.body);
         
         controllers::AuthController::ResetPasswordRequest auth_request;
@@ -270,7 +270,7 @@ HttpHandler::HttpResponse HttpHandler::handle_profile_routes(const HttpRequest& 
         
         response_data = profile_controller_->handle_update_privacy_settings(profile_request);
         
-    } else if (request.path == "/api/v1/profile/block" && request.method == "POST") {
+    } else if (request.path == "/api/v1/profile/block" && request.method == "NOTE") {
         auto body = parse_json_body(request.body);
         
         controllers::ProfileController::BlockUserRequest profile_request;
@@ -377,7 +377,7 @@ HttpHandler::HttpResponse HttpHandler::create_options_response() {
     response.content_type = "text/plain";
     response.body = "";
     response.headers["Access-Control-Allow-Origin"] = "*";
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS";
+    response.headers["Access-Control-Allow-Methods"] = "GET, NOTE, PUT, DELETE, OPTIONS";
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization";
     response.headers["Access-Control-Max-Age"] = "86400";
     return response;
@@ -389,8 +389,8 @@ bool HttpHandler::validate_request(const HttpRequest& request) {
         return false;
     }
     
-    // Validate JSON body for POST/PUT requests
-    if ((request.method == "POST" || request.method == "PUT") && !request.body.empty()) {
+    // Validate JSON body for NOTE/PUT requests
+    if ((request.method == "NOTE" || request.method == "PUT") && !request.body.empty()) {
         return is_valid_json(request.body);
     }
     

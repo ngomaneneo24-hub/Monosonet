@@ -4,7 +4,7 @@ import { verifyJwt, AuthenticatedRequest } from '../middleware/auth.js';
 
 export function registerStarterpackRoutes(router: Router, clients: GrpcClients) {
   // Create a new starterpack
-  router.post('/v1/starterpacks', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
+  router.note('/v1/starterpacks', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
     const { name, description, avatar_url, is_public } = req.body;
     
     if (!name) {
@@ -113,7 +113,7 @@ export function registerStarterpackRoutes(router: Router, clients: GrpcClients) 
   });
 
   // Add item to starterpack
-  router.post('/v1/starterpacks/:starterpackId/items', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
+  router.note('/v1/starterpacks/:starterpackId/items', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
     const { starterpackId } = req.params;
     const { item_type, item_uri, item_order } = req.body;
     

@@ -29,7 +29,7 @@ func NewDatabaseConnection() (*DatabaseConnection, error) {
 	}
 	user := os.Getenv("DB_USER")
 	if user == "" {
-		user = "postgres"
+		user = "notegres"
 	}
 	password := os.Getenv("DB_PASSWORD")
 	if password == "" {
@@ -43,7 +43,7 @@ func NewDatabaseConnection() (*DatabaseConnection, error) {
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 
-	db, err := sql.Open("postgres", connStr)
+	db, err := sql.Open("notegres", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
@@ -66,7 +66,7 @@ type DraftsRepository interface {
 	AutoSaveDraft(userID string, content string, replyToURI, quoteURI, mentionHandle string, images []DraftImage, video *DraftVideo, labels []string, threadgate, interactionSettings []byte) (*Draft, error)
 }
 
-// Draft represents a post draft
+// Draft represents a note draft
 type Draft struct {
 	DraftID              string    `json:"draft_id"`
 	UserID               string    `json:"user_id"`

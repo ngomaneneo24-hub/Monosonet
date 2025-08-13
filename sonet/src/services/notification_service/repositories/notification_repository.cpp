@@ -3,7 +3,7 @@
  * 
  * This file is part of Sonet - a social media platform built for real connections.
  * 
- * This is the PostgreSQL implementation of the notification repository.
+ * This is the NotegreSQL implementation of the notification repository.
  * I built this to handle millions of notifications with efficient caching
  * and connection pooling. The performance is optimized for mobile apps.
  */
@@ -23,8 +23,8 @@ namespace sonet {
 namespace notification_service {
 namespace repositories {
 
-// Implementation details for PostgreSQLNotificationRepository
-struct PostgreSQLNotificationRepository::Impl {
+// Implementation details for NotegreSQLNotificationRepository
+struct NotegreSQLNotificationRepository::Impl {
     Config config;
     mutable std::unique_ptr<pqxx::connection_pool> db_pool;
     mutable std::unique_ptr<redisContext> redis_context;
@@ -423,17 +423,17 @@ struct PostgreSQLNotificationRepository::Impl {
     }
 };
 
-// PostgreSQLNotificationRepository Implementation
+// NotegreSQLNotificationRepository Implementation
 
-PostgreSQLNotificationRepository::PostgreSQLNotificationRepository(const Config& config) 
+NotegreSQLNotificationRepository::NotegreSQLNotificationRepository(const Config& config) 
     : pimpl_(std::make_unique<Impl>(config)) {
     pimpl_->initialize();
 }
 
-PostgreSQLNotificationRepository::~PostgreSQLNotificationRepository() = default;
+NotegreSQLNotificationRepository::~NotegreSQLNotificationRepository() = default;
 
 std::future<std::optional<models::Notification>> 
-PostgreSQLNotificationRepository::get_notification(const std::string& notification_id) {
+NotegreSQLNotificationRepository::get_notification(const std::string& notification_id) {
     return std::async(std::launch::async, [this, notification_id]() 
         -> std::optional<models::Notification> {
         
@@ -486,7 +486,7 @@ PostgreSQLNotificationRepository::get_notification(const std::string& notificati
 }
 
 std::future<std::vector<models::Notification>> 
-PostgreSQLNotificationRepository::get_notifications(const NotificationFilter& filter) {
+NotegreSQLNotificationRepository::get_notifications(const NotificationFilter& filter) {
     return std::async(std::launch::async, [this, filter]() 
         -> std::vector<models::Notification> {
         
@@ -525,7 +525,7 @@ PostgreSQLNotificationRepository::get_notifications(const NotificationFilter& fi
 }
 
 std::future<std::string> 
-PostgreSQLNotificationRepository::create_notification(const models::Notification& notification) {
+NotegreSQLNotificationRepository::create_notification(const models::Notification& notification) {
     return std::async(std::launch::async, [this, notification]() -> std::string {
         auto start_time = std::chrono::steady_clock::now();
         pimpl_->track_query_start("create_notification");
@@ -586,7 +586,7 @@ PostgreSQLNotificationRepository::create_notification(const models::Notification
 }
 
 std::future<bool> 
-PostgreSQLNotificationRepository::update_notification(const models::Notification& notification) {
+NotegreSQLNotificationRepository::update_notification(const models::Notification& notification) {
     return std::async(std::launch::async, [this, notification]() -> bool {
         auto start_time = std::chrono::steady_clock::now();
         pimpl_->track_query_start("update_notification");
@@ -644,7 +644,7 @@ PostgreSQLNotificationRepository::update_notification(const models::Notification
 }
 
 std::future<bool> 
-PostgreSQLNotificationRepository::delete_notification(const std::string& notification_id) {
+NotegreSQLNotificationRepository::delete_notification(const std::string& notification_id) {
     return std::async(std::launch::async, [this, notification_id]() -> bool {
         auto start_time = std::chrono::steady_clock::now();
         pimpl_->track_query_start("delete_notification");
@@ -681,7 +681,7 @@ PostgreSQLNotificationRepository::delete_notification(const std::string& notific
 }
 
 std::future<BulkOperationResult> 
-PostgreSQLNotificationRepository::create_notifications_bulk(
+NotegreSQLNotificationRepository::create_notifications_bulk(
     const std::vector<models::Notification>& notifications) {
     
     return std::async(std::launch::async, [this, notifications]() -> BulkOperationResult {
@@ -786,7 +786,7 @@ PostgreSQLNotificationRepository::create_notifications_bulk(
 }
 
 std::future<std::vector<models::Notification>> 
-PostgreSQLNotificationRepository::get_user_notifications(
+NotegreSQLNotificationRepository::get_user_notifications(
     const std::string& user_id, int limit, int offset) {
     
     return std::async(std::launch::async, [this, user_id, limit, offset]() 
@@ -851,7 +851,7 @@ PostgreSQLNotificationRepository::get_user_notifications(
     });
 }
 
-std::future<int> PostgreSQLNotificationRepository::get_unread_count(const std::string& user_id) {
+std::future<int> NotegreSQLNotificationRepository::get_unread_count(const std::string& user_id) {
     return std::async(std::launch::async, [this, user_id]() -> int {
         auto start_time = std::chrono::steady_clock::now();
         pimpl_->track_query_start("get_unread_count");
@@ -893,7 +893,7 @@ std::future<int> PostgreSQLNotificationRepository::get_unread_count(const std::s
 // Continue implementing remaining methods...
 // Due to length constraints, I'll implement the key remaining methods
 
-std::future<bool> PostgreSQLNotificationRepository::mark_notification_as_read(
+std::future<bool> NotegreSQLNotificationRepository::mark_notification_as_read(
     const std::string& notification_id, const std::string& user_id) {
     
     return std::async(std::launch::async, [this, notification_id, user_id]() -> bool {
@@ -930,17 +930,17 @@ std::future<bool> PostgreSQLNotificationRepository::mark_notification_as_read(
 
 // Cache management implementations
 
-void PostgreSQLNotificationRepository::invalidate_user_cache(const std::string& user_id) {
+void NotegreSQLNotificationRepository::invalidate_user_cache(const std::string& user_id) {
     pimpl_->delete_cache_pattern("user_notifs:" + user_id + ":*");
     pimpl_->delete_from_cache("unread_count:" + user_id);
     pimpl_->delete_from_cache("user_stats:" + user_id);
 }
 
-void PostgreSQLNotificationRepository::invalidate_notification_cache(const std::string& notification_id) {
+void NotegreSQLNotificationRepository::invalidate_notification_cache(const std::string& notification_id) {
     pimpl_->delete_from_cache("notif:" + notification_id);
 }
 
-void PostgreSQLNotificationRepository::clear_all_caches() {
+void NotegreSQLNotificationRepository::clear_all_caches() {
     pimpl_->delete_cache_pattern("notif:*");
     pimpl_->delete_cache_pattern("user_notifs:*");
     pimpl_->delete_cache_pattern("unread_count:*");
@@ -949,7 +949,7 @@ void PostgreSQLNotificationRepository::clear_all_caches() {
 
 // Helper method implementations
 
-std::string PostgreSQLNotificationRepository::build_filter_query(const NotificationFilter& filter) const {
+std::string NotegreSQLNotificationRepository::build_filter_query(const NotificationFilter& filter) const {
     std::stringstream query;
     query << "SELECT id, user_id, sender_id, type, title, message, action_url, "
           << "note_id, comment_id, conversation_id, delivery_channels, priority, "
@@ -1028,13 +1028,13 @@ std::string PostgreSQLNotificationRepository::build_filter_query(const Notificat
 
 // Performance metrics implementation
 
-PostgreSQLNotificationRepository::PerformanceMetrics 
-PostgreSQLNotificationRepository::get_performance_metrics() const {
+NotegreSQLNotificationRepository::PerformanceMetrics 
+NotegreSQLNotificationRepository::get_performance_metrics() const {
     std::lock_guard<std::mutex> lock(pimpl_->metrics_mutex);
     return pimpl_->metrics;
 }
 
-void PostgreSQLNotificationRepository::reset_performance_metrics() {
+void NotegreSQLNotificationRepository::reset_performance_metrics() {
     std::lock_guard<std::mutex> lock(pimpl_->metrics_mutex);
     pimpl_->metrics = PerformanceMetrics{};
     pimpl_->metrics.last_reset = std::chrono::system_clock::now();
@@ -1045,17 +1045,17 @@ void PostgreSQLNotificationRepository::reset_performance_metrics() {
 
 // Factory implementation
 
-std::unique_ptr<NotificationRepository> NotificationRepositoryFactory::create_postgresql(
-    const PostgreSQLNotificationRepository::Config& config) {
-    return std::make_unique<PostgreSQLNotificationRepository>(config);
+std::unique_ptr<NotificationRepository> NotificationRepositoryFactory::create_notegresql(
+    const NotegreSQLNotificationRepository::Config& config) {
+    return std::make_unique<NotegreSQLNotificationRepository>(config);
 }
 
 std::unique_ptr<NotificationRepository> NotificationRepositoryFactory::create(
     RepositoryType type, const nlohmann::json& config) {
     
     switch (type) {
-        case RepositoryType::POSTGRESQL: {
-            PostgreSQLNotificationRepository::Config pg_config;
+        case RepositoryType::NOTEGRESQL: {
+            NotegreSQLNotificationRepository::Config pg_config;
             if (config.contains("connection_string")) {
                 pg_config.connection_string = config["connection_string"];
             }
@@ -1071,7 +1071,7 @@ std::unique_ptr<NotificationRepository> NotificationRepositoryFactory::create(
             if (config.contains("redis_port")) {
                 pg_config.redis_port = config["redis_port"];
             }
-            return create_postgresql(pg_config);
+            return create_notegresql(pg_config);
         }
         default:
             throw std::invalid_argument("Unsupported repository type");

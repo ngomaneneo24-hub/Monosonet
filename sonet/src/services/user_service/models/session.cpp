@@ -145,7 +145,7 @@ std::string LocationInfo::to_json() const {
     j["country_code"] = country_code;
     j["region"] = region;
     j["city"] = city;
-    j["postal_code"] = postal_code;
+    j["noteal_code"] = noteal_code;
     j["latitude"] = latitude;
     j["longitude"] = longitude;
     j["timezone"] = timezone;
@@ -165,7 +165,7 @@ void LocationInfo::from_json(const std::string& json) {
         country_code = j.value("country_code", "");
         region = j.value("region", "");
         city = j.value("city", "");
-        postal_code = j.value("postal_code", "");
+        noteal_code = j.value("noteal_code", "");
         latitude = j.value("latitude", 0.0);
         longitude = j.value("longitude", 0.0);
         timezone = j.value("timezone", "");

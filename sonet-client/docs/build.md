@@ -109,7 +109,7 @@ This is NOT required for app development but if you also want to develop the Son
   - `pnpm i`
   - `pnpm build`
   - Start the docker daemon (on MacOS this entails starting the Docker Desktop app)
-  - Launch a Postgres database on port 5432
+  - Launch a Notegres database on port 5432
   - `cd packages/dev-env && pnpm start`
 
 Then, when logging in or creating an account, point it to the localhost port of the devserver.
@@ -168,7 +168,7 @@ See [testing.md](./testing.md).
 
 ### Sentry sourcemaps
 
-Sourcemaps should automatically be updated when a signed build is created using `eas build` and published using `eas submit` due to the postPublish hook setup in `app.json`. However, if an update is created and published OTA using `eas update`, we need to take the following steps to upload sourcemaps to Sentry:
+Sourcemaps should automatically be updated when a signed build is created using `eas build` and published using `eas submit` due to the notePublish hook setup in `app.json`. However, if an update is created and published OTA using `eas update`, we need to take the following steps to upload sourcemaps to Sentry:
 
 - Run eas update. This will generate a dist folder in your project root, which contains your JavaScript bundles and source maps. This command will also output the 'Android update ID' and 'iOS update ID' that we'll need in the next step.
 - Copy or rename the bundle names in the `dist/bundles` folder to match `index.android.bundle` (Android) or `main.jsbundle` (iOS).

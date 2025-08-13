@@ -30,7 +30,7 @@ import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
 import {useQueryClient} from '@tanstack/react-query'
 
-import {MAX_POST_LINES} from '#/lib/constants'
+import {MAX_NOTE_LINES} from '#/lib/constants'
 import {useAnimatedValue} from '#/lib/hooks/useAnimatedValue'
 import {usePalette} from '#/lib/hooks/usePalette'
 import {makeProfileLink} from '#/lib/routes/links'
@@ -976,7 +976,7 @@ function AdditionalNoteText({note}: {note?: SonetFeedDefs.NoteView}) {
           <Text
             emoji
             style={[a.text_sm, a.leading_snug, t.atoms.text_contrast_medium]}
-            numberOfLines={MAX_POST_LINES}>
+            numberOfLines={MAX_NOTE_LINES}>
             {text}
           </Text>
         )}

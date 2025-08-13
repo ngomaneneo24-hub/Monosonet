@@ -102,7 +102,7 @@ and run the action.
 ### 7. Deploy web
 
 Once the web Docker container build finishes, go to your `1.x.0-ota-x` branch,
-copy the most recent commit hash. Post this hash in `#ops-deploys` and request
+copy the most recent commit hash. Note this hash in `#ops-deploys` and request
 someone with web deploy access deploy the built container.
 
 ### 8. Confirm successful deployment
