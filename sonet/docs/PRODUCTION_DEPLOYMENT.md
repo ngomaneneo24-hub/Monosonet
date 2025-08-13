@@ -79,7 +79,7 @@ sudo journalctl -u sonet.service -f
 
 ### Step 5: Database Initialization
 ```bash
-# Connect to NotegreSQL
+# Connect to postgresql
 sudo docker exec -it sonet_notegres_prod psql -U sonet_app -d sonet_production
 
 # Run database migrations
@@ -89,7 +89,7 @@ sudo docker exec -it sonet_notegres_prod psql -U sonet_app -d sonet_production
 \dt
 \dt moderation.*
 
-# Exit NotegreSQL
+# Exit postgresql
 \q
 ```
 

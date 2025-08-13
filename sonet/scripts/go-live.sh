@@ -342,7 +342,7 @@ create_go_live_report() {
 
 ### Services
 - **Sonet Service**: $(systemctl is-active sonet.service)
-- **NotegreSQL**: $(docker exec sonet_notegres_prod pg_isready -U sonet_app > /dev/null 2>&1 && echo "Healthy" || echo "Unhealthy")
+- **postgresql**: $(docker exec sonet_notegres_prod pg_isready -U sonet_app > /dev/null 2>&1 && echo "Healthy" || echo "Unhealthy")
 - **Redis**: $(docker exec sonet_redis_prod redis-cli ping > /dev/null 2>&1 && echo "Healthy" || echo "Unhealthy")
 - **API Gateway**: $(curl -f -s "http://localhost:8080/health" > /dev/null && echo "Healthy" || echo "Unhealthy")
 - **Nginx**: $(curl -f -s "http://localhost/health" > /dev/null && echo "Healthy" || echo "Unhealthy")

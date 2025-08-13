@@ -87,7 +87,7 @@ public:
 };
 
 /**
- * NotegreSQL implementation of NoteRepository
+ * postgresql implementation of NoteRepository
  * Provides full-featured note persistence with Cassandra-like performance optimizations
  */
 class NotegreSQLNoteRepository : public NoteRepository {

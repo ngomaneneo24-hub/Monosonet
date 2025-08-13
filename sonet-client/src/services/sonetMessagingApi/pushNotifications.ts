@@ -88,7 +88,7 @@ export class SonetPushNotifications {
           projectId: process.env.EXPO_PROJECT_ID
         })
         this.pushToken = token.data
-        console.log('Push token obtained:', this.pushToken)
+        // Debug logging removed for production
       }
 
       // Configure notification behavior
@@ -98,7 +98,7 @@ export class SonetPushNotifications {
       this.setupNotificationUsernamers()
 
       this.isInitialized = true
-      console.log('Push notifications initialized successfully')
+      // Debug logging removed for production
     } catch (error) {
       console.error('Failed to initialize push notifications:', error)
       throw error
@@ -155,7 +155,7 @@ export class SonetPushNotifications {
     // Username notification received while app is in foreground
     Notifications.addNotificationReceivedListener((notification) => {
       const data = notification.request.content.data as PushNotificationData
-      console.log('Notification received:', data)
+      // Debug logging removed for production
       
       // Emit event for app to username
       // This will be usernamed by the messaging service
@@ -164,7 +164,7 @@ export class SonetPushNotifications {
     // Username notification response (user tapped notification)
     Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as PushNotificationData
-      console.log('Notification response received:', data)
+      // Debug logging removed for production
       
       // Navigate to the appropriate chat
       this.usernameNotificationResponse(data)
@@ -209,7 +209,7 @@ export class SonetPushNotifications {
         trigger: null // Send immediately
       })
 
-      console.log('Local notification sent:', data.messageId)
+      // Debug logging removed for production
     } catch (error) {
       console.error('Failed to send local notification:', error)
     }
@@ -312,7 +312,7 @@ export class SonetPushNotifications {
     try {
       // This would typically save to AsyncStorage or similar
       // For now, we'll just log the settings
-      console.log('Notification settings updated:', this.notificationSettings)
+      // Debug logging removed for production
     } catch (error) {
       console.error('Failed to save notification settings:', error)
     }

@@ -1,6 +1,6 @@
 {
   "_copyright": "Copyright (c) 2025 Neo Qiss. All rights reserved. Proprietary and confidential.",
-  "host": "notegres",
+  "host": "postgres",
   "port": 5432,
   "username": "sonet",
   "password": "sonet_dev_password",

@@ -7,9 +7,7 @@
     "baseUrl": ".",
     "paths": {
       "#/*": ["./src/*"],
-      "crypto": ["./src/platform/crypto.ts"],
-      
-      
+      "crypto": ["./src/platform/crypto.ts"]
     }
   },
   "exclude": ["sonetweb", "sonetembed", "web-build"]

@@ -56,7 +56,7 @@ wait_for_health() {
     log "Waiting for services to be healthy..."
     
     local timeout=300
-    local services=("notegres" "redis" "moderation_service" "api_gateway" "nginx")
+    local services=("postgres" "redis" "moderation_service" "api_gateway" "nginx")
     
     while [[ $timeout -gt 0 ]]; do
         local healthy=true

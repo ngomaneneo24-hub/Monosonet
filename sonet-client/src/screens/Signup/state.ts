@@ -235,10 +235,10 @@ export function reducer(s: SignupState, a: SignupAction): SignupState {
 
   next.hasPrev = next.activeStep !== SignupStep.INFO
 
-  logger.debug('signup', next)
+      // Debug logging removed for production
 
   if (s.activeStep !== next.activeStep) {
-    logger.debug('signup: step changed', {activeStep: next.activeStep})
+    // Debug logging removed for production
   }
 
   return next

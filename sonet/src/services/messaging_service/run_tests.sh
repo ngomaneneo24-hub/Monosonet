@@ -34,7 +34,7 @@ if ! cmake .. > /dev/null 2>&1; then
     echo "   - Protobuf"
     echo "   - gRPC"
     echo "   - jsoncpp"
-    echo "   - NotegreSQL"
+    echo "   - postgresql"
     echo "   - libpqxx"
     echo "   - hiredis"
     echo "   - libsodium"

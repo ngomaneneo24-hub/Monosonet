@@ -34,13 +34,13 @@ export function StepCaptchaNative() {
 
   useEffect(() => {
     ;(async () => {
-      logger.debug('trying to generate attestation token...')
+      // Debug logging removed for production
       try {
         if (isIOS) {
-          logger.debug('starting to generate devicecheck token...')
+          // Debug logging removed for production
           const token = await ReactNativeDeviceAttest.getDeviceCheckToken()
           setToken(token)
-          logger.debug(`generated devicecheck token: ${token}`)
+                      // Debug logging removed for production
         } else {
           const {token, payload} =
             await ReactNativeDeviceAttest.getIntegrityToken('signup')
