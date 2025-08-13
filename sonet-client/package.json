@@ -1,5 +1,5 @@
 {
-  "name": "sonet.app",
+  "name": "sonet",
   "version": "1.0.0",
   "private": true,
   "engines": {
@@ -170,8 +170,7 @@
     "lodash.throttle": "^4.1.1",
     "nanoid": "^5.0.5",
     "normalize-url": "^8.0.0",
-    "patch-package": "^6.5.1",
-    "noteinstall-noteinstall": "^2.1.0",
+  "patch-package": "^6.5.1",
     "psl": "^1.9.0",
     "radix-ui": "^1.2.0",
     "react": "19.0.0",
