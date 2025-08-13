@@ -1,5 +1,5 @@
 import {View, Switch, Platform, Alert} from 'react-native'
-import {type AppBskyNotificationDeclaration} from '@atproto/api'
+import {type SonetNotificationDeclaration} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {type NativeStackScreenProps} from '@react-navigation/native-stack'
@@ -64,8 +64,8 @@ export function PrivacyAndSecuritySettingsScreen({}: Props) {
     loadConfig()
   }, [])
 
-  // Screenshot protection handlers
-  const handleScreenshotProtectionToggle = async (value: boolean) => {
+  // Screenshot protection usernamers
+  const usernameScreenshotProtectionToggle = async (value: boolean) => {
     try {
       setScreenshotProtectionEnabled(value)
       await screenshotProtection.updateConfig({ enabled: value })
@@ -75,7 +75,7 @@ export function PrivacyAndSecuritySettingsScreen({}: Props) {
     }
   }
 
-  const handleBlockScreenshotsToggle = async (value: boolean) => {
+  const usernameBlockScreenshotsToggle = async (value: boolean) => {
     try {
       setBlockScreenshots(value)
       await screenshotProtection.updateConfig({ blockScreenshots: value })
@@ -85,7 +85,7 @@ export function PrivacyAndSecuritySettingsScreen({}: Props) {
     }
   }
 
-  const handleBlockScreenRecordingToggle = async (value: boolean) => {
+  const usernameBlockScreenRecordingToggle = async (value: boolean) => {
     try {
       setBlockScreenRecording(value)
       await screenshotProtection.updateConfig({ blockScreenRecording: value })
@@ -95,7 +95,7 @@ export function PrivacyAndSecuritySettingsScreen({}: Props) {
     }
   }
 
-  const handleShowWarningToggle = async (value: boolean) => {
+  const usernameShowWarningToggle = async (value: boolean) => {
     try {
       setShowWarning(value)
       await screenshotProtection.updateConfig({ showWarning: value })
@@ -191,14 +191,14 @@ export function PrivacyAndSecuritySettingsScreen({}: Props) {
           </SettingsList.LinkItem>
           <SettingsList.LinkItem
             label={_(
-              msg`Settings for allowing others to be notified of your posts`,
+              msg`Settings for allowing others to be notified of your notes`,
             )}
             to={{screen: 'ActivityPrivacySettings'}}
             contentContainerStyle={[a.align_start]}>
             <SettingsList.ItemIcon icon={BellRingingIcon} />
             <ItemTextWithSubtitle
               titleText={
-                <Trans>Allow others to be notified of your posts</Trans>
+                <Trans>Allow others to be notified of your notes</Trans>
               }
               subtitleText={
                 <NotificationDeclaration
@@ -242,7 +242,7 @@ export function PrivacyAndSecuritySettingsScreen({}: Props) {
             </SettingsList.ItemText>
             <Switch
               value={screenshotProtectionEnabled}
-              onValueChange={handleScreenshotProtectionToggle}
+              onValueChange={usernameScreenshotProtectionToggle}
               trackColor={{ false: t.palette.neutral_200, true: t.palette.primary_500 + '40' }}
               thumbColor={screenshotProtectionEnabled ? t.palette.primary_500 : t.palette.neutral_400}
             />
@@ -257,7 +257,7 @@ export function PrivacyAndSecuritySettingsScreen({}: Props) {
                 </SettingsList.ItemText>
                 <Switch
                   value={blockScreenshots}
-                  onValueChange={handleBlockScreenshotsToggle}
+                  onValueChange={usernameBlockScreenshotsToggle}
                   trackColor={{ false: t.palette.neutral_200, true: t.palette.primary_500 + '40' }}
                   thumbColor={blockScreenshots ? t.palette.primary_500 : t.palette.neutral_400}
                 />
@@ -270,7 +270,7 @@ export function PrivacyAndSecuritySettingsScreen({}: Props) {
                 </SettingsList.ItemText>
                 <Switch
                   value={blockScreenRecording}
-                  onValueChange={handleBlockScreenRecordingToggle}
+                  onValueChange={usernameBlockScreenRecordingToggle}
                   trackColor={{ false: t.palette.neutral_200, true: t.palette.primary_500 + '40' }}
                   thumbColor={blockScreenRecording ? t.palette.primary_500 : t.palette.neutral_400}
                 />
@@ -283,7 +283,7 @@ export function PrivacyAndSecuritySettingsScreen({}: Props) {
                 </SettingsList.ItemText>
                 <Switch
                   value={showWarning}
-                  onValueChange={handleShowWarningToggle}
+                  onValueChange={usernameShowWarningToggle}
                   trackColor={{ false: t.palette.neutral_200, true: t.palette.primary_500 + '40' }}
                   thumbColor={showWarning ? t.palette.primary_500 : t.palette.neutral_400}
                 />
@@ -353,7 +353,7 @@ export function PrivacyAndSecuritySettingsScreen({}: Props) {
                       label={_(
                         msg`Learn more about what is public on Bluesky.`,
                       )}
-                      to="https://blueskyweb.zendesk.com/hc/en-us/articles/15835264007693-Data-Privacy">
+                      to="https://sonetweb.zendesk.com/hc/en-us/articles/15835264007693-Data-Privacy">
                       <Trans>Learn more about what is public on Bluesky.</Trans>
                     </InlineLinkText>
                   </Admonition.Text>
@@ -372,7 +372,7 @@ function NotificationDeclaration({
   isError,
 }: {
   data?: {
-    value: AppBskyNotificationDeclaration.Record
+    value: SonetNotificationDeclaration.Record
   }
   isError?: boolean
 }) {

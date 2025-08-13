@@ -25,7 +25,7 @@ export function RequestListItem({
   const {mutate: acceptRequest, isPending: isAccepting} = useAcceptChatRequest()
   const {mutate: declineRequest, isPending: isDeclining} = useDeclineChatRequest()
 
-  const handleAccept = useCallback(() => {
+  const usernameAccept = useCallback(() => {
     acceptRequest(
       {conversationId: convo.id},
       {
@@ -39,7 +39,7 @@ export function RequestListItem({
     )
   }, [acceptRequest, convo.id, navigation])
 
-  const handleDecline = useCallback(() => {
+  const usernameDecline = useCallback(() => {
     declineRequest(
       {conversationId: convo.id},
       {
@@ -50,7 +50,7 @@ export function RequestListItem({
     )
   }, [declineRequest, convo.id])
 
-  const handlePress = useCallback(() => {
+  const usernamePress = useCallback(() => {
     // Navigate to conversation preview
     navigation.navigate('MessagesConversation' as any, {
       conversation: convo.id,
@@ -59,11 +59,11 @@ export function RequestListItem({
 
   // Extract user info from conversation
   const otherUser = convo.members?.find(
-    (member: any) => member.did !== convo.currentUserDid,
+    (member: any) => member.userId !== convo.currentUserDid,
   )
   
-  const handle = otherUser?.handle || 'unknown'
-  const displayName = otherUser?.displayName || handle
+  const username = otherUser?.username || 'unknown'
+  const displayName = otherUser?.displayName || username
   const avatar = otherUser?.avatar
   const lastMessage = convo.lastMessage?.text || ''
 
@@ -80,7 +80,7 @@ export function RequestListItem({
       ]}>
       <View
         style={[a.flex_row, a.align_center, a.flex_1, a.mr_sm]}
-        onTouchEnd={handlePress}>
+        onTouchEnd={usernamePress}>
         <Avatar size={48} image={avatar} style={[a.mr_md]} />
         
         <View style={[a.flex_1, a.min_w_0]}>
@@ -88,7 +88,7 @@ export function RequestListItem({
             {displayName}
           </Text>
           <Text style={[a.text_sm, t.atoms.text_contrast_medium]} numberOfLines={1}>
-            @{handle}
+            @{username}
           </Text>
           {lastMessage && (
             <Text
@@ -106,7 +106,7 @@ export function RequestListItem({
           size="small"
           color="primary"
           variant="solid"
-          onPress={handleAccept}
+          onPress={usernameAccept}
           disabled={isAccepting || isDeclining}>
           <ButtonIcon icon={CheckIcon} />
           <ButtonText>
@@ -119,7 +119,7 @@ export function RequestListItem({
           size="small"
           color="secondary"
           variant="ghost"
-          onPress={handleDecline}
+          onPress={usernameDecline}
           disabled={isAccepting || isDeclining}>
           <ButtonIcon icon={XIcon} />
           <ButtonText>

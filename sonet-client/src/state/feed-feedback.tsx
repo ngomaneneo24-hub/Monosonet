@@ -15,9 +15,9 @@ import {logEvent} from '#/lib/statsig/statsig'
 import {Logger} from '#/logger'
 import {
   type FeedDescriptor,
-  type FeedPostSliceItem,
-} from '#/state/queries/post-feed'
-import {getItemsForFeedback} from '#/view/com/posts/PostFeed'
+  type FeedNoteSliceItem,
+} from '#/state/queries/note-feed'
+import {getItemsForFeedback} from '#/view/com/notes/NoteFeed'
 import {useAgent} from './session'
 
 const logger = Logger.create(Logger.Context.FeedFeedback)
@@ -32,7 +32,7 @@ export type StateContext = {
 const stateContext = createContext<StateContext>({
   enabled: false,
   onItemSeen: (_item: any) => {},
-  sendInteraction: (_interaction: AppBskyFeedDefs.Interaction) => {},
+  sendInteraction: (_interaction: SonetFeedDefs.Interaction) => {},
   feedDescriptor: undefined,
 })
 
@@ -47,7 +47,7 @@ export function useFeedFeedback(
   const history = useRef<
     // Use a WeakSet so that we don't need to clear it.
     // This assumes that referential identity of slice items maps 1:1 to feed (re)fetches.
-    WeakSet<FeedPostSliceItem | SonetInteraction>
+    WeakSet<FeedNoteSliceItem | SonetInteraction>
   >(new WeakSet())
 
   const aggregatedStats = useRef<AggregatedStats | null>(null)
@@ -107,13 +107,13 @@ export function useFeedFeedback(
         return
       }
       const items = getItemsForFeedback(feedItem)
-      for (const {item: postItem, feedContext, reqId} of items) {
-        if (!history.current.has(postItem)) {
-          history.current.add(postItem)
+      for (const {item: noteItem, feedContext, reqId} of items) {
+        if (!history.current.has(noteItem)) {
+          history.current.add(noteItem)
           queue.current.add(
             toString({
-              item: postItem.uri,
-              event: 'app.bsky.feed.defs#interactionSeen',
+              item: noteItem.uri,
+              event: 'app.sonet.feed.defs#interactionSeen',
               feedContext,
               reqId,
             }),
@@ -216,14 +216,14 @@ function sendOrAggregateInteractionsForStats(
       case 'sonet.feed.defs#clickthroughAuthor':
       case 'sonet.feed.defs#clickthroughEmbed':
       case 'sonet.feed.defs#clickthroughItem':
-      case 'sonet.feed.defs#clickthroughReposter': {
+      case 'sonet.feed.defs#clickthroughRenoteer': {
         stats.clickthroughCount++
         break
       }
       case 'sonet.feed.defs#interactionLike':
       case 'sonet.feed.defs#interactionQuote':
       case 'sonet.feed.defs#interactionReply':
-      case 'sonet.feed.defs#interactionRepost':
+      case 'sonet.feed.defs#interactionRenote':
       case 'sonet.feed.defs#interactionShare': {
         stats.engagedCount++
         break

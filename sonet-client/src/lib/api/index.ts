@@ -1,20 +1,20 @@
 import {
   type $Typed,
-  type AppBskyEmbedExternal,
-  type AppBskyEmbedImages,
-  type AppBskyEmbedRecord,
-  type AppBskyEmbedRecordWithMedia,
-  type AppBskyEmbedVideo,
-  type AppBskyFeedPost,
+  type SonetEmbedExternal,
+  type SonetEmbedImages,
+  type SonetEmbedRecord,
+  type SonetEmbedRecordWithMedia,
+  type SonetEmbedVideo,
+  type SonetFeedNote,
   AtUri,
   BlobRef,
-  type BskyAgent,
-  type ComAtprotoLabelDefs,
-  type ComAtprotoRepoApplyWrites,
-  type ComAtprotoRepoStrongRef,
+  type SonetAppAgent,
+  type SonetLabelDefs,
+  type SonetRepoApplyWrites,
+  type SonetRepoStrongRef,
   RichText,
-} from '@atproto/api'
-import {TID} from '@atproto/common-web'
+} from '@sonet/api'
+import {TID} from '@sonet/types'
 import * as dcbor from '@ipld/dag-cbor'
 import {t} from '@lingui/macro'
 import {type QueryClient} from '@tanstack/react-query'
@@ -36,7 +36,7 @@ import {
 } from '#/state/queries/threadgate'
 import {
   type EmbedDraft,
-  type PostDraft,
+  type NoteDraft,
   type ThreadDraft,
 } from '#/view/com/composer/state/composer'
 import {createGIFDescription} from '../gif-alt-text'
@@ -45,26 +45,26 @@ import {useSonetApi, useSonetSession} from '#/state/session/sonet'
 
 export {uploadBlob}
 
-interface PostOpts {
+interface NoteOpts {
   thread: ThreadDraft
   replyTo?: string
   onStateChange?: (state: string) => void
   langs?: string[]
 }
 
-export async function post(
-  agent: BskyAgent,
+export async function note(
+  agent: SonetAppAgent,
   queryClient: QueryClient,
-  opts: PostOpts,
+  opts: NoteOpts,
 ) {
-  // Sonet path: simple create per top-level post for now (replies omitted for MVP)
+  // Sonet path: simple create per top-level note for now (replies omitted for MVP)
   try {
     // Access hooks is not possible here, so we check if a Sonet upload bridge was installed by seeing if agent is missing session or through a global. Simpler: detect globalThis.__SONET_ACTIVE flag if we set it when session active.
     // Fallback to AT path below if anything fails.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const g: any = globalThis as any
     if (g && g.__SONET_ACTIVE && typeof g.__SONET_CREATE_NOTE === 'function') {
-      const draft = opts.thread.posts[0]
+      const draft = opts.thread.notes[0]
       const rt = await resolveRT(agent, draft.richtext)
       const res = await g.__SONET_CREATE_NOTE({text: rt.text})
       return {uris: Array.isArray(res?.uris) ? res.uris : [res?.uri || `sonet://note/${res?.note?.id || 'new'}`]}
@@ -74,8 +74,8 @@ export async function post(
   opts.onStateChange?.(t`Processing...`)
 
   let replyPromise:
-    | Promise<AppBskyFeedPost.Record['reply']>
-    | AppBskyFeedPost.Record['reply']
+    | Promise<SonetFeedNote.Record['reply']>
+    | SonetFeedNote.Record['reply']
     | undefined
   if (opts.replyTo) {
     // Not awaited to avoid waterfalls.
@@ -88,15 +88,15 @@ export async function post(
     langs = opts.langs.slice(0, 3)
   }
 
-  const did = agent.assertDid
-  const writes: $Typed<ComAtprotoRepoApplyWrites.Create>[] = []
+  const userId = agent.assertDid
+  const writes: $Typed<SonetRepoApplyWrites.Create>[] = []
   const uris: string[] = []
 
   let now = new Date()
   let tid: TID | undefined
 
-  for (let i = 0; i < thread.posts.length; i++) {
-    const draft = thread.posts[i]
+  for (let i = 0; i < thread.notes.length; i++) {
+    const draft = thread.notes[i]
 
     // Not awaited to avoid waterfalls.
     const rtPromise = resolveRT(agent, draft.richtext)
@@ -106,29 +106,29 @@ export async function post(
       draft,
       opts.onStateChange,
     )
-    let labels: $Typed<ComAtprotoLabelDefs.SelfLabels> | undefined
+    let labels: $Typed<SonetLabelDefs.SelfLabels> | undefined
     if (draft.labels.length) {
       labels = {
-        $type: 'com.atproto.label.defs#selfLabels',
+        type: "sonet",
         values: draft.labels.map(val => ({val})),
       }
     }
 
-    // The sorting behavior for multiple posts sharing the same createdAt time is
-    // undefined, so what we'll do here is increment the time by 1 for every post
+    // The sorting behavior for multiple notes sharing the same createdAt time is
+    // undefined, so what we'll do here is increment the time by 1 for every note
     now.setMilliseconds(now.getMilliseconds() + 1)
     tid = TID.next(tid)
     const rkey = tid.toString()
-    const uri = `at://${did}/app.bsky.feed.post/${rkey}`
+    const uri = `sonet://${userId}/app.sonet.feed.note/${rkey}`
     uris.push(uri)
 
     const rt = await rtPromise
     const embed = await embedPromise
     const reply = await replyPromise
-    const record: AppBskyFeedPost.Record = {
+    const record: SonetFeedNote.Record = {
       // IMPORTANT: $type has to exist, CID is calculated with the `$type` field
       // present and will produce the wrong CID if you omit it.
-      $type: 'app.bsky.feed.post',
+      type: "sonet",
       createdAt: now.toISOString(),
       text: rt.text,
       facets: rt.facets,
@@ -138,43 +138,43 @@ export async function post(
       labels,
     }
     writes.push({
-      $type: 'com.atproto.repo.applyWrites#create',
-      collection: 'app.bsky.feed.post',
+      type: "sonet",
+      collection: 'app.sonet.feed.note',
       rkey: rkey,
       value: record,
     })
 
     if (i === 0 && thread.threadgate.some(tg => tg.type !== 'everybody')) {
       writes.push({
-        $type: 'com.atproto.repo.applyWrites#create',
-        collection: 'app.bsky.feed.threadgate',
+        type: "sonet",
+        collection: 'app.sonet.feed.threadgate',
         rkey: rkey,
         value: createThreadgateRecord({
           createdAt: now.toISOString(),
-          post: uri,
+          note: uri,
           allow: threadgateAllowUISettingToAllowRecordValue(thread.threadgate),
         }),
       })
     }
 
     if (
-      thread.postgate.embeddingRules?.length ||
-      thread.postgate.detachedEmbeddingUris?.length
+      thread.notegate.embeddingRules?.length ||
+      thread.notegate.detachedEmbeddingUris?.length
     ) {
       writes.push({
-        $type: 'com.atproto.repo.applyWrites#create',
-        collection: 'app.bsky.feed.postgate',
+        type: "sonet",
+        collection: 'app.sonet.feed.notegate',
         rkey: rkey,
         value: {
-          ...thread.postgate,
-          $type: 'app.bsky.feed.postgate',
+          ...thread.notegate,
+          type: "sonet",
           createdAt: now.toISOString(),
-          post: uri,
+          note: uri,
         },
       })
     }
 
-    // Prepare a ref to the current post for the next post in the thread.
+    // Prepare a ref to the current note for the next note in the thread.
     const ref = {
       cid: await computeCid(record),
       uri,
@@ -186,18 +186,18 @@ export async function post(
   }
 
   try {
-    await agent.com.atproto.repo.applyWrites({
+    await agent.com.sonet.repo.applyWrites({
       repo: agent.assertDid,
       writes: writes,
       validate: true,
     })
   } catch (e: any) {
-    logger.error(`Failed to create post`, {
+    logger.error(`Failed to create note`, {
       safeMessage: e.message,
     })
     if (isNetworkError(e)) {
       throw new Error(
-        t`Post failed to upload. Please check your Internet connection and try again.`,
+        t`Note failed to upload. Please check your Internet connection and try again.`,
       )
     } else {
       throw e
@@ -207,7 +207,7 @@ export async function post(
   return {uris}
 }
 
-async function resolveRT(agent: BskyAgent, richtext: RichText) {
+async function resolveRT(agent: SonetAppAgent, richtext: RichText) {
   const trimmedText = richtext.text
     // Trim leading whitespace-only lines (but don't break ASCII art).
     .replace(/^(\s*\n)+/, '')
@@ -221,35 +221,35 @@ async function resolveRT(agent: BskyAgent, richtext: RichText) {
   return rt
 }
 
-async function resolveReply(agent: BskyAgent, replyTo: string) {
+async function resolveReply(agent: SonetAppAgent, replyTo: string) {
   const replyToUrip = new AtUri(replyTo)
-  const parentPost = await agent.getPost({
+  const parentNote = await agent.getNote({
     repo: replyToUrip.host,
     rkey: replyToUrip.rkey,
   })
-  if (parentPost) {
+  if (parentNote) {
     const parentRef = {
-      uri: parentPost.uri,
-      cid: parentPost.cid,
+      uri: parentNote.uri,
+      cid: parentNote.cid,
     }
     return {
-      root: parentPost.value.reply?.root || parentRef,
+      root: parentNote.value.reply?.root || parentRef,
       parent: parentRef,
     }
   }
 }
 
 async function resolveEmbed(
-  agent: BskyAgent,
+  agent: SonetAppAgent,
   queryClient: QueryClient,
-  draft: PostDraft,
+  draft: NoteDraft,
   onStateChange: ((state: string) => void) | undefined,
 ): Promise<
-  | $Typed<AppBskyEmbedImages.Main>
-  | $Typed<AppBskyEmbedVideo.Main>
-  | $Typed<AppBskyEmbedExternal.Main>
-  | $Typed<AppBskyEmbedRecord.Main>
-  | $Typed<AppBskyEmbedRecordWithMedia.Main>
+  | $Typed<SonetEmbedImages.Main>
+  | $Typed<SonetEmbedVideo.Main>
+  | $Typed<SonetEmbedExternal.Main>
+  | $Typed<SonetEmbedRecord.Main>
+  | $Typed<SonetEmbedRecordWithMedia.Main>
   | undefined
 > {
   if (draft.embed.quote) {
@@ -259,16 +259,16 @@ async function resolveEmbed(
     ])
     if (resolvedMedia) {
       return {
-        $type: 'app.bsky.embed.recordWithMedia',
+        type: "sonet",
         record: {
-          $type: 'app.bsky.embed.record',
+          type: "sonet",
           record: resolvedQuote,
         },
         media: resolvedMedia,
       }
     }
     return {
-      $type: 'app.bsky.embed.record',
+      type: "sonet",
       record: resolvedQuote,
     }
   }
@@ -289,7 +289,7 @@ async function resolveEmbed(
     )
     if (resolvedLink.type === 'record') {
       return {
-        $type: 'app.bsky.embed.record',
+        type: "sonet",
         record: resolvedLink.record,
       }
     }
@@ -298,14 +298,14 @@ async function resolveEmbed(
 }
 
 async function resolveMedia(
-  agent: BskyAgent,
+  agent: SonetAppAgent,
   queryClient: QueryClient,
   embedDraft: EmbedDraft,
   onStateChange: ((state: string) => void) | undefined,
 ): Promise<
-  | $Typed<AppBskyEmbedExternal.Main>
-  | $Typed<AppBskyEmbedImages.Main>
-  | $Typed<AppBskyEmbedVideo.Main>
+  | $Typed<SonetEmbedExternal.Main>
+  | $Typed<SonetEmbedImages.Main>
+  | $Typed<SonetEmbedVideo.Main>
   | undefined
 > {
   if (embedDraft.media?.type === 'images') {
@@ -314,7 +314,7 @@ async function resolveMedia(
       count: imagesDraft.length,
     })
     onStateChange?.(t`Uploading images...`)
-    const images: AppBskyEmbedImages.Image[] = await Promise.all(
+    const images: SonetEmbedImages.Image[] = await Promise.all(
       imagesDraft.map(async (image, i) => {
         logger.debug(`Compressing image #${i}`)
         const {path, width, height, mime} = await compressImage(image)
@@ -328,7 +328,7 @@ async function resolveMedia(
       }),
     )
     return {
-      $type: 'app.bsky.embed.images',
+      type: "sonet",
       images,
     }
   }
@@ -353,7 +353,7 @@ async function resolveMedia(
     const height = Math.round(videoDraft.asset.height)
 
     // aspect ratio values must be >0 - better to leave as unset otherwise
-    // posting will fail if aspect ratio is set to 0
+    // noteing will fail if aspect ratio is set to 0
     const aspectRatio = width > 0 && height > 0 ? {width, height} : undefined
 
     if (!aspectRatio) {
@@ -363,7 +363,7 @@ async function resolveMedia(
     }
 
     return {
-      $type: 'app.bsky.embed.video',
+      type: "sonet",
       video: videoDraft.pendingPublish.blobRef,
       alt: videoDraft.altText || undefined,
       captions: captions.length === 0 ? undefined : captions,
@@ -385,7 +385,7 @@ async function resolveMedia(
       blob = response.data.blob
     }
     return {
-      $type: 'app.bsky.embed.external',
+      type: "sonet",
       external: {
         uri: resolvedGif.uri,
         title: resolvedGif.title,
@@ -409,7 +409,7 @@ async function resolveMedia(
         blob = response.data.blob
       }
       return {
-        $type: 'app.bsky.embed.external',
+        type: "sonet",
         external: {
           uri: resolvedLink.uri,
           title: resolvedLink.title,
@@ -423,10 +423,10 @@ async function resolveMedia(
 }
 
 async function resolveRecord(
-  agent: BskyAgent,
+  agent: SonetAppAgent,
   queryClient: QueryClient,
   uri: string,
-): Promise<ComAtprotoRepoStrongRef.Main> {
+): Promise<SonetRepoStrongRef.Main> {
   const resolvedLink = await fetchResolveLinkQuery(queryClient, agent, uri)
   if (resolvedLink.type !== 'record') {
     throw Error(t`Expected uri to resolve to a record`)
@@ -445,7 +445,7 @@ const mf_sha256 = Hasher.from({
   },
 })
 
-async function computeCid(record: AppBskyFeedPost.Record): Promise<string> {
+async function computeCid(record: SonetFeedNote.Record): Promise<string> {
   // IMPORTANT: `prepareObject` prepares the record to be hashed by removing
   // fields with undefined value, and converting BlobRef instances to the
   // right IPLD representation.

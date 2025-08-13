@@ -8,7 +8,7 @@ import {deviceLanguageCodes} from '#/locale/deviceLocales'
 import {languageName} from '#/locale/helpers'
 import {useModalControls} from '#/state/modals'
 import {
-  hasPostLanguage,
+  hasNoteLanguage,
   useLanguagePrefs,
   useLanguagePrefsApi,
 } from '#/state/preferences/languages'
@@ -39,10 +39,10 @@ export function Component() {
     // sort so that device & selected languages are on top, then alphabetically
     langs.sort((a, b) => {
       const hasA =
-        hasPostLanguage(langPrefs.postLanguage, a.code2) ||
+        hasNoteLanguage(langPrefs.noteLanguage, a.code2) ||
         deviceLanguageCodes.includes(a.code2)
       const hasB =
-        hasPostLanguage(langPrefs.postLanguage, b.code2) ||
+        hasNoteLanguage(langPrefs.noteLanguage, b.code2) ||
         deviceLanguageCodes.includes(b.code2)
       if (hasA === hasB) return a.name.localeCompare(b.name)
       if (hasA) return -1
@@ -53,14 +53,14 @@ export function Component() {
 
   const onPress = React.useCallback(
     (code2: string) => {
-      setLangPrefs.togglePostLanguage(code2)
+      setLangPrefs.toggleNoteLanguage(code2)
     },
     [setLangPrefs],
   )
 
   return (
     <View
-      testID="postLanguagesModal"
+      testID="noteLanguagesModal"
       style={[
         pal.view,
         styles.container,
@@ -74,18 +74,18 @@ export function Component() {
             },
       ]}>
       <Text style={[pal.text, styles.title]}>
-        <Trans>Post Languages</Trans>
+        <Trans>Note Languages</Trans>
       </Text>
       <Text style={[pal.text, styles.description]}>
-        <Trans>Which languages are used in this post?</Trans>
+        <Trans>Which languages are used in this note?</Trans>
       </Text>
       <ScrollView style={styles.scrollContainer}>
         {languages.map(lang => {
-          const isSelected = hasPostLanguage(langPrefs.postLanguage, lang.code2)
+          const isSelected = hasNoteLanguage(langPrefs.noteLanguage, lang.code2)
 
-          // enforce a max of 3 selections for post languages
+          // enforce a max of 3 selections for note languages
           let isDisabled = false
-          if (langPrefs.postLanguage.split(',').length >= 3 && !isSelected) {
+          if (langPrefs.noteLanguage.split(',').length >= 3 && !isSelected) {
             isDisabled = true
           }
 

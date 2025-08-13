@@ -43,7 +43,7 @@ type TriggerProps = Omit<
 export const DropdownMenuTrigger = DropdownMenu.create(
   (props: TriggerProps) => {
     const theme = useTheme()
-    const defaultCtrlColor = theme.palette.default.postCtrl
+    const defaultCtrlColor = theme.palette.default.noteCtrl
 
     return (
       // This Pressable doesn't actually do anything other than

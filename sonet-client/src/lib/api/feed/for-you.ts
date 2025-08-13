@@ -1,6 +1,6 @@
 // For You Feed API Client - ML-powered personalized content
 import {SONET_API_BASE} from '#/lib/constants'
-import {type SonetFeedSlice, type SonetFeedViewPost} from '#/types/sonet'
+import {type SonetFeedSlice, type SonetFeedViewNote} from '#/types/sonet'
 
 export interface ForYouFeedParams {
   limit?: number
@@ -13,7 +13,7 @@ export interface ForYouFeedParams {
 export interface ForYouFeedResponse {
   ok: boolean
   items: Array<{
-    post: any // TODO: Replace with proper SonetPost type
+    note: any // TODO: Replace with proper SonetNote type
     ranking: {
       score: number
       factors: Record<string, number>

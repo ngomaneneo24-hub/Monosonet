@@ -18,7 +18,7 @@ export function SendViaChatDialog({
 }) {
   return (
     <Dialog.Outer control={control} testID="sendViaChatChatDialog">
-      <Dialog.Handle />
+      <Dialog.Username />
       <SendViaChatDialogInner control={control} onSelectChat={onSelectChat} />
     </Dialog.Outer>
   )
@@ -42,7 +42,7 @@ function SendViaChatDialogInner({
       logEvent('chat:open', {logContext: 'SendViaChatDialog'})
     },
     onError: error => {
-      logger.error('Failed to share post to chat', {message: error})
+      logger.error('Failed to share note to chat', {message: error})
       Toast.show(
         _(msg`An issue occurred while trying to open the chat`),
         'xmark',
@@ -51,15 +51,15 @@ function SendViaChatDialogInner({
   })
 
   const onCreateChat = useCallback(
-    (did: string) => {
-      control.close(() => createChat([did]))
+    (userId: string) => {
+      control.close(() => createChat([userId]))
     },
     [control, createChat],
   )
 
   return (
     <SearchablePeopleList
-      title={_(msg`Send post to...`)}
+      title={_(msg`Send note to...`)}
       onSelectChat={onCreateChat}
       showRecentConvos
       sortByMessageDeclaration

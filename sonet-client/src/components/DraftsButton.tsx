@@ -27,7 +27,7 @@ export function DraftsButton({onPress, hasContent}: DraftsButtonProps) {
     return null
   }
 
-  const handlePress = useCallback(() => {
+  const usernamePress = useCallback(() => {
     onPress()
   }, [onPress])
 
@@ -38,7 +38,7 @@ export function DraftsButton({onPress, hasContent}: DraftsButtonProps) {
       color="primary"
       size="small"
       style={[a.rounded_full, a.py_sm]}
-      onPress={handlePress}>
+      onPress={usernamePress}>
       <ButtonText style={[a.text_md, t.atoms.text_primary]}>
         <Trans>Drafts</Trans>
       </ButtonText>

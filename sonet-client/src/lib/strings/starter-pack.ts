@@ -1,4 +1,4 @@
-import {AtUri} from '@atproto/api'
+import {AtUri} from '@sonet/api'
 
 import type * as bsky from '#/types/bsky'
 
@@ -20,7 +20,7 @@ export function createStarterPackLinkFromAndroidReferrer(
     if (contentParts[0] !== 'starterpack') return null
     if (contentParts.length !== 3) return null
 
-    return `at://${contentParts[1]}/app.bsky.graph.starterpack/${contentParts[2]}`
+    return `sonet://${contentParts[1]}/app.sonet.graph.starterpack/${contentParts[2]}`
   } catch (e) {
     return null
   }
@@ -33,9 +33,9 @@ export function parseStarterPackUri(uri?: string): {
   if (!uri) return null
 
   try {
-    if (uri.startsWith('at://')) {
+    if (uri.startsWith('sonet://')) {
       const atUri = new AtUri(uri)
-      if (atUri.collection !== 'app.bsky.graph.starterpack') return null
+      if (atUri.collection !== 'app.sonet.graph.starterpack') return null
       if (atUri.rkey) {
         return {
           name: atUri.hostname,
@@ -66,7 +66,7 @@ export function createStarterPackGooglePlayUri(
   rkey: string,
 ): string | null {
   if (!name || !rkey) return null
-  return `https://play.google.com/store/apps/details?id=xyz.blueskyweb.app&referrer=utm_source%3Dbluesky%26utm_medium%3Dstarterpack%26utm_content%3Dstarterpack_${name}_${rkey}`
+  return `https://play.google.com/store/apps/details?id=xyz.sonetweb.app&referrer=utm_source%3Dbluesky%26utm_medium%3Dstarterpack%26utm_content%3Dstarterpack_${name}_${rkey}`
 }
 
 export function httpStarterPackUriToAtUri(httpUri?: string): string | null {
@@ -75,31 +75,31 @@ export function httpStarterPackUriToAtUri(httpUri?: string): string | null {
   const parsed = parseStarterPackUri(httpUri)
   if (!parsed) return null
 
-  if (httpUri.startsWith('at://')) return httpUri
+  if (httpUri.startsWith('sonet://')) return httpUri
 
-  return `at://${parsed.name}/app.bsky.graph.starterpack/${parsed.rkey}`
+  return `sonet://${parsed.name}/app.sonet.graph.starterpack/${parsed.rkey}`
 }
 
 export function getStarterPackOgCard(
-  didOrStarterPack: bsky.starterPack.AnyStarterPackView | string,
+  userIdOrStarterPack: bsky.starterPack.AnyStarterPackView | string,
   rkey?: string,
 ) {
-  if (typeof didOrStarterPack === 'string') {
-    return `https://ogcard.cdn.bsky.app/start/${didOrStarterPack}/${rkey}`
+  if (typeof userIdOrStarterPack === 'string') {
+    return `https://ogcard.cdn.sonet.app/start/${userIdOrStarterPack}/${rkey}`
   } else {
-    const rkey = new AtUri(didOrStarterPack.uri).rkey
-    return `https://ogcard.cdn.bsky.app/start/${didOrStarterPack.creator.did}/${rkey}`
+    const rkey = new AtUri(userIdOrStarterPack.uri).rkey
+    return `https://ogcard.cdn.sonet.app/start/${userIdOrStarterPack.creator.userId}/${rkey}`
   }
 }
 
 export function createStarterPackUri({
-  did,
+  userId,
   rkey,
 }: {
-  did: string
+  userId: string
   rkey: string
 }): string {
-  return new AtUri(`at://${did}/app.bsky.graph.starterpack/${rkey}`).toString()
+  return new AtUri(`sonet://${userId}/app.sonet.graph.starterpack/${rkey}`).toString()
 }
 
 export function startUriToStarterPackUri(uri: string) {

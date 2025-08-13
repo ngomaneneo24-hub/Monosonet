@@ -1,5 +1,5 @@
 import {View} from 'react-native'
-import {moderateProfile} from '@atproto/api'
+import {moderateProfile} from '@sonet/api'
 
 import {logger} from '#/logger'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
@@ -32,7 +32,7 @@ export function AvatarStack({
         moderation: null,
       }))
     : profiles.map(item => ({
-        key: item.did,
+        key: item.userId,
         profile: item,
         moderation: moderateProfile(item, moderationOpts),
       }))
@@ -84,7 +84,7 @@ export function AvatarStackWithFetch({
   size?: number
   backgroundColor?: string
 }) {
-  const {data, error} = useProfilesQuery({handles: profiles})
+  const {data, error} = useProfilesQuery({usernames: profiles})
 
   if (error) {
     if (error.name !== 'AbortError') {

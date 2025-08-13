@@ -1,5 +1,5 @@
 import {useCallback} from 'react'
-import {type AppBskyActorDefs} from '@atproto/api'
+import {type SonetActorDefs} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -20,7 +20,7 @@ export function VerificationRemovePrompt({
 }: {
   control: DialogControlProps
   profile: bsky.profile.AnyProfileView
-  verifications: AppBskyActorDefs.VerificationView[]
+  verifications: SonetActorDefs.VerificationView[]
   onConfirm?: () => void
 }) {
   const {_} = useLingui()

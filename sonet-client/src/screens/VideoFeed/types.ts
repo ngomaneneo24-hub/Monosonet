@@ -1,4 +1,4 @@
-import {AuthorFilter} from '#/state/queries/post-feed'
+import {AuthorFilter} from '#/state/queries/note-feed'
 
 /**
  * Kind of like `FeedDescriptor` but not
@@ -8,11 +8,11 @@ export type VideoFeedSourceContext =
       type: 'feedgen'
       uri: string
       sourceInterstitial: 'discover' | 'explore' | 'none'
-      initialPostUri?: string
+      initialNoteUri?: string
     }
   | {
       type: 'author'
-      did: string
+      userId: string
       filter: AuthorFilter
-      initialPostUri?: string
+      initialNoteUri?: string
     }

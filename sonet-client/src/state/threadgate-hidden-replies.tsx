@@ -1,5 +1,5 @@
 import React from 'react'
-import {type AppBskyFeedThreadgate} from '@atproto/api'
+import {type SonetFeedThreadgate} from '@sonet/api'
 
 type StateContext = {
   uris: Set<string>
@@ -72,7 +72,7 @@ export function useThreadgateHiddenReplyUrisAPI() {
 export function useMergedThreadgateHiddenReplies({
   threadgateRecord,
 }: {
-  threadgateRecord?: AppBskyFeedThreadgate.Record
+  threadgateRecord?: SonetFeedThreadgate.Record
 }) {
   const {uris, recentlyUnhiddenUris} = useThreadgateHiddenReplyUris()
   return React.useMemo(() => {
@@ -87,7 +87,7 @@ export function useMergedThreadgateHiddenReplies({
 export function useMergeThreadgateHiddenReplies() {
   const {uris, recentlyUnhiddenUris} = useThreadgateHiddenReplyUris()
   return React.useCallback(
-    (threadgate?: AppBskyFeedThreadgate.Record) => {
+    (threadgate?: SonetFeedThreadgate.Record) => {
       const set = new Set([...(threadgate?.hiddenReplies || []), ...uris])
       for (const uri of recentlyUnhiddenUris) {
         set.delete(uri)

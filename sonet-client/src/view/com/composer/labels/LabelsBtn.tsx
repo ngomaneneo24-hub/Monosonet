@@ -59,7 +59,7 @@ export function LabelsBtn({
         }}
         label={_(msg`Content warnings`)}
         accessibilityHint={_(
-          msg`Opens a dialog to add a content warning to your post`,
+          msg`Opens a dialog to add a content warning to your note`,
         )}
         style={[
           native({
@@ -78,7 +78,7 @@ export function LabelsBtn({
       </Button>
 
       <Dialog.Outer control={control} nativeOptions={{preventExpansion: true}}>
-        <Dialog.Handle />
+        <Dialog.Username />
         <DialogInner
           labels={labels}
           updateAdultLabels={updateAdultLabels}
@@ -114,7 +114,7 @@ function DialogInner({
           <Text style={[t.atoms.text_contrast_medium, a.leading_snug]}>
             <Trans>
               Please add any content warning labels that are applicable for the
-              media you are posting.
+              media you are noteing.
             </Trans>
           </Text>
         </View>

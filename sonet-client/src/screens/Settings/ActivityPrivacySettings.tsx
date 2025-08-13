@@ -1,5 +1,5 @@
 import {View} from 'react-native'
-import {type AppBskyNotificationDeclaration} from '@atproto/api'
+import {type SonetNotificationDeclaration} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -49,12 +49,12 @@ export function ActivityPrivacySettingsScreen({}: Props) {
             <ItemTextWithSubtitle
               bold
               titleText={
-                <Trans>Allow others to be notified of your posts</Trans>
+                <Trans>Allow others to be notified of your notes</Trans>
               }
               subtitleText={
                 <Trans>
                   This feature allows users to receive notifications for your
-                  new posts and replies. Who do you want to enable this for?
+                  new notes and replies. Who do you want to enable this for?
                 </Trans>
               }
             />
@@ -84,7 +84,7 @@ export function Inner({
   notificationDeclaration: {
     uri?: string
     cid?: string
-    value: AppBskyNotificationDeclaration.Record
+    value: SonetNotificationDeclaration.Record
   }
 }) {
   const t = useTheme()
@@ -93,7 +93,7 @@ export function Inner({
 
   const onChangeFilter = ([declaration]: string[]) => {
     mutate({
-      $type: 'app.bsky.notification.declaration',
+      type: "sonet",
       allowSubscriptions: declaration,
     })
   }

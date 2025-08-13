@@ -1,7 +1,7 @@
 import React, {
   useCallback,
   useEffect,
-  useImperativeHandle,
+  useImperativeUsername,
   useMemo,
   useReducer,
   useRef,
@@ -9,7 +9,7 @@ import React, {
 } from 'react'
 import {
   ActivityIndicator,
-  BackHandler,
+  BackUsernamer,
   Keyboard,
   KeyboardAvoidingView,
   type LayoutChangeEvent,
@@ -43,12 +43,12 @@ import Animated, {
 import {useSafeAreaInsets} from 'react-native-safe-area-context'
 import {type ImagePickerAsset} from 'expo-image-picker'
 import {
-  AppBskyFeedDefs,
-  type AppBskyFeedGetPostThread,
-  AppBskyUnspeccedDefs,
-  type BskyAgent,
+  SonetFeedDefs,
+  type SonetFeedGetNoteThread,
+  SonetUnspeccedDefs,
+  type SonetAppAgent,
   type RichText,
-} from '@atproto/api'
+} from '@sonet/api'
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome'
 import {msg, plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -63,7 +63,7 @@ import {
   SUPPORTED_MIME_TYPES,
   type SupportedMimeTypes,
 } from '#/lib/constants'
-import {useAnimatedScrollHandler} from '#/lib/hooks/useAnimatedScrollHandler_FIXED'
+import {useAnimatedScrollUsernamer} from '#/lib/hooks/useAnimatedScrollUsernamer_FIXED'
 import {useAppState} from '#/lib/hooks/useAppState'
 import {useIsKeyboardVisible} from '#/lib/hooks/useIsKeyboardVisible'
 import {useNonReactiveCallback} from '#/lib/hooks/useNonReactiveCallback'
@@ -76,12 +76,12 @@ import {colors} from '#/lib/styles'
 import {logger} from '#/logger'
 import {isAndroid, isIOS, isNative, isWeb} from '#/platform/detection'
 import {useDialogStateControlContext} from '#/state/dialogs'
-import {emitPostCreated} from '#/state/events'
+import {emitNoteCreated} from '#/state/events'
 import {type ComposerImage, pasteImage} from '#/state/gallery'
 import {useModalControls} from '#/state/modals'
 import {useRequireAltTextEnabled} from '#/state/preferences'
 import {
-  toPostLanguages,
+  toNoteLanguages,
   useLanguagePrefs,
   useLanguagePrefsApi,
 } from '#/state/preferences/languages'
@@ -90,7 +90,7 @@ import {useProfileQuery} from '#/state/queries/profile'
 import {type Gif} from '#/state/queries/tenor'
 import {useAgent, useSession} from '#/state/session'
 import {useComposerControls} from '#/state/shell/composer'
-import {type ComposerOpts, type OnPostSuccessData} from '#/state/shell/composer'
+import {type ComposerOpts, type OnNoteSuccessData} from '#/state/shell/composer'
 import {CharProgress} from '#/view/com/composer/char-progress/CharProgress'
 import {ComposerReplyTo} from '#/view/com/composer/ComposerReplyTo'
 import {
@@ -125,7 +125,7 @@ import {Button, ButtonIcon, ButtonText} from '#/components/Button'
 import {CircleInfo_Stroke2_Corner0_Rounded as CircleInfo} from '#/components/icons/CircleInfo'
 import {EmojiArc_Stroke2_Corner0_Rounded as EmojiSmile} from '#/components/icons/Emoji'
 import {TimesLarge_Stroke2_Corner0_Rounded as X} from '#/components/icons/Times'
-import {LazyQuoteEmbed} from '#/components/Post/Embed/LazyQuoteEmbed'
+import {LazyQuoteEmbed} from '#/components/Note/Embed/LazyQuoteEmbed'
 import * as Prompt from '#/components/Prompt'
 import {Text as NewText} from '#/components/Typography'
 import {DraftsButton} from '#/components/DraftsButton'
@@ -139,8 +139,8 @@ import {
   createComposerState,
   type EmbedDraft,
   MAX_IMAGES,
-  type PostAction,
-  type PostDraft,
+  type NoteAction,
+  type NoteDraft,
   type ThreadDraft,
 } from './state/composer'
 import {
@@ -157,10 +157,10 @@ type CancelRef = {
 }
 
 type Props = ComposerOpts
-export const ComposePost = ({
+export const ComposeNote = ({
   replyTo,
-  onPost,
-  onPostSuccess,
+  onNote,
+  onNoteSuccess,
   quote: initQuote,
   mention: initMention,
   openEmojiPicker,
@@ -174,7 +174,7 @@ export const ComposePost = ({
   const {currentAccount} = useSession()
   const agent = useAgent()
   const queryClient = useQueryClient()
-  const currentDid = currentAccount!.did
+  const currentDid = currentAccount!.userId
   const {closeComposer} = useComposerControls()
   const {_} = useLingui()
   const requireAltTextEnabled = useRequireAltTextEnabled()
@@ -212,7 +212,7 @@ export const ComposePost = ({
     }, 2000) // Auto-save after 2 seconds of inactivity
     
     return () => clearTimeout(timeoutId)
-  }, [thread.posts, replyTo, initMention, autoSaveDraft, getComposerContent])
+  }, [thread.notes, replyTo, initMention, autoSaveDraft, getComposerContent])
 
   const [composerState, composerDispatch] = useReducer(
     composerReducer,
@@ -221,33 +221,33 @@ export const ComposePost = ({
       initQuoteUri: initQuote?.uri,
       initText,
       initMention,
-      initInteractionSettings: preferences?.postInteractionSettings,
+      initInteractionSettings: preferences?.noteInteractionSettings,
     },
     createComposerState,
   )
 
   const thread = composerState.thread
-  const activePost = thread.posts[composerState.activePostIndex]
-  const nextPost: PostDraft | undefined =
-    thread.posts[composerState.activePostIndex + 1]
+  const activeNote = thread.notes[composerState.activeNoteIndex]
+  const nextNote: NoteDraft | undefined =
+    thread.notes[composerState.activeNoteIndex + 1]
   const dispatch = useCallback(
-    (postAction: PostAction) => {
+    (noteAction: NoteAction) => {
       composerDispatch({
-        type: 'update_post',
-        postId: activePost.id,
-        postAction,
+        type: 'update_note',
+        noteId: activeNote.id,
+        noteAction,
       })
     },
-    [activePost.id],
+    [activeNote.id],
   )
 
   const selectVideo = React.useCallback(
-    (postId: string, asset: ImagePickerAsset) => {
+    (noteId: string, asset: ImagePickerAsset) => {
       const abortController = new AbortController()
       composerDispatch({
-        type: 'update_post',
-        postId: postId,
-        postAction: {
+        type: 'update_note',
+        noteId: noteId,
+        noteAction: {
           type: 'embed_add_video',
           asset,
           abortController,
@@ -257,9 +257,9 @@ export const ComposePost = ({
         asset,
         videoAction => {
           composerDispatch({
-            type: 'update_post',
-            postId: postId,
-            postAction: {
+            type: 'update_note',
+            noteId: noteId,
+            noteAction: {
               type: 'embed_update_video',
               videoAction,
             },
@@ -276,7 +276,7 @@ export const ComposePost = ({
 
   const onInitVideo = useNonReactiveCallback(() => {
     if (initVideoUri) {
-      selectVideo(activePost.id, initVideoUri)
+      selectVideo(activeNote.id, initVideoUri)
     }
   })
 
@@ -285,11 +285,11 @@ export const ComposePost = ({
   }, [onInitVideo])
 
   const clearVideo = React.useCallback(
-    (postId: string) => {
+    (noteId: string) => {
       composerDispatch({
-        type: 'update_post',
-        postId: postId,
-        postAction: {
+        type: 'update_note',
+        noteId: noteId,
+        noteAction: {
           type: 'embed_remove_video',
         },
       })
@@ -304,17 +304,17 @@ export const ComposePost = ({
     clearThumbnailCache(queryClient)
   }, [closeComposer, queryClient])
 
-  const handleDraftsPress = useCallback(() => {
+  const usernameDraftsPress = useCallback(() => {
     setShowDraftsDialog(true)
   }, [])
 
   // Helper function to convert composer state to draft format
   const getComposerContent = useCallback(() => {
-    const firstPost = thread.posts[0]
-    if (!firstPost) return null
+    const firstNote = thread.notes[0]
+    if (!firstNote) return null
     
-    const images = firstPost.embed.media?.type === 'images' 
-      ? firstPost.embed.media.images.map(img => ({
+    const images = firstNote.embed.media?.type === 'images' 
+      ? firstNote.embed.media.images.map(img => ({
           uri: img.uri,
           width: img.width,
           height: img.height,
@@ -322,28 +322,28 @@ export const ComposePost = ({
         }))
       : []
     
-    const video = firstPost.embed.media?.type === 'gif' 
+    const video = firstNote.embed.media?.type === 'gif' 
       ? {
-          uri: firstPost.embed.media.uri,
-          width: firstPost.embed.media.width,
-          height: firstPost.embed.media.height
+          uri: firstNote.embed.media.uri,
+          width: firstNote.embed.media.width,
+          height: firstNote.embed.media.height
         }
       : undefined
     
     return {
-      content: firstPost.richtext.text,
+      content: firstNote.richtext.text,
       reply_to_uri: replyTo?.uri,
-      quote_uri: firstPost.embed.quote?.uri,
-      mention_handle: initMention,
+      quote_uri: firstNote.embed.quote?.uri,
+      mention_username: initMention,
       images,
       video,
       labels: [],
-      threadgate: firstPost.interactionSettings,
-      interaction_settings: firstPost.interactionSettings
+      threadgate: firstNote.interactionSettings,
+      interaction_settings: firstNote.interactionSettings
     }
   }, [thread, replyTo, initMention])
 
-  const handleDraftSelect = useCallback((draft: any) => {
+  const usernameDraftSelect = useCallback((draft: any) => {
     // Load draft content into composer
     if (!draft) return
     
@@ -351,7 +351,7 @@ export const ComposePost = ({
     composerDispatch({
       type: 'reset_thread',
       thread: {
-        posts: [{
+        notes: [{
           id: 'temp',
           richtext: {text: draft.content || '', facets: []},
           embed: {
@@ -381,16 +381,16 @@ export const ComposePost = ({
     setShowDraftsDialog(false)
   }, [composerDispatch])
 
-  const handleSaveDraft = useCallback(() => {
+  const usernameSaveDraft = useCallback(() => {
     closeComposer()
   }, [closeComposer])
 
-  const handleDiscardDraft = useCallback(() => {
+  const usernameDiscardDraft = useCallback(() => {
     // Discard without saving
     closeComposer()
   }, [closeComposer])
 
-  const handleCancelSave = useCallback(() => {
+  const usernameCancelSave = useCallback(() => {
     saveDraftControl.close()
   }, [saveDraftControl])
 
@@ -413,11 +413,11 @@ export const ComposePost = ({
 
   const onPressCancel = useCallback(() => {
     if (
-      thread.posts.some(
-        post =>
-          post.shortenedGraphemeLength > 0 ||
-          post.embed.media ||
-          post.embed.link,
+      thread.notes.some(
+        note =>
+          note.shortenedGraphemeLength > 0 ||
+          note.embed.media ||
+          note.embed.link,
       )
     ) {
       closeAllDialogs()
@@ -428,14 +428,14 @@ export const ComposePost = ({
     }
   }, [thread, closeAllDialogs, saveDraftControl, onClose])
 
-  useImperativeHandle(cancelRef, () => ({onPressCancel}))
+  useImperativeUsername(cancelRef, () => ({onPressCancel}))
 
   // On Android, pressing Back should ask confirmation.
   useEffect(() => {
     if (!isAndroid) {
       return
     }
-    const backHandler = BackHandler.addEventListener(
+    const backUsernamer = BackUsernamer.addEventListener(
       'hardwareBackPress',
       () => {
         if (closeAllDialogs() || closeAllModals()) {
@@ -446,7 +446,7 @@ export const ComposePost = ({
       },
     )
     return () => {
-      backHandler.remove()
+      backUsernamer.remove()
     }
   }, [onPressCancel, closeAllDialogs, closeAllModals])
 
@@ -454,8 +454,8 @@ export const ComposePost = ({
     if (!requireAltTextEnabled) {
       return
     }
-    for (let i = 0; i < thread.posts.length; i++) {
-      const media = thread.posts[i].embed.media
+    for (let i = 0; i < thread.notes.length; i++) {
+      const media = thread.notes[i].embed.media
       if (media) {
         if (media.type === 'images' && media.images.some(img => !img.alt)) {
           return _(msg`One or more images is missing alt text.`)
@@ -474,15 +474,15 @@ export const ComposePost = ({
     }
   }, [thread, requireAltTextEnabled, _])
 
-  const canPost =
+  const canNote =
     !missingAltError &&
-    thread.posts.every(
-      post =>
-        post.shortenedGraphemeLength <= MAX_GRAPHEME_LENGTH &&
-        !isEmptyPost(post) &&
+    thread.notes.every(
+      note =>
+        note.shortenedGraphemeLength <= MAX_GRAPHEME_LENGTH &&
+        !isEmptyNote(note) &&
         !(
-          post.embed.media?.type === 'video' &&
-          post.embed.media.video.status === 'error'
+          note.embed.media?.type === 'video' &&
+          note.embed.media.video.status === 'error'
         ),
     )
 
@@ -491,16 +491,16 @@ export const ComposePost = ({
       return
     }
 
-    if (!canPost) {
+    if (!canNote) {
       return
     }
 
     if (
-      thread.posts.some(
-        post =>
-          post.embed.media?.type === 'video' &&
-          post.embed.media.video.asset &&
-          post.embed.media.video.status !== 'done',
+      thread.notes.some(
+        note =>
+          note.embed.media?.type === 'video' &&
+          note.embed.media.video.asset &&
+          note.embed.media.video.status !== 'done',
       )
     ) {
       setPublishOnUpload(true)
@@ -510,54 +510,54 @@ export const ComposePost = ({
     setError('')
     setIsPublishing(true)
 
-    let postUri: string | undefined
-    let postSuccessData: OnPostSuccessData
+    let noteUri: string | undefined
+    let noteSuccessData: OnNoteSuccessData
     try {
-      logger.info(`composer: posting...`)
-      postUri = (
-        await apilib.post(agent, queryClient, {
+      logger.info(`composer: noteing...`)
+      noteUri = (
+        await apilib.note(agent, queryClient, {
           thread,
           replyTo: replyTo?.uri,
           onStateChange: setPublishingStage,
-          langs: toPostLanguages(langPrefs.postLanguage),
+          langs: toNoteLanguages(langPrefs.noteLanguage),
         })
       ).uris[0]
 
       /*
-       * Wait for app view to have received the post(s). If this fails, it's
-       * ok, because the post _was_ actually published above.
+       * Wait for app view to have received the note(s). If this fails, it's
+       * ok, because the note _was_ actually published above.
        */
       try {
-        if (postUri) {
+        if (noteUri) {
           logger.info(`composer: waiting for app view`)
 
-          const posts = await retry(
+          const notes = await retry(
             5,
             _e => true,
             async () => {
-              const res = await agent.app.bsky.unspecced.getPostThreadV2({
-                anchor: postUri!,
+              const res = await agent.app.sonet.unspecced.getNoteThreadV2({
+                anchor: noteUri!,
                 above: false,
-                below: thread.posts.length - 1,
+                below: thread.notes.length - 1,
                 branchingFactor: 1,
               })
-              if (res.data.thread.length !== thread.posts.length) {
+              if (res.data.thread.length !== thread.notes.length) {
                 throw new Error(`composer: app view is not ready`)
               }
               if (
                 !res.data.thread.every(p =>
-                  AppBskyUnspeccedDefs.isThreadItemPost(p.value),
+                  SonetUnspeccedDefs.isThreadItemNote(p.value),
                 )
               ) {
-                throw new Error(`composer: app view returned non-post items`)
+                throw new Error(`composer: app view returned non-note items`)
               }
               return res.data.thread
             },
             1e3,
           )
-          postSuccessData = {
+          noteSuccessData = {
             replyToUri: replyTo?.uri,
-            posts,
+            notes,
           }
         }
       } catch (waitErr: any) {
@@ -567,96 +567,96 @@ export const ComposePost = ({
       }
     } catch (e: any) {
       logger.error(e, {
-        message: `Composer: create post failed`,
-        hasImages: thread.posts.some(p => p.embed.media?.type === 'images'),
+        message: `Composer: create note failed`,
+        hasImages: thread.notes.some(p => p.embed.media?.type === 'images'),
       })
 
       let err = cleanError(e.message)
       if (err.includes('not locate record')) {
         err = _(
-          msg`We're sorry! The post you are replying to has been deleted.`,
+          msg`We're sorry! The note you are replying to has been deleted.`,
         )
       } else if (e instanceof EmbeddingDisabledError) {
-        err = _(msg`This post's author has disabled quote posts.`)
+        err = _(msg`This note's author has disabled quote notes.`)
       }
       setError(err)
       setIsPublishing(false)
       return
     } finally {
-      if (postUri) {
+      if (noteUri) {
         let index = 0
-        for (let post of thread.posts) {
-          logEvent('post:create', {
+        for (let note of thread.notes) {
+          logEvent('note:create', {
             imageCount:
-              post.embed.media?.type === 'images'
-                ? post.embed.media.images.length
+              note.embed.media?.type === 'images'
+                ? note.embed.media.images.length
                 : 0,
             isReply: index > 0 || !!replyTo,
-            isPartOfThread: thread.posts.length > 1,
-            hasLink: !!post.embed.link,
-            hasQuote: !!post.embed.quote,
-            langs: langPrefs.postLanguage,
+            isPartOfThread: thread.notes.length > 1,
+            hasLink: !!note.embed.link,
+            hasQuote: !!note.embed.quote,
+            langs: langPrefs.noteLanguage,
             logContext: 'Composer',
           })
           index++
         }
       }
-      if (thread.posts.length > 1) {
+      if (thread.notes.length > 1) {
         logEvent('thread:create', {
-          postCount: thread.posts.length,
+          noteCount: thread.notes.length,
           isReply: !!replyTo,
         })
       }
     }
-    if (postUri && !replyTo) {
-      emitPostCreated()
+    if (noteUri && !replyTo) {
+      emitNoteCreated()
     }
-    setLangPrefs.savePostLanguageToHistory()
+    setLangPrefs.saveNoteLanguageToHistory()
     if (initQuote) {
-      // We want to wait for the quote count to update before we call `onPost`, which will refetch data
+      // We want to wait for the quote count to update before we call `onNote`, which will refetch data
       whenAppViewReady(agent, initQuote.uri, res => {
         const quotedThread = res.data.thread
         if (
-          AppBskyFeedDefs.isThreadViewPost(quotedThread) &&
-          quotedThread.post.quoteCount !== initQuote.quoteCount
+          SonetFeedDefs.isThreadViewNote(quotedThread) &&
+          quotedThread.note.quoteCount !== initQuote.quoteCount
         ) {
-          onPost?.(postUri)
-          onPostSuccess?.(postSuccessData)
+          onNote?.(noteUri)
+          onNoteSuccess?.(noteSuccessData)
           return true
         }
         return false
       })
     } else {
-      onPost?.(postUri)
-      onPostSuccess?.(postSuccessData)
+      onNote?.(noteUri)
+      onNoteSuccess?.(noteSuccessData)
     }
     onClose()
     Toast.show(
-      thread.posts.length > 1
-        ? _(msg`Your posts have been published`)
+      thread.notes.length > 1
+        ? _(msg`Your notes have been published`)
         : replyTo
           ? _(msg`Your reply has been published`)
-          : _(msg`Your post has been published`),
+          : _(msg`Your note has been published`),
     )
   }, [
     _,
     agent,
     thread,
-    canPost,
+    canNote,
     isPublishing,
-    langPrefs.postLanguage,
+    langPrefs.noteLanguage,
     onClose,
-    onPost,
-    onPostSuccess,
+    onNote,
+    onNoteSuccess,
     initQuote,
     replyTo,
     setLangPrefs,
     queryClient,
   ])
 
-  // Preserves the referential identity passed to each post item.
-  // Avoids re-rendering all posts on each keystroke.
-  const onComposerPostPublish = useNonReactiveCallback(() => {
+  // Preserves the referential identity passed to each note item.
+  // Avoids re-rendering all notes on each keystroke.
+  const onComposerNotePublish = useNonReactiveCallback(() => {
     onPressPublish()
   })
 
@@ -664,9 +664,9 @@ export const ComposePost = ({
     if (publishOnUpload) {
       let erroredVideos = 0
       let uploadingVideos = 0
-      for (let post of thread.posts) {
-        if (post.embed.media?.type === 'video') {
-          const video = post.embed.media.video
+      for (let note of thread.notes) {
+        if (note.embed.media?.type === 'video') {
+          const video = note.embed.media.video
           if (video.status === 'error') {
             erroredVideos++
           } else if (video.status !== 'done') {
@@ -681,20 +681,20 @@ export const ComposePost = ({
         onPressPublish()
       }
     }
-  }, [thread.posts, onPressPublish, publishOnUpload])
+  }, [thread.notes, onPressPublish, publishOnUpload])
 
-  // TODO: It might make more sense to display this error per-post.
+  // TODO: It might make more sense to display this error per-note.
   // Right now we're just displaying the first one.
-  let erroredVideoPostId: string | undefined
+  let erroredVideoNoteId: string | undefined
   let erroredVideo: VideoState | NoVideoState = NO_VIDEO
-  for (let i = 0; i < thread.posts.length; i++) {
-    const post = thread.posts[i]
+  for (let i = 0; i < thread.notes.length; i++) {
+    const note = thread.notes[i]
     if (
-      post.embed.media?.type === 'video' &&
-      post.embed.media.video.status === 'error'
+      note.embed.media?.type === 'video' &&
+      note.embed.media.video.status === 'error'
     ) {
-      erroredVideoPostId = post.id
-      erroredVideo = post.embed.media.video
+      erroredVideoNoteId = note.id
+      erroredVideo = note.embed.media.video
       break
     }
   }
@@ -722,53 +722,53 @@ export const ComposePost = ({
     }
   }, [composerState])
 
-  const isLastThreadedPost = thread.posts.length > 1 && nextPost === undefined
+  const isLastThreadedNote = thread.notes.length > 1 && nextNote === undefined
   const {
-    scrollHandler,
+    scrollUsernamer,
     onScrollViewContentSizeChange,
     onScrollViewLayout,
     topBarAnimatedStyle,
     bottomBarAnimatedStyle,
   } = useScrollTracker({
     scrollViewRef,
-    stickyBottom: isLastThreadedPost,
+    stickyBottom: isLastThreadedNote,
   })
 
   const keyboardVerticalOffset = useKeyboardVerticalOffset()
 
   const footer = (
     <>
-      <SuggestedLanguage text={activePost.richtext.text} />
+      <SuggestedLanguage text={activeNote.richtext.text} />
       <ComposerPills
         isReply={!!replyTo}
-        post={activePost}
+        note={activeNote}
         thread={composerState.thread}
         dispatch={composerDispatch}
         bottomBarAnimatedStyle={bottomBarAnimatedStyle}
       />
       <ComposerFooter
-        post={activePost}
+        note={activeNote}
         dispatch={dispatch}
         showAddButton={
-          !isEmptyPost(activePost) && (!nextPost || !isEmptyPost(nextPost))
+          !isEmptyNote(activeNote) && (!nextNote || !isEmptyNote(nextNote))
         }
         onError={setError}
         onEmojiButtonPress={onEmojiButtonPress}
         onSelectVideo={selectVideo}
-        onAddPost={() => {
+        onAddNote={() => {
           composerDispatch({
-            type: 'add_post',
+            type: 'add_note',
           })
         }}
       />
     </>
   )
 
-  const isWebFooterSticky = !isNative && thread.posts.length > 1
+  const isWebFooterSticky = !isNative && thread.notes.length > 1
   return (
     <BottomSheetPortalProvider>
       <KeyboardAvoidingView
-        testID="composePostView"
+        testID="composeNoteView"
         behavior={isIOS ? 'padding' : 'height'}
         keyboardVerticalOffset={keyboardVerticalOffset}
         style={a.flex_1}>
@@ -777,20 +777,20 @@ export const ComposePost = ({
           aria-modal
           accessibilityViewIsModal>
           <ComposerTopBar
-            canPost={canPost}
+            canNote={canNote}
             isReply={!!replyTo}
             isPublishQueued={publishOnUpload}
             isPublishing={isPublishing}
-            isThread={thread.posts.length > 1}
+            isThread={thread.notes.length > 1}
             publishingStage={publishingStage}
             topBarAnimatedStyle={topBarAnimatedStyle}
             onCancel={onPressCancel}
             onPublish={onPressPublish}
-            onDraftsPress={handleDraftsPress}
-            hasContent={thread.posts.some(post => 
-              post.shortenedGraphemeLength > 0 || 
-              post.embed.media || 
-              post.embed.link
+            onDraftsPress={usernameDraftsPress}
+            hasContent={thread.notes.some(note => 
+              note.shortenedGraphemeLength > 0 || 
+              note.embed.media || 
+              note.embed.link
             )}>
             {missingAltError && <AltTextReminder error={missingAltError} />}
             <ErrorBanner
@@ -798,8 +798,8 @@ export const ComposePost = ({
               videoState={erroredVideo}
               clearError={() => setError('')}
               clearVideo={
-                erroredVideoPostId
-                  ? () => clearVideo(erroredVideoPostId)
+                erroredVideoNoteId
+                  ? () => clearVideo(erroredVideoNoteId)
                   : () => {}
               }
             />
@@ -808,32 +808,32 @@ export const ComposePost = ({
           <Animated.ScrollView
             ref={scrollViewRef}
             layout={native(LinearTransition)}
-            onScroll={scrollHandler}
+            onScroll={scrollUsernamer}
             contentContainerStyle={a.flex_grow}
             style={a.flex_1}
             keyboardShouldPersistTaps="always"
             onContentSizeChange={onScrollViewContentSizeChange}
             onLayout={onScrollViewLayout}>
             {replyTo ? <ComposerReplyTo replyTo={replyTo} /> : undefined}
-            {thread.posts.map((post, index) => (
-              <React.Fragment key={post.id}>
-                <ComposerPost
-                  post={post}
+            {thread.notes.map((note, index) => (
+              <React.Fragment key={note.id}>
+                <ComposerNote
+                  note={note}
                   dispatch={composerDispatch}
-                  textInput={post.id === activePost.id ? textInput : null}
-                  isFirstPost={index === 0}
-                  isLastPost={index === thread.posts.length - 1}
-                  isPartOfThread={thread.posts.length > 1}
+                  textInput={note.id === activeNote.id ? textInput : null}
+                  isFirstNote={index === 0}
+                  isLastNote={index === thread.notes.length - 1}
+                  isPartOfThread={thread.notes.length > 1}
                   isReply={index > 0 || !!replyTo}
-                  isActive={post.id === activePost.id}
-                  canRemovePost={thread.posts.length > 1}
+                  isActive={note.id === activeNote.id}
+                  canRemoveNote={thread.notes.length > 1}
                   canRemoveQuote={index > 0 || !initQuote}
                   onSelectVideo={selectVideo}
                   onClearVideo={clearVideo}
-                  onPublish={onComposerPostPublish}
+                  onPublish={onComposerNotePublish}
                   onError={setError}
                 />
-                {isWebFooterSticky && post.id === activePost.id && (
+                {isWebFooterSticky && note.id === activeNote.id && (
                   <View style={styles.stickyFooterWeb}>{footer}</View>
                 )}
               </React.Fragment>
@@ -844,15 +844,15 @@ export const ComposePost = ({
 
         <SaveDraftDialog
           control={saveDraftControl}
-          onSave={handleSaveDraft}
-          onDiscard={handleDiscardDraft}
-          onCancel={handleCancelSave}
+          onSave={usernameSaveDraft}
+          onDiscard={usernameDiscardDraft}
+          onCancel={usernameCancelSave}
           content={getComposerContent()}
         />
         
         {showDraftsDialog && (
           <DraftsDialog
-            onSelectDraft={handleDraftSelect}
+            onSelectDraft={usernameDraftSelect}
             onClose={() => setShowDraftsDialog(false)}
           />
         )}
@@ -861,77 +861,77 @@ export const ComposePost = ({
   )
 }
 
-let ComposerPost = React.memo(function ComposerPost({
-  post,
+let ComposerNote = React.memo(function ComposerNote({
+  note,
   dispatch,
   textInput,
   isActive,
   isReply,
-  isFirstPost,
-  isLastPost,
+  isFirstNote,
+  isLastNote,
   isPartOfThread,
-  canRemovePost,
+  canRemoveNote,
   canRemoveQuote,
   onClearVideo,
   onSelectVideo,
   onError,
   onPublish,
 }: {
-  post: PostDraft
+  note: NoteDraft
   dispatch: (action: ComposerAction) => void
   textInput: React.Ref<TextInputRef>
   isActive: boolean
   isReply: boolean
-  isFirstPost: boolean
-  isLastPost: boolean
+  isFirstNote: boolean
+  isLastNote: boolean
   isPartOfThread: boolean
-  canRemovePost: boolean
+  canRemoveNote: boolean
   canRemoveQuote: boolean
-  onClearVideo: (postId: string) => void
-  onSelectVideo: (postId: string, asset: ImagePickerAsset) => void
+  onClearVideo: (noteId: string) => void
+  onSelectVideo: (noteId: string, asset: ImagePickerAsset) => void
   onError: (error: string) => void
   onPublish: (richtext: RichText) => void
 }) {
   const {currentAccount} = useSession()
-  const currentDid = currentAccount!.did
+  const currentDid = currentAccount!.userId
   const {_} = useLingui()
-  const {data: currentProfile} = useProfileQuery({did: currentDid})
-  const richtext = post.richtext
-  const isTextOnly = !post.embed.link && !post.embed.quote && !post.embed.media
+  const {data: currentProfile} = useProfileQuery({userId: currentDid})
+  const richtext = note.richtext
+  const isTextOnly = !note.embed.link && !note.embed.quote && !note.embed.media
   const forceMinHeight = isWeb && isTextOnly && isActive
   const selectTextInputPlaceholder = isReply
-    ? isFirstPost
+    ? isFirstNote
       ? _(msg`Write your reply`)
-      : _(msg`Add another post`)
+      : _(msg`Add another note`)
     : _(msg`What's up?`)
   const discardPromptControl = Prompt.usePromptControl()
 
-  const dispatchPost = useCallback(
-    (action: PostAction) => {
+  const dispatchNote = useCallback(
+    (action: NoteAction) => {
       dispatch({
-        type: 'update_post',
-        postId: post.id,
-        postAction: action,
+        type: 'update_note',
+        noteId: note.id,
+        noteAction: action,
       })
     },
-    [dispatch, post.id],
+    [dispatch, note.id],
   )
 
   const onImageAdd = useCallback(
     (next: ComposerImage[]) => {
-      dispatchPost({
+      dispatchNote({
         type: 'embed_add_images',
         images: next,
       })
     },
-    [dispatchPost],
+    [dispatchNote],
   )
 
   const onNewLink = useCallback(
     (uri: string) => {
-      dispatchPost({type: 'embed_add_uri', uri})
+      dispatchNote({type: 'embed_add_uri', uri})
     },
-    [dispatchPost],
+    [dispatchNote],
   )
 
   const onPhotoPasted = useCallback(
@@ -947,13 +947,13 @@ let ComposerPost = React.memo(function ComposerPost({
         const file = await fetch(uri)
           .then(res => res.blob())
           .then(blob => new File([blob], name, {type: mimeType}))
-        onSelectVideo(post.id, await getVideoMetadata(file))
+        onSelectVideo(note.id, await getVideoMetadata(file))
       } else {
         const res = await pasteImage(uri)
         onImageAdd([res])
       }
     },
-    [post.id, onSelectVideo, onImageAdd, _],
+    [note.id, onSelectVideo, onImageAdd, _],
   )
 
   useHideKeyboardOnBackground()
@@ -963,8 +963,8 @@ let ComposerPost = React.memo(function ComposerPost({
       style={[
         a.mx_lg,
         a.mb_sm,
-        !isActive && isLastPost && a.mb_lg,
-        !isActive && styles.inactivePost,
+        !isActive && isLastNote && a.mb_lg,
+        !isActive && styles.inactiveNote,
         isTextOnly && isNative && a.flex_grow,
       ]}>
       <View style={[a.flex_row, isNative && a.flex_1]}>
@@ -985,12 +985,12 @@ let ComposerPost = React.memo(function ComposerPost({
           hasRightPadding={isPartOfThread}
           isActive={isActive}
           setRichText={rt => {
-            dispatchPost({type: 'update_richtext', richtext: rt})
+            dispatchNote({type: 'update_richtext', richtext: rt})
           }}
           onFocus={() => {
             dispatch({
-              type: 'focus_post',
-              postId: post.id,
+              type: 'focus_note',
+              noteId: note.id,
             })
           }}
           onPhotoPasted={onPhotoPasted}
@@ -998,19 +998,19 @@ let ComposerPost = React.memo(function ComposerPost({
           onError={onError}
           onPressPublish={onPublish}
           accessible={true}
-          accessibilityLabel={_(msg`Write post`)}
+          accessibilityLabel={_(msg`Write note`)}
           accessibilityHint={_(
-            msg`Compose posts up to ${plural(MAX_GRAPHEME_LENGTH || 0, {
+            msg`Compose notes up to ${plural(MAX_GRAPHEME_LENGTH || 0, {
               other: '# characters',
             })} in length`,
           )}
         />
       </View>
 
-      {canRemovePost && isActive && (
+      {canRemoveNote && isActive && (
         <>
           <Button
-            label={_(msg`Delete post`)}
+            label={_(msg`Delete note`)}
             size="small"
             color="secondary"
             variant="ghost"
@@ -1018,16 +1018,16 @@ let ComposerPost = React.memo(function ComposerPost({
             style={[a.absolute, {top: 0, right: 0}]}
             onPress={() => {
               if (
-                post.shortenedGraphemeLength > 0 ||
-                post.embed.media ||
-                post.embed.link ||
-                post.embed.quote
+                note.shortenedGraphemeLength > 0 ||
+                note.embed.media ||
+                note.embed.link ||
+                note.embed.quote
               ) {
                 discardPromptControl.open()
               } else {
                 dispatch({
-                  type: 'remove_post',
-                  postId: post.id,
+                  type: 'remove_note',
+                  noteId: note.id,
                 })
               }
             }}>
@@ -1035,12 +1035,12 @@ let ComposerPost = React.memo(function ComposerPost({
           </Button>
           <Prompt.Basic
             control={discardPromptControl}
-            title={_(msg`Discard post?`)}
-            description={_(msg`Are you sure you'd like to discard this post?`)}
+            title={_(msg`Discard note?`)}
+            description={_(msg`Are you sure you'd like to discard this note?`)}
             onConfirm={() => {
               dispatch({
-                type: 'remove_post',
-                postId: post.id,
+                type: 'remove_note',
+                noteId: note.id,
               })
             }}
             confirmButtonCta={_(msg`Discard`)}
@@ -1051,17 +1051,17 @@ let ComposerPost = React.memo(function ComposerPost({
 
       <ComposerEmbeds
         canRemoveQuote={canRemoveQuote}
-        embed={post.embed}
-        dispatch={dispatchPost}
-        clearVideo={() => onClearVideo(post.id)}
-        isActivePost={isActive}
+        embed={note.embed}
+        dispatch={dispatchNote}
+        clearVideo={() => onClearVideo(note.id)}
+        isActiveNote={isActive}
       />
     </View>
   )
 })
 
 function ComposerTopBar({
-  canPost,
+  canNote,
   isReply,
   isPublishQueued,
   isPublishing,
@@ -1076,7 +1076,7 @@ function ComposerTopBar({
 }: {
   isPublishing: boolean
   publishingStage: string
-  canPost: boolean
+  canNote: boolean
   isReply: boolean
   isPublishQueued: boolean
   isThread: boolean
@@ -1103,7 +1103,7 @@ function ComposerTopBar({
           style={[a.rounded_full, a.py_sm, {paddingLeft: 7, paddingRight: 7}]}
           onPress={onCancel}
           accessibilityHint={_(
-            msg`Closes post composer and discards post draft`,
+            msg`Closes note composer and discards note draft`,
           )}>
           <ButtonText style={[a.text_md]}>
             <Trans>Cancel</Trans>
@@ -1115,7 +1115,7 @@ function ComposerTopBar({
         {isPublishing ? (
           <>
             <Text style={pal.textLight}>{publishingStage}</Text>
-            <View style={styles.postBtn}>
+            <View style={styles.noteBtn}>
               <ActivityIndicator />
             </View>
           </>
@@ -1142,16 +1142,16 @@ function ComposerTopBar({
                 : isThread
                   ? _(
                       msg({
-                        message: 'Publish posts',
+                        message: 'Publish notes',
                         comment:
-                          'Accessibility label for button to publish multiple posts in a thread',
+                          'Accessibility label for button to publish multiple notes in a thread',
                       }),
                     )
                   : _(
                       msg({
-                        message: 'Publish post',
+                        message: 'Publish note',
                         comment:
-                          'Accessibility label for button to publish a single post',
+                          'Accessibility label for button to publish a single note',
                       }),
                     )
             }
@@ -1161,14 +1161,14 @@ function ComposerTopBar({
             size="small"
             style={[a.rounded_full, a.py_sm]}
             onPress={onPublish}
-            disabled={!canPost || isPublishQueued}>
+            disabled={!canNote || isPublishQueued}>
             <ButtonText style={[a.text_md]}>
               {isReply ? (
                 <Trans context="action">Reply</Trans>
               ) : isThread ? (
-                <Trans context="action">Post All</Trans>
+                <Trans context="action">Note All</Trans>
               ) : (
-                <Trans context="action">Post</Trans>
+                <Trans context="action">Note</Trans>
               )}
             </ButtonText>
           </Button>
@@ -1200,13 +1200,13 @@ function ComposerEmbeds({
   dispatch,
   clearVideo,
   canRemoveQuote,
-  isActivePost,
+  isActiveNote,
 }: {
   embed: EmbedDraft
-  dispatch: (action: PostAction) => void
+  dispatch: (action: NoteAction) => void
   clearVideo: () => void
   canRemoveQuote: boolean
-  isActivePost: boolean
+  isActiveNote: boolean
 }) {
   const video = embed.media?.type === 'video' ? embed.media.video : null
   return (
@@ -1258,7 +1258,7 @@ function ComposerEmbeds({
                 <VideoPreview
                   asset={video.asset}
                   video={video.video}
-                  isActivePost={isActivePost}
+                  isActiveNote={isActiveNote}
                   clear={clearVideo}
                 />
               ) : null)}
@@ -1312,20 +1312,20 @@ function ComposerEmbeds({
 function ComposerPills({
   isReply,
   thread,
-  post,
+  note,
   dispatch,
   bottomBarAnimatedStyle,
 }: {
   isReply: boolean
   thread: ThreadDraft
-  post: PostDraft
+  note: NoteDraft
   dispatch: (action: ComposerAction) => void
   bottomBarAnimatedStyle: StyleProp<ViewStyle>
 }) {
   const t = useTheme()
-  const media = post.embed.media
+  const media = note.embed.media
   const hasMedia = media?.type === 'images' || media?.type === 'video'
-  const hasLink = !!post.embed.link
+  const hasLink = !!note.embed.link
 
   // Don't render anything if no pills are going to be displayed
   if (isReply && !hasMedia && !hasLink) {
@@ -1343,9 +1343,9 @@ function ComposerPills({
         showsHorizontalScrollIndicator={false}>
         {isReply ? null : (
           <ThreadgateBtn
-            postgate={thread.postgate}
-            onChangePostgate={nextPostgate => {
-              dispatch({type: 'update_postgate', postgate: nextPostgate})
+            notegate={thread.notegate}
+            onChangeNotegate={nextNotegate => {
+              dispatch({type: 'update_notegate', notegate: nextNotegate})
             }}
             threadgateAllowUISettings={thread.threadgate}
             onChangeThreadgateAllowUISettings={nextThreadgate => {
@@ -1359,12 +1359,12 @@ function ComposerPills({
         )}
         {hasMedia || hasLink ? (
           <LabelsBtn
-            labels={post.labels}
+            labels={note.labels}
             onChange={nextLabels => {
               dispatch({
-                type: 'update_post',
-                postId: post.id,
-                postAction: {
+                type: 'update_note',
+                noteId: note.id,
+                noteAction: {
                   type: 'update_labels',
                   labels: nextLabels,
                 },
@@ -1378,27 +1378,27 @@ function ComposerPills({
 }
 
 function ComposerFooter({
-  post,
+  note,
   dispatch,
   showAddButton,
   onEmojiButtonPress,
   onError,
   onSelectVideo,
-  onAddPost,
+  onAddNote,
 }: {
-  post: PostDraft
-  dispatch: (action: PostAction) => void
+  note: NoteDraft
+  dispatch: (action: NoteAction) => void
   showAddButton: boolean
   onEmojiButtonPress: () => void
   onError: (error: string) => void
-  onSelectVideo: (postId: string, asset: ImagePickerAsset) => void
-  onAddPost: () => void
+  onSelectVideo: (noteId: string, asset: ImagePickerAsset) => void
+  onAddNote: () => void
 }) {
   const t = useTheme()
   const {_} = useLingui()
   const {isMobile} = useWebMediaQueries()
 
-  const media = post.embed.media
+  const media = note.embed.media
   const images = media?.type === 'images' ? media.images : []
   const video = media?.type === 'video' ? media.video : null
   const isMaxImages = images.length >= MAX_IMAGES
@@ -1444,7 +1444,7 @@ function ComposerFooter({
                 onAdd={onImageAdd}
               />
               <SelectVideoBtn
-                onSelectVideo={asset => onSelectVideo(post.id, asset)}
+                onSelectVideo={asset => onSelectVideo(note.id, asset)}
                 disabled={!!media}
                 setError={onError}
               />
@@ -1472,8 +1472,8 @@ function ComposerFooter({
       <View style={[a.flex_row, a.align_center, a.justify_between]}>
         {showAddButton && (
           <Button
-            label={_(msg`Add new post`)}
-            onPress={onAddPost}
+            label={_(msg`Add new note`)}
+            onPress={onAddNote}
             style={[a.p_sm, a.m_2xs]}
             variant="ghost"
             shape="round"
@@ -1487,7 +1487,7 @@ function ComposerFooter({
         )}
         <SelectLangBtn />
         <CharProgress
-          count={post.shortenedGraphemeLength}
+          count={note.shortenedGraphemeLength}
           style={{width: 65}}
         />
       </View>
@@ -1544,7 +1544,7 @@ function useScrollTracker({
     [contentHeight, contentOffset, scrollViewHeight],
   )
 
-  const scrollHandler = useAnimatedScrollHandler({
+  const scrollUsernamer = useAnimatedScrollUsernamer({
     onScroll: event => {
       'worklet'
       showHideBottomBorder({
@@ -1620,7 +1620,7 @@ function useScrollTracker({
   })
 
   return {
-    scrollHandler,
+    scrollUsernamer,
     onScrollViewContentSizeChange,
     onScrollViewLayout,
     topBarAnimatedStyle,
@@ -1645,28 +1645,28 @@ function useKeyboardVerticalOffset() {
 }
 
 async function whenAppViewReady(
-  agent: BskyAgent,
+  agent: SonetAppAgent,
   uri: string,
-  fn: (res: AppBskyFeedGetPostThread.Response) => boolean,
+  fn: (res: SonetFeedGetNoteThread.Response) => boolean,
 ) {
   await until(
     5, // 5 tries
     1e3, // 1s delay between tries
     fn,
     () =>
-      agent.app.bsky.feed.getPostThread({
+      agent.app.sonet.feed.getNoteThread({
         uri,
         depth: 0,
       }),
   )
 }
 
-function isEmptyPost(post: PostDraft) {
+function isEmptyNote(note: NoteDraft) {
   return (
-    post.richtext.text.trim().length === 0 &&
-    !post.embed.media &&
-    !post.embed.link &&
-    !post.embed.quote
+    note.richtext.text.trim().length === 0 &&
+    !note.embed.media &&
+    !note.embed.link &&
+    !note.embed.quote
   )
 }
 
@@ -1690,7 +1690,7 @@ const styles = StyleSheet.create({
     height: 54,
     gap: 4,
   },
-  postBtn: {
+  noteBtn: {
     borderRadius: 20,
     paddingHorizontal: 20,
     paddingVertical: 6,
@@ -1730,7 +1730,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 5,
   },
-  inactivePost: {
+  inactiveNote: {
     opacity: 0.5,
   },
   addExtLinkBtn: {

@@ -54,15 +54,15 @@ export const VideoControls: React.FC<VideoControlsProps> = ({
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
   }
 
-  // Handle quality selection
-  const handleQualitySelect = useCallback((quality: string) => {
+  // Username quality selection
+  const usernameQualitySelect = useCallback((quality: string) => {
     setSelectedQuality(quality)
     setShowQualityMenu(false)
     onQualityChange(quality)
   }, [onQualityChange])
 
-  // Handle seek bar tap
-  const handleSeekBarTap = useCallback((event: any) => {
+  // Username seek bar tap
+  const usernameSeekBarTap = useCallback((event: any) => {
     const {locationX} = event.nativeEvent
     const seekBarWidth = screenWidth - 32 // Account for padding
     const progress = locationX / seekBarWidth
@@ -103,7 +103,7 @@ export const VideoControls: React.FC<VideoControlsProps> = ({
                   styles.qualityOption,
                   selectedQuality === option.value && styles.qualityOptionSelected
                 ]}
-                onPress={() => handleQualitySelect(option.value)}
+                onPress={() => usernameQualitySelect(option.value)}
               >
                 <Text style={[
                   styles.qualityOptionText,
@@ -145,7 +145,7 @@ export const VideoControls: React.FC<VideoControlsProps> = ({
         <View style={styles.progressContainer}>
           <TouchableOpacity
             style={styles.seekBar}
-            onPress={handleSeekBarTap}
+            onPress={usernameSeekBarTap}
             activeOpacity={0.8}
           >
             <View style={styles.progressBackground} />

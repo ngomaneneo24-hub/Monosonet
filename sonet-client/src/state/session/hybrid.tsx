@@ -7,8 +7,8 @@ import type {SonetSessionAccount} from './sonet'
 
 // Unified session interface
 export interface UnifiedSessionAccount {
-  did: string
-  handle: string
+  userId: string
+  username: string
   displayName?: string
   email?: string
   emailConfirmed?: boolean
@@ -33,7 +33,7 @@ export interface UnifiedSessionApi {
   logoutCurrentAccount: () => Promise<void>
   logoutEveryAccount: () => Promise<void>
   resumeSession: (account: UnifiedSessionAccount) => Promise<void>
-  removeAccount: (did: string) => void
+  removeAccount: (userId: string) => void
   partialRefreshSession: () => Promise<void>
   // Sonet-specific methods
   sonetLogin: (params: {username: string; password: string}) => Promise<void>
@@ -67,8 +67,8 @@ export function UnifiedSessionProvider({children}: {children: React.ReactNode}) 
     // Add AT Protocol accounts
     if (atprotoSession.accounts.length > 0) {
       accounts.push(...atprotoSession.accounts.map(account => ({
-        did: account.did,
-        handle: account.handle,
+        userId: account.userId,
+        username: account.username,
         displayName: account.displayName,
         email: account.email,
         emailConfirmed: account.emailConfirmed,
@@ -80,8 +80,8 @@ export function UnifiedSessionProvider({children}: {children: React.ReactNode}) 
     // Add Sonet account if available
     if (sonetSession.account) {
       accounts.push({
-        did: sonetSession.account.userId,
-        handle: sonetSession.account.username,
+        userId: sonetSession.account.userId,
+        username: sonetSession.account.username,
         displayName: sonetSession.account.displayName,
         userId: sonetSession.account.userId,
         accessToken: sonetSession.account.accessToken,
@@ -90,7 +90,7 @@ export function UnifiedSessionProvider({children}: {children: React.ReactNode}) 
     }
 
     const currentAccount = accounts.find(account => 
-      account.did === atprotoSession.currentAccount?.did || 
+      account.userId === atprotoSession.currentAccount?.userId || 
       account.userId === sonetSession.account?.userId
     )
 
@@ -182,8 +182,8 @@ export function useIsSonetSession(): boolean {
 // Helper function to convert between account types
 export function convertAtprotoAccountToUnified(account: SessionAccount): UnifiedSessionAccount {
   return {
-    did: account.did,
-    handle: account.handle,
+    userId: account.userId,
+    username: account.username,
     displayName: account.displayName,
     email: account.email,
     emailConfirmed: account.emailConfirmed,
@@ -194,8 +194,8 @@ export function convertAtprotoAccountToUnified(account: SessionAccount): Unified
 
 export function convertSonetAccountToUnified(account: SonetSessionAccount): UnifiedSessionAccount {
   return {
-    did: account.userId,
-    handle: account.username,
+    userId: account.userId,
+    username: account.username,
     displayName: account.displayName,
     userId: account.userId,
     accessToken: account.accessToken,

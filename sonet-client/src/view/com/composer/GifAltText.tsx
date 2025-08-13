@@ -21,7 +21,7 @@ import * as TextField from '#/components/forms/TextField'
 import {Check_Stroke2_Corner0_Rounded as Check} from '#/components/icons/Check'
 import {CircleInfo_Stroke2_Corner0_Rounded as CircleInfo} from '#/components/icons/CircleInfo'
 import {PlusSmall_Stroke2_Corner0_Rounded as Plus} from '#/components/icons/Plus'
-import {GifEmbed} from '#/components/Post/Embed/ExternalEmbed/Gif'
+import {GifEmbed} from '#/components/Note/Embed/ExternalEmbed/Gif'
 import {Text} from '#/components/Typography'
 import {AltTextReminder} from './photos/Gallery'
 
@@ -108,7 +108,7 @@ export function GifAltTextDialogLoaded({
         onClose={() => {
           onSubmit(altTextDraft)
         }}>
-        <Dialog.Handle />
+        <Dialog.Username />
         <AltTextInner
           vendorAltText={vendorAltText}
           altText={altTextDraft}

@@ -1,5 +1,5 @@
 import React from 'react'
-import {AppBskyActorDefs} from '@atproto/api'
+import {SonetActorDefs} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useFocusEffect} from '@react-navigation/native'
@@ -21,20 +21,20 @@ function renderItem({
   item,
   index,
 }: {
-  item: AppBskyActorDefs.ProfileView
+  item: SonetActorDefs.ProfileView
   index: number
 }) {
   return (
     <ProfileCardWithFollowBtn
-      key={item.did}
+      key={item.userId}
       profile={item}
       noBorder={index === 0}
     />
   )
 }
 
-function keyExtractor(item: AppBskyActorDefs.ProfileViewBasic) {
-  return item.did
+function keyExtractor(item: SonetActorDefs.ProfileViewBasic) {
+  return item.userId
 }
 
 type Props = NativeStackScreenProps<

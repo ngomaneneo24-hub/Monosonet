@@ -10,16 +10,16 @@ import Animated, {
   SlideOutLeft,
   SlideOutRight,
 } from 'react-native-reanimated'
-import {type ComAtprotoServerDescribeServer} from '@atproto/api'
+import {type SonetServerDescribeServer} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useMutation, useQueryClient} from '@tanstack/react-query'
 
 import {HITSLOP_10, urls} from '#/lib/constants'
 import {cleanError} from '#/lib/strings/errors'
-import {createFullHandle, validateServiceHandle} from '#/lib/strings/handles'
-import {sanitizeHandle} from '#/lib/strings/handles'
-import {useFetchDid, useUpdateHandleMutation} from '#/state/queries/handle'
+import {createFullUsername, validateServiceUsername} from '#/lib/strings/usernames'
+import {sanitizeUsername} from '#/lib/strings/usernames'
+import {useFetchDid, useUpdateUsernameMutation} from '#/state/queries/username'
 import {RQKEY as RQKEY_PROFILE} from '#/state/queries/profile'
 import {useServiceQuery} from '#/state/queries/service'
 import {useCurrentAccountProfile} from '#/state/queries/useCurrentAccountProfile'
@@ -44,7 +44,7 @@ import {Text} from '#/components/Typography'
 import {useSimpleVerificationState} from '#/components/verification'
 import {CopyButton} from './CopyButton'
 
-export function ChangeHandleDialog({
+export function ChangeUsernameDialog({
   control,
 }: {
   control: Dialog.DialogControlProps
@@ -53,12 +53,12 @@ export function ChangeHandleDialog({
 
   return (
     <Dialog.Outer control={control} nativeOptions={{minHeight: height}}>
-      <ChangeHandleDialogInner />
+      <ChangeUsernameDialogInner />
     </Dialog.Outer>
   )
 }
 
-function ChangeHandleDialogInner() {
+function ChangeUsernameDialogInner() {
   const control = Dialog.useDialogContext()
   const {_} = useLingui()
   const agent = useAgent()
@@ -68,8 +68,8 @@ function ChangeHandleDialogInner() {
     refetch,
   } = useServiceQuery(agent.serviceUrl.toString())
 
-  const [page, setPage] = useState<'provided-handle' | 'own-handle'>(
-    'provided-handle',
+  const [page, setPage] = useState<'provided-username' | 'own-username'>(
+    'provided-username',
   )
 
   const cancelButton = useCallback(
@@ -91,11 +91,11 @@ function ChangeHandleDialogInner() {
 
   return (
     <Dialog.ScrollableInner
-      label={_(msg`Change Handle`)}
+      label={_(msg`Change Username`)}
       header={
         <Dialog.Header renderLeft={cancelButton}>
           <Dialog.HeaderText>
-            <Trans>Change Handle</Trans>
+            <Trans>Change Username</Trans>
           </Dialog.HeaderText>
         </Dialog.Header>
       }
@@ -110,14 +110,14 @@ function ChangeHandleDialogInner() {
           />
         ) : serviceInfo ? (
           <LayoutAnimationConfig skipEntering skipExiting>
-            {page === 'provided-handle' ? (
+            {page === 'provided-username' ? (
               <Animated.View
                 key={page}
                 entering={native(SlideInLeft)}
                 exiting={native(SlideOutLeft)}>
-                <ProvidedHandlePage
+                <ProvidedUsernamePage
                   serviceInfo={serviceInfo}
-                  goToOwnHandle={() => setPage('own-handle')}
+                  goToOwnUsername={() => setPage('own-username')}
                 />
               </Animated.View>
             ) : (
@@ -125,8 +125,8 @@ function ChangeHandleDialogInner() {
                 key={page}
                 entering={native(SlideInRight)}
                 exiting={native(SlideOutRight)}>
-                <OwnHandlePage
-                  goToServiceHandle={() => setPage('provided-handle')}
+                <OwnUsernamePage
+                  goToServiceUsername={() => setPage('provided-username')}
                 />
               </Animated.View>
             )}
@@ -141,12 +141,12 @@ function ChangeHandleDialogInner() {
   )
 }
 
-function ProvidedHandlePage({
+function ProvidedUsernamePage({
   serviceInfo,
-  goToOwnHandle,
+  goToOwnUsername,
 }: {
-  serviceInfo: ComAtprotoServerDescribeServer.OutputSchema
-  goToOwnHandle: () => void
+  serviceInfo: SonetServerDescribeServer.OutputSchema
+  goToOwnUsername: () => void
 }) {
   const {_} = useLingui()
   const [subdomain, setSubdomain] = useState('')
@@ -160,15 +160,15 @@ function ProvidedHandlePage({
   })
 
   const {
-    mutate: changeHandle,
+    mutate: changeUsername,
     isPending,
     error,
     isSuccess,
-  } = useUpdateHandleMutation({
+  } = useUpdateUsernameMutation({
     onSuccess: () => {
       if (currentAccount) {
         queryClient.invalidateQueries({
-          queryKey: RQKEY_PROFILE(currentAccount.did),
+          queryKey: RQKEY_PROFILE(currentAccount.userId),
         })
       }
       agent.resumeSession(agent.session!).then(() => control.close())
@@ -178,12 +178,12 @@ function ProvidedHandlePage({
   const host = serviceInfo.availableUserDomains[0]
 
   const validation = useMemo(
-    () => validateServiceHandle(subdomain, host),
+    () => validateServiceUsername(subdomain, host),
     [subdomain, host],
   )
 
   const isInvalid =
-    !validation.handleChars ||
+    !validation.usernameChars ||
     !validation.hyphenStartOrEnd ||
     !validation.totalLength
 
@@ -192,12 +192,12 @@ function ProvidedHandlePage({
       <View style={[a.flex_1, a.gap_md]}>
         {isSuccess && (
           <Animated.View entering={FadeIn} exiting={FadeOut}>
-            <SuccessMessage text={_(msg`Handle changed!`)} />
+            <SuccessMessage text={_(msg`Username changed!`)} />
           </Animated.View>
         )}
         {error && (
           <Animated.View entering={FadeIn} exiting={FadeOut}>
-            <ChangeHandleError error={error} />
+            <ChangeUsernameError error={error} />
           </Animated.View>
         )}
         <Animated.View
@@ -207,7 +207,7 @@ function ProvidedHandlePage({
             <Admonition type="error">
               <Trans>
                 You are verified. You will lose your verification status if you
-                change your handle.{' '}
+                change your username.{' '}
                 <InlineLinkText
                   label={_(msg`Learn more`)}
                   to={urls.website.blog.initialVerificationAnnouncement}>
@@ -218,7 +218,7 @@ function ProvidedHandlePage({
           )}
           <View>
             <TextField.LabelText>
-              <Trans>New handle</Trans>
+              <Trans>New username</Trans>
             </TextField.LabelText>
             <TextField.Root isInvalid={isInvalid}>
               <TextField.Icon icon={AtIcon} />
@@ -226,7 +226,7 @@ function ProvidedHandlePage({
                 editable={!isPending}
                 defaultValue={subdomain}
                 onChangeText={text => setSubdomain(text)}
-                label={_(msg`New handle`)}
+                label={_(msg`New username`)}
                 placeholder={_(msg`e.g. alice`)}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -238,21 +238,21 @@ function ProvidedHandlePage({
           </View>
           <Text>
             <Trans>
-              Your full handle will be{' '}
+              Your full username will be{' '}
               <Text style={[a.font_bold]}>
-                @{createFullHandle(subdomain, host)}
+                @{createFullUsername(subdomain, host)}
               </Text>
             </Trans>
           </Text>
           <Button
-            label={_(msg`Save new handle`)}
+            label={_(msg`Save new username`)}
             variant="solid"
             size="large"
             color={validation.overall ? 'primary' : 'secondary'}
             disabled={!validation.overall}
             onPress={() => {
               if (validation.overall) {
-                changeHandle({handle: createFullHandle(subdomain, host)})
+                changeUsername({username: createFullUsername(subdomain, host)})
               }
             }}>
             {isPending ? (
@@ -265,11 +265,11 @@ function ProvidedHandlePage({
           </Button>
           <Text style={[a.leading_snug]}>
             <Trans>
-              If you have your own domain, you can use that as your handle. This
+              If you have your own domain, you can use that as your username. This
               lets you self-verify your identity.{' '}
               <InlineLinkText
                 label={_(msg`learn more`)}
-                to="https://bsky.social/about/blog/4-28-2023-domain-handle-tutorial"
+                to="https://sonet.social/about/blog/4-28-2023-domain-username-tutorial"
                 style={[a.font_bold]}
                 disableMismatchWarning>
                 Learn more here.
@@ -281,7 +281,7 @@ function ProvidedHandlePage({
             variant="outline"
             color="primary"
             size="large"
-            onPress={goToOwnHandle}>
+            onPress={goToOwnUsername}>
             <ButtonText>
               <Trans>I have my own domain</Trans>
             </ButtonText>
@@ -293,7 +293,7 @@ function ProvidedHandlePage({
   )
 }
 
-function OwnHandlePage({goToServiceHandle}: {goToServiceHandle: () => void}) {
+function OwnUsernamePage({goToServiceUsername}: {goToServiceUsername: () => void}) {
   const {_} = useLingui()
   const t = useTheme()
   const {currentAccount} = useSession()
@@ -305,15 +305,15 @@ function OwnHandlePage({goToServiceHandle}: {goToServiceHandle: () => void}) {
   const queryClient = useQueryClient()
 
   const {
-    mutate: changeHandle,
+    mutate: changeUsername,
     isPending,
     error,
     isSuccess,
-  } = useUpdateHandleMutation({
+  } = useUpdateUsernameMutation({
     onSuccess: () => {
       if (currentAccount) {
         queryClient.invalidateQueries({
-          queryKey: RQKEY_PROFILE(currentAccount.did),
+          queryKey: RQKEY_PROFILE(currentAccount.userId),
         })
       }
       agent.resumeSession(agent.session!).then(() => control.close())
@@ -327,11 +327,11 @@ function OwnHandlePage({goToServiceHandle}: {goToServiceHandle: () => void}) {
     error: verifyError,
     reset: resetVerification,
   } = useMutation<true, Error | DidMismatchError>({
-    mutationKey: ['verify-handle', domain],
+    mutationKey: ['verify-username', domain],
     mutationFn: async () => {
-      const did = await fetchDid(domain)
-      if (did !== currentAccount?.did) {
-        throw new DidMismatchError(did)
+      const userId = await fetchDid(domain)
+      if (userId !== currentAccount?.userId) {
+        throw new DidMismatchError(userId)
       }
       return true
     },
@@ -341,12 +341,12 @@ function OwnHandlePage({goToServiceHandle}: {goToServiceHandle: () => void}) {
     <View style={[a.flex_1, a.gap_lg]}>
       {isSuccess && (
         <Animated.View entering={FadeIn} exiting={FadeOut}>
-          <SuccessMessage text={_(msg`Handle changed!`)} />
+          <SuccessMessage text={_(msg`Username changed!`)} />
         </Animated.View>
       )}
       {error && (
         <Animated.View entering={FadeIn} exiting={FadeOut}>
-          <ChangeHandleError error={error} />
+          <ChangeUsernameError error={error} />
         </Animated.View>
       )}
       {verifyError && (
@@ -354,10 +354,10 @@ function OwnHandlePage({goToServiceHandle}: {goToServiceHandle: () => void}) {
           <Admonition type="error">
             {verifyError instanceof DidMismatchError ? (
               <Trans>
-                Wrong DID returned from server. Received: {verifyError.did}
+                Wrong UserID returned from server. Received: {verifyError.userId}
               </Trans>
             ) : (
-              <Trans>Failed to verify handle. Please try again.</Trans>
+              <Trans>Failed to verify username. Please try again.</Trans>
             )}
           </Admonition>
         </Animated.View>
@@ -372,7 +372,7 @@ function OwnHandlePage({goToServiceHandle}: {goToServiceHandle: () => void}) {
           <TextField.Root>
             <TextField.Icon icon={AtIcon} />
             <Dialog.Input
-              label={_(msg`New handle`)}
+              label={_(msg`New username`)}
               placeholder={_(msg`e.g. alice.com`)}
               editable={!isPending}
               defaultValue={domain}
@@ -441,12 +441,12 @@ function OwnHandlePage({goToServiceHandle}: {goToServiceHandle: () => void}) {
                 <CopyButton
                   variant="solid"
                   color="secondary"
-                  value={'did=' + currentAccount?.did}
+                  value={'userId=' + currentAccount?.userId}
                   label={_(msg`Copy TXT record value`)}
                   hoverStyle={[a.bg_transparent]}
                   hitSlop={HITSLOP_10}>
                   <Text style={[a.text_md, a.flex_1]}>
-                    did={currentAccount?.did}
+                    userId={currentAccount?.userId}
                   </Text>
                   <ButtonIcon icon={CopyIcon} />
                 </CopyButton>
@@ -480,20 +480,20 @@ function OwnHandlePage({goToServiceHandle}: {goToServiceHandle: () => void}) {
                 t.atoms.border_contrast_low,
               ]}>
               <Text style={[a.text_md]}>
-                https://{domain}/.well-known/atproto-did
+                https://{domain}/.well-known/atproto-userId
               </Text>
             </View>
             <Text>
               <Trans>That contains the following:</Trans>
             </Text>
             <CopyButton
-              value={currentAccount?.did ?? ''}
-              label={_(msg`Copy DID`)}
+              value={currentAccount?.userId ?? ''}
+              label={_(msg`Copy UserID`)}
               size="large"
               variant="solid"
               color="secondary"
               style={[a.px_md, a.border, t.atoms.border_contrast_low]}>
-              <Text style={[a.text_md, a.flex_1]}>{currentAccount?.did}</Text>
+              <Text style={[a.text_md, a.flex_1]}>{currentAccount?.userId}</Text>
               <ButtonIcon icon={CopyIcon} />
             </CopyButton>
           </>
@@ -508,12 +508,12 @@ function OwnHandlePage({goToServiceHandle}: {goToServiceHandle: () => void}) {
         </Animated.View>
       )}
       <Animated.View layout={native(LinearTransition)}>
-        {currentAccount?.handle?.endsWith('.bsky.social') && (
+        {currentAccount?.username?.endsWith('.sonet.social') && (
           <Admonition type="info" style={[a.mb_md]}>
             <Trans>
-              Your current handle{' '}
+              Your current username{' '}
               <Text style={[a.font_bold]}>
-                {sanitizeHandle(currentAccount?.handle || '', '@')}
+                {sanitizeUsername(currentAccount?.username || '', '@')}
               </Text>{' '}
               will automatically remain reserved for you. You can switch back to
               it at any time from this account.
@@ -534,7 +534,7 @@ function OwnHandlePage({goToServiceHandle}: {goToServiceHandle: () => void}) {
           disabled={domain.trim().length === 0}
           onPress={() => {
             if (isVerified) {
-              changeHandle({handle: domain})
+              changeUsername({username: domain})
             } else {
               verify()
             }
@@ -557,14 +557,14 @@ function OwnHandlePage({goToServiceHandle}: {goToServiceHandle: () => void}) {
         <Button
           label={_(msg`Use default provider`)}
           accessibilityHint={_(msg`Returns to previous page`)}
-          onPress={goToServiceHandle}
+          onPress={goToServiceUsername}
           variant="outline"
           color="secondary"
           size="large"
           style={[a.mt_sm]}>
           <ButtonIcon icon={ArrowLeftIcon} position="left" />
           <ButtonText>
-            <Trans>Nevermind, create a handle for me</Trans>
+            <Trans>Nevermind, create a username for me</Trans>
           </ButtonText>
         </Button>
       </Animated.View>
@@ -573,31 +573,31 @@ function OwnHandlePage({goToServiceHandle}: {goToServiceHandle: () => void}) {
 }
 
 class DidMismatchError extends Error {
-  did: string
-  constructor(did: string) {
-    super('DID mismatch')
+  userId: string
+  constructor(userId: string) {
+    super('UserID mismatch')
     this.name = 'DidMismatchError'
-    this.did = did
+    this.userId = userId
   }
 }
 
-function ChangeHandleError({error}: {error: unknown}) {
+function ChangeUsernameError({error}: {error: unknown}) {
   const {_} = useLingui()
 
-  let message = _(msg`Failed to change handle. Please try again.`)
+  let message = _(msg`Failed to change username. Please try again.`)
 
   if (error instanceof Error) {
-    if (error.message.startsWith('Handle already taken')) {
-      message = _(msg`Handle already taken. Please try a different one.`)
-    } else if (error.message === 'Reserved handle') {
-      message = _(msg`This handle is reserved. Please try a different one.`)
-    } else if (error.message === 'Handle too long') {
-      message = _(msg`Handle too long. Please try a shorter one.`)
-    } else if (error.message === 'Input/handle must be a valid handle') {
-      message = _(msg`Invalid handle. Please try a different one.`)
+    if (error.message.startsWith('Username already taken')) {
+      message = _(msg`Username already taken. Please try a different one.`)
+    } else if (error.message === 'Reserved username') {
+      message = _(msg`This username is reserved. Please try a different one.`)
+    } else if (error.message === 'Username too long') {
+      message = _(msg`Username too long. Please try a shorter one.`)
+    } else if (error.message === 'Input/username must be a valid username') {
+      message = _(msg`Invalid username. Please try a different one.`)
     } else if (error.message === 'Rate Limit Exceeded') {
       message = _(
-        msg`Rate limit exceeded – you've tried to change your handle too many times in a short period. Please wait a minute before trying again.`,
+        msg`Rate limit exceeded – you've tried to change your username too many times in a short period. Please wait a minute before trying again.`,
       )
     }
   }

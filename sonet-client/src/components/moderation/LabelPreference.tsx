@@ -2,7 +2,7 @@ import {View} from 'react-native'
 import {
   type InterpretedLabelValueDefinition,
   type LabelPreference,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import type React from 'react'
@@ -190,7 +190,7 @@ export function LabelerLabelPreference({
   const {mutate, variables} = usePreferencesSetContentLabelMutation()
   const savedPref =
     labelerDid && !isGlobalLabel
-      ? preferences?.moderationPrefs.labelers.find(l => l.did === labelerDid)
+      ? preferences?.moderationPrefs.labelers.find(l => l.userId === labelerDid)
           ?.labels[identifier]
       : preferences?.moderationPrefs.labels[identifier]
   const pref =

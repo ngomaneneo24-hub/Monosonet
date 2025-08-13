@@ -1,10 +1,10 @@
-import {AppBskyLabelerDefs, ComAtprotoModerationDefs} from '@atproto/api'
+import {SonetLabelerDefs, SonetModerationDefs} from '@sonet/api'
 
 import {ReportOption} from './utils/useReportOptions'
 
 export type ReportState = {
   selectedOption?: ReportOption
-  selectedLabeler?: AppBskyLabelerDefs.LabelerViewDetailed
+  selectedLabeler?: SonetLabelerDefs.LabelerViewDetailed
   details?: string
   detailsOpen: boolean
   activeStepIndex1: number
@@ -21,7 +21,7 @@ export type ReportAction =
     }
   | {
       type: 'selectLabeler'
-      labeler: AppBskyLabelerDefs.LabelerViewDetailed
+      labeler: SonetLabelerDefs.LabelerViewDetailed
     }
   | {
       type: 'clearLabeler'
@@ -58,7 +58,7 @@ export function reducer(state: ReportState, action: ReportAction): ReportState {
         activeStepIndex1: 2,
         detailsOpen:
           !!state.details ||
-          action.option.reason === ComAtprotoModerationDefs.REASONOTHER,
+          action.option.reason === SonetModerationDefs.REASONOTHER,
       }
     case 'clearOption':
       return {
@@ -68,7 +68,7 @@ export function reducer(state: ReportState, action: ReportAction): ReportState {
         activeStepIndex1: 1,
         detailsOpen:
           !!state.details ||
-          state.selectedOption?.reason === ComAtprotoModerationDefs.REASONOTHER,
+          state.selectedOption?.reason === SonetModerationDefs.REASONOTHER,
       }
     case 'selectLabeler':
       return {
@@ -83,7 +83,7 @@ export function reducer(state: ReportState, action: ReportAction): ReportState {
         activeStepIndex1: 2,
         detailsOpen:
           !!state.details ||
-          state.selectedOption?.reason === ComAtprotoModerationDefs.REASONOTHER,
+          state.selectedOption?.reason === SonetModerationDefs.REASONOTHER,
       }
     case 'setDetails':
       return {

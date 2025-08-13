@@ -35,7 +35,7 @@ export function PrivateProfileFollowDialog({
   return (
     <>
       <Button
-        label={_(msg`Follow ${profile.displayName || profile.handle}`)}
+        label={_(msg`Follow ${profile.displayName || profile.username}`)}
         onPress={() => control.open()}
         size={gtMobile ? 'small' : 'large'}
         color="primary"
@@ -46,7 +46,7 @@ export function PrivateProfileFollowDialog({
         </ButtonText>
       </Button>
       <Dialog.Outer control={control}>
-        <Dialog.Handle />
+        <Dialog.Username />
         <DialogInner profile={profile} onFollow={onFollow} />
       </Dialog.Outer>
     </>
@@ -69,7 +69,7 @@ function DialogInner({
     'PrivateProfileFollowDialog'
   )
 
-  const handleFollow = useCallback(async () => {
+  const usernameFollow = useCallback(async () => {
     try {
       await queueFollow()
       onFollow?.()
@@ -101,7 +101,7 @@ function DialogInner({
         <View style={[a.gap_md, a.align_center]}>
           <Text style={[a.text_md, t.atoms.text_contrast_high, a.text_center]}>
             <Trans>
-              Follow {profile.displayName || profile.handle} to see their posts
+              Follow {profile.displayName || profile.username} to see their notes
               and updates.
             </Trans>
           </Text>
@@ -125,12 +125,12 @@ function DialogInner({
             </ButtonText>
           </Button>
           <Button
-            label={_(msg`Follow ${profile.displayName || profile.handle}`)}
+            label={_(msg`Follow ${profile.displayName || profile.username}`)}
             size="large"
             color="primary"
             variant="solid"
             style={[a.flex_1]}
-            onPress={handleFollow}>
+            onPress={usernameFollow}>
             <ButtonIcon icon={PersonIcon} />
             <ButtonText>
               <Trans>Follow</Trans>

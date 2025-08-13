@@ -4,6 +4,6 @@ import {useSession} from '#/state/session'
 
 export function useCurrentAccountProfile() {
   const {currentAccount} = useSession()
-  const {data: profile} = useProfileQuery({did: currentAccount?.did})
+  const {data: profile} = useProfileQuery({userId: currentAccount?.userId})
   return useMaybeProfileShadow(profile)
 }

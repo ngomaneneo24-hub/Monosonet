@@ -103,8 +103,8 @@ function Inner() {
   
   // Get recipient from Sonet chat state
   const recipient = state.chat?.participants?.[0] ? {
-    did: state.chat.participants[0].id,
-    handle: state.chat.participants[0].username,
+    userId: state.chat.participants[0].id,
+    username: state.chat.participants[0].username,
     displayName: state.chat.participants[0].displayName,
     avatar: state.chat.participants[0].avatar,
   } : null
@@ -221,7 +221,7 @@ function InnerReady({
        * HACKFIX
        *
        * Load bearing timeout, to bump this state update until the after the
-       * `navigator.addListener('state')` handler closes elements from
+       * `navigator.addListener('state')` usernamer closes elements from
        * `shell/index.*.tsx`  - sfn & esb
        */
       setTimeout(() =>

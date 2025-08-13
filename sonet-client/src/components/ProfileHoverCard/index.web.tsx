@@ -1,10 +1,10 @@
 import React, {useCallback} from 'react'
 import {View} from 'react-native'
 import {
-  type AppBskyActorDefs,
+  type SonetActorDefs,
   moderateProfile,
   type ModerationOpts,
-} from '@atproto/api'
+} from '@sonet/api'
 import {flip, offset, shift, size, useFloating} from '@floating-ui/react-dom'
 import {msg, plural} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -16,14 +16,14 @@ import {getModerationCauseKey} from '#/lib/moderation'
 import {makeProfileLink} from '#/lib/routes/links'
 import {type NavigationProp} from '#/lib/routes/types'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {useProfileShadow} from '#/state/cache/profile-shadow'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
 import {usePrefetchProfileQuery, useProfileQuery} from '#/state/queries/profile'
 import {useSession} from '#/state/session'
 import {formatCount} from '#/view/com/util/numeric/format'
 import {UserAvatar} from '#/view/com/util/UserAvatar'
-import {ProfileHeaderHandle} from '#/screens/Profile/Header/Handle'
+import {ProfileHeaderUsername} from '#/screens/Profile/Header/Username'
 import {atoms as a, useTheme} from '#/alf'
 import {Button, ButtonIcon, ButtonText} from '#/components/Button'
 import {useFollowMethods} from '#/components/hooks/useFollowMethods'
@@ -66,7 +66,7 @@ export function ProfileHoverCard(props: ProfileHoverCardProps) {
   const onPointerMove = () => {
     if (!prefetchedProfile.current) {
       prefetchedProfile.current = true
-      prefetchProfileQuery(props.did)
+      prefetchProfileQuery(props.userId)
     }
   }
 
@@ -275,24 +275,24 @@ export function ProfileHoverCardInner(props: ProfileHoverCardProps) {
   const prefetchIfNeeded = React.useCallback(async () => {
     if (!prefetchedProfile.current) {
       prefetchedProfile.current = true
-      prefetchProfileQuery(props.did)
+      prefetchProfileQuery(props.userId)
     }
-  }, [prefetchProfileQuery, props.did])
+  }, [prefetchProfileQuery, props.userId])
 
-  const didFireHover = React.useRef(false)
+  const userIdFireHover = React.useRef(false)
   const onPointerMoveTarget = React.useCallback(() => {
     prefetchIfNeeded()
     // Conceptually we want something like onPointerEnter,
     // but we want to ignore entering only due to scrolling.
     // So instead we hover on the first onPointerMove.
-    if (!didFireHover.current) {
-      didFireHover.current = true
+    if (!userIdFireHover.current) {
+      userIdFireHover.current = true
       dispatch('hovered-target')
     }
   }, [prefetchIfNeeded])
 
   const onPointerLeaveTarget = React.useCallback(() => {
-    didFireHover.current = false
+    userIdFireHover.current = false
     dispatch('unhovered-target')
   }, [])
 
@@ -338,7 +338,7 @@ export function ProfileHoverCardInner(props: ProfileHoverCardProps) {
             onPointerEnter={onPointerEnterCard}
             onPointerLeave={onPointerLeaveCard}>
             <div style={{willChange: 'transform', ...animationStyle}}>
-              <Card did={props.did} hide={onPress} navigation={navigation} />
+              <Card userId={props.userId} hide={onPress} navigation={navigation} />
             </div>
           </div>
         </Portal>
@@ -348,17 +348,17 @@ export function ProfileHoverCardInner(props: ProfileHoverCardProps) {
 }
 
 let Card = ({
-  did,
+  userId,
   hide,
   navigation,
 }: {
-  did: string
+  userId: string
   hide: () => void
   navigation: NavigationProp
 }): React.ReactNode => {
   const t = useTheme()
 
-  const profile = useProfileQuery({did})
+  const profile = useProfileQuery({userId})
   const moderationOpts = useModerationOpts()
 
   const data = profile.data
@@ -369,7 +369,7 @@ let Card = ({
     if (!status.isActive || !data) return
     hide()
     navigation.push('Profile', {
-      name: data.handle,
+      name: data.username,
     })
   }, [hide, navigation, status, data])
 
@@ -418,7 +418,7 @@ function Inner({
   moderationOpts,
   hide,
 }: {
-  profile: AppBskyActorDefs.ProfileViewDetailed
+  profile: SonetActorDefs.ProfileViewDetailed
   moderationOpts: ModerationOpts
   hide: () => void
 }) {
@@ -450,11 +450,11 @@ function Inner({
     other: 'following',
   })
   const profileURL = makeProfileLink({
-    did: profile.did,
-    handle: profile.handle,
+    userId: profile.userId,
+    username: profile.username,
   })
   const isMe = React.useMemo(
-    () => currentAccount?.did === profile.did,
+    () => currentAccount?.userId === profile.userId,
     [currentAccount, profile],
   )
   const isLabeler = profile.associated?.labeler
@@ -517,7 +517,7 @@ function Inner({
               numberOfLines={1}
               style={[a.text_lg, a.font_bold, a.self_start]}>
               {sanitizeDisplayName(
-                profile.displayName || sanitizeHandle(profile.handle),
+                profile.displayName || sanitizeUsername(profile.username),
                 moderation.ui('displayName'),
               )}
             </Text>
@@ -537,7 +537,7 @@ function Inner({
             )}
           </View>
 
-          <ProfileHeaderHandle profile={profileShadow} disableTaps />
+          <ProfileHeaderUsername profile={profileShadow} disableTaps />
         </View>
       </Link>
 

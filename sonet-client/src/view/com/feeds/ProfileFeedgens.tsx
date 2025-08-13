@@ -1,6 +1,6 @@
 import React from 'react'
 import {
-  findNodeHandle,
+  findNodeUsername,
   type ListRenderItemInfo,
   type StyleProp,
   View,
@@ -34,7 +34,7 @@ interface SectionRef {
 }
 
 interface ProfileFeedgensProps {
-  did: string
+  userId: string
   scrollElRef: ListRef
   headerOffset: number
   enabled?: boolean
@@ -47,7 +47,7 @@ export const ProfileFeedgens = React.forwardRef<
   SectionRef,
   ProfileFeedgensProps
 >(function ProfileFeedgensImpl(
-  {did, scrollElRef, headerOffset, enabled, style, testID, setScrollViewTag},
+  {userId, scrollElRef, headerOffset, enabled, style, testID, setScrollViewTag},
   ref,
 ) {
   const {_} = useLingui()
@@ -63,7 +63,7 @@ export const ProfileFeedgens = React.forwardRef<
     isError,
     error,
     refetch,
-  } = useProfileFeedgensQuery(did, opts)
+  } = useProfileFeedgensQuery(userId, opts)
   const isEmpty = !isPending && !data?.pages[0]?.feeds.length
   const {data: preferences} = usePreferencesQuery()
 
@@ -96,10 +96,10 @@ export const ProfileFeedgens = React.forwardRef<
       animated: isNative,
       offset: -headerOffset,
     })
-    queryClient.invalidateQueries({queryKey: RQKEY(did)})
-  }, [scrollElRef, queryClient, headerOffset, did])
+    queryClient.invalidateQueries({queryKey: RQKEY(userId)})
+  }, [scrollElRef, queryClient, headerOffset, userId])
 
-  React.useImperativeHandle(ref, () => ({
+  React.useImperativeUsername(ref, () => ({
     scrollToTop: onScrollToTop,
   }))
 
@@ -176,7 +176,7 @@ export const ProfileFeedgens = React.forwardRef<
 
   React.useEffect(() => {
     if (isIOS && enabled && scrollElRef.current) {
-      const nativeTag = findNodeHandle(scrollElRef.current)
+      const nativeTag = findNodeUsername(scrollElRef.current)
       setScrollViewTag(nativeTag)
     }
   }, [enabled, scrollElRef, setScrollViewTag])

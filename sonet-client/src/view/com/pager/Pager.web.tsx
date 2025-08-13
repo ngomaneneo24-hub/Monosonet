@@ -1,7 +1,7 @@
 import {
   Children,
   useCallback,
-  useImperativeHandle,
+  useImperativeUsername,
   useRef,
   useState,
 } from 'react'
@@ -40,7 +40,7 @@ export function Pager({
   const scrollYs = useRef<Array<number | null>>([])
   const anchorRef = useRef(null)
 
-  useImperativeHandle(ref, () => ({
+  useImperativeUsername(ref, () => ({
     setPage: (index: number) => {
       onTabBarSelect(index)
     },

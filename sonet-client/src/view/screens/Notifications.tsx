@@ -164,7 +164,7 @@ export function NotificationsScreen({}: Props) {
         onPress={() => openComposer({})}
         icon={<ComposeIcon2 strokeWidth={1.5} size={29} style={s.white} />}
         accessibilityRole="button"
-        accessibilityLabel={_(msg`New post`)}
+        accessibilityLabel={_(msg`New note`)}
         accessibilityHint=""
       />
     </Layout.Screen>
@@ -194,7 +194,7 @@ function NotificationsTab({
   const isScreenFocused = useIsFocused()
   const isFocusedAndActive = isScreenFocused && isActive
 
-  // event handlers
+  // event usernamers
   // =
   const scrollToTop = useCallback(() => {
     scrollElRef.current?.scrollToOffset({animated: isNative, offset: 0})

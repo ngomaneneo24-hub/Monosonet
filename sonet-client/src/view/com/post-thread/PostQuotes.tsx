@@ -1,10 +1,10 @@
 import {useCallback, useState} from 'react'
 import {
-  AppBskyFeedDefs,
-  AppBskyFeedPost,
-  moderatePost,
+  SonetFeedDefs,
+  SonetFeedNote,
+  moderateNote,
   ModerationDecision,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -12,9 +12,9 @@ import {useInitialNumToRender} from '#/lib/hooks/useInitialNumToRender'
 import {cleanError} from '#/lib/strings/errors'
 import {logger} from '#/logger'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
-import {usePostQuotesQuery} from '#/state/queries/post-quotes'
+import {useNoteQuotesQuery} from '#/state/queries/note-quotes'
 import {useResolveUriQuery} from '#/state/queries/resolve-uri'
-import {Post} from '#/view/com/post/Post'
+import {Note} from '#/view/com/note/Note'
 import {ListFooter, ListMaybePlaceholder} from '#/components/Lists'
 import {List} from '../util/List'
 
@@ -23,24 +23,24 @@ function renderItem({
   index,
 }: {
   item: {
-    post: AppBskyFeedDefs.PostView
+    note: SonetFeedDefs.NoteView
     moderation: ModerationDecision
-    record: AppBskyFeedPost.Record
+    record: SonetFeedNote.Record
   }
   index: number
 }) {
-  return <Post post={item.post} hideTopBorder={index === 0} />
+  return <Note note={item.note} hideTopBorder={index === 0} />
 }
 
 function keyExtractor(item: {
-  post: AppBskyFeedDefs.PostView
+  note: SonetFeedDefs.NoteView
   moderation: ModerationDecision
-  record: AppBskyFeedPost.Record
+  record: SonetFeedNote.Record
 }) {
-  return item.post.uri
+  return item.note.uri
 }
 
-export function PostQuotes({uri}: {uri: string}) {
+export function NoteQuotes({uri}: {uri: string}) {
   const {_} = useLingui()
   const initialNumToRender = useInitialNumToRender()
   const [isPTRing, setIsPTRing] = useState(false)
@@ -58,7 +58,7 @@ export function PostQuotes({uri}: {uri: string}) {
     fetchNextPage,
     error,
     refetch,
-  } = usePostQuotesQuery(resolvedUri?.uri)
+  } = useNoteQuotesQuery(resolvedUri?.uri)
 
   const moderationOpts = useModerationOpts()
 
@@ -67,12 +67,12 @@ export function PostQuotes({uri}: {uri: string}) {
   const quotes =
     data?.pages
       .flatMap(page =>
-        page.posts.map(post => {
-          if (!AppBskyFeedPost.isRecord(post.record) || !moderationOpts) {
+        page.notes.map(note => {
+          if (!SonetFeedNote.isRecord(note.record) || !moderationOpts) {
             return null
           }
-          const moderation = moderatePost(post, moderationOpts)
-          return {post, record: post.record, moderation}
+          const moderation = moderateNote(note, moderationOpts)
+          return {note, record: note.record, moderation}
         }),
       )
       .filter(item => item !== null) ?? []

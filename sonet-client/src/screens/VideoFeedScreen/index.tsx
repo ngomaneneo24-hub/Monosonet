@@ -48,8 +48,8 @@ export const VideoFeedScreen: React.FC = () => {
     enabled: true
   })
 
-  // Handle refresh
-  const handleRefresh = useCallback(async () => {
+  // Username refresh
+  const usernameRefresh = useCallback(async () => {
     setRefreshing(true)
     try {
       await refetch()
@@ -60,15 +60,15 @@ export const VideoFeedScreen: React.FC = () => {
     }
   }, [refetch])
 
-  // Handle load more
-  const handleLoadMore = useCallback(() => {
+  // Username load more
+  const usernameLoadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage()
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-  // Handle feed type change
-  const handleFeedTypeChange = useCallback((newFeedType: typeof feedType) => {
+  // Username feed type change
+  const usernameFeedTypeChange = useCallback((newFeedType: typeof feedType) => {
     setFeedType(newFeedType)
     // TODO: Refetch with new feed type
     if (flatListRef.current) {
@@ -76,14 +76,14 @@ export const VideoFeedScreen: React.FC = () => {
     }
   }, [])
 
-  // Handle video selection
-  const handleVideoPress = useCallback((video: VideoItem) => {
+  // Username video selection
+  const usernameVideoPress = useCallback((video: VideoItem) => {
     setSelectedVideo(video)
     setIsVideoModalVisible(true)
   }, [])
 
-  // Handle video modal close
-  const handleVideoModalClose = useCallback(() => {
+  // Username video modal close
+  const usernameVideoModalClose = useCallback(() => {
     setIsVideoModalVisible(false)
     setSelectedVideo(null)
   }, [])
@@ -99,17 +99,17 @@ export const VideoFeedScreen: React.FC = () => {
           // TODO: Navigate to video detail
           console.log('Video pressed:', item.id)
         }}
-        onVideoPress={handleVideoPress}
+        onVideoPress={usernameVideoPress}
         onLike={() => {
-          // TODO: Handle like
+          // TODO: Username like
           console.log('Video liked:', item.id)
         }}
-        onRepost={() => {
-          // TODO: Handle repost
-          console.log('Video reposted:', item.id)
+        onRenote={() => {
+          // TODO: Username renote
+          console.log('Video renoteed:', item.id)
         }}
         onShare={() => {
-          // TODO: Handle share
+          // TODO: Username share
           console.log('Video shared:', item.id)
         }}
       />
@@ -134,7 +134,7 @@ export const VideoFeedScreen: React.FC = () => {
       <View style={[styles.container, {paddingTop: insets.top}]}>
         <VideoFeedHeader
           feedType={feedType}
-          onFeedTypeChange={handleFeedTypeChange}
+          onFeedTypeChange={usernameFeedTypeChange}
         />
         <VideoFeedEmpty />
       </View>
@@ -147,7 +147,7 @@ export const VideoFeedScreen: React.FC = () => {
       <View style={[styles.container, {paddingTop: insets.top}]}>
         <VideoFeedHeader
           feedType={feedType}
-          onFeedTypeChange={handleFeedTypeChange}
+          onFeedTypeChange={usernameFeedTypeChange}
         />
         <VideoFeedError
           error={error}
@@ -164,7 +164,7 @@ export const VideoFeedScreen: React.FC = () => {
     <View style={[styles.container, {paddingTop: insets.top}]}>
       <VideoFeedHeader
         feedType={feedType}
-        onFeedTypeChange={handleFeedTypeChange}
+        onFeedTypeChange={usernameFeedTypeChange}
       />
       
       <FlatList
@@ -178,11 +178,11 @@ export const VideoFeedScreen: React.FC = () => {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={handleRefresh}
+            onRefresh={usernameRefresh}
             tintColor="#007AFF"
           />
         }
-        onEndReached={handleLoadMore}
+        onEndReached={usernameLoadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}
         showsVerticalScrollIndicator={false}
@@ -204,7 +204,7 @@ export const VideoFeedScreen: React.FC = () => {
       <VideoDetailModal
         video={selectedVideo}
         isVisible={isVideoModalVisible}
-        onClose={handleVideoModalClose}
+        onClose={usernameVideoModalClose}
       />
     </View>
   )

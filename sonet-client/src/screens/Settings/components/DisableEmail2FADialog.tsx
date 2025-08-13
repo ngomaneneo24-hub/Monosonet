@@ -41,7 +41,7 @@ export function DisableEmail2FADialog({
     setError('')
     setIsProcessing(true)
     try {
-      await agent.com.atproto.server.requestEmailUpdate()
+      await agent.com.sonet.server.requestEmailUpdate()
       setStage(Stages.ConfirmCode)
     } catch (e) {
       setError(cleanError(String(e)))
@@ -55,7 +55,7 @@ export function DisableEmail2FADialog({
     setIsProcessing(true)
     try {
       if (currentAccount?.email) {
-        await agent.com.atproto.server.updateEmail({
+        await agent.com.sonet.server.updateEmail({
           email: currentAccount!.email,
           token: confirmationCode.trim(),
           emailAuthFactor: false,
@@ -78,7 +78,7 @@ export function DisableEmail2FADialog({
 
   return (
     <Dialog.Outer control={control}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <Dialog.ScrollableInner
         accessibilityDescribedBy="dialog-description"
         accessibilityLabelledBy="dialog-title">

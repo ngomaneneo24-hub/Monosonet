@@ -78,9 +78,9 @@ export function countLines(str: string | undefined): number {
 }
 
 // Augments search query with additional syntax like `from:me`
-export function augmentSearchQuery(query: string, {did}: {did?: string}) {
-  // Don't do anything if there's no DID
-  if (!did) {
+export function augmentSearchQuery(query: string, {userId}: {userId?: string}) {
+  // Don't do anything if there's no UserID
+  if (!userId) {
     return query
   }
 
@@ -93,7 +93,7 @@ export function augmentSearchQuery(query: string, {did}: {did?: string}) {
   return splits
     .map((str, idx) => {
       if (idx % 2 === 0) {
-        return str.replaceAll(/(^|\s)from:me(\s|$)/g, `$1${did}$2`)
+        return str.replaceAll(/(^|\s)from:me(\s|$)/g, `$1${userId}$2`)
       }
 
       return str

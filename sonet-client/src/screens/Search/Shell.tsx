@@ -82,16 +82,16 @@ export function SearchScreenShell({
   const [showAutocomplete, setShowAutocomplete] = useState(false)
 
   const [termHistory = [], setTermHistory] = useStorage(account, [
-    currentAccount?.did ?? 'pwi',
+    currentAccount?.userId ?? 'pwi',
     'searchTermHistory',
   ] as const)
   const [accountHistory = [], setAccountHistory] = useStorage(account, [
-    currentAccount?.did ?? 'pwi',
+    currentAccount?.userId ?? 'pwi',
     'searchAccountHistory',
   ])
 
   const {data: accountHistoryProfiles} = useProfilesQuery({
-    handles: accountHistory,
+    usernames: accountHistory,
     maintainData: true,
   })
 
@@ -110,8 +110,8 @@ export function SearchScreenShell({
   const updateProfileHistory = useCallback(
     async (item: bsky.profile.AnyProfileView) => {
       const newAccountHistory = [
-        item.did,
-        ...accountHistory.filter(p => p !== item.did),
+        item.userId,
+        ...accountHistory.filter(p => p !== item.userId),
       ].slice(0, 10)
       setAccountHistory(newAccountHistory)
     },
@@ -126,7 +126,7 @@ export function SearchScreenShell({
   )
   const deleteProfileHistoryItem = useCallback(
     async (item: bsky.profile.AnyProfileView) => {
-      setAccountHistory(accountHistory.filter(p => p !== item.did))
+      setAccountHistory(accountHistory.filter(p => p !== item.userId))
     },
     [accountHistory, setAccountHistory],
   )
@@ -214,7 +214,7 @@ export function SearchScreenShell({
     }
   }, [])
 
-  const handleHistoryItemClick = useCallback(
+  const usernameHistoryItemClick = useCallback(
     (item: string) => {
       setSearchText(item)
       navigateToItem(item)
@@ -222,7 +222,7 @@ export function SearchScreenShell({
     [navigateToItem],
   )
 
-  const handleProfileClick = useCallback(
+  const usernameProfileClick = useCallback(
     (profile: bsky.profile.AnyProfileView) => {
       unstableCacheProfileView(queryClient, profile)
       // Slight delay to avoid updating during push nav animation.
@@ -331,7 +331,7 @@ export function SearchScreenShell({
                     onSubmitEditing={onSubmit}
                     placeholder={
                       inputPlaceholder ??
-                      _(msg`Search for posts, users, or feeds`)
+                      _(msg`Search for notes, users, or feeds`)
                     }
                     hitSlop={{...HITSLOP_20, top: 0}}
                   />
@@ -383,14 +383,14 @@ export function SearchScreenShell({
             searchText={searchText}
             onSubmit={onSubmit}
             onResultPress={onAutocompleteResultPress}
-            onProfileClick={handleProfileClick}
+            onProfileClick={usernameProfileClick}
           />
         ) : (
           <SearchHistory
             searchHistory={termHistory}
             selectedProfiles={accountHistoryProfiles?.profiles || []}
-            onItemClick={handleHistoryItemClick}
-            onProfileClick={handleProfileClick}
+            onItemClick={usernameHistoryItemClick}
+            onProfileClick={usernameProfileClick}
             onRemoveItemClick={deleteSearchHistoryItem}
             onRemoveProfileClick={deleteProfileHistoryItem}
           />
@@ -473,7 +473,7 @@ let SearchScreenInner = ({
             style={t.atoms.text_contrast_medium as StyleProp<ViewStyle>}
           />
           <Text style={[t.atoms.text_contrast_medium, a.text_md]}>
-            <Trans>Find posts, users, and feeds on Bluesky</Trans>
+            <Trans>Find notes, users, and feeds on Bluesky</Trans>
           </Text>
         </View>
       </View>
@@ -496,7 +496,7 @@ function useQueryManager({
   const [lang, setLang] = useState(initialParams.lang || '')
 
   if (initialQuery !== prevInitialQuery) {
-    // handle new queryParam change (from manual search entry)
+    // username new queryParam change (from manual search entry)
     setPrevInitialQuery(initialQuery)
     setLang(initialParams.lang || '')
   }
@@ -511,7 +511,7 @@ function useQueryManager({
     }),
     [lang, initialParams, fixedParams],
   )
-  const handlers = useMemo(
+  const usernamers = useMemo(
     () => ({
       setLang,
     }),
@@ -524,10 +524,10 @@ function useQueryManager({
       queryWithParams: makeSearchQuery(query, params),
       params: {
         ...params,
-        ...handlers,
+        ...usernamers,
       },
     }
-  }, [query, params, handlers])
+  }, [query, params, usernamers])
 }
 
 function scrollToTopWeb() {

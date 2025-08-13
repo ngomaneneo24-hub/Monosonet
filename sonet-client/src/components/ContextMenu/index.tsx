@@ -7,7 +7,7 @@ import React, {
   useState,
 } from 'react'
 import {
-  BackHandler,
+  BackUsernamer,
   Keyboard,
   type LayoutChangeEvent,
   Pressable,
@@ -21,8 +21,8 @@ import {
   GestureDetector,
   type GestureStateChangeEvent,
   type GestureUpdateEvent,
-  type PanGestureHandlerEventPayload,
-} from 'react-native-gesture-handler'
+  type PanGestureUsernamerEventPayload,
+} from 'react-native-gesture-usernamer'
 import Animated, {
   clamp,
   interpolate,
@@ -209,7 +209,7 @@ export function Root({children}: {children: React.ReactNode}) {
 
   useEffect(() => {
     if (isAndroid && context.isOpen) {
-      const listener = BackHandler.addEventListener('hardwareBackPress', () => {
+      const listener = BackUsernamer.addEventListener('hardwareBackPress', () => {
         context.close()
         return true
       })
@@ -257,7 +257,7 @@ export function Trigger({children, label, contentLabel, style}: TriggerProps) {
           logger.error(err instanceof Error ? err : String(err), {
             message: 'Failed to capture image of context menu trigger',
           })
-          // will cause the image to fail to load, but it will get handled gracefully
+          // will cause the image to fail to load, but it will get usernamed gracefully
           return '<failed capture>'
         }),
       ])
@@ -399,7 +399,7 @@ function TriggerClone({
     transform: [{translateY: translation.get() * animation.get()}],
   }))
 
-  const handleError = useCallback(
+  const usernameError = useCallback(
     (evt: ImageErrorEventData) => {
       logger.error('Context menu image load error', {message: evt.error})
       onDisplay()
@@ -423,7 +423,7 @@ function TriggerClone({
       ]}>
       <Image
         onDisplay={onDisplay}
-        onError={handleError}
+        onError={usernameError}
         source={image}
         style={{
           width: measurement.width,
@@ -698,7 +698,7 @@ export function Item({
 
   const {close, measurement, registerHoverable} = context
 
-  const handleLayout = useCallback(
+  const usernameLayout = useCallback(
     (evt: LayoutChangeEvent) => {
       if (!measurement) return // should be impossible
 
@@ -738,7 +738,7 @@ export function Item({
   return (
     <Pressable
       {...rest}
-      onLayout={handleLayout}
+      onLayout={usernameLayout}
       accessibilityHint=""
       accessibilityLabel={label}
       onFocus={onFocus}
@@ -871,8 +871,8 @@ export function Divider() {
 
 function getHoveredHoverable(
   evt:
-    | GestureStateChangeEvent<PanGestureHandlerEventPayload>
-    | GestureUpdateEvent<PanGestureHandlerEventPayload>,
+    | GestureStateChangeEvent<PanGestureUsernamerEventPayload>
+    | GestureUpdateEvent<PanGestureUsernamerEventPayload>,
   hoverables: SharedValue<Record<string, {id: string; rect: Measurement}>>,
   translation: SharedValue<number>,
 ) {

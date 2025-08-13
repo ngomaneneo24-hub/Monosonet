@@ -12,10 +12,10 @@ import Animated, {
   ZoomOut,
 } from 'react-native-reanimated'
 import {
-  AppBskyEmbedRecord,
-  ChatBskyConvoDefs,
+  SonetEmbedRecord,
+  SonetConvoDefs,
   RichText as RichTextAPI,
-} from '@atproto/api'
+} from '@sonet/api'
 import {type I18n} from '@lingui/core'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -49,12 +49,12 @@ let MessageItem = ({
   const {message, nextMessage, prevMessage} = item
   const isPending = item.type === 'pending-message'
 
-  const isFromSelf = message.sender?.did === currentAccount?.did
+  const isFromSelf = message.sender?.userId === currentAccount?.userId
 
-  const nextIsMessage = ChatBskyConvoDefs.isMessageView(nextMessage)
+  const nextIsMessage = SonetConvoDefs.isMessageView(nextMessage)
 
   const isNextFromSelf =
-    nextIsMessage && nextMessage.sender?.did === currentAccount?.did
+    nextIsMessage && nextMessage.sender?.userId === currentAccount?.userId
 
   const isNextFromSameSender = isNextFromSelf === isFromSelf
 
@@ -85,7 +85,7 @@ let MessageItem = ({
     }
 
     // or, if there's a 5 minute gap between this message and the next
-    if (ChatBskyConvoDefs.isMessageView(nextMessage)) {
+    if (SonetConvoDefs.isMessageView(nextMessage)) {
       const thisDate = new Date(message.sentAt)
       const nextDate = new Date(nextMessage.sentAt)
 
@@ -131,17 +131,17 @@ let MessageItem = ({
             ]}>
             {message.reactions.map((reaction, _i, reactions) => {
               let label
-              if (reaction.sender.did === currentAccount?.did) {
+              if (reaction.sender.userId === currentAccount?.userId) {
                 label = _(msg`You reacted ${reaction.value}`)
               } else {
-                const senderDid = reaction.sender.did
+                const senderDid = reaction.sender.userId
                 const sender = convo.members.find(
-                  member => member.did === senderDid,
+                  member => member.userId === senderDid,
                 )
                 if (sender) {
                   label = _(
                     msg`${sanitizeDisplayName(
-                      sender.displayName || sender.handle,
+                      sender.displayName || sender.username,
                     )} reacted ${reaction.value}`,
                   )
                 } else {
@@ -153,7 +153,7 @@ let MessageItem = ({
                   entering={native(ZoomIn.springify(200).delay(400))}
                   exiting={reactions.length > 1 && native(ZoomOut.delay(200))}
                   layout={native(LinearTransition.delay(300))}
-                  key={reaction.sender.did + reaction.value}
+                  key={reaction.sender.userId + reaction.value}
                   style={[a.p_2xs]}
                   accessible={true}
                   accessibilityLabel={label}
@@ -181,7 +181,7 @@ let MessageItem = ({
           nextIsMessage && !isNextFromSameSender && a.mb_md,
         ]}>
         <ActionsWrapper isFromSelf={isFromSelf} message={message}>
-          {AppBskyEmbedRecord.isView(message.embed) && (
+          {SonetEmbedRecord.isView(message.embed) && (
             <MessageItemEmbed embed={message.embed} />
           )}
           {rt.text.length > 0 && (
@@ -246,7 +246,7 @@ let MessageItemMetadata = ({
   const {_} = useLingui()
   const {message} = item
 
-  const handleRetry = useCallback(
+  const usernameRetry = useCallback(
     (e: GestureResponderEvent) => {
       if (item.type === 'pending-message' && item.retry) {
         e.preventDefault()
@@ -316,7 +316,7 @@ let MessageItemMetadata = ({
               <InlineLinkText
                 label={_(msg`Click to retry failed message`)}
                 to="#"
-                onPress={handleRetry}
+                onPress={usernameRetry}
                 style={[a.text_xs]}>
                 {_(msg`Retry`)}
               </InlineLinkText>

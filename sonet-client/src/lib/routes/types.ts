@@ -21,10 +21,10 @@ export type CommonNavigatorParams = {
   ProfileKnownFollowers: {name: string}
   ProfileSearch: {name: string; q?: string}
   ProfileList: {name: string; rkey: string}
-  PostThread: {name: string; rkey: string}
-  PostLikedBy: {name: string; rkey: string}
-  PostRepostedBy: {name: string; rkey: string}
-  PostQuotes: {name: string; rkey: string}
+  NoteThread: {name: string; rkey: string}
+  NoteLikedBy: {name: string; rkey: string}
+  NoteRenoteedBy: {name: string; rkey: string}
+  NoteQuotes: {name: string; rkey: string}
   ProfileFeed: {
     name: string
     rkey: string
@@ -58,10 +58,10 @@ export type CommonNavigatorParams = {
   MentionNotificationSettings: undefined
   QuoteNotificationSettings: undefined
   LikeNotificationSettings: undefined
-  RepostNotificationSettings: undefined
+  RenoteNotificationSettings: undefined
   NewFollowerNotificationSettings: undefined
-  LikesOnRepostsNotificationSettings: undefined
-  RepostsOnRepostsNotificationSettings: undefined
+  LikesOnRenotesNotificationSettings: undefined
+  RenotesOnRenotesNotificationSettings: undefined
   ActivityNotificationSettings: undefined
   MiscellaneousNotificationSettings: undefined
   InterestsSettings: undefined
@@ -77,7 +77,7 @@ export type CommonNavigatorParams = {
   SonetConversation: {conversation: string}
   SonetGroupChat: {groupId: string}
   SonetMessageSearch: {chatId?: string}
-  NotificationsActivityList: {posts: string}
+  NotificationsActivityList: {notes: string}
   LegacyNotificationSettings: undefined
   Feeds: undefined
   Start: {name: string; rkey: string}

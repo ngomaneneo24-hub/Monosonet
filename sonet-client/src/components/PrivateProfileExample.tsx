@@ -14,15 +14,15 @@ export function PrivateProfileExample() {
 
   // Example profile data
   const exampleProfile: bsky.profile.AnyProfileView = {
-    did: 'did:plc:example123',
-    handle: 'example.user',
+    userId: 'userId:plc:example123',
+    username: 'example.user',
     displayName: 'Example User',
     description: 'This is an example private profile',
     avatar: null,
     banner: null,
     followsCount: 10,
     followersCount: 20,
-    postsCount: 50,
+    notesCount: 50,
     indexedAt: '2024-01-01T00:00:00Z',
     viewer: {
       following: false,

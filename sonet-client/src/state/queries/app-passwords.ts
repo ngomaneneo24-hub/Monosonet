@@ -1,4 +1,4 @@
-import {ComAtprotoServerCreateAppPassword} from '@atproto/api'
+import {SonetServerCreateAppPassword} from '@sonet/api'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 
 import {STALE} from '#/state/queries'
@@ -13,7 +13,7 @@ export function useAppPasswordsQuery() {
     staleTime: STALE.MINUTES.FIVE,
     queryKey: RQKEY(),
     queryFn: async () => {
-      const res = await agent.com.atproto.server.listAppPasswords({})
+      const res = await agent.com.sonet.server.listAppPasswords({})
       return res.data.passwords
     },
   })
@@ -23,13 +23,13 @@ export function useAppPasswordCreateMutation() {
   const queryClient = useQueryClient()
   const agent = useAgent()
   return useMutation<
-    ComAtprotoServerCreateAppPassword.OutputSchema,
+    SonetServerCreateAppPassword.OutputSchema,
     Error,
     {name: string; privileged: boolean}
   >({
     mutationFn: async ({name, privileged}) => {
       return (
-        await agent.com.atproto.server.createAppPassword({
+        await agent.com.sonet.server.createAppPassword({
           name,
           privileged,
         })
@@ -48,7 +48,7 @@ export function useAppPasswordDeleteMutation() {
   const agent = useAgent()
   return useMutation<void, Error, {name: string}>({
     mutationFn: async ({name}) => {
-      await agent.com.atproto.server.revokeAppPassword({
+      await agent.com.sonet.server.revokeAppPassword({
         name,
       })
     },

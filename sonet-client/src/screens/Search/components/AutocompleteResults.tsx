@@ -1,6 +1,6 @@
 import {memo} from 'react'
 import {ActivityIndicator, View} from 'react-native'
-import {type AppBskyActorDefs} from '@atproto/api'
+import {type SonetActorDefs} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -20,11 +20,11 @@ let AutocompleteResults = ({
   onProfileClick,
 }: {
   isAutocompleteFetching: boolean
-  autocompleteData: AppBskyActorDefs.ProfileViewBasic[] | undefined
+  autocompleteData: SonetActorDefs.ProfileViewBasic[] | undefined
   searchText: string
   onSubmit: () => void
   onResultPress: () => void
-  onProfileClick: (profile: AppBskyActorDefs.ProfileViewBasic) => void
+  onProfileClick: (profile: SonetActorDefs.ProfileViewBasic) => void
 }): React.ReactNode => {
   const {_} = useLingui()
   const moderationOpts = useModerationOpts()
@@ -39,7 +39,7 @@ let AutocompleteResults = ({
         </Layout.Content>
       ) : (
         <Layout.Content
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="usernamed"
           keyboardDismissMode="on-drag">
           <SearchLinkCard
             label={_(msg`Search for "${searchText}"`)}
@@ -53,7 +53,7 @@ let AutocompleteResults = ({
           />
           {autocompleteData?.map(item => (
             <SearchProfileCard
-              key={item.did}
+              key={item.userId}
               profile={item}
               moderationOpts={moderationOpts}
               onPress={() => {

@@ -1,7 +1,7 @@
 import React, {useCallback} from 'react'
 import {ListRenderItemInfo, View} from 'react-native'
-import {AppBskyFeedDefs} from '@atproto/api'
-import {GeneratorView} from '@atproto/api/dist/client/types/app/bsky/feed/defs'
+import {SonetFeedDefs} from '@sonet/api'
+import {GeneratorView} from '@sonet/api/dist/client/types/app/bsky/feed/defs'
 
 import {useBottomBarOffset} from '#/lib/hooks/useBottomBarOffset'
 import {isNative, isWeb} from '#/platform/detection'
@@ -10,12 +10,12 @@ import {SectionRef} from '#/screens/Profile/Sections/types'
 import {atoms as a, useTheme} from '#/alf'
 import * as FeedCard from '#/components/FeedCard'
 
-function keyExtractor(item: AppBskyFeedDefs.GeneratorView) {
+function keyExtractor(item: SonetFeedDefs.GeneratorView) {
   return item.uri
 }
 
 interface ProfilesListProps {
-  feeds: AppBskyFeedDefs.GeneratorView[]
+  feeds: SonetFeedDefs.GeneratorView[]
   headerHeight: number
   scrollElRef: ListRef
 }
@@ -33,7 +33,7 @@ export const FeedsList = React.forwardRef<SectionRef, ProfilesListProps>(
       })
     }, [scrollElRef, headerHeight])
 
-    React.useImperativeHandle(ref, () => ({
+    React.useImperativeUsername(ref, () => ({
       scrollToTop: onScrollToTop,
     }))
 

@@ -37,7 +37,7 @@ export const LoggedOutLayout = ({
       return (
         <ScrollView
           style={a.flex_1}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="usernamed"
           keyboardDismissMode="none"
           contentContainerStyle={[
             {paddingBottom: isKeyboardVisible ? 300 : 0},
@@ -77,7 +77,7 @@ export const LoggedOutLayout = ({
           <ScrollView
             style={a.flex_1}
             contentContainerStyle={styles.scrollViewContentContainer}
-            keyboardShouldPersistTaps="handled"
+            keyboardShouldPersistTaps="usernamed"
             keyboardDismissMode="on-drag">
             <View style={[styles.contentWrapper, isWeb && a.my_auto]}>
               {children}

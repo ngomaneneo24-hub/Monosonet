@@ -14,7 +14,7 @@
  * -prf
  */
 
-import {AtUri} from '@atproto/api'
+import {AtUri} from '@sonet/api'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 
 import {STALE} from '#/state/queries'
@@ -51,8 +51,8 @@ export function useDangerousListMembershipsQuery() {
       let cursor
       let arr: ListMembersip[] = []
       for (let i = 0; i < SANITY_PAGE_LIMIT; i++) {
-        const res = await agent.app.bsky.graph.listitem.list({
-          repo: currentAccount.did,
+        const res = await agent.app.sonet.graph.listitem.list({
+          repo: currentAccount.userId,
           limit: PAGE_SIZE,
           cursor,
         })
@@ -109,8 +109,8 @@ export function useListMembershipAddMutation({
       if (!currentAccount) {
         throw new Error('Not signed in')
       }
-      const res = await agent.app.bsky.graph.listitem.create(
-        {repo: currentAccount.did},
+      const res = await agent.app.sonet.graph.listitem.create(
+        {repo: currentAccount.userId},
         {
           subject: actorDid,
           list: listUri,
@@ -177,8 +177,8 @@ export function useListMembershipRemoveMutation({
         throw new Error('Not signed in')
       }
       const membershipUrip = new AtUri(membershipUri)
-      await agent.app.bsky.graph.listitem.delete({
-        repo: currentAccount.did,
+      await agent.app.sonet.graph.listitem.delete({
+        repo: currentAccount.userId,
         rkey: membershipUrip.rkey,
       })
       // TODO

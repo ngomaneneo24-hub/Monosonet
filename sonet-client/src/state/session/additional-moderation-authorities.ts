@@ -1,23 +1,23 @@
-import {BskyAgent} from '@atproto/api'
+import {SonetAppAgent} from '@sonet/api'
 
 import {logger} from '#/logger'
 import {device} from '#/storage'
 
-export const BR_LABELER = 'did:plc:ekitcvx7uwnauoqy5oest3hm' // Brazil
-export const DE_LABELER = 'did:plc:r55ow3tocux5kafs5dq445fy' // Germany
-export const RU_LABELER = 'did:plc:crm2agcxvvlj6hilnjdc4hox' // Russia
-export const GB_LABELER = 'did:plc:gvkp7euswjjrctjmqwhhfzif' // United Kingdom
-export const AU_LABELER = 'did:plc:dsynw7isrf2eqlhcjx3ffnmt' // Australia
-export const TR_LABELER = 'did:plc:cquoj7aozvmkud2gifeinkda' // Turkey
-export const JP_LABELER = 'did:plc:vhgppeyjwgrr37vm4v6ggd5a' // Japan
-export const ES_LABELER = 'did:plc:zlbbuj5nov4ixhvgl3bj47em' // Spain
-export const PK_LABELER = 'did:plc:zrp6a3tvprrsgawsbswbxu7m' // Pakistan
-export const IN_LABELER = 'did:plc:srr4rdvgzkbx6t7fxqtt6j5t' // India
+export const BR_LABELER = 'userId:plc:ekitcvx7uwnauoqy5oest3hm' // Brazil
+export const DE_LABELER = 'userId:plc:r55ow3tocux5kafs5dq445fy' // Germany
+export const RU_LABELER = 'userId:plc:crm2agcxvvlj6hilnjdc4hox' // Russia
+export const GB_LABELER = 'userId:plc:gvkp7euswjjrctjmqwhhfzif' // United Kingdom
+export const AU_LABELER = 'userId:plc:dsynw7isrf2eqlhcjx3ffnmt' // Australia
+export const TR_LABELER = 'userId:plc:cquoj7aozvmkud2gifeinkda' // Turkey
+export const JP_LABELER = 'userId:plc:vhgppeyjwgrr37vm4v6ggd5a' // Japan
+export const ES_LABELER = 'userId:plc:zlbbuj5nov4ixhvgl3bj47em' // Spain
+export const PK_LABELER = 'userId:plc:zrp6a3tvprrsgawsbswbxu7m' // Pakistan
+export const IN_LABELER = 'userId:plc:srr4rdvgzkbx6t7fxqtt6j5t' // India
 
 /**
  * For all EU countries
  */
-export const EU_LABELER = 'did:plc:z57lz5dhgz2dkjogoysm3vut'
+export const EU_LABELER = 'userId:plc:z57lz5dhgz2dkjogoysm3vut'
 
 const MODERATION_AUTHORITIES: {
   [countryCode: string]: string[]
@@ -61,18 +61,18 @@ const MODERATION_AUTHORITIES: {
   SE: [EU_LABELER], // Sweden
 }
 
-const MODERATION_AUTHORITIES_DIDS = Array.from(
+const MODERATION_AUTHORITIES_UserIDS = Array.from(
   new Set(Object.values(MODERATION_AUTHORITIES).flat()),
 )
 
-export function isNonConfigurableModerationAuthority(did: string) {
-  return MODERATION_AUTHORITIES_DIDS.includes(did)
+export function isNonConfigurableModerationAuthority(userId: string) {
+  return MODERATION_AUTHORITIES_UserIDS.includes(userId)
 }
 
 export function configureAdditionalModerationAuthorities() {
   const geolocation = device.get(['geolocation'])
   // default to all
-  let additionalLabelers: string[] = MODERATION_AUTHORITIES_DIDS
+  let additionalLabelers: string[] = MODERATION_AUTHORITIES_UserIDS
 
   if (geolocation?.countryCode) {
     // overwrite with only those necessary
@@ -86,7 +86,7 @@ export function configureAdditionalModerationAuthorities() {
   }
 
   const appLabelers = Array.from(
-    new Set([...BskyAgent.appLabelers, ...additionalLabelers]),
+    new Set([...SonetAppAgent.appLabelers, ...additionalLabelers]),
   )
 
   logger.info(`applying mod authorities`, {
@@ -94,5 +94,5 @@ export function configureAdditionalModerationAuthorities() {
     appLabelers,
   })
 
-  BskyAgent.configure({appLabelers})
+  SonetAppAgent.configure({appLabelers})
 }

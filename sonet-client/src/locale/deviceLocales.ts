@@ -9,7 +9,7 @@ type LocalWithLanguageCode = Locale & {
 /**
  * Normalized locales
  *
- * Handles legacy migration for Java devices.
+ * Usernames legacy migration for Java devices.
  *
  * {@link https://github.com/bluesky-social/social-app/pull/4461}
  * {@link https://xml.coverpages.org/iso639a.html}

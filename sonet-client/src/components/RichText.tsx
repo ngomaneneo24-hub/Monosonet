@@ -1,6 +1,6 @@
 import React from 'react'
 import {type TextStyle} from 'react-native'
-import {AppBskyRichtextFacet, RichText as RichTextAPI} from '@atproto/api'
+import {SonetRichtextFacet, RichText as RichTextAPI} from '@sonet/api'
 
 import {toShortUrl} from '#/lib/strings/url-helpers'
 import {atoms as a, flatten, type TextStyleProp} from '#/alf'
@@ -19,7 +19,7 @@ export type RichTextProps = TextStyleProp &
     numberOfLines?: number
     disableLinks?: boolean
     enableTags?: boolean
-    authorHandle?: string
+    authorUsername?: string
     onLinkPress?: LinkProps['onPress']
     interactiveStyle?: TextStyle
     emojiMultiplier?: number
@@ -34,7 +34,7 @@ export function RichText({
   disableLinks,
   selectable,
   enableTags = false,
-  authorHandle,
+  authorUsername,
   onLinkPress,
   interactiveStyle,
   emojiMultiplier = 1.85,
@@ -101,14 +101,14 @@ export function RichText({
     const tag = segment.tag
     if (
       mention &&
-      AppBskyRichtextFacet.validateMention(mention).success &&
+      SonetRichtextFacet.validateMention(mention).success &&
       !disableLinks
     ) {
       els.push(
-        <ProfileHoverCard key={key} did={mention.did}>
+        <ProfileHoverCard key={key} userId={mention.userId}>
           <InlineLinkText
             selectable={selectable}
-            to={`/profile/${mention.did}`}
+            to={`/profile/${mention.userId}`}
             style={interactiveStyles}
             // @ts-ignore TODO
             dataSet={WORD_WRAP}
@@ -118,7 +118,7 @@ export function RichText({
           </InlineLinkText>
         </ProfileHoverCard>,
       )
-    } else if (link && AppBskyRichtextFacet.validateLink(link).success) {
+    } else if (link && SonetRichtextFacet.validateLink(link).success) {
       if (disableLinks) {
         els.push(toShortUrl(segment.text))
       } else {
@@ -142,7 +142,7 @@ export function RichText({
       !disableLinks &&
       enableTags &&
       tag &&
-      AppBskyRichtextFacet.validateTag(tag).success
+      SonetRichtextFacet.validateTag(tag).success
     ) {
       els.push(
         <RichTextTag
@@ -150,7 +150,7 @@ export function RichText({
           display={segment.text}
           tag={tag.tag}
           textStyle={interactiveStyles}
-          authorHandle={authorHandle}
+          authorUsername={authorUsername}
         />,
       )
     } else {

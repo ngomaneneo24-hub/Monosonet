@@ -1,6 +1,6 @@
 import React from 'react'
 import {View} from 'react-native'
-import {ModerationCause} from '@atproto/api'
+import {ModerationCause} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 

@@ -1,4 +1,4 @@
-import {AppBskyActorDefs, AppBskyGraphGetBlocks} from '@atproto/api'
+import {SonetActorDefs, SonetGraphGetBlocks} from '@sonet/api'
 import {
   InfiniteData,
   QueryClient,
@@ -15,15 +15,15 @@ type RQPageParam = string | undefined
 export function useMyBlockedAccountsQuery() {
   const agent = useAgent()
   return useInfiniteQuery<
-    AppBskyGraphGetBlocks.OutputSchema,
+    SonetGraphGetBlocks.OutputSchema,
     Error,
-    InfiniteData<AppBskyGraphGetBlocks.OutputSchema>,
+    InfiniteData<SonetGraphGetBlocks.OutputSchema>,
     QueryKey,
     RQPageParam
   >({
     queryKey: RQKEY(),
     async queryFn({pageParam}: {pageParam: RQPageParam}) {
-      const res = await agent.app.bsky.graph.getBlocks({
+      const res = await agent.app.sonet.graph.getBlocks({
         limit: 30,
         cursor: pageParam,
       })
@@ -36,10 +36,10 @@ export function useMyBlockedAccountsQuery() {
 
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
-  did: string,
-): Generator<AppBskyActorDefs.ProfileView, void> {
+  userId: string,
+): Generator<SonetActorDefs.ProfileView, void> {
   const queryDatas = queryClient.getQueriesData<
-    InfiniteData<AppBskyGraphGetBlocks.OutputSchema>
+    InfiniteData<SonetGraphGetBlocks.OutputSchema>
   >({
     queryKey: [RQKEY_ROOT],
   })
@@ -49,7 +49,7 @@ export function* findAllProfilesInQueryData(
     }
     for (const page of queryData?.pages) {
       for (const block of page.blocks) {
-        if (block.did === did) {
+        if (block.userId === userId) {
           yield block
         }
       }

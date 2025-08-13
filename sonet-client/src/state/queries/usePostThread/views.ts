@@ -1,66 +1,66 @@
 import {
   type $Typed,
-  type AppBskyFeedDefs,
-  type AppBskyFeedPost,
-  type AppBskyUnspeccedDefs,
-  type AppBskyUnspeccedGetPostThreadV2,
+  type SonetFeedDefs,
+  type SonetFeedNote,
+  type SonetUnspeccedDefs,
+  type SonetUnspeccedGetNoteThreadV2,
   AtUri,
-  moderatePost,
+  moderateNote,
   type ModerationOpts,
-} from '@atproto/api'
+} from '@sonet/api'
 
 import {makeProfileLink} from '#/lib/routes/links'
 import {
   type ApiThreadItem,
   type ThreadItem,
   type TraversalMetadata,
-} from '#/state/queries/usePostThread/types'
+} from '#/state/queries/useNoteThread/types'
 
-export function threadPostNoUnauthenticated({
+export function threadNoteNoUnauthenticated({
   uri,
   depth,
   value,
-}: ApiThreadItem): Extract<ThreadItem, {type: 'threadPostNoUnauthenticated'}> {
+}: ApiThreadItem): Extract<ThreadItem, {type: 'threadNoteNoUnauthenticated'}> {
   return {
-    type: 'threadPostNoUnauthenticated',
+    type: 'threadNoteNoUnauthenticated',
     key: uri,
     uri,
     depth,
-    value: value as AppBskyUnspeccedDefs.ThreadItemNoUnauthenticated,
+    value: value as SonetUnspeccedDefs.ThreadItemNoUnauthenticated,
     // @ts-ignore populated by the traversal
     ui: {},
   }
 }
 
-export function threadPostNotFound({
+export function threadNoteNotFound({
   uri,
   depth,
   value,
-}: ApiThreadItem): Extract<ThreadItem, {type: 'threadPostNotFound'}> {
+}: ApiThreadItem): Extract<ThreadItem, {type: 'threadNoteNotFound'}> {
   return {
-    type: 'threadPostNotFound',
+    type: 'threadNoteNotFound',
     key: uri,
     uri,
     depth,
-    value: value as AppBskyUnspeccedDefs.ThreadItemNotFound,
+    value: value as SonetUnspeccedDefs.ThreadItemNotFound,
   }
 }
 
-export function threadPostBlocked({
+export function threadNoteBlocked({
   uri,
   depth,
   value,
-}: ApiThreadItem): Extract<ThreadItem, {type: 'threadPostBlocked'}> {
+}: ApiThreadItem): Extract<ThreadItem, {type: 'threadNoteBlocked'}> {
   return {
-    type: 'threadPostBlocked',
+    type: 'threadNoteBlocked',
     key: uri,
     uri,
     depth,
-    value: value as AppBskyUnspeccedDefs.ThreadItemBlocked,
+    value: value as SonetUnspeccedDefs.ThreadItemBlocked,
   }
 }
 
-export function threadPost({
+export function threadNote({
   uri,
   depth,
   value,
@@ -69,30 +69,30 @@ export function threadPost({
 }: {
   uri: string
   depth: number
-  value: $Typed<AppBskyUnspeccedDefs.ThreadItemPost>
+  value: $Typed<SonetUnspeccedDefs.ThreadItemNote>
   moderationOpts: ModerationOpts
   threadgateHiddenReplies: Set<string>
-}): Extract<ThreadItem, {type: 'threadPost'}> {
-  const moderation = moderatePost(value.post, moderationOpts)
+}): Extract<ThreadItem, {type: 'threadNote'}> {
+  const moderation = moderateNote(value.note, moderationOpts)
   const modui = moderation.ui('contentList')
   const blurred = modui.blur || modui.filter
   const muted = (modui.blurs[0] || modui.filters[0])?.type === 'muted'
   const hiddenByThreadgate = threadgateHiddenReplies.has(uri)
-  const isOwnPost = value.post.author.did === moderationOpts.userDid
-  const isBlurred = (hiddenByThreadgate || blurred || muted) && !isOwnPost
+  const isOwnNote = value.note.author.userId === moderationOpts.userDid
+  const isBlurred = (hiddenByThreadgate || blurred || muted) && !isOwnNote
   return {
-    type: 'threadPost',
+    type: 'threadNote',
     key: uri,
     uri,
     depth,
     value: {
       ...value,
       /*
-       * Do not spread anything here, load bearing for post shadow strict
+       * Do not spread anything here, load bearing for note shadow strict
        * equality reference checks.
        */
-      post: value.post as Omit<AppBskyFeedDefs.PostView, 'record'> & {
-        record: AppBskyFeedPost.Record
+      note: value.note as Omit<SonetFeedDefs.NoteView, 'record'> & {
+        record: SonetFeedNote.Record
       },
     },
     isBlurred,
@@ -106,20 +106,20 @@ export function readMore({
   depth,
   repliesUnhydrated,
   skippedIndentIndices,
-  postData,
+  noteData,
 }: TraversalMetadata): Extract<ThreadItem, {type: 'readMore'}> {
-  const urip = new AtUri(postData.uri)
+  const urip = new AtUri(noteData.uri)
   const href = makeProfileLink(
     {
-      did: urip.host,
-      handle: postData.authorHandle,
+      userId: urip.host,
+      username: noteData.authorUsername,
     },
-    'post',
+    'note',
     urip.rkey,
   )
   return {
     type: 'readMore' as const,
-    key: `readMore:${postData.uri}`,
+    key: `readMore:${noteData.uri}`,
     href,
     moreReplies: repliesUnhydrated,
     depth,
@@ -128,20 +128,20 @@ export function readMore({
 }
 
 export function readMoreUp({
-  postData,
+  noteData,
 }: TraversalMetadata): Extract<ThreadItem, {type: 'readMoreUp'}> {
-  const urip = new AtUri(postData.uri)
+  const urip = new AtUri(noteData.uri)
   const href = makeProfileLink(
     {
-      did: urip.host,
-      handle: postData.authorHandle,
+      userId: urip.host,
+      username: noteData.authorUsername,
     },
-    'post',
+    'note',
     urip.rkey,
   )
   return {
     type: 'readMoreUp' as const,
-    key: `readMoreUp:${postData.uri}`,
+    key: `readMoreUp:${noteData.uri}`,
     href,
   }
 }
@@ -160,20 +160,20 @@ export function skeleton({
   }
 }
 
-export function postViewToThreadPlaceholder(
-  post: AppBskyFeedDefs.PostView,
+export function noteViewToThreadPlaceholder(
+  note: SonetFeedDefs.NoteView,
 ): $Typed<
-  Omit<AppBskyUnspeccedGetPostThreadV2.ThreadItem, 'value'> & {
-    value: $Typed<AppBskyUnspeccedDefs.ThreadItemPost>
+  Omit<SonetUnspeccedGetNoteThreadV2.ThreadItem, 'value'> & {
+    value: $Typed<SonetUnspeccedDefs.ThreadItemNote>
   }
 > {
   return {
-    $type: 'app.bsky.unspecced.getPostThreadV2#threadItem',
-    uri: post.uri,
-    depth: 0, // reset to 0 for highlighted post
+    type: "sonet",
+    uri: note.uri,
+    depth: 0, // reset to 0 for highlighted note
     value: {
-      $type: 'app.bsky.unspecced.defs#threadItemPost',
-      post,
+      type: "sonet",
+      note,
       opThread: false,
       moreParents: false,
       moreReplies: 0,

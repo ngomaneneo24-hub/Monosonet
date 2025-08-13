@@ -1,6 +1,6 @@
 import {memo, useEffect, useMemo, useState} from 'react'
 import {View} from 'react-native'
-import {AppBskyActorDefs, AppBskyFeedPost, AtUri} from '@atproto/api'
+import {SonetActorDefs, SonetFeedNote, AtUri} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -24,17 +24,17 @@ export type ColorModeValues = 'system' | 'light' | 'dark'
 
 type EmbedDialogProps = {
   control: Dialog.DialogControlProps
-  postAuthor: AppBskyActorDefs.ProfileViewBasic
-  postCid: string
-  postUri: string
-  record: AppBskyFeedPost.Record
+  noteAuthor: SonetActorDefs.ProfileViewBasic
+  noteCid: string
+  noteUri: string
+  record: SonetFeedNote.Record
   timestamp: string
 }
 
 let EmbedDialog = ({control, ...rest}: EmbedDialogProps): React.ReactNode => {
   return (
     <Dialog.Outer control={control}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <EmbedDialogInner {...rest} />
     </Dialog.Outer>
   )
@@ -43,9 +43,9 @@ EmbedDialog = memo(EmbedDialog)
 export {EmbedDialog}
 
 function EmbedDialogInner({
-  postAuthor,
-  postCid,
-  postUri,
+  noteAuthor,
+  noteCid,
+  noteUri,
   record,
   timestamp,
 }: Omit<EmbedDialogProps, 'control'>) {
@@ -71,20 +71,20 @@ function EmbedDialogInner({
     }
 
     const lang = record.langs && record.langs.length > 0 ? record.langs[0] : ''
-    const profileHref = toEmbedUrl(['/profile', postAuthor.did].join('/'))
-    const urip = new AtUri(postUri)
+    const profileHref = toEmbedUrl(['/profile', noteAuthor.userId].join('/'))
+    const urip = new AtUri(noteUri)
     const href = toEmbedUrl(
-      ['/profile', postAuthor.did, 'post', urip.rkey].join('/'),
+      ['/profile', noteAuthor.userId, 'note', urip.rkey].join('/'),
     )
 
     // x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x
     // DO NOT ADD ANY NEW INTERPOLATIONS BELOW WITHOUT ESCAPING THEM!
-    // Also, keep this code synced with the bskyembed code in landing.tsx.
+    // Also, keep this code synced with the sonetembed code in landing.tsx.
     // x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x
     return `<blockquote class="bluesky-embed" data-bluesky-uri="${escapeHtml(
-      postUri,
+      noteUri,
     )}" data-bluesky-cid="${escapeHtml(
-      postCid,
+      noteCid,
     )}" data-bluesky-embed-color-mode="${escapeHtml(
       colorMode,
     )}"><p lang="${escapeHtml(lang)}">${escapeHtml(record.text)}${
@@ -92,25 +92,25 @@ function EmbedDialogInner({
         ? `<br><br><a href="${escapeHtml(href)}">[image or embed]</a>`
         : ''
     }</p>&mdash; ${escapeHtml(
-      postAuthor.displayName || postAuthor.handle,
+      noteAuthor.displayName || noteAuthor.username,
     )} (<a href="${escapeHtml(profileHref)}">@${escapeHtml(
-      postAuthor.handle,
+      noteAuthor.username,
     )}</a>) <a href="${escapeHtml(href)}">${escapeHtml(
       niceDate(i18n, timestamp),
     )}</a></blockquote><script async src="${EMBED_SCRIPT}" charset="utf-8"></script>`
-  }, [i18n, postUri, postCid, record, timestamp, postAuthor, colorMode])
+  }, [i18n, noteUri, noteCid, record, timestamp, noteAuthor, colorMode])
 
   return (
-    <Dialog.Inner label={_(msg`Embed post`)} style={[{maxWidth: 500}]}>
+    <Dialog.Inner label={_(msg`Embed note`)} style={[{maxWidth: 500}]}>
       <View style={[a.gap_lg]}>
         <View style={[a.gap_sm]}>
           <Text style={[a.text_2xl, a.font_heavy]}>
-            <Trans>Embed post</Trans>
+            <Trans>Embed note</Trans>
           </Text>
           <Text
             style={[a.text_md, t.atoms.text_contrast_medium, a.leading_normal]}>
             <Trans>
-              Embed this post in your website. Simply copy the following snippet
+              Embed this note in your website. Simply copy the following snippet
               and paste it into the HTML code of your website.
             </Trans>
           </Text>

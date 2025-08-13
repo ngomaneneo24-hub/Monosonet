@@ -35,15 +35,15 @@ export const Login = ({onPressBack}: {onPressBack: () => void}) => {
   const {accounts} = useSession()
   const {requestedAccountSwitchTo} = useLoggedOutView()
   const requestedAccount = accounts.find(
-    acc => acc.did === requestedAccountSwitchTo,
+    acc => acc.userId === requestedAccountSwitchTo,
   )
 
   const [error, setError] = React.useState<string>('')
   const [serviceUrl, setServiceUrl] = React.useState<string>(
     requestedAccount?.service || DEFAULT_SERVICE,
   )
-  const [initialHandle, setInitialHandle] = React.useState<string>(
-    requestedAccount?.handle || '',
+  const [initialUsername, setInitialUsername] = React.useState<string>(
+    requestedAccount?.username || '',
   )
   const [currentForm, setCurrentForm] = React.useState<Forms>(
     requestedAccount
@@ -63,7 +63,7 @@ export const Login = ({onPressBack}: {onPressBack: () => void}) => {
     if (account?.service) {
       setServiceUrl(account.service)
     }
-    setInitialHandle(account?.handle || '')
+    setInitialUsername(account?.username || '')
     setCurrentForm(Forms.Login)
   }
 
@@ -93,7 +93,7 @@ export const Login = ({onPressBack}: {onPressBack: () => void}) => {
     logEvent('signin:forgotPasswordPressed', {})
   }
 
-  const handlePressBack = () => {
+  const usernamePressBack = () => {
     onPressBack()
     logEvent('signin:backPressed', {
       failedAttemptsCount: failedAttemptCountRef.current,
@@ -126,13 +126,13 @@ export const Login = ({onPressBack}: {onPressBack: () => void}) => {
           error={error}
           serviceUrl={serviceUrl}
           serviceDescription={serviceDescription}
-          initialHandle={initialHandle}
+          initialUsername={initialUsername}
           setError={setError}
           onAttemptFailed={onAttemptFailed}
           onAttemptSuccess={onAttemptSuccess}
           setServiceUrl={setServiceUrl}
           onPressBack={() =>
-            accounts.length ? gotoForm(Forms.ChooseAccount) : handlePressBack()
+            accounts.length ? gotoForm(Forms.ChooseAccount) : usernamePressBack()
           }
           onPressForgotPassword={onPressForgotPassword}
           onPressRetryConnect={refetchService}
@@ -145,7 +145,7 @@ export const Login = ({onPressBack}: {onPressBack: () => void}) => {
       content = (
         <ChooseAccountForm
           onSelectAccount={onSelectAccount}
-          onPressBack={handlePressBack}
+          onPressBack={usernamePressBack}
         />
       )
       break

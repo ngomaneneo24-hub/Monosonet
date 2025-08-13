@@ -1,13 +1,13 @@
 import {
   useCallback,
   useContext,
-  useImperativeHandle,
+  useImperativeUsername,
   useRef,
   useState,
 } from 'react'
 import {View} from 'react-native'
 import {DrawerGestureContext} from 'react-native-drawer-layout'
-import {Gesture, GestureDetector} from 'react-native-gesture-handler'
+import {Gesture, GestureDetector} from 'react-native-gesture-usernamer'
 import PagerView, {
   type PagerViewOnPageScrollEventData,
   type PagerViewOnPageSelectedEvent,
@@ -18,7 +18,7 @@ import Animated, {
   runOnJS,
   type SharedValue,
   useEvent,
-  useHandler,
+  useUsernamer,
   useSharedValue,
 } from 'react-native-reanimated'
 import {useFocusEffect} from '@react-navigation/native'
@@ -82,7 +82,7 @@ export function Pager({
     }, [setDrawerSwipeDisabled, selectedPage, isIdle]),
   )
 
-  useImperativeHandle(ref, () => ({
+  useImperativeUsername(ref, () => ({
     setPage: (index: number) => {
       pagerView.current?.setPage(index)
     },
@@ -106,12 +106,12 @@ export function Pager({
 
   const dragState = useSharedValue<'idle' | 'settling' | 'dragging'>('idle')
   const dragProgress = useSharedValue(selectedPage)
-  const didInit = useSharedValue(false)
-  const handlePageScroll = usePagerHandlers(
+  const userIdInit = useSharedValue(false)
+  const usernamePageScroll = usePagerUsernamers(
     {
       onPageScroll(e: PagerViewOnPageScrollEventData) {
         'worklet'
-        if (didInit.get() === false) {
+        if (userIdInit.get() === false) {
           // On iOS, there's a spurious scroll event with 0 position
           // even if a different page was supplied as the initial page.
           // Ignore it and wait for the first confirmed selection instead.
@@ -132,7 +132,7 @@ export function Pager({
       },
       onPageSelected(e: PagerViewOnPageSelectedEventData) {
         'worklet'
-        didInit.set(true)
+        userIdInit.set(true)
         runOnJS(onPageSelectedJSThread)(e.position)
       },
     },
@@ -156,7 +156,7 @@ export function Pager({
           ref={pagerView}
           style={[a.flex_1]}
           initialPage={initialPage}
-          onPageScroll={handlePageScroll}>
+          onPageScroll={usernamePageScroll}>
           {children}
         </AnimatedPagerView>
       </GestureDetector>
@@ -164,15 +164,15 @@ export function Pager({
   )
 }
 
-function usePagerHandlers(
-  handlers: {
+function usePagerUsernamers(
+  usernamers: {
     onPageScroll: (e: PagerViewOnPageScrollEventData) => void
     onPageScrollStateChanged: (e: PageScrollStateChangedNativeEventData) => void
     onPageSelected: (e: PagerViewOnPageSelectedEventData) => void
   },
   dependencies: unknown[],
 ) {
-  const {doDependenciesDiffer} = useHandler(handlers as any, dependencies)
+  const {doDependenciesDiffer} = useUsernamer(usernamers as any, dependencies)
   const subscribeForEvents = [
     'onPageScroll',
     'onPageScrollStateChanged',
@@ -181,7 +181,7 @@ function usePagerHandlers(
   return useEvent(
     event => {
       'worklet'
-      const {onPageScroll, onPageScrollStateChanged, onPageSelected} = handlers
+      const {onPageScroll, onPageScrollStateChanged, onPageSelected} = usernamers
       if (event.eventName.endsWith('onPageScroll')) {
         onPageScroll(event as any as PagerViewOnPageScrollEventData)
       } else if (event.eventName.endsWith('onPageScrollStateChanged')) {

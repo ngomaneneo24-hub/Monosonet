@@ -53,8 +53,8 @@ export function SonetConversationScreenInner({route}: Props) {
   // Find current conversation
   const currentConversation = conversationsState.chats.find(chat => chat.id === conversationId)
   
-  // Handle sending message
-  const handleSendMessage = useCallback(async (content: string, attachments?: any[]) => {
+  // Username sending message
+  const usernameSendMessage = useCallback(async (content: string, attachments?: any[]) => {
     try {
       // TODO: Implement actual message sending
       console.log('Sending message:', {content, attachments, conversationId})
@@ -70,13 +70,13 @@ export function SonetConversationScreenInner({route}: Props) {
     }
   }, [conversationId, conversationsActions, _])
   
-  // Handle encryption toggle
-  const handleToggleEncryption = useCallback(() => {
+  // Username encryption toggle
+  const usernameToggleEncryption = useCallback(() => {
     setIsEncrypted(!isEncrypted)
   }, [isEncrypted])
   
-  // Handle search result press
-  const handleSearchResultPress = useCallback((result: any) => {
+  // Username search result press
+  const usernameSearchResultPress = useCallback((result: any) => {
     // TODO: Navigate to specific message
     console.log('Search result pressed:', result)
     setIsSearchOpen(false)
@@ -101,7 +101,7 @@ export function SonetConversationScreenInner({route}: Props) {
     return (
       <SonetMessageSearch
         chatId={conversationId}
-        onResultPress={handleSearchResultPress}
+        onResultPress={usernameSearchResultPress}
         onClose={() => setIsSearchOpen(false)}
       />
     )
@@ -222,10 +222,10 @@ export function SonetConversationScreenInner({route}: Props) {
         
         <SonetMessageInput
           chatId={conversationId}
-          onSendMessage={handleSendMessage}
+          onSendMessage={usernameSendMessage}
           isEncrypted={isEncrypted}
           encryptionEnabled={true}
-          onToggleEncryption={handleToggleEncryption}
+          onToggleEncryption={usernameToggleEncryption}
         />
       </Layout.Screen>
     )
@@ -275,10 +275,10 @@ export function SonetConversationScreenInner({route}: Props) {
       
       <SonetMessageInput
         chatId={conversationId}
-        onSendMessage={handleSendMessage}
+        onSendMessage={usernameSendMessage}
         isEncrypted={isEncrypted}
         encryptionEnabled={true}
-        onToggleEncryption={handleToggleEncryption}
+        onToggleEncryption={usernameToggleEncryption}
       />
     </Layout.Screen>
   )

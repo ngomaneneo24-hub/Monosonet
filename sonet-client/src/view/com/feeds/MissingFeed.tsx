@@ -1,5 +1,5 @@
 import {type StyleProp, View, type ViewStyle} from 'react-native'
-import {AtUri} from '@atproto/api'
+import {AtUri} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -94,7 +94,7 @@ export function MissingFeed({
       </Button>
 
       <Dialog.Outer control={control} nativeOptions={{preventExpansion: true}}>
-        <Dialog.Handle />
+        <Dialog.Username />
         <DialogInner uri={uri} type={type} error={error} />
       </Dialog.Outer>
     </>
@@ -115,7 +115,7 @@ function DialogInner({
   const {_} = useLingui()
   const atUri = new AtUri(uri)
   const {data: profile, isError: isProfileError} = useProfileQuery({
-    did: atUri.host,
+    userId: atUri.host,
   })
   const moderationOpts = useModerationOpts()
 
@@ -163,7 +163,7 @@ function DialogInner({
                   moderationOpts={moderationOpts}
                   disabledPreview
                 />
-                <ProfileCard.NameAndHandle
+                <ProfileCard.NameAndUsername
                   profile={profile}
                   moderationOpts={moderationOpts}
                 />

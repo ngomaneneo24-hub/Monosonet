@@ -4,48 +4,48 @@ import {useMutation, useQueryClient} from '@tanstack/react-query'
 import {STALE} from '#/state/queries'
 import {useAgent} from '#/state/session'
 
-const handleQueryKeyRoot = 'handle'
-const fetchHandleQueryKey = (handleOrDid: string) => [
-  handleQueryKeyRoot,
-  handleOrDid,
+const usernameQueryKeyRoot = 'username'
+const fetchUsernameQueryKey = (usernameOrDid: string) => [
+  usernameQueryKeyRoot,
+  usernameOrDid,
 ]
-const didQueryKeyRoot = 'did'
-const fetchDidQueryKey = (handleOrDid: string) => [didQueryKeyRoot, handleOrDid]
+const userIdQueryKeyRoot = 'userId'
+const fetchDidQueryKey = (usernameOrDid: string) => [userIdQueryKeyRoot, usernameOrDid]
 
-export function useFetchHandle() {
+export function useFetchUsername() {
   const queryClient = useQueryClient()
   const agent = useAgent()
 
   return React.useCallback(
-    async (handleOrDid: string) => {
-      if (handleOrDid.startsWith('did:')) {
+    async (usernameOrDid: string) => {
+      if (usernameOrDid.startsWith('userId:')) {
         const res = await queryClient.fetchQuery({
           staleTime: STALE.MINUTES.FIVE,
-          queryKey: fetchHandleQueryKey(handleOrDid),
-          queryFn: () => agent.getProfile({actor: handleOrDid}),
+          queryKey: fetchUsernameQueryKey(usernameOrDid),
+          queryFn: () => agent.getProfile({actor: usernameOrDid}),
         })
-        return res.data.handle
+        return res.data.username
       }
-      return handleOrDid
+      return usernameOrDid
     },
     [queryClient, agent],
   )
 }
 
-export function useUpdateHandleMutation(opts?: {
-  onSuccess?: (handle: string) => void
+export function useUpdateUsernameMutation(opts?: {
+  onSuccess?: (username: string) => void
 }) {
   const queryClient = useQueryClient()
   const agent = useAgent()
 
   return useMutation({
-    mutationFn: async ({handle}: {handle: string}) => {
-      await agent.updateHandle({handle})
+    mutationFn: async ({username}: {username: string}) => {
+      await agent.updateUsername({username})
     },
     onSuccess(_data, variables) {
-      opts?.onSuccess?.(variables.handle)
+      opts?.onSuccess?.(variables.username)
       queryClient.invalidateQueries({
-        queryKey: fetchHandleQueryKey(variables.handle),
+        queryKey: fetchUsernameQueryKey(variables.username),
       })
     },
   })
@@ -56,15 +56,15 @@ export function useFetchDid() {
   const agent = useAgent()
 
   return React.useCallback(
-    async (handleOrDid: string) => {
+    async (usernameOrDid: string) => {
       return queryClient.fetchQuery({
         staleTime: STALE.INFINITY,
-        queryKey: fetchDidQueryKey(handleOrDid),
+        queryKey: fetchDidQueryKey(usernameOrDid),
         queryFn: async () => {
-          let identifier = handleOrDid
-          if (!identifier.startsWith('did:')) {
-            const res = await agent.resolveHandle({handle: identifier})
-            identifier = res.data.did
+          let identifier = usernameOrDid
+          if (!identifier.startsWith('userId:')) {
+            const res = await agent.resolveUsername({username: identifier})
+            identifier = res.data.userId
           }
           return identifier
         },

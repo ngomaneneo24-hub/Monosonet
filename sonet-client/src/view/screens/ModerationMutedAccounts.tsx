@@ -1,6 +1,6 @@
 import {useCallback, useMemo, useState} from 'react'
 import {type StyleProp, View, type ViewStyle} from 'react-native'
-import {type AppBskyActorDefs as ActorDefs} from '@atproto/api'
+import {type SonetActorDefs as ActorDefs} from '@sonet/api'
 import {Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useFocusEffect} from '@react-navigation/native'
@@ -86,7 +86,7 @@ export function ModerationMutedAccounts({}: Props) {
     return (
       <View
         style={[a.py_md, a.px_xl, a.border_t, t.atoms.border_contrast_low]}
-        key={item.did}>
+        key={item.userId}>
         <ProfileCard.Link profile={item} testID={`mutedAccount-${index}`}>
           <ProfileCard.Outer>
             <ProfileCard.Header>
@@ -94,7 +94,7 @@ export function ModerationMutedAccounts({}: Props) {
                 profile={item}
                 moderationOpts={moderationOpts}
               />
-              <ProfileCard.NameAndHandle
+              <ProfileCard.NameAndUsername
                 profile={item}
                 moderationOpts={moderationOpts}
               />
@@ -137,7 +137,7 @@ export function ModerationMutedAccounts({}: Props) {
         ) : (
           <List
             data={profiles}
-            keyExtractor={item => item.did}
+            keyExtractor={item => item.userId}
             refreshing={isPTRing}
             onRefresh={onRefresh}
             onEndReached={onEndReached}
@@ -202,7 +202,7 @@ function Info({style}: {style?: StyleProp<ViewStyle>}) {
       ]}>
       <Text style={[a.text_center, a.text_sm, t.atoms.text_contrast_high]}>
         <Trans>
-          Muted accounts have their posts removed from your feed and from your
+          Muted accounts have their notes removed from your feed and from your
           notifications. Mutes are completely private.
         </Trans>
       </Text>

@@ -24,7 +24,7 @@ export function ChatStatusInfo({convoState}: {convoState: ActiveConvoStates}) {
   }, [convoState])
 
   const otherUser = convoState.recipients.find(
-    user => user.did !== currentAccount?.did,
+    user => user.userId !== currentAccount?.userId,
   )
 
   if (!moderationOpts) {

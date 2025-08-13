@@ -1,6 +1,6 @@
 import {useCallback, useRef, useState} from 'react'
 import {Pressable, View} from 'react-native'
-import {type ChatBskyConvoDefs} from '@atproto/api'
+import {type SonetConvoDefs} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import type React from 'react'
@@ -20,7 +20,7 @@ export function ActionsWrapper({
   isFromSelf,
   children,
 }: {
-  message: ChatBskyConvoDefs.MessageView
+  message: SonetConvoDefs.MessageView
   isFromSelf: boolean
   children: React.ReactNode
 }) {
@@ -40,9 +40,9 @@ export function ActionsWrapper({
     setShowActions(false)
   }, [])
 
-  // We need to handle the `onFocus` separately because we want to know if there is a related target (the element
+  // We need to username the `onFocus` separately because we want to know if there is a related target (the element
   // that is losing focus). If there isn't that means the focus is coming from a dropdown that is now closed.
-  const onFocus = useCallback<React.FocusEventHandler>(e => {
+  const onFocus = useCallback<React.FocusEventUsernamer>(e => {
     if (e.nativeEvent.relatedTarget == null) return
     setShowActions(true)
   }, [])
@@ -53,14 +53,14 @@ export function ActionsWrapper({
         message.reactions?.find(
           reaction =>
             reaction.value === emoji &&
-            reaction.sender.did === currentAccount?.did,
+            reaction.sender.userId === currentAccount?.userId,
         )
       ) {
         convo
           .removeReaction(message.id, emoji)
           .catch(() => Toast.show(_(msg`Failed to remove emoji reaction`)))
       } else {
-        if (hasReachedReactionLimit(message, currentAccount?.did)) return
+        if (hasReachedReactionLimit(message, currentAccount?.userId)) return
         convo
           .addReaction(message.id, emoji)
           .catch(() =>
@@ -68,7 +68,7 @@ export function ActionsWrapper({
           )
       }
     },
-    [_, convo, message, currentAccount?.did],
+    [_, convo, message, currentAccount?.userId],
   )
 
   return (

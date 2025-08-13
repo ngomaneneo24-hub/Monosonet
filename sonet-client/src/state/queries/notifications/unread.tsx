@@ -129,7 +129,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
 
         // update & broadcast
         setNumUnread('')
-        broadcast.postMessage({event: ''})
+        broadcast.noteMessage({event: ''})
         resetBadgeCount()
       },
 
@@ -216,7 +216,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
             truncateAndInvalidate(queryClient, RQKEY_NOTIFS('all'))
             truncateAndInvalidate(queryClient, RQKEY_NOTIFS('mentions'))
           }
-          broadcast.postMessage({event: unreadCountStr})
+          broadcast.noteMessage({event: unreadCountStr})
         } catch (e) {
           logger.warn('Failed to check unread notifications', {error: e})
         } finally {

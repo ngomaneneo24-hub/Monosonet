@@ -1,6 +1,6 @@
 import {useMemo, useState} from 'react'
 import {useWindowDimensions, View} from 'react-native'
-import {type ChatBskyConvoDefs} from '@atproto/api'
+import {type SonetConvoDefs} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -24,14 +24,14 @@ export function EmojiReactionPicker({
   message,
   onEmojiSelect,
 }: {
-  message: ChatBskyConvoDefs.MessageView
+  message: SonetConvoDefs.MessageView
   children?: TriggerProps['children']
   onEmojiSelect: (emoji: string) => void
 }) {
   const {_} = useLingui()
   const {currentAccount} = useSession()
   const t = useTheme()
-  const isFromSelf = message.sender?.did === currentAccount?.did
+  const isFromSelf = message.sender?.userId === currentAccount?.userId
   const {measurement, close} = useContextMenuContext()
   const {align} = useContextMenuMenuContext()
   const [layout, setLayout] = useState({width: 0, height: 0})
@@ -51,7 +51,7 @@ export function EmojiReactionPicker({
     }
   }, [measurement, align, screenWidth, layout])
 
-  const limitReacted = hasReachedReactionLimit(message, currentAccount?.did)
+  const limitReacted = hasReachedReactionLimit(message, currentAccount?.userId)
 
   const bgColor = t.scheme === 'light' ? t.atoms.bg : t.atoms.bg_contrast_25
 
@@ -76,7 +76,7 @@ export function EmojiReactionPicker({
       {['👍', '😆', '❤️', '👀', '😢'].map(emoji => {
         const alreadyReacted = hasAlreadyReacted(
           message,
-          currentAccount?.did,
+          currentAccount?.userId,
           emoji,
         )
         return (

@@ -1,6 +1,6 @@
 import {useCallback, useMemo, useState} from 'react'
 import {StyleSheet, View} from 'react-native'
-import {type AppBskyActorDefs} from '@atproto/api'
+import {type SonetActorDefs} from '@sonet/api'
 import {msg, plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation, useNavigationState} from '@react-navigation/native'
@@ -18,10 +18,10 @@ import {
 } from '#/lib/routes/types'
 import {useGate} from '#/lib/statsig/statsig'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {isInvalidHandle, sanitizeHandle} from '#/lib/strings/handles'
+import {isInvalidUsername, sanitizeUsername} from '#/lib/strings/usernames'
 import {emitSoftReset} from '#/state/events'
 import {useHomeBadge} from '#/state/home-badge'
-import {useFetchHandle} from '#/state/queries/handle'
+import {useFetchUsername} from '#/state/queries/username'
 import {useUnreadMessageCount} from '#/state/queries/messages/list-conversations'
 import {useUnreadNotifications} from '#/state/queries/notifications/unread'
 import {useProfilesQuery} from '#/state/queries/profile'
@@ -74,7 +74,7 @@ import {CENTER_COLUMN_OFFSET} from '#/components/Layout'
 import * as Menu from '#/components/Menu'
 import * as Prompt from '#/components/Prompt'
 import {Text} from '#/components/Typography'
-import {PlatformInfo} from '../../../../modules/expo-bluesky-swiss-army'
+import {PlatformInfo} from '../../../../modules/expo-sonet-swiss-army'
 import {router} from '../../../routes'
 
 const NAV_ICON_WIDTH = 28
@@ -83,7 +83,7 @@ function ProfileCard() {
   const {currentAccount, accounts} = useSession()
   const {logoutEveryAccount} = useSessionApi()
   const {isLoading, data} = useProfilesQuery({
-    handles: accounts.map(acc => acc.did),
+    usernames: accounts.map(acc => acc.userId),
   })
   const profiles = data?.profiles
   const signOutPromptControl = Prompt.usePromptControl()
@@ -93,12 +93,12 @@ function ProfileCard() {
 
   const size = 48
 
-  const profile = profiles?.find(p => p.did === currentAccount!.did)
+  const profile = profiles?.find(p => p.userId === currentAccount!.userId)
   const otherAccounts = accounts
-    .filter(acc => acc.did !== currentAccount!.did)
+    .filter(acc => acc.userId !== currentAccount!.userId)
     .map(account => ({
       account,
-      profile: profiles?.find(p => p.did === account.did),
+      profile: profiles?.find(p => p.userId === account.userId),
     }))
 
   const {isActive: live} = useActorStatus(profile)
@@ -164,7 +164,7 @@ function ProfileCard() {
                           style={[a.font_heavy, a.text_sm, a.leading_snug]}
                           numberOfLines={1}>
                           {sanitizeDisplayName(
-                            profile.displayName || profile.handle,
+                            profile.displayName || profile.username,
                           )}
                         </Text>
                         <Text
@@ -174,7 +174,7 @@ function ProfileCard() {
                             t.atoms.text_contrast_medium,
                           ]}
                           numberOfLines={1}>
-                          {sanitizeHandle(profile.handle, '@')}
+                          {sanitizeUsername(profile.username, '@')}
                         </Text>
                       </View>
                       <EllipsisIcon
@@ -224,7 +224,7 @@ function SwitchMenuItems({
   accounts:
     | {
         account: SessionAccount
-        profile?: AppBskyActorDefs.ProfileViewDetailed
+        profile?: SonetActorDefs.ProfileViewDetailed
       }[]
     | undefined
   signOutPromptControl: DialogControlProps
@@ -247,7 +247,7 @@ function SwitchMenuItems({
             </Menu.LabelText>
             {accounts.map(other => (
               <SwitchMenuItem
-                key={other.account.did}
+                key={other.account.userId}
                 account={other.account}
                 profile={other.profile}
               />
@@ -279,7 +279,7 @@ function SwitchMenuItem({
   profile,
 }: {
   account: SessionAccount
-  profile: AppBskyActorDefs.ProfileViewDetailed | undefined
+  profile: SonetActorDefs.ProfileViewDetailed | undefined
 }) {
   const {_} = useLingui()
   const {onPressSwitchAccount, pendingDid} = useAccountSwitcher()
@@ -289,10 +289,10 @@ function SwitchMenuItem({
     <Menu.Item
       disabled={!!pendingDid}
       style={[a.gap_sm, {minWidth: 150}]}
-      key={account.did}
+      key={account.userId}
       label={_(
-        msg`Switch to ${sanitizeHandle(
-          profile?.handle ?? account.handle,
+        msg`Switch to ${sanitizeUsername(
+          profile?.username ?? account.username,
           '@',
         )}`,
       )}
@@ -307,7 +307,7 @@ function SwitchMenuItem({
         />
       </View>
       <Menu.ItemText>
-        {sanitizeHandle(profile?.handle ?? account.handle, '@')}
+        {sanitizeUsername(profile?.username ?? account.username, '@')}
       </Menu.ItemText>
     </Menu.Item>
   )
@@ -337,7 +337,7 @@ function NavItem({count, hasNew, href, icon, iconFilled, label}: NavItemProps) {
     currentRouteInfo.name === 'Profile'
       ? isTab(currentRouteInfo.name, pathName) &&
         (currentRouteInfo.params as CommonNavigatorParams['Profile']).name ===
-          currentAccount?.handle
+          currentAccount?.username
       : isTab(currentRouteInfo.name, pathName)
   const navigation = useNavigation<NavigationProp>()
   const onPressWrapped = useCallback(
@@ -470,44 +470,44 @@ function ComposeBtn() {
   const {openComposer} = useOpenComposer()
   const {_} = useLingui()
   const {leftNavMinimal} = useLayoutBreakpoints()
-  const [isFetchingHandle, setIsFetchingHandle] = useState(false)
-  const fetchHandle = useFetchHandle()
+  const [isFetchingUsername, setIsFetchingUsername] = useState(false)
+  const fetchUsername = useFetchUsername()
 
-  const getProfileHandle = async () => {
+  const getProfileUsername = async () => {
     const routes = getState()?.routes
     const currentRoute = routes?.[routes?.length - 1]
 
     if (currentRoute?.name === 'Profile') {
-      let handle: string | undefined = (
+      let username: string | undefined = (
         currentRoute.params as CommonNavigatorParams['Profile']
       ).name
 
-      if (handle.startsWith('did:')) {
+      if (username.startsWith('userId:')) {
         try {
-          setIsFetchingHandle(true)
-          handle = await fetchHandle(handle)
+          setIsFetchingUsername(true)
+          username = await fetchUsername(username)
         } catch (e) {
-          handle = undefined
+          username = undefined
         } finally {
-          setIsFetchingHandle(false)
+          setIsFetchingUsername(false)
         }
       }
 
       if (
-        !handle ||
-        handle === currentAccount?.handle ||
-        isInvalidHandle(handle)
+        !username ||
+        username === currentAccount?.username ||
+        isInvalidUsername(username)
       )
         return undefined
 
-      return handle
+      return username
     }
 
     return undefined
   }
 
   const onPressCompose = async () =>
-    openComposer({mention: await getProfileHandle()})
+    openComposer({mention: await getProfileUsername()})
 
   if (leftNavMinimal) {
     return null
@@ -516,8 +516,8 @@ function ComposeBtn() {
   return (
     <View style={[a.flex_row, a.pl_md, a.pt_xl]}>
       <Button
-        disabled={isFetchingHandle}
-        label={_(msg`Compose new post`)}
+        disabled={isFetchingUsername}
+        label={_(msg`Compose new note`)}
         onPress={onPressCompose}
         size="large"
         variant="solid"
@@ -525,7 +525,7 @@ function ComposeBtn() {
         style={[a.rounded_full]}>
         <ButtonIcon icon={EditBig} position="left" />
         <ButtonText>
-          <Trans context="action">New Post</Trans>
+          <Trans context="action">New Note</Trans>
         </ButtonText>
       </Button>
     </View>

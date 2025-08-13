@@ -61,7 +61,7 @@ export function VerificationCreatePrompt({
             profile={profile}
             moderationOpts={moderationOpts}
           />
-          <ProfileCard.NameAndHandle
+          <ProfileCard.NameAndUsername
             profile={profile}
             moderationOpts={moderationOpts}
           />

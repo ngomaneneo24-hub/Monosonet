@@ -1,31 +1,31 @@
 import {
   type $Typed,
-  AppBskyEmbedRecord,
-  AppBskyEmbedRecordWithMedia,
-  type AppBskyFeedDefs,
-  type AppBskyFeedPostgate,
+  SonetEmbedRecord,
+  SonetEmbedRecordWithMedia,
+  type SonetFeedDefs,
+  type SonetFeedNotegate,
   AtUri,
-} from '@atproto/api'
+} from '@sonet/api'
 
-export const POSTGATE_COLLECTION = 'app.bsky.feed.postgate'
+export const POSTGATE_COLLECTION = 'app.sonet.feed.notegate'
 
-export function createPostgateRecord(
-  postgate: Partial<AppBskyFeedPostgate.Record> & {
-    post: AppBskyFeedPostgate.Record['post']
+export function createNotegateRecord(
+  notegate: Partial<SonetFeedNotegate.Record> & {
+    note: SonetFeedNotegate.Record['note']
   },
-): AppBskyFeedPostgate.Record {
+): SonetFeedNotegate.Record {
   return {
     $type: POSTGATE_COLLECTION,
     createdAt: new Date().toISOString(),
-    post: postgate.post,
-    detachedEmbeddingUris: postgate.detachedEmbeddingUris || [],
-    embeddingRules: postgate.embeddingRules || [],
+    note: notegate.note,
+    detachedEmbeddingUris: notegate.detachedEmbeddingUris || [],
+    embeddingRules: notegate.embeddingRules || [],
   }
 }
 
-export function mergePostgateRecords(
-  prev: AppBskyFeedPostgate.Record,
-  next: Partial<AppBskyFeedPostgate.Record>,
+export function mergeNotegateRecords(
+  prev: SonetFeedNotegate.Record,
+  next: Partial<SonetFeedNotegate.Record>,
 ) {
   const detachedEmbeddingUris = Array.from(
     new Set([
@@ -39,8 +39,8 @@ export function mergePostgateRecords(
   ].filter(
     (rule, i, all) => all.findIndex(_rule => _rule.$type === rule.$type) === i,
   )
-  return createPostgateRecord({
-    post: prev.post,
+  return createNotegateRecord({
+    note: prev.note,
     detachedEmbeddingUris,
     embeddingRules,
   })
@@ -50,146 +50,146 @@ export function createEmbedViewDetachedRecord({
   uri,
 }: {
   uri: string
-}): $Typed<AppBskyEmbedRecord.View> {
-  const record: $Typed<AppBskyEmbedRecord.ViewDetached> = {
-    $type: 'app.bsky.embed.record#viewDetached',
+}): $Typed<SonetEmbedRecord.View> {
+  const record: $Typed<SonetEmbedRecord.ViewDetached> = {
+    type: "sonet",
     uri,
     detached: true,
   }
   return {
-    $type: 'app.bsky.embed.record#view',
+    type: "sonet",
     record,
   }
 }
 
 export function createMaybeDetachedQuoteEmbed({
-  post,
+  note,
   quote,
   quoteUri,
   detached,
 }:
   | {
-      post: AppBskyFeedDefs.PostView
-      quote: AppBskyFeedDefs.PostView
+      note: SonetFeedDefs.NoteView
+      quote: SonetFeedDefs.NoteView
       quoteUri: undefined
       detached: false
     }
   | {
-      post: AppBskyFeedDefs.PostView
+      note: SonetFeedDefs.NoteView
       quote: undefined
       quoteUri: string
       detached: true
-    }): AppBskyEmbedRecord.View | AppBskyEmbedRecordWithMedia.View | undefined {
-  if (AppBskyEmbedRecord.isView(post.embed)) {
+    }): SonetEmbedRecord.View | SonetEmbedRecordWithMedia.View | undefined {
+  if (SonetEmbedRecord.isView(note.embed)) {
     if (detached) {
       return createEmbedViewDetachedRecord({uri: quoteUri})
     } else {
-      return createEmbedRecordView({post: quote})
+      return createEmbedRecordView({note: quote})
     }
-  } else if (AppBskyEmbedRecordWithMedia.isView(post.embed)) {
+  } else if (SonetEmbedRecordWithMedia.isView(note.embed)) {
     if (detached) {
       return {
-        ...post.embed,
+        ...note.embed,
         record: createEmbedViewDetachedRecord({uri: quoteUri}),
       }
     } else {
-      return createEmbedRecordWithMediaView({post, quote})
+      return createEmbedRecordWithMediaView({note, quote})
     }
   }
 }
 
-export function createEmbedViewRecordFromPost(
-  post: AppBskyFeedDefs.PostView,
-): $Typed<AppBskyEmbedRecord.ViewRecord> {
+export function createEmbedViewRecordFromNote(
+  note: SonetFeedDefs.NoteView,
+): $Typed<SonetEmbedRecord.ViewRecord> {
   return {
-    $type: 'app.bsky.embed.record#viewRecord',
-    uri: post.uri,
-    cid: post.cid,
-    author: post.author,
-    value: post.record,
-    labels: post.labels,
-    replyCount: post.replyCount,
-    repostCount: post.repostCount,
-    likeCount: post.likeCount,
-    quoteCount: post.quoteCount,
-    indexedAt: post.indexedAt,
-    embeds: post.embed ? [post.embed] : [],
+    type: "sonet",
+    uri: note.uri,
+    cid: note.cid,
+    author: note.author,
+    value: note.record,
+    labels: note.labels,
+    replyCount: note.replyCount,
+    renoteCount: note.renoteCount,
+    likeCount: note.likeCount,
+    quoteCount: note.quoteCount,
+    indexedAt: note.indexedAt,
+    embeds: note.embed ? [note.embed] : [],
   }
 }
 
 export function createEmbedRecordView({
-  post,
+  note,
 }: {
-  post: AppBskyFeedDefs.PostView
-}): AppBskyEmbedRecord.View {
+  note: SonetFeedDefs.NoteView
+}): SonetEmbedRecord.View {
   return {
-    $type: 'app.bsky.embed.record#view',
-    record: createEmbedViewRecordFromPost(post),
+    type: "sonet",
+    record: createEmbedViewRecordFromNote(note),
   }
 }
 
 export function createEmbedRecordWithMediaView({
-  post,
+  note,
   quote,
 }: {
-  post: AppBskyFeedDefs.PostView
-  quote: AppBskyFeedDefs.PostView
-}): AppBskyEmbedRecordWithMedia.View | undefined {
-  if (!AppBskyEmbedRecordWithMedia.isView(post.embed)) return
+  note: SonetFeedDefs.NoteView
+  quote: SonetFeedDefs.NoteView
+}): SonetEmbedRecordWithMedia.View | undefined {
+  if (!SonetEmbedRecordWithMedia.isView(note.embed)) return
   return {
-    ...(post.embed || {}),
+    ...(note.embed || {}),
     record: {
-      record: createEmbedViewRecordFromPost(quote),
+      record: createEmbedViewRecordFromNote(quote),
     },
   }
 }
 
 export function getMaybeDetachedQuoteEmbed({
   viewerDid,
-  post,
+  note,
 }: {
   viewerDid: string
-  post: AppBskyFeedDefs.PostView
+  note: SonetFeedDefs.NoteView
 }) {
-  if (AppBskyEmbedRecord.isView(post.embed)) {
+  if (SonetEmbedRecord.isView(note.embed)) {
     // detached
-    if (AppBskyEmbedRecord.isViewDetached(post.embed.record)) {
-      const urip = new AtUri(post.embed.record.uri)
+    if (SonetEmbedRecord.isViewDetached(note.embed.record)) {
+      const urip = new AtUri(note.embed.record.uri)
       return {
-        embed: post.embed,
+        embed: note.embed,
         uri: urip.toString(),
         isOwnedByViewer: urip.host === viewerDid,
         isDetached: true,
       }
     }
 
-    // post
-    if (AppBskyEmbedRecord.isViewRecord(post.embed.record)) {
-      const urip = new AtUri(post.embed.record.uri)
+    // note
+    if (SonetEmbedRecord.isViewRecord(note.embed.record)) {
+      const urip = new AtUri(note.embed.record.uri)
       return {
-        embed: post.embed,
+        embed: note.embed,
         uri: urip.toString(),
         isOwnedByViewer: urip.host === viewerDid,
         isDetached: false,
       }
     }
-  } else if (AppBskyEmbedRecordWithMedia.isView(post.embed)) {
+  } else if (SonetEmbedRecordWithMedia.isView(note.embed)) {
     // detached
-    if (AppBskyEmbedRecord.isViewDetached(post.embed.record.record)) {
-      const urip = new AtUri(post.embed.record.record.uri)
+    if (SonetEmbedRecord.isViewDetached(note.embed.record.record)) {
+      const urip = new AtUri(note.embed.record.record.uri)
       return {
-        embed: post.embed,
+        embed: note.embed,
         uri: urip.toString(),
         isOwnedByViewer: urip.host === viewerDid,
         isDetached: true,
       }
     }
 
-    // post
-    if (AppBskyEmbedRecord.isViewRecord(post.embed.record.record)) {
-      const urip = new AtUri(post.embed.record.record.uri)
+    // note
+    if (SonetEmbedRecord.isViewRecord(note.embed.record.record)) {
+      const urip = new AtUri(note.embed.record.record.uri)
       return {
-        embed: post.embed,
+        embed: note.embed,
         uri: urip.toString(),
         isOwnedByViewer: urip.host === viewerDid,
         isDetached: false,
@@ -199,5 +199,5 @@ export function getMaybeDetachedQuoteEmbed({
 }
 
 export const embeddingRules = {
-  disableRule: {$type: 'app.bsky.feed.postgate#disableRule'},
+  disableRule: {type: "sonet"},
 }

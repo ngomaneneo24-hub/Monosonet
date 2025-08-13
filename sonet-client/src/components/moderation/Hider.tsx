@@ -1,5 +1,5 @@
 import React from 'react'
-import {ModerationUI} from '@atproto/api'
+import {ModerationUI} from '@sonet/api'
 
 import {
   ModerationCauseDescription,

@@ -1,17 +1,17 @@
 import React, {
   useCallback,
   useEffect,
-  useImperativeHandle,
+  useImperativeUsername,
   useState,
 } from 'react'
 import {
-  findNodeHandle,
+  findNodeUsername,
   type ListRenderItemInfo,
   type StyleProp,
   View,
   type ViewStyle,
 } from 'react-native'
-import {type AppBskyGraphDefs} from '@atproto/api'
+import {type SonetGraphDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
@@ -43,7 +43,7 @@ interface SectionRef {
 
 interface ProfileFeedgensProps {
   scrollElRef: ListRef
-  did: string
+  userId: string
   headerOffset: number
   enabled?: boolean
   style?: StyleProp<ViewStyle>
@@ -52,7 +52,7 @@ interface ProfileFeedgensProps {
   isMe: boolean
 }
 
-function keyExtractor(item: AppBskyGraphDefs.StarterPackView) {
+function keyExtractor(item: SonetGraphDefs.StarterPackView) {
   return item.uri
 }
 
@@ -62,7 +62,7 @@ export const ProfileStarterPacks = React.forwardRef<
 >(function ProfileFeedgensImpl(
   {
     scrollElRef,
-    did,
+    userId,
     headerOffset,
     enabled,
     style,
@@ -82,12 +82,12 @@ export const ProfileStarterPacks = React.forwardRef<
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-  } = useActorStarterPacksQuery({did, enabled})
+  } = useActorStarterPacksQuery({userId, enabled})
   const {isTabletOrDesktop} = useWebMediaQueries()
 
   const items = data?.pages.flatMap(page => page.starterPacks)
 
-  useImperativeHandle(ref, () => ({
+  useImperativeUsername(ref, () => ({
     scrollToTop: () => {},
   }))
 
@@ -112,13 +112,13 @@ export const ProfileStarterPacks = React.forwardRef<
 
   useEffect(() => {
     if (isIOS && enabled && scrollElRef.current) {
-      const nativeTag = findNodeHandle(scrollElRef.current)
+      const nativeTag = findNodeUsername(scrollElRef.current)
       setScrollViewTag(nativeTag)
     }
   }, [enabled, scrollElRef, setScrollViewTag])
 
   const renderItem = useCallback(
-    ({item, index}: ListRenderItemInfo<AppBskyGraphDefs.StarterPackView>) => {
+    ({item, index}: ListRenderItemInfo<SonetGraphDefs.StarterPackView>) => {
       return (
         <View
           style={[

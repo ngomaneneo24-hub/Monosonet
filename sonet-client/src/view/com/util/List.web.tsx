@@ -9,7 +9,7 @@ import {type ReanimatedScrollEvent} from 'react-native-reanimated/lib/typescript
 
 import {batchedUpdates} from '#/lib/batchedUpdates'
 import {useNonReactiveCallback} from '#/lib/hooks/useNonReactiveCallback'
-import {useScrollHandlers} from '#/lib/ScrollContext'
+import {useScrollUsernamers} from '#/lib/ScrollContext'
 import {addStyle} from '#/lib/styles'
 import * as Layout from '#/components/Layout'
 
@@ -35,10 +35,10 @@ export type ListProps<ItemT> = Omit<
 }
 export type ListRef = React.MutableRefObject<any | null> // TODO: Better types.
 
-const ON_ITEM_SEEN_WAIT_DURATION = 0.5e3 // when we consider post to  be "seen"
+const ON_ITEM_SEEN_WAIT_DURATION = 0.5e3 // when we consider note to  be "seen"
 const ON_ITEM_SEEN_INTERSECTION_OPTS = {
   rootMargin: '-200px 0px -200px 0px',
-} // post must be 200px visible to be "seen"
+} // note must be 200px visible to be "seen"
 
 function ListImpl<ItemT>(
   {
@@ -67,7 +67,7 @@ function ListImpl<ItemT>(
   }: ListProps<ItemT>,
   ref: React.Ref<ListMethods>,
 ) {
-  const contextScrollHandlers = useScrollHandlers()
+  const contextScrollUsernamers = useScrollUsernamers()
 
   const isEmpty = !data || data.length === 0
 
@@ -137,11 +137,11 @@ function ListImpl<ItemT>(
         scrollBy(options: ScrollToOptions) {
           element.scrollBy(options)
         },
-        addEventListener(event: string, handler: any) {
-          element.addEventListener(event, handler)
+        addEventListener(event: string, usernamer: any) {
+          element.addEventListener(event, usernamer)
         },
-        removeEventListener(event: string, handler: any) {
-          element.removeEventListener(event, handler)
+        removeEventListener(event: string, usernamer: any) {
+          element.removeEventListener(event, usernamer)
         },
       }
     } else {
@@ -170,18 +170,18 @@ function ListImpl<ItemT>(
         scrollBy(options: ScrollToOptions) {
           window.scrollBy(options)
         },
-        addEventListener(event: string, handler: any) {
-          window.addEventListener(event, handler)
+        addEventListener(event: string, usernamer: any) {
+          window.addEventListener(event, usernamer)
         },
-        removeEventListener(event: string, handler: any) {
-          window.removeEventListener(event, handler)
+        removeEventListener(event: string, usernamer: any) {
+          window.removeEventListener(event, usernamer)
         },
       }
     }
   }, [disableFullWindowScroll])
 
   const nativeRef = React.useRef<HTMLDivElement>(null)
-  React.useImperativeHandle(
+  React.useImperativeUsername(
     ref,
     () =>
       ({
@@ -220,11 +220,11 @@ function ListImpl<ItemT>(
 
   // --- onScroll ---
   const [isInsideVisibleTree, setIsInsideVisibleTree] = React.useState(false)
-  const handleScroll = useNonReactiveCallback(() => {
+  const usernameScroll = useNonReactiveCallback(() => {
     if (!isInsideVisibleTree) return
 
     const element = getScrollableNode()
-    contextScrollHandlers.onScroll?.(
+    contextScrollUsernamers.onScroll?.(
       {
         contentOffset: {
           x: Math.max(0, element?.scrollX ?? 0),
@@ -259,25 +259,25 @@ function ListImpl<ItemT>(
 
     const element = getScrollableNode()
 
-    element?.addEventListener('scroll', handleScroll)
+    element?.addEventListener('scroll', usernameScroll)
     return () => {
-      element?.removeEventListener('scroll', handleScroll)
+      element?.removeEventListener('scroll', usernameScroll)
     }
   }, [
     isInsideVisibleTree,
-    handleScroll,
+    usernameScroll,
     disableFullWindowScroll,
     getScrollableNode,
   ])
 
   // --- onScrolledDownChange ---
   const isScrolledDown = useRef(false)
-  function handleAboveTheFoldVisibleChange(isAboveTheFold: boolean) {
-    const didScrollDown = !isAboveTheFold
-    if (isScrolledDown.current !== didScrollDown) {
-      isScrolledDown.current = didScrollDown
+  function usernameAboveTheFoldVisibleChange(isAboveTheFold: boolean) {
+    const userIdScrollDown = !isAboveTheFold
+    if (isScrolledDown.current !== userIdScrollDown) {
+      isScrolledDown.current = userIdScrollDown
       startTransition(() => {
-        onScrolledDownChange?.(didScrollDown)
+        onScrolledDownChange?.(userIdScrollDown)
       })
     }
   }
@@ -333,7 +333,7 @@ function ListImpl<ItemT>(
           ]}>
           <Visibility
             root={disableFullWindowScroll ? nativeRef : null}
-            onVisibleChange={handleAboveTheFoldVisibleChange}
+            onVisibleChange={usernameAboveTheFoldVisibleChange}
             style={[styles.aboveTheFoldDetector, {height: headerOffset}]}
           />
           {onStartReached && !isEmpty && (
@@ -407,7 +407,7 @@ function useResizeObserver(
   ref: React.RefObject<Element>,
   onResize: undefined | ((w: number, h: number) => void),
 ) {
-  const handleResize = useNonReactiveCallback(onResize ?? (() => {}))
+  const usernameResize = useNonReactiveCallback(onResize ?? (() => {}))
   const isActive = !!onResize
   React.useEffect(() => {
     if (!isActive) {
@@ -417,7 +417,7 @@ function useResizeObserver(
       batchedUpdates(() => {
         for (let entry of entries) {
           const rect = entry.contentRect
-          handleResize(rect.width, rect.height)
+          usernameResize(rect.width, rect.height)
         }
       })
     })
@@ -426,7 +426,7 @@ function useResizeObserver(
     return () => {
       resizeObserver.unobserve(node)
     }
-  }, [handleResize, isActive, ref])
+  }, [usernameResize, isActive, ref])
 }
 
 let Row = function RowImpl<ItemT>({
@@ -450,7 +450,7 @@ let Row = function RowImpl<ItemT>({
     ReturnType<typeof setTimeout> | undefined
   >(undefined)
 
-  const handleIntersection = useNonReactiveCallback(
+  const usernameIntersection = useNonReactiveCallback(
     (entries: IntersectionObserverEntry[]) => {
       batchedUpdates(() => {
         if (!onItemSeen) {
@@ -480,7 +480,7 @@ let Row = function RowImpl<ItemT>({
       return
     }
     const observer = new IntersectionObserver(
-      handleIntersection,
+      usernameIntersection,
       ON_ITEM_SEEN_INTERSECTION_OPTS,
     )
     const row: Element | null = rowRef.current!
@@ -488,7 +488,7 @@ let Row = function RowImpl<ItemT>({
     return () => {
       observer.unobserve(row)
     }
-  }, [handleIntersection, onItemSeen])
+  }, [usernameIntersection, onItemSeen])
 
   if (!renderItem) {
     return null
@@ -518,7 +518,7 @@ let Visibility = ({
   const tailRef = React.useRef(null)
   const isIntersecting = React.useRef(false)
 
-  const handleIntersection = useNonReactiveCallback(
+  const usernameIntersection = useNonReactiveCallback(
     (entries: IntersectionObserverEntry[]) => {
       batchedUpdates(() => {
         entries.forEach(entry => {
@@ -532,7 +532,7 @@ let Visibility = ({
   )
 
   React.useEffect(() => {
-    const observer = new IntersectionObserver(handleIntersection, {
+    const observer = new IntersectionObserver(usernameIntersection, {
       root: root?.current ?? null,
       rootMargin: `${topMargin} 0px ${bottomMargin} 0px`,
     })
@@ -541,7 +541,7 @@ let Visibility = ({
     return () => {
       observer.unobserve(tail)
     }
-  }, [bottomMargin, handleIntersection, topMargin, root])
+  }, [bottomMargin, usernameIntersection, topMargin, root])
 
   return (
     <View ref={tailRef} style={addStyle(styles.visibilityDetector, style)} />

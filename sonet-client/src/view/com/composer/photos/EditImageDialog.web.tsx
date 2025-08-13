@@ -1,6 +1,6 @@
 import 'react-image-crop/dist/ReactCrop.css'
 
-import {useCallback, useImperativeHandle, useRef, useState} from 'react'
+import {useCallback, useImperativeUsername, useRef, useState} from 'react'
 import {View} from 'react-native'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -20,7 +20,7 @@ import {type EditImageDialogProps} from './EditImageDialog'
 export function EditImageDialog(props: EditImageDialogProps) {
   return (
     <Dialog.Outer control={props.control}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <DialogInner {...props} />
     </Dialog.Outer>
   )
@@ -142,7 +142,7 @@ function EditImageInner({
     })
   }, [crop, image, source, control, onChange])
 
-  useImperativeHandle(
+  useImperativeUsername(
     saveRef,
     () => ({
       save: onPressSubmit,

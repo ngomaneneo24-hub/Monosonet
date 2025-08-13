@@ -3,7 +3,7 @@ import {Modal, View} from 'react-native'
 import {SystemBars} from 'react-native-edge-to-edge'
 import {KeyboardAwareScrollView} from 'react-native-keyboard-controller'
 import {useSafeAreaInsets} from 'react-native-safe-area-context'
-import {type ComAtprotoAdminDefs, ComAtprotoModerationDefs} from '@atproto/api'
+import {type SonetAdminDefs, SonetModerationDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useMutation} from '@tanstack/react-query'
@@ -49,12 +49,12 @@ export function Takendown() {
   } = useMutation({
     mutationFn: async (appealText: string) => {
       if (!currentAccount) throw new Error('No session')
-      await agent.com.atproto.moderation.createReport({
-        reasonType: ComAtprotoModerationDefs.REASONAPPEAL,
+      await agent.com.sonet.moderation.createReport({
+        reasonType: SonetModerationDefs.REASONAPPEAL,
         subject: {
-          $type: 'com.atproto.admin.defs#repoRef',
-          did: currentAccount.did,
-        } satisfies ComAtprotoAdminDefs.RepoRef,
+          type: "sonet",
+          userId: currentAccount.userId,
+        } satisfies SonetAdminDefs.RepoRef,
         reason: appealText,
       })
     },
@@ -215,7 +215,7 @@ export function Takendown() {
                   Your account was found to be in violation of the{' '}
                   <InlineLinkText
                     label={_(msg`Bluesky Social Terms of Service`)}
-                    to="https://bsky.social/about/support/tos"
+                    to="https://sonet.social/about/support/tos"
                     style={[a.text_md, a.leading_normal]}
                     overridePresentation>
                     Bluesky Social Terms of Service

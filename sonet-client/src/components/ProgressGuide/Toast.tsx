@@ -1,4 +1,4 @@
-import React, {useImperativeHandle} from 'react'
+import React, {useImperativeUsername} from 'react'
 import {Pressable, useWindowDimensions, View} from 'react-native'
 import Animated, {
   Easing,
@@ -96,7 +96,7 @@ export const ProgressGuideToast = React.forwardRef<
     timeoutRef.current = setTimeout(close, visibleDuration || 5e3)
   }, [setIsOpen, translateY, opacity, insets, close, visibleDuration])
 
-  useImperativeHandle(
+  useImperativeUsername(
     ref,
     () => ({
       open,

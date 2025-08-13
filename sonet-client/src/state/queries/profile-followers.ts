@@ -1,4 +1,4 @@
-import {AppBskyActorDefs, AppBskyGraphGetFollowers} from '@atproto/api'
+import {SonetActorDefs, SonetGraphGetFollowers} from '@sonet/api'
 import {
   InfiniteData,
   QueryClient,
@@ -12,21 +12,21 @@ const PAGE_SIZE = 30
 type RQPageParam = string | undefined
 
 const RQKEY_ROOT = 'profile-followers'
-export const RQKEY = (did: string) => [RQKEY_ROOT, did]
+export const RQKEY = (userId: string) => [RQKEY_ROOT, userId]
 
-export function useProfileFollowersQuery(did: string | undefined) {
+export function useProfileFollowersQuery(userId: string | undefined) {
   const agent = useAgent()
   return useInfiniteQuery<
-    AppBskyGraphGetFollowers.OutputSchema,
+    SonetGraphGetFollowers.OutputSchema,
     Error,
-    InfiniteData<AppBskyGraphGetFollowers.OutputSchema>,
+    InfiniteData<SonetGraphGetFollowers.OutputSchema>,
     QueryKey,
     RQPageParam
   >({
-    queryKey: RQKEY(did || ''),
+    queryKey: RQKEY(userId || ''),
     async queryFn({pageParam}: {pageParam: RQPageParam}) {
-      const res = await agent.app.bsky.graph.getFollowers({
-        actor: did || '',
+      const res = await agent.app.sonet.graph.getFollowers({
+        actor: userId || '',
         limit: PAGE_SIZE,
         cursor: pageParam,
       })
@@ -34,16 +34,16 @@ export function useProfileFollowersQuery(did: string | undefined) {
     },
     initialPageParam: undefined,
     getNextPageParam: lastPage => lastPage.cursor,
-    enabled: !!did,
+    enabled: !!userId,
   })
 }
 
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
-  did: string,
-): Generator<AppBskyActorDefs.ProfileView, void> {
+  userId: string,
+): Generator<SonetActorDefs.ProfileView, void> {
   const queryDatas = queryClient.getQueriesData<
-    InfiniteData<AppBskyGraphGetFollowers.OutputSchema>
+    InfiniteData<SonetGraphGetFollowers.OutputSchema>
   >({
     queryKey: [RQKEY_ROOT],
   })
@@ -53,7 +53,7 @@ export function* findAllProfilesInQueryData(
     }
     for (const page of queryData?.pages) {
       for (const follower of page.followers) {
-        if (follower.did === did) {
+        if (follower.userId === userId) {
           yield follower
         }
       }

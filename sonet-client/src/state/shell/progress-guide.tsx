@@ -211,12 +211,12 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
             <ProgressGuideToast
               ref={firstLikeToastRef}
               title={_(msg`Your first like!`)}
-              subtitle={_(msg`Like 10 posts to train the Discover feed`)}
+              subtitle={_(msg`Like 10 notes to train the Discover feed`)}
             />
             <ProgressGuideToast
               ref={fifthLikeToastRef}
               title={_(msg`Half way there!`)}
-              subtitle={_(msg`Like 10 posts to train the Discover feed`)}
+              subtitle={_(msg`Like 10 notes to train the Discover feed`)}
             />
             <ProgressGuideToast
               ref={tenthLikeToastRef}

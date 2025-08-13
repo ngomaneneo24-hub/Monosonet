@@ -24,8 +24,8 @@ export function InboxPreview({
     return null
   }
 
-  const handle = profiles[0]?.handle || 'unknown'
-  const displayName = profiles[0]?.displayName || handle
+  const username = profiles[0]?.username || 'unknown'
+  const displayName = profiles[0]?.displayName || username
   const avatar = profiles[0]?.avatar
 
   const otherProfiles = profiles.slice(1)

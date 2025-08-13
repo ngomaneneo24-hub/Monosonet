@@ -7,16 +7,16 @@ import {
   View,
 } from 'react-native'
 import {
-  ComAtprotoServerCreateSession,
-  type ComAtprotoServerDescribeServer,
-} from '@atproto/api'
+  SonetServerCreateSession,
+  type SonetServerDescribeServer,
+} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
 import {useRequestNotificationsPermission} from '#/lib/notifications/notifications'
 import {isNetworkError} from '#/lib/strings/errors'
 import {cleanError} from '#/lib/strings/errors'
-import {createFullHandle} from '#/lib/strings/handles'
+import {createFullUsername} from '#/lib/strings/usernames'
 import {logger} from '#/logger'
 import {useSetHasCheckedForStarterPack} from '#/state/preferences/used-starter-packs'
 import {useSessionApi} from '#/state/session'
@@ -35,13 +35,13 @@ import {Loader} from '#/components/Loader'
 import {Text} from '#/components/Typography'
 import {FormContainer} from './FormContainer'
 
-type ServiceDescription = ComAtprotoServerDescribeServer.OutputSchema
+type ServiceDescription = SonetServerDescribeServer.OutputSchema
 
 export const LoginForm = ({
   error,
   serviceUrl,
   serviceDescription,
-  initialHandle,
+  initialUsername,
   setError,
   setServiceUrl,
   onPressRetryConnect,
@@ -53,7 +53,7 @@ export const LoginForm = ({
   error: string
   serviceUrl: string
   serviceDescription: ServiceDescription | undefined
-  initialHandle: string
+  initialUsername: string
   setError: (v: string) => void
   setServiceUrl: (v: string) => void
   onPressRetryConnect: () => void
@@ -68,7 +68,7 @@ export const LoginForm = ({
     useState<boolean>(false)
   const [isAuthFactorTokenValueEmpty, setIsAuthFactorTokenValueEmpty] =
     useState<boolean>(true)
-  const identifierValueRef = useRef<string>(initialHandle || '')
+  const identifierValueRef = useRef<string>(initialUsername || '')
   const passwordValueRef = useRef<string>('')
   const authFactorTokenValueRef = useRef<string>('')
   const passwordRef = useRef<TextInput>(null)
@@ -112,7 +112,7 @@ export const LoginForm = ({
       setHasCheckedForStarterPack(true)
       requestNotificationsPermission('Login')
       return
-      // try to guess the handle if the user just gave their own username
+      // try to guess the username if the user just gave their own username
       let fullIdent = identifier
       if (
         !identifier.includes('@') &&
@@ -143,7 +143,7 @@ export const LoginForm = ({
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
       setIsProcessing(false)
       if (
-        e instanceof ComAtprotoServerCreateSession.AuthFactorTokenRequiredError
+        e instanceof SonetServerCreateSession.AuthFactorTokenRequiredError
       ) {
         setIsAuthFactorTokenNeeded(true)
       } else {
@@ -200,7 +200,7 @@ export const LoginForm = ({
               autoComplete="username"
               returnKeyType="next"
               textContentType="username"
-              defaultValue={initialHandle || ''}
+              defaultValue={initialUsername || ''}
               onChangeText={v => {
                 identifierValueRef.current = v
               }}
@@ -233,7 +233,7 @@ export const LoginForm = ({
                 passwordValueRef.current = v
               }}
               onSubmitEditing={onPressNext}
-              blurOnSubmit={false} // HACK: https://github.com/facebook/react-native/issues/21911#issuecomment-558343069 Keyboard blur behavior is now handled in onSubmitEditing
+              blurOnSubmit={false} // HACK: https://github.com/facebook/react-native/issues/21911#issuecomment-558343069 Keyboard blur behavior is now usernamed in onSubmitEditing
               editable={!isProcessing}
               accessibilityHint={_(msg`Enter your password`)}
             />

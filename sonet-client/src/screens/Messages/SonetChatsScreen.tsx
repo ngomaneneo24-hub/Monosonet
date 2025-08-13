@@ -146,28 +146,28 @@ export function SonetChatsScreenInner({navigation}: Props) {
     return filtered
   }, [conversationsState.chats, activeFilter, searchQuery])
 
-  // Handle search input change
-  const handleSearchChange = useCallback((text: string) => {
+  // Username search input change
+  const usernameSearchChange = useCallback((text: string) => {
     setSearchQuery(text)
   }, [])
 
-  // Handle filter tab press
-  const handleFilterTabPress = useCallback((filterId: FilterType) => {
+  // Username filter tab press
+  const usernameFilterTabPress = useCallback((filterId: FilterType) => {
     setActiveFilter(filterId)
   }, [])
 
-  // Handle chat item press
-  const handleChatPress = useCallback((chatId: string) => {
+  // Username chat item press
+  const usernameChatPress = useCallback((chatId: string) => {
     navigation.navigate('MessagesConversation', {conversation: chatId})
   }, [navigation])
 
-  // Handle new chat
-  const handleNewChat = useCallback(() => {
+  // Username new chat
+  const usernameNewChat = useCallback(() => {
     newChatControl.open()
   }, [newChatControl])
 
-  // Handle settings
-  const handleSettings = useCallback(() => {
+  // Username settings
+  const usernameSettings = useCallback(() => {
     navigation.navigate('MessagesSettings')
   }, [navigation])
 
@@ -196,7 +196,7 @@ export function SonetChatsScreenInner({navigation}: Props) {
             variant="ghost"
             color="secondary"
             size="small"
-            onPress={handleSettings}
+            onPress={usernameSettings}
             style={[a.mr_sm]}>
             <ButtonIcon icon={SettingsIcon} />
           </Button>
@@ -204,7 +204,7 @@ export function SonetChatsScreenInner({navigation}: Props) {
             variant="ghost"
             color="secondary"
             size="small"
-            onPress={handleNewChat}>
+            onPress={usernameNewChat}>
             <ButtonIcon icon={PlusIcon} />
           </Button>
         </Layout.Header.Right>
@@ -235,7 +235,7 @@ export function SonetChatsScreenInner({navigation}: Props) {
           />
           <TextInput
             value={searchQuery}
-            onChangeText={handleSearchChange}
+            onChangeText={usernameSearchChange}
             placeholder={_('Search chats...')}
             placeholderTextColor={t.atoms.text_contrast_medium.color}
             style={[
@@ -265,7 +265,7 @@ export function SonetChatsScreenInner({navigation}: Props) {
           {filterTabs.map(tab => (
             <TouchableOpacity
               key={tab.id}
-              onPress={() => handleFilterTabPress(tab.id)}
+              onPress={() => usernameFilterTabPress(tab.id)}
               style={[
                 a.flex_row,
                 a.items_center,
@@ -370,7 +370,7 @@ export function SonetChatsScreenInner({navigation}: Props) {
                 <Button
                   variant="solid"
                   color="primary"
-                  onPress={handleNewChat}>
+                  onPress={usernameNewChat}>
                   <ButtonText>
                     <Trans>New Chat</Trans>
                   </ButtonText>
@@ -387,7 +387,7 @@ export function SonetChatsScreenInner({navigation}: Props) {
               <SonetChatListItem
                 key={chat.id}
                 chat={chat}
-                onPress={() => handleChatPress(chat.id)}
+                onPress={() => usernameChatPress(chat.id)}
               />
             ))}
           </ScrollView>

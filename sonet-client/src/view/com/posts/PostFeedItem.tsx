@@ -1,14 +1,14 @@
 import {memo, useCallback, useMemo, useState} from 'react'
 import {StyleSheet, View} from 'react-native'
 import {
-  type AppBskyActorDefs,
-  AppBskyFeedDefs,
-  AppBskyFeedPost,
-  AppBskyFeedThreadgate,
+  type SonetActorDefs,
+  SonetFeedDefs,
+  SonetFeedNote,
+  SonetFeedThreadgate,
   AtUri,
   type ModerationDecision,
   RichText as RichTextAPI,
-} from '@atproto/api'
+} from '@sonet/api'
 import {
   FontAwesomeIcon,
   type FontAwesomeIconStyle,
@@ -24,54 +24,54 @@ import {useOpenComposer} from '#/lib/hooks/useOpenComposer'
 import {usePalette} from '#/lib/hooks/usePalette'
 import {makeProfileLink} from '#/lib/routes/links'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {countLines} from '#/lib/strings/helpers'
 import {s} from '#/lib/styles'
 import {
   POST_TOMBSTONE,
   type Shadow,
-  usePostShadow,
-} from '#/state/cache/post-shadow'
+  useNoteShadow,
+} from '#/state/cache/note-shadow'
 import {useFeedFeedbackContext} from '#/state/feed-feedback'
 import {unstableCacheProfileView} from '#/state/queries/profile'
 import {useSession} from '#/state/session'
 import {useMergedThreadgateHiddenReplies} from '#/state/threadgate-hidden-replies'
 import {
-  buildPostSourceKey,
-  setUnstablePostSource,
-} from '#/state/unstable-post-source'
+  buildNoteSourceKey,
+  setUnstableNoteSource,
+} from '#/state/unstable-note-source'
 import {FeedNameText} from '#/view/com/util/FeedInfoText'
 import {Link, TextLinkOnWebOnly} from '#/view/com/util/Link'
-import {PostMeta} from '#/view/com/util/PostMeta'
+import {NoteMeta} from '#/view/com/util/NoteMeta'
 import {Text} from '#/view/com/util/text/Text'
 import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
 import {atoms as a} from '#/alf'
 import {Pin_Stroke2_Corner0_Rounded as PinIcon} from '#/components/icons/Pin'
-import {Repost_Stroke2_Corner2_Rounded as RepostIcon} from '#/components/icons/Repost'
+import {Renote_Stroke2_Corner2_Rounded as RenoteIcon} from '#/components/icons/Renote'
 import {ContentHider} from '#/components/moderation/ContentHider'
-import {LabelsOnMyPost} from '#/components/moderation/LabelsOnMe'
-import {PostAlerts} from '#/components/moderation/PostAlerts'
+import {LabelsOnMyNote} from '#/components/moderation/LabelsOnMe'
+import {NoteAlerts} from '#/components/moderation/NoteAlerts'
 import {type AppModerationCause} from '#/components/Pills'
-import {Embed} from '#/components/Post/Embed'
-import {PostEmbedViewContext} from '#/components/Post/Embed/types'
-import {ShowMoreTextButton} from '#/components/Post/ShowMoreTextButton'
-import {PostControls} from '#/components/PostControls'
-import {DiscoverDebug} from '#/components/PostControls/DiscoverDebug'
+import {Embed} from '#/components/Note/Embed'
+import {NoteEmbedViewContext} from '#/components/Note/Embed/types'
+import {ShowMoreTextButton} from '#/components/Note/ShowMoreTextButton'
+import {NoteControls} from '#/components/NoteControls'
+import {DiscoverDebug} from '#/components/NoteControls/DiscoverDebug'
 import {ProfileHoverCard} from '#/components/ProfileHoverCard'
 import {RichText} from '#/components/RichText'
 import {SubtleWebHover} from '#/components/SubtleWebHover'
 import * as bsky from '#/types/bsky'
 
 interface FeedItemProps {
-  record: AppBskyFeedPost.Record
+  record: SonetFeedNote.Record
   reason:
-    | AppBskyFeedDefs.ReasonRepost
-    | AppBskyFeedDefs.ReasonPin
+    | SonetFeedDefs.ReasonRenote
+    | SonetFeedDefs.ReasonPin
     | ReasonFeedSource
     | {[k: string]: unknown; $type: string}
     | undefined
   moderation: ModerationDecision
-  parentAuthor: AppBskyActorDefs.ProfileViewBasic | undefined
+  parentAuthor: SonetActorDefs.ProfileViewBasic | undefined
   showReplyTo: boolean
   isThreadChild?: boolean
   isThreadLastChild?: boolean
@@ -83,8 +83,8 @@ interface FeedItemProps {
   isParentNotFound?: boolean
 }
 
-export function PostFeedItem({
-  post,
+export function NoteFeedItem({
+  note,
   record,
   reason,
   feedContext,
@@ -98,14 +98,14 @@ export function PostFeedItem({
   hideTopBorder,
   isParentBlocked,
   isParentNotFound,
-  rootPost,
+  rootNote,
   onShowLess,
 }: FeedItemProps & {
-  post: AppBskyFeedDefs.PostView
-  rootPost: AppBskyFeedDefs.PostView
-  onShowLess?: (interaction: AppBskyFeedDefs.Interaction) => void
+  note: SonetFeedDefs.NoteView
+  rootNote: SonetFeedDefs.NoteView
+  onShowLess?: (interaction: SonetFeedDefs.Interaction) => void
 }): React.ReactNode {
-  const postShadowed = usePostShadow(post)
+  const noteShadowed = useNoteShadow(note)
   const richText = useMemo(
     () =>
       new RichTextAPI({
@@ -114,15 +114,15 @@ export function PostFeedItem({
       }),
     [record],
   )
-  if (postShadowed === POST_TOMBSTONE) {
+  if (noteShadowed === POST_TOMBSTONE) {
     return null
   }
   if (richText && moderation) {
     return (
       <FeedItemInner
-        // Safeguard from clobbering per-post state below:
-        key={postShadowed.uri}
-        post={postShadowed}
+        // Safeguard from clobbering per-note state below:
+        key={noteShadowed.uri}
+        note={noteShadowed}
         record={record}
         reason={reason}
         feedContext={feedContext}
@@ -137,7 +137,7 @@ export function PostFeedItem({
         hideTopBorder={hideTopBorder}
         isParentBlocked={isParentBlocked}
         isParentNotFound={isParentNotFound}
-        rootPost={rootPost}
+        rootNote={rootNote}
         onShowLess={onShowLess}
       />
     )
@@ -146,7 +146,7 @@ export function PostFeedItem({
 }
 
 let FeedItemInner = ({
-  post,
+  note,
   record,
   reason,
   feedContext,
@@ -161,13 +161,13 @@ let FeedItemInner = ({
   hideTopBorder,
   isParentBlocked,
   isParentNotFound,
-  rootPost,
+  rootNote,
   onShowLess,
 }: FeedItemProps & {
   richText: RichTextAPI
-  post: Shadow<AppBskyFeedDefs.PostView>
-  rootPost: AppBskyFeedDefs.PostView
-  onShowLess?: (interaction: AppBskyFeedDefs.Interaction) => void
+  note: Shadow<SonetFeedDefs.NoteView>
+  rootNote: SonetFeedDefs.NoteView
+  onShowLess?: (interaction: SonetFeedDefs.Interaction) => void
 }): React.ReactNode => {
   const queryClient = useQueryClient()
   const {openComposer} = useOpenComposer()
@@ -177,25 +177,25 @@ let FeedItemInner = ({
   const [hover, setHover] = useState(false)
 
   const href = useMemo(() => {
-    const urip = new AtUri(post.uri)
-    return makeProfileLink(post.author, 'post', urip.rkey)
-  }, [post.uri, post.author])
+    const urip = new AtUri(note.uri)
+    return makeProfileLink(note.author, 'note', urip.rkey)
+  }, [note.uri, note.author])
   const {sendInteraction, feedDescriptor} = useFeedFeedbackContext()
 
   const onPressReply = () => {
     sendInteraction({
-      item: post.uri,
-      event: 'app.bsky.feed.defs#interactionReply',
+      item: note.uri,
+      event: 'app.sonet.feed.defs#interactionReply',
       feedContext,
       reqId,
     })
     openComposer({
       replyTo: {
-        uri: post.uri,
-        cid: post.cid,
+        uri: note.uri,
+        cid: note.cid,
         text: record.text || '',
-        author: post.author,
-        embed: post.embed,
+        author: note.author,
+        embed: note.embed,
         moderation,
       },
     })
@@ -203,17 +203,17 @@ let FeedItemInner = ({
 
   const onOpenAuthor = () => {
     sendInteraction({
-      item: post.uri,
-      event: 'app.bsky.feed.defs#clickthroughAuthor',
+      item: note.uri,
+      event: 'app.sonet.feed.defs#clickthroughAuthor',
       feedContext,
       reqId,
     })
   }
 
-  const onOpenReposter = () => {
+  const onOpenRenoteer = () => {
     sendInteraction({
-      item: post.uri,
-      event: 'app.bsky.feed.defs#clickthroughReposter',
+      item: note.uri,
+      event: 'app.sonet.feed.defs#clickthroughRenoteer',
       feedContext,
       reqId,
     })
@@ -221,8 +221,8 @@ let FeedItemInner = ({
 
   const onOpenEmbed = () => {
     sendInteraction({
-      item: post.uri,
-      event: 'app.bsky.feed.defs#clickthroughEmbed',
+      item: note.uri,
+      event: 'app.sonet.feed.defs#clickthroughEmbed',
       feedContext,
       reqId,
     })
@@ -230,17 +230,17 @@ let FeedItemInner = ({
 
   const onBeforePress = () => {
     sendInteraction({
-      item: post.uri,
-      event: 'app.bsky.feed.defs#clickthroughItem',
+      item: note.uri,
+      event: 'app.sonet.feed.defs#clickthroughItem',
       feedContext,
       reqId,
     })
-    unstableCacheProfileView(queryClient, post.author)
-    setUnstablePostSource(buildPostSourceKey(post.uri, post.author.handle), {
+    unstableCacheProfileView(queryClient, note.author)
+    setUnstableNoteSource(buildNoteSourceKey(note.uri, note.author.username), {
       feed: feedDescriptor,
-      post: {
-        post,
-        reason: AppBskyFeedDefs.isReasonRepost(reason) ? reason : undefined,
+      note: {
+        note,
+        reason: SonetFeedDefs.isReasonRenote(reason) ? reason : undefined,
         feedContext,
         reqId,
       },
@@ -262,24 +262,24 @@ let FeedItemInner = ({
 
   const {currentAccount} = useSession()
   const isOwner =
-    AppBskyFeedDefs.isReasonRepost(reason) &&
-    reason.by.did === currentAccount?.did
+    SonetFeedDefs.isReasonRenote(reason) &&
+    reason.by.userId === currentAccount?.userId
 
   /**
-   * If `post[0]` in this slice is the actual root post (not an orphan thread),
+   * If `note[0]` in this slice is the actual root note (not an orphan thread),
    * then we may have a threadgate record to reference
    */
-  const threadgateRecord = bsky.dangerousIsType<AppBskyFeedThreadgate.Record>(
-    rootPost.threadgate?.record,
-    AppBskyFeedThreadgate.isRecord,
+  const threadgateRecord = bsky.dangerousIsType<SonetFeedThreadgate.Record>(
+    rootNote.threadgate?.record,
+    SonetFeedThreadgate.isRecord,
   )
-    ? rootPost.threadgate.record
+    ? rootNote.threadgate.record
     : undefined
 
-  const {isActive: live} = useActorStatus(post.author)
+  const {isActive: live} = useActorStatus(note.author)
 
-  const viaRepost = useMemo(() => {
-    if (AppBskyFeedDefs.isReasonRepost(reason) && reason.uri && reason.cid) {
+  const viaRenote = useMemo(() => {
+    if (SonetFeedDefs.isReasonRenote(reason) && reason.uri && reason.cid) {
       return {
         uri: reason.uri,
         cid: reason.cid,
@@ -289,7 +289,7 @@ let FeedItemInner = ({
 
   return (
     <Link
-      testID={`feedItem-by-${post.author.handle}`}
+      testID={`feedItem-by-${note.author.username}`}
       style={outerStyles}
       href={href}
       noFeedback
@@ -340,21 +340,21 @@ let FeedItemInner = ({
                 </Trans>
               </Text>
             </Link>
-          ) : AppBskyFeedDefs.isReasonRepost(reason) ? (
+          ) : SonetFeedDefs.isReasonRenote(reason) ? (
             <Link
               style={styles.includeReason}
               href={makeProfileLink(reason.by)}
               title={
                 isOwner
-                  ? _(msg`Reposted by you`)
+                  ? _(msg`Renoteed by you`)
                   : _(
-                      msg`Reposted by ${sanitizeDisplayName(
-                        reason.by.displayName || reason.by.handle,
+                      msg`Renoteed by ${sanitizeDisplayName(
+                        reason.by.displayName || reason.by.username,
                       )}`,
                     )
               }
-              onBeforePress={onOpenReposter}>
-              <RepostIcon
+              onBeforePress={onOpenRenoteer}>
+              <RenoteIcon
                 style={{color: pal.colors.textLight, marginRight: 3}}
                 width={13}
                 height={13}
@@ -365,11 +365,11 @@ let FeedItemInner = ({
                 lineHeight={1.2}
                 numberOfLines={1}>
                 {isOwner ? (
-                  <Trans>Reposted by you</Trans>
+                  <Trans>Renoteed by you</Trans>
                 ) : (
                   <Trans>
-                    Reposted by{' '}
-                    <ProfileHoverCard did={reason.by.did}>
+                    Renoteed by{' '}
+                    <ProfileHoverCard userId={reason.by.userId}>
                       <TextLinkOnWebOnly
                         type="sm-bold"
                         style={pal.textLight}
@@ -383,20 +383,20 @@ let FeedItemInner = ({
                             lineHeight={1.2}>
                             {sanitizeDisplayName(
                               reason.by.displayName ||
-                                sanitizeHandle(reason.by.handle),
+                                sanitizeUsername(reason.by.username),
                               moderation.ui('displayName'),
                             )}
                           </Text>
                         }
                         href={makeProfileLink(reason.by)}
-                        onBeforePress={onOpenReposter}
+                        onBeforePress={onOpenRenoteer}
                       />
                     </ProfileHoverCard>
                   </Trans>
                 )}
               </Text>
             </Link>
-          ) : AppBskyFeedDefs.isReasonPin(reason) ? (
+          ) : SonetFeedDefs.isReasonPin(reason) ? (
             <View style={styles.includeReason}>
               <PinIcon
                 style={{color: pal.colors.textLight, marginRight: 3}}
@@ -419,9 +419,9 @@ let FeedItemInner = ({
         <View style={styles.layoutAvi}>
           <PreviewableUserAvatar
             size={42}
-            profile={post.author}
+            profile={note.author}
             moderation={moderation.ui('avatar')}
-            type={post.author.associated?.labeler ? 'labeler' : 'user'}
+            type={note.author.associated?.labeler ? 'labeler' : 'user'}
             onBeforePress={onOpenAuthor}
             live={live}
           />
@@ -439,11 +439,11 @@ let FeedItemInner = ({
           )}
         </View>
         <View style={styles.layoutContent}>
-          <PostMeta
-            author={post.author}
+          <NoteMeta
+            author={note.author}
             moderation={moderation}
-            timestamp={post.indexedAt}
-            postHref={href}
+            timestamp={note.indexedAt}
+            noteHref={href}
             onOpenAuthor={onOpenAuthor}
           />
           {showReplyTo &&
@@ -454,18 +454,18 @@ let FeedItemInner = ({
                 profile={parentAuthor}
               />
             )}
-          <LabelsOnMyPost post={post} />
-          <PostContent
+          <LabelsOnMyNote note={note} />
+          <NoteContent
             moderation={moderation}
             richText={richText}
-            postEmbed={post.embed}
-            postAuthor={post.author}
+            noteEmbed={note.embed}
+            noteAuthor={note.author}
             onOpenEmbed={onOpenEmbed}
-            post={post}
+            note={note}
             threadgateRecord={threadgateRecord}
           />
-          <PostControls
-            post={post}
+          <NoteControls
+            note={note}
             record={record}
             richText={richText}
             onPressReply={onPressReply}
@@ -474,7 +474,7 @@ let FeedItemInner = ({
             reqId={reqId}
             threadgateRecord={threadgateRecord}
             onShowLess={onShowLess}
-            viaRepost={viaRepost}
+            viaRenote={viaRenote}
           />
         </View>
 
@@ -485,22 +485,22 @@ let FeedItemInner = ({
 }
 FeedItemInner = memo(FeedItemInner)
 
-let PostContent = ({
-  post,
+let NoteContent = ({
+  note,
   moderation,
   richText,
-  postEmbed,
-  postAuthor,
+  noteEmbed,
+  noteAuthor,
   onOpenEmbed,
   threadgateRecord,
 }: {
   moderation: ModerationDecision
   richText: RichTextAPI
-  postEmbed: AppBskyFeedDefs.PostView['embed']
-  postAuthor: AppBskyFeedDefs.PostView['author']
+  noteEmbed: SonetFeedDefs.NoteView['embed']
+  noteAuthor: SonetFeedDefs.NoteView['author']
   onOpenEmbed: () => void
-  post: AppBskyFeedDefs.PostView
-  threadgateRecord?: AppBskyFeedThreadgate.Record
+  note: SonetFeedDefs.NoteView
+  threadgateRecord?: SonetFeedThreadgate.Record
 }): React.ReactNode => {
   const {currentAccount} = useSession()
   const [limitLines, setLimitLines] = useState(
@@ -509,26 +509,26 @@ let PostContent = ({
   const threadgateHiddenReplies = useMergedThreadgateHiddenReplies({
     threadgateRecord,
   })
-  const additionalPostAlerts: AppModerationCause[] = useMemo(() => {
-    const isPostHiddenByThreadgate = threadgateHiddenReplies.has(post.uri)
-    const rootPostUri = bsky.dangerousIsType<AppBskyFeedPost.Record>(
-      post.record,
-      AppBskyFeedPost.isRecord,
+  const additionalNoteAlerts: AppModerationCause[] = useMemo(() => {
+    const isNoteHiddenByThreadgate = threadgateHiddenReplies.has(note.uri)
+    const rootNoteUri = bsky.dangerousIsType<SonetFeedNote.Record>(
+      note.record,
+      SonetFeedNote.isRecord,
     )
-      ? post.record?.reply?.root?.uri || post.uri
+      ? note.record?.reply?.root?.uri || note.uri
       : undefined
     const isControlledByViewer =
-      rootPostUri && new AtUri(rootPostUri).host === currentAccount?.did
-    return isControlledByViewer && isPostHiddenByThreadgate
+      rootNoteUri && new AtUri(rootNoteUri).host === currentAccount?.userId
+    return isControlledByViewer && isNoteHiddenByThreadgate
       ? [
           {
             type: 'reply-hidden',
-            source: {type: 'user', did: currentAccount?.did},
+            source: {type: 'user', userId: currentAccount?.userId},
             priority: 6,
           },
         ]
       : []
-  }, [post, currentAccount?.did, threadgateHiddenReplies])
+  }, [note, currentAccount?.userId, threadgateHiddenReplies])
 
   const onPressShowMore = useCallback(() => {
     setLimitLines(false)
@@ -536,24 +536,24 @@ let PostContent = ({
 
   return (
     <ContentHider
-      testID="contentHider-post"
+      testID="contentHider-note"
       modui={moderation.ui('contentList')}
       ignoreMute
       childContainerStyle={styles.contentHiderChild}>
-      <PostAlerts
+      <NoteAlerts
         modui={moderation.ui('contentList')}
         style={[a.py_2xs]}
-        additionalCauses={additionalPostAlerts}
+        additionalCauses={additionalNoteAlerts}
       />
       {richText.text ? (
         <>
           <RichText
             enableTags
-            testID="postText"
+            testID="noteText"
             value={richText}
             numberOfLines={limitLines ? MAX_POST_LINES : undefined}
             style={[a.flex_1, a.text_md]}
-            authorHandle={postAuthor.handle}
+            authorUsername={noteAuthor.username}
             shouldProxyLinks={true}
           />
           {limitLines && (
@@ -561,27 +561,27 @@ let PostContent = ({
           )}
         </>
       ) : undefined}
-      {postEmbed ? (
+      {noteEmbed ? (
         <View style={[a.pb_xs]}>
           <Embed
-            embed={postEmbed}
+            embed={noteEmbed}
             moderation={moderation}
             onOpen={onOpenEmbed}
-            viewContext={PostEmbedViewContext.Feed}
+            viewContext={NoteEmbedViewContext.Feed}
           />
         </View>
       ) : null}
     </ContentHider>
   )
 }
-PostContent = memo(PostContent)
+NoteContent = memo(NoteContent)
 
 function ReplyToLabel({
   profile,
   blocked,
   notFound,
 }: {
-  profile: AppBskyActorDefs.ProfileViewBasic | undefined
+  profile: SonetActorDefs.ProfileViewBasic | undefined
   blocked?: boolean
   notFound?: boolean
 }) {
@@ -590,18 +590,18 @@ function ReplyToLabel({
 
   let label
   if (blocked) {
-    label = <Trans context="description">Reply to a blocked post</Trans>
+    label = <Trans context="description">Reply to a blocked note</Trans>
   } else if (notFound) {
-    label = <Trans context="description">Reply to a post</Trans>
+    label = <Trans context="description">Reply to a note</Trans>
   } else if (profile != null) {
-    const isMe = profile.did === currentAccount?.did
+    const isMe = profile.userId === currentAccount?.userId
     if (isMe) {
       label = <Trans context="description">Reply to you</Trans>
     } else {
       label = (
         <Trans context="description">
           Reply to{' '}
-          <ProfileHoverCard did={profile.did}>
+          <ProfileHoverCard userId={profile.userId}>
             <TextLinkOnWebOnly
               type="md"
               style={pal.textLight}
@@ -612,7 +612,7 @@ function ReplyToLabel({
                 <Text emoji type="md" style={pal.textLight} lineHeight={1.2}>
                   {profile.displayName
                     ? sanitizeDisplayName(profile.displayName)
-                    : sanitizeHandle(profile.handle)}
+                    : sanitizeUsername(profile.username)}
                 </Text>
               }
             />

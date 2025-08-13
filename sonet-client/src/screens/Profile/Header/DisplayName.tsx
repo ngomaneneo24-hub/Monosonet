@@ -1,8 +1,8 @@
 import {View} from 'react-native'
-import {AppBskyActorDefs, ModerationDecision} from '@atproto/api'
+import {SonetActorDefs, ModerationDecision} from '@sonet/api'
 
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {Shadow} from '#/state/cache/types'
 import {atoms as a, useBreakpoints, useTheme} from '#/alf'
 import {Text} from '#/components/Typography'
@@ -11,7 +11,7 @@ export function ProfileHeaderDisplayName({
   profile,
   moderation,
 }: {
-  profile: Shadow<AppBskyActorDefs.ProfileViewDetailed>
+  profile: Shadow<SonetActorDefs.ProfileViewDetailed>
   moderation: ModerationDecision
 }) {
   const t = useTheme()
@@ -29,7 +29,7 @@ export function ProfileHeaderDisplayName({
           a.font_heavy,
         ]}>
         {sanitizeDisplayName(
-          profile.displayName || sanitizeHandle(profile.handle),
+          profile.displayName || sanitizeUsername(profile.username),
           moderation.ui('displayName'),
         )}
       </Text>

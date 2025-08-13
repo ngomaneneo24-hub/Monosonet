@@ -1,4 +1,4 @@
-import {type AppBskyFeedDefs, type BskyAgent} from '@atproto/api'
+import {type SonetFeedDefs, type SonetAppAgent} from '@sonet/api'
 
 import {PROD_DEFAULT_FEED} from '#/lib/constants'
 import {CustomFeedAPI} from './custom'
@@ -7,27 +7,27 @@ import {type FeedAPI, type FeedAPIResponse} from './types'
 
 // HACK
 // the feed API does not include any facilities for passing down
-// non-post elements. adding that is a bit of a heavy lift, and we
+// non-note elements. adding that is a bit of a heavy lift, and we
 // have just one temporary usecase for it: flagging when the home feed
 // falls back to discover.
-// we use this fallback marker post to drive this instead. see Feed.tsx
+// we use this fallback marker note to drive this instead. see Feed.tsx
 // for the usage.
 // -prf
-export const FALLBACK_MARKER_POST: AppBskyFeedDefs.FeedViewPost = {
-  post: {
-    uri: 'fallback-marker-post',
+export const FALLBACK_MARKER_POST: SonetFeedDefs.FeedViewNote = {
+  note: {
+    uri: 'fallback-marker-note',
     cid: 'fake',
     record: {},
     author: {
-      did: 'did:fake',
-      handle: 'fake.com',
+      userId: 'userId:fake',
+      username: 'fake.com',
     },
     indexedAt: new Date().toISOString(),
   },
 }
 
 export class HomeFeedAPI implements FeedAPI {
-  agent: BskyAgent
+  agent: SonetAppAgent
   following: FollowingFeedAPI
   discover: CustomFeedAPI
   usingDiscover = false
@@ -39,7 +39,7 @@ export class HomeFeedAPI implements FeedAPI {
     agent,
   }: {
     userInterests?: string
-    agent: BskyAgent
+    agent: SonetAppAgent
   }) {
     this.agent = agent
     this.following = new FollowingFeedAPI({agent})
@@ -61,7 +61,7 @@ export class HomeFeedAPI implements FeedAPI {
     this.itemCursor = 0
   }
 
-  async peekLatest(): Promise<AppBskyFeedDefs.FeedViewPost> {
+  async peekLatest(): Promise<SonetFeedDefs.FeedViewNote> {
     if (this.usingDiscover) {
       return this.discover.peekLatest()
     }
@@ -80,15 +80,15 @@ export class HomeFeedAPI implements FeedAPI {
     }
 
     let returnCursor
-    let posts: AppBskyFeedDefs.FeedViewPost[] = []
+    let notes: SonetFeedDefs.FeedViewNote[] = []
 
     if (!this.usingDiscover) {
       const res = await this.following.fetch({cursor, limit})
       returnCursor = res.cursor
-      posts = posts.concat(res.feed)
+      notes = notes.concat(res.feed)
       if (!returnCursor) {
         cursor = ''
-        posts.push(FALLBACK_MARKER_POST)
+        notes.push(FALLBACK_MARKER_POST)
         this.usingDiscover = true
       }
     }
@@ -96,12 +96,12 @@ export class HomeFeedAPI implements FeedAPI {
     if (this.usingDiscover && !__DEV__) {
       const res = await this.discover.fetch({cursor, limit})
       returnCursor = res.cursor
-      posts = posts.concat(res.feed)
+      notes = notes.concat(res.feed)
     }
 
     return {
       cursor: returnCursor,
-      feed: posts,
+      feed: notes,
     }
   }
 }
