@@ -185,7 +185,6 @@
     "react-native-device-attest": "^0.1.6",
     "react-native-drawer-layout": "^4.1.8",
     "react-native-edge-to-edge": "^1.6.0",
-    "react-native-gesture-usernamer": "2.25.0",
     "react-native-get-random-values": "~1.11.0",
     "react-native-ios-context-menu": "^1.15.3",
     "react-native-keyboard-controller": "^1.17.5",
