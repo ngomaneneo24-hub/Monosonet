@@ -1,4 +1,5 @@
-// AT Protocol removed - using Sonet messaging instead
+// Sonet Client Environment Configuration
+// Unified with monorepo environment management
 
 import packageJson from '#/../package.json'
 
@@ -13,7 +14,7 @@ export const RELEASE_VERSION: string =
 /**
  * The env the app is running in e.g. development, testflight, production
  */
-export const ENV: string = process.env.EXPO_PUBLIC_ENV
+export const ENV: string = process.env.EXPO_PUBLIC_ENV || 'development'
 
 /**
  * Indicates whether the app is running in TestFlight
@@ -63,13 +64,6 @@ export const LOG_LEVEL = (process.env.EXPO_PUBLIC_LOG_LEVEL || 'info') as
 export const LOG_DEBUG: string = process.env.EXPO_PUBLIC_LOG_DEBUG || ''
 
 /**
- * Legacy AT Protocol chat proxy (deprecated)
- * @deprecated Use Sonet messaging instead
- */
-export const CHAT_PROXY_DID: string =
-  process.env.EXPO_PUBLIC_CHAT_PROXY_DID || ''
-
-/**
  * Sentry DSN for telemetry
  */
 export const SENTRY_DSN: string | undefined = process.env.EXPO_PUBLIC_SENTRY_DSN
@@ -100,3 +94,85 @@ export const SONET_API_BASE: string =
  */
 export const SONET_WS_BASE: string =
   process.env.EXPO_PUBLIC_SONET_WS_BASE || 'ws://localhost:8080'
+
+/**
+ * Base URL for Sonet CDN (e.g., http://localhost:8080/cdn)
+ */
+export const SONET_CDN_BASE: string =
+  process.env.EXPO_PUBLIC_SONET_CDN_BASE || 'http://localhost:8080/cdn'
+
+/**
+ * Feature Flags
+ */
+export const USE_SONET_MESSAGING: boolean =
+  process.env.EXPO_PUBLIC_USE_SONET_MESSAGING === 'true'
+
+export const USE_SONET_E2E_ENCRYPTION: boolean =
+  process.env.EXPO_PUBLIC_USE_SONET_E2E_ENCRYPTION === 'true'
+
+export const USE_SONET_REALTIME: boolean =
+  process.env.EXPO_PUBLIC_USE_SONET_REALTIME === 'true'
+
+export const USE_SONET_ANALYTICS: boolean =
+  process.env.EXPO_PUBLIC_USE_SONET_ANALYTICS === 'true'
+
+export const USE_SONET_MODERATION: boolean =
+  process.env.EXPO_PUBLIC_USE_SONET_MODERATION === 'true'
+
+/**
+ * Environment-specific configurations
+ */
+export const ENVIRONMENT_CONFIG = {
+  development: {
+    apiBase: 'http://localhost:8080/api',
+    wsBase: 'ws://localhost:8080',
+    cdnBase: 'http://localhost:8080/cdn',
+    logLevel: 'debug',
+    enableAnalytics: false,
+    enableModeration: true,
+  },
+  staging: {
+    apiBase: 'https://staging.api.sonet.app',
+    wsBase: 'wss://staging.api.sonet.app',
+    cdnBase: 'https://staging.cdn.sonet.app',
+    logLevel: 'info',
+    enableAnalytics: true,
+    enableModeration: true,
+  },
+  production: {
+    apiBase: 'https://api.sonet.app',
+    wsBase: 'wss://api.sonet.app',
+    cdnBase: 'https://cdn.sonet.app',
+    logLevel: 'warn',
+    enableAnalytics: true,
+    enableModeration: true,
+  },
+} as const
+
+/**
+ * Get current environment configuration
+ */
+export const getCurrentEnvConfig = () => {
+  const env = ENV || 'development'
+  return ENVIRONMENT_CONFIG[env as keyof typeof ENVIRONMENT_CONFIG] || ENVIRONMENT_CONFIG.development
+}
+
+/**
+ * Validate environment configuration
+ */
+export const validateEnvironment = (): boolean => {
+  const required = [
+    'EXPO_PUBLIC_SONET_API_BASE',
+    'EXPO_PUBLIC_SONET_WS_BASE',
+    'EXPO_PUBLIC_SONET_CDN_BASE',
+  ]
+
+  const missing = required.filter(key => !process.env[key])
+  
+  if (missing.length > 0) {
+    console.warn(`⚠️ Missing environment variables: ${missing.join(', ')}`)
+    return false
+  }
+
+  return true
+}

@@ -1,14 +1,14 @@
 import {
-  AppBskyFeedDefs,
-  AppBskyGraphDefs,
-  AppBskyGraphGetStarterPack,
-  AppBskyGraphStarterpack,
-  AppBskyRichtextFacet,
+  SonetFeedDefs,
+  SonetGraphDefs,
+  SonetGraphGetStarterPack,
+  SonetGraphStarterpack,
+  SonetRichtextFacet,
   AtUri,
-  BskyAgent,
+  SonetAppAgent,
   RichText,
-} from '@atproto/api'
-import {StarterPackView} from '@atproto/api/dist/client/types/app/bsky/graph/defs'
+} from '@sonet/api'
+import {StarterPackView} from '@sonet/api/dist/client/types/app/bsky/graph/defs'
 import {
   QueryClient,
   useMutation,
@@ -33,68 +33,68 @@ import * as bsky from '#/types/bsky'
 const RQKEY_ROOT = 'starter-pack'
 const RQKEY = ({
   uri,
-  did,
+  userId,
   rkey,
 }: {
   uri?: string
-  did?: string
+  userId?: string
   rkey?: string
 }) => {
-  if (uri?.startsWith('https://') || uri?.startsWith('at://')) {
+  if (uri?.startsWith('https://') || uri?.startsWith('sonet://')) {
     const parsed = parseStarterPackUri(uri)
     return [RQKEY_ROOT, parsed?.name, parsed?.rkey]
   } else {
-    return [RQKEY_ROOT, did, rkey]
+    return [RQKEY_ROOT, userId, rkey]
   }
 }
 
 export function useStarterPackQuery({
   uri,
-  did,
+  userId,
   rkey,
 }: {
   uri?: string
-  did?: string
+  userId?: string
   rkey?: string
 }) {
   const agent = useAgent()
 
   return useQuery<StarterPackView>({
-    queryKey: RQKEY(uri ? {uri} : {did, rkey}),
+    queryKey: RQKEY(uri ? {uri} : {userId, rkey}),
     queryFn: async () => {
       if (!uri) {
-        uri = `at://${did}/app.bsky.graph.starterpack/${rkey}`
-      } else if (uri && !uri.startsWith('at://')) {
+        uri = `sonet://${userId}/app.sonet.graph.starterpack/${rkey}`
+      } else if (uri && !uri.startsWith('sonet://')) {
         uri = httpStarterPackUriToAtUri(uri) as string
       }
 
-      const res = await agent.app.bsky.graph.getStarterPack({
+      const res = await agent.app.sonet.graph.getStarterPack({
         starterPack: uri,
       })
       return res.data.starterPack
     },
-    enabled: Boolean(uri) || Boolean(did && rkey),
+    enabled: Boolean(uri) || Boolean(userId && rkey),
     staleTime: STALE.MINUTES.FIVE,
   })
 }
 
 export async function invalidateStarterPack({
   queryClient,
-  did,
+  userId,
   rkey,
 }: {
   queryClient: QueryClient
-  did: string
+  userId: string
   rkey: string
 }) {
-  await queryClient.invalidateQueries({queryKey: RQKEY({did, rkey})})
+  await queryClient.invalidateQueries({queryKey: RQKEY({userId, rkey})})
 }
 
 interface UseCreateStarterPackMutationParams {
   name: string
   description?: string
   profiles: bsky.profile.AnyProfileView[]
-  feeds?: AppBskyFeedDefs.GeneratorView[]
+  feeds?: SonetFeedDefs.GeneratorView[]
 }
 
 export function useCreateStarterPackMutation({
@@ -113,7 +113,7 @@ export function useCreateStarterPackMutation({
     UseCreateStarterPackMutationParams
   >({
     mutationFn: async ({name, description, feeds, profiles}) => {
-      let descriptionFacets: AppBskyRichtextFacet.Main[] | undefined
+      let descriptionFacets: SonetRichtextFacet.Main[] | undefined
       if (description) {
         const rt = new RichText({text: description})
         await rt.detectFacets(agent)
@@ -129,7 +129,7 @@ export function useCreateStarterPackMutation({
         agent,
       })
 
-      return await agent.app.bsky.graph.starterpack.create(
+      return await agent.app.sonet.graph.starterpack.create(
         {
           repo: agent.assertDid,
         },
@@ -149,7 +149,7 @@ export function useCreateStarterPackMutation({
       })
       await invalidateActorStarterPacksQuery({
         queryClient,
-        did: agent.session!.did,
+        userId: agent.session!.userId,
       })
       onSuccess(data)
     },
@@ -173,8 +173,8 @@ export function useEditStarterPackMutation({
     void,
     Error,
     UseCreateStarterPackMutationParams & {
-      currentStarterPack: AppBskyGraphDefs.StarterPackView
-      currentListItems: AppBskyGraphDefs.ListItemView[]
+      currentStarterPack: SonetGraphDefs.StarterPackView
+      currentListItems: SonetGraphDefs.ListItemView[]
     }
   >({
     mutationFn: async ({
@@ -185,30 +185,30 @@ export function useEditStarterPackMutation({
       currentStarterPack,
       currentListItems,
     }) => {
-      let descriptionFacets: AppBskyRichtextFacet.Main[] | undefined
+      let descriptionFacets: SonetRichtextFacet.Main[] | undefined
       if (description) {
         const rt = new RichText({text: description})
         await rt.detectFacets(agent)
         descriptionFacets = rt.facets
       }
 
-      if (!AppBskyGraphStarterpack.isRecord(currentStarterPack.record)) {
+      if (!SonetGraphStarterpack.isRecord(currentStarterPack.record)) {
         throw new Error('Invalid starter pack')
       }
 
       const removedItems = currentListItems.filter(
         i =>
-          i.subject.did !== agent.session?.did &&
-          !profiles.find(p => p.did === i.subject.did && p.did),
+          i.subject.userId !== agent.session?.userId &&
+          !profiles.find(p => p.userId === i.subject.userId && p.userId),
       )
       if (removedItems.length !== 0) {
         const chunks = chunk(removedItems, 50)
         for (const chunk of chunks) {
-          await agent.com.atproto.repo.applyWrites({
-            repo: agent.session!.did,
+          await agent.com.sonet.repo.applyWrites({
+            repo: agent.session!.userId,
             writes: chunk.map(i => ({
-              $type: 'com.atproto.repo.applyWrites#delete',
-              collection: 'app.bsky.graph.listitem',
+              type: "sonet",
+              collection: 'app.sonet.graph.listitem',
               rkey: new AtUri(i.uri).rkey,
             })),
           })
@@ -216,19 +216,19 @@ export function useEditStarterPackMutation({
       }
 
       const addedProfiles = profiles.filter(
-        p => !currentListItems.find(i => i.subject.did === p.did),
+        p => !currentListItems.find(i => i.subject.userId === p.userId),
       )
       if (addedProfiles.length > 0) {
         const chunks = chunk(addedProfiles, 50)
         for (const chunk of chunks) {
-          await agent.com.atproto.repo.applyWrites({
-            repo: agent.session!.did,
+          await agent.com.sonet.repo.applyWrites({
+            repo: agent.session!.userId,
             writes: chunk.map(p => ({
-              $type: 'com.atproto.repo.applyWrites#create',
-              collection: 'app.bsky.graph.listitem',
+              type: "sonet",
+              collection: 'app.sonet.graph.listitem',
               value: {
-                $type: 'app.bsky.graph.listitem',
-                subject: p.did,
+                type: "sonet",
+                subject: p.userId,
                 list: currentStarterPack.list?.uri,
                 createdAt: new Date().toISOString(),
               },
@@ -238,9 +238,9 @@ export function useEditStarterPackMutation({
       }
 
       const rkey = parseStarterPackUri(currentStarterPack.uri)!.rkey
-      await agent.com.atproto.repo.putRecord({
-        repo: agent.session!.did,
-        collection: 'app.bsky.graph.starterpack',
+      await agent.com.sonet.repo.putRecord({
+        repo: agent.session!.userId,
+        collection: 'app.sonet.graph.starterpack',
         rkey,
         record: {
           name,
@@ -260,7 +260,7 @@ export function useEditStarterPackMutation({
       })
       await invalidateActorStarterPacksQuery({
         queryClient,
-        did: agent.session!.did,
+        userId: agent.session!.userId,
       })
       if (currentStarterPack.list) {
         await invalidateListMembersQuery({
@@ -270,7 +270,7 @@ export function useEditStarterPackMutation({
       }
       await invalidateStarterPack({
         queryClient,
-        did: agent.session!.did,
+        userId: agent.session!.userId,
         rkey: parsed!.rkey,
       })
       onSuccess()
@@ -298,19 +298,19 @@ export function useDeleteStarterPackMutation({
       }
 
       if (listUri) {
-        await agent.app.bsky.graph.list.delete({
-          repo: agent.session.did,
+        await agent.app.sonet.graph.list.delete({
+          repo: agent.session.userId,
           rkey: new AtUri(listUri).rkey,
         })
       }
-      await agent.app.bsky.graph.starterpack.delete({
-        repo: agent.session.did,
+      await agent.app.sonet.graph.starterpack.delete({
+        repo: agent.session.userId,
         rkey,
       })
     },
     onSuccess: async (_, {listUri, rkey}) => {
       const uri = createStarterPackUri({
-        did: agent.session!.did,
+        userId: agent.session!.userId,
         rkey,
       })
 
@@ -325,11 +325,11 @@ export function useDeleteStarterPackMutation({
       }
       await invalidateActorStarterPacksQuery({
         queryClient,
-        did: agent.session!.did,
+        userId: agent.session!.userId,
       })
       await invalidateStarterPack({
         queryClient,
-        did: agent.session!.did,
+        userId: agent.session!.userId,
         rkey,
       })
       onSuccess()
@@ -341,45 +341,45 @@ export function useDeleteStarterPackMutation({
 }
 
 async function whenAppViewReady(
-  agent: BskyAgent,
+  agent: SonetAppAgent,
   uri: string,
-  fn: (res?: AppBskyGraphGetStarterPack.Response) => boolean,
+  fn: (res?: SonetGraphGetStarterPack.Response) => boolean,
 ) {
   await until(
     5, // 5 tries
     1e3, // 1s delay between tries
     fn,
-    () => agent.app.bsky.graph.getStarterPack({starterPack: uri}),
+    () => agent.app.sonet.graph.getStarterPack({starterPack: uri}),
   )
 }
 
 export async function precacheStarterPack(
   queryClient: QueryClient,
   starterPack:
-    | AppBskyGraphDefs.StarterPackViewBasic
-    | AppBskyGraphDefs.StarterPackView,
+    | SonetGraphDefs.StarterPackViewBasic
+    | SonetGraphDefs.StarterPackView,
 ) {
-  if (!AppBskyGraphStarterpack.isRecord(starterPack.record)) {
+  if (!SonetGraphStarterpack.isRecord(starterPack.record)) {
     return
   }
 
-  let starterPackView: AppBskyGraphDefs.StarterPackView | undefined
-  if (AppBskyGraphDefs.isStarterPackView(starterPack)) {
+  let starterPackView: SonetGraphDefs.StarterPackView | undefined
+  if (SonetGraphDefs.isStarterPackView(starterPack)) {
     starterPackView = starterPack
   } else if (
-    AppBskyGraphDefs.isStarterPackViewBasic(starterPack) &&
-    bsky.validate(starterPack.record, AppBskyGraphStarterpack.validateRecord)
+    SonetGraphDefs.isStarterPackViewBasic(starterPack) &&
+    bsky.validate(starterPack.record, SonetGraphStarterpack.validateRecord)
   ) {
-    const listView: AppBskyGraphDefs.ListViewBasic = {
+    const listView: SonetGraphDefs.ListViewBasic = {
       uri: starterPack.record.list,
       // This will be populated once the data from server is fetched
       cid: '',
       name: starterPack.record.name,
-      purpose: 'app.bsky.graph.defs#referencelist',
+      purpose: 'app.sonet.graph.defs#referencelist',
     }
     starterPackView = {
       ...starterPack,
-      $type: 'app.bsky.graph.defs#starterPackView',
+      type: "sonet",
       list: listView,
     }
   }

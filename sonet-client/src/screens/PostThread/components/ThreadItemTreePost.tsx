@@ -1,6 +1,6 @@
 import {memo, useCallback, useMemo, useState} from 'react'
 import {View} from 'react-native'
-import { type SonetPost, type SonetProfile, type SonetFeedGenerator, type SonetPostRecord, type SonetFeedViewPost, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
+import { type SonetNote, type SonetProfile, type SonetFeedGenerator, type SonetNoteRecord, type SonetFeedViewNote, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
 import {Trans} from '@lingui/macro'
 
 import {MAX_POST_LINES} from '#/lib/constants'
@@ -10,81 +10,81 @@ import {countLines} from '#/lib/strings/helpers'
 import {
   POST_TOMBSTONE,
   type Shadow,
-  usePostShadow,
-} from '#/state/cache/post-shadow'
-import {type ThreadItem} from '#/state/queries/usePostThread/types'
+  useNoteShadow,
+} from '#/state/cache/note-shadow'
+import {type ThreadItem} from '#/state/queries/useNoteThread/types'
 import {useSession} from '#/state/session'
-import {type OnPostSuccessData} from '#/state/shell/composer'
+import {type OnNoteSuccessData} from '#/state/shell/composer'
 import {useMergedThreadgateHiddenReplies} from '#/state/threadgate-hidden-replies'
-import {PostMeta} from '#/view/com/util/PostMeta'
+import {NoteMeta} from '#/view/com/util/NoteMeta'
 import {
   OUTER_SPACE,
   REPLY_LINE_WIDTH,
   TREE_AVI_WIDTH,
   TREE_INDENT,
-} from '#/screens/PostThread/const'
+} from '#/screens/NoteThread/const'
 import {atoms as a, useTheme} from '#/alf'
 import {useInteractionState} from '#/components/hooks/useInteractionState'
 import {Trash_Stroke2_Corner0_Rounded as TrashIcon} from '#/components/icons/Trash'
-import {LabelsOnMyPost} from '#/components/moderation/LabelsOnMe'
-import {PostAlerts} from '#/components/moderation/PostAlerts'
-import {PostHider} from '#/components/moderation/PostHider'
+import {LabelsOnMyNote} from '#/components/moderation/LabelsOnMe'
+import {NoteAlerts} from '#/components/moderation/NoteAlerts'
+import {NoteHider} from '#/components/moderation/NoteHider'
 import {type AppModerationCause} from '#/components/Pills'
-import {Embed, PostEmbedViewContext} from '#/components/Post/Embed'
-import {ShowMoreTextButton} from '#/components/Post/ShowMoreTextButton'
-import {PostControls} from '#/components/PostControls'
+import {Embed, NoteEmbedViewContext} from '#/components/Note/Embed'
+import {ShowMoreTextButton} from '#/components/Note/ShowMoreTextButton'
+import {NoteControls} from '#/components/NoteControls'
 import {string} from '#/components/string'
 import * as Skele from '#/components/Skeleton'
 import {SubtleWebHover} from '#/components/SubtleWebHover'
 import {Text} from '#/components/Typography'
 
 /**
- * Mimic the space in PostMeta
+ * Mimic the space in NoteMeta
  */
 const TREE_AVI_PLUS_SPACE = TREE_AVI_WIDTH + a.gap_xs.gap
 
-export function ThreadItemTreePost({
+export function ThreadItemTreeNote({
   item,
   overrides,
-  onPostSuccess,
+  onNoteSuccess,
   threadgateRecord,
 }: {
-  item: Extract<ThreadItem, {type: 'threadPost'}>
+  item: Extract<ThreadItem, {type: 'threadNote'}>
   overrides?: {
     moderation?: boolean
     topBorder?: boolean
   }
-  onPostSuccess?: (data: OnPostSuccessData) => void
-  threadgateRecord?: AppBskyFeedThreadgate.Record
+  onNoteSuccess?: (data: OnNoteSuccessData) => void
+  threadgateRecord?: SonetFeedThreadgate.Record
 }) {
-  const postShadow = usePostShadow(item.value.post)
+  const noteShadow = useNoteShadow(item.value.note)
 
-  if (postShadow === POST_TOMBSTONE) {
-    return <ThreadItemTreePostDeleted item={item} />
+  if (noteShadow === POST_TOMBSTONE) {
+    return <ThreadItemTreeNoteDeleted item={item} />
   }
 
   return (
-    <ThreadItemTreePostInner
-      // Safeguard from clobbering per-post state below:
-      key={postShadow.uri}
+    <ThreadItemTreeNoteInner
+      // Safeguard from clobbering per-note state below:
+      key={noteShadow.uri}
       item={item}
-      postShadow={postShadow}
+      noteShadow={noteShadow}
       threadgateRecord={threadgateRecord}
       overrides={overrides}
-      onPostSuccess={onPostSuccess}
+      onNoteSuccess={onNoteSuccess}
     />
   )
 }
 
-function ThreadItemTreePostDeleted({
+function ThreadItemTreeNoteDeleted({
   item,
 }: {
-  item: Extract<ThreadItem, {type: 'threadPost'}>
+  item: Extract<ThreadItem, {type: 'threadNote'}>
 }) {
   const t = useTheme()
   return (
-    <ThreadItemTreePostOuterWrapper item={item}>
-      <ThreadItemTreePostInnerWrapper item={item}>
+    <ThreadItemTreeNoteOuterWrapper item={item}>
+      <ThreadItemTreeNoteInnerWrapper item={item}>
         <View
           style={[
             a.flex_row,
@@ -99,23 +99,23 @@ function ThreadItemTreePostDeleted({
           ]}>
           <TrashIcon style={[t.atoms.text]} width={14} />
           <Text style={[t.atoms.text_contrast_medium, a.mt_2xs]}>
-            <Trans>Post has been deleted</Trans>
+            <Trans>Note has been deleted</Trans>
           </Text>
         </View>
         {item.ui.isLastChild && !item.ui.precedesChildReadMore && (
           <View style={{height: OUTER_SPACE / 2}} />
         )}
-      </ThreadItemTreePostInnerWrapper>
-    </ThreadItemTreePostOuterWrapper>
+      </ThreadItemTreeNoteInnerWrapper>
+    </ThreadItemTreeNoteOuterWrapper>
   )
 }
 
-const ThreadItemTreePostOuterWrapper = memo(
-  function ThreadItemTreePostOuterWrapper({
+const ThreadItemTreeNoteOuterWrapper = memo(
+  function ThreadItemTreeNoteOuterWrapper({
     item,
     children,
   }: {
-    item: Extract<ThreadItem, {type: 'threadPost'}>
+    item: Extract<ThreadItem, {type: 'threadNote'}>
     children: React.ReactNode
   }) {
     const t = useTheme()
@@ -135,7 +135,7 @@ const ThreadItemTreePostOuterWrapper = memo(
           const isSkipped = item.ui.skippedIndentIndices.has(n)
           return (
             <View
-              key={`${item.value.post.uri}-padding-${n}`}
+              key={`${item.value.note.uri}-padding-${n}`}
               style={[
                 t.atoms.border_contrast_low,
                 {
@@ -153,12 +153,12 @@ const ThreadItemTreePostOuterWrapper = memo(
   },
 )
 
-const ThreadItemTreePostInnerWrapper = memo(
-  function ThreadItemTreePostInnerWrapper({
+const ThreadItemTreeNoteInnerWrapper = memo(
+  function ThreadItemTreeNoteInnerWrapper({
     item,
     children,
   }: {
-    item: Extract<ThreadItem, {type: 'threadPost'}>
+    item: Extract<ThreadItem, {type: 'threadNote'}>
     children: React.ReactNode
   }) {
     const t = useTheme()
@@ -209,7 +209,7 @@ const ThreadItemTreeReplyChildReplyLine = memo(
   function ThreadItemTreeReplyChildReplyLine({
     item,
   }: {
-    item: Extract<ThreadItem, {type: 'threadPost'}>
+    item: Extract<ThreadItem, {type: 'threadNote'}>
   }) {
     const t = useTheme()
     return (
@@ -228,27 +228,27 @@ const ThreadItemTreeReplyChildReplyLine = memo(
   },
 )
 
-const ThreadItemTreePostInner = memo(function ThreadItemTreePostInner({
+const ThreadItemTreeNoteInner = memo(function ThreadItemTreeNoteInner({
   item,
-  postShadow,
+  noteShadow,
   overrides,
-  onPostSuccess,
+  onNoteSuccess,
   threadgateRecord,
 }: {
-  item: Extract<ThreadItem, {type: 'threadPost'}>
-  postShadow: Shadow<SonetPost>
+  item: Extract<ThreadItem, {type: 'threadNote'}>
+  noteShadow: Shadow<SonetNote>
   overrides?: {
     moderation?: boolean
     topBorder?: boolean
   }
-  onPostSuccess?: (data: OnPostSuccessData) => void
-  threadgateRecord?: AppBskyFeedThreadgate.Record
+  onNoteSuccess?: (data: OnNoteSuccessData) => void
+  threadgateRecord?: SonetFeedThreadgate.Record
 }): React.ReactNode {
   const {openComposer} = useOpenComposer()
   const {currentAccount} = useSession()
 
-  const post = item.value.post
-  const record = item.value.post.record
+  const note = item.value.note
+  const record = item.value.note.record
   const moderation = item.moderation
   const richText = useMemo(
     () =>
@@ -261,66 +261,66 @@ const ThreadItemTreePostInner = memo(function ThreadItemTreePostInner({
   const [limitLines, setLimitLines] = useState(
     () => countLines(richText?.text) >= MAX_POST_LINES,
   )
-  const threadRootUri = record.reply?.root?.uri || post.uri
-  const postHref = useMemo(() => {
-    const urip = new SonetUri(post.uri)
-    return makeProfileLink(post.author, 'post', urip.rkey)
-  }, [post.uri, post.author])
+  const threadRootUri = record.reply?.root?.uri || note.uri
+  const noteHref = useMemo(() => {
+    const urip = new SonetUri(note.uri)
+    return makeProfileLink(note.author, 'note', urip.rkey)
+  }, [note.uri, note.author])
   const threadgateHiddenReplies = useMergedThreadgateHiddenReplies({
     threadgateRecord,
   })
-  const additionalPostAlerts: AppModerationCause[] = useMemo(() => {
-    const isPostHiddenByThreadgate = threadgateHiddenReplies.has(post.uri)
+  const additionalNoteAlerts: AppModerationCause[] = useMemo(() => {
+    const isNoteHiddenByThreadgate = threadgateHiddenReplies.has(note.uri)
     const isControlledByViewer =
-      new SonetUri(threadRootUri).host === currentAccount?.did
-    return isControlledByViewer && isPostHiddenByThreadgate
+      new SonetUri(threadRootUri).host === currentAccount?.userId
+    return isControlledByViewer && isNoteHiddenByThreadgate
       ? [
           {
             type: 'reply-hidden',
-            source: {type: 'user', did: currentAccount?.did},
+            source: {type: 'user', userId: currentAccount?.userId},
             priority: 6,
           },
         ]
       : []
-  }, [post, currentAccount?.did, threadgateHiddenReplies, threadRootUri])
+  }, [note, currentAccount?.userId, threadgateHiddenReplies, threadRootUri])
 
   const onPressReply = useCallback(() => {
     openComposer({
       replyTo: {
-        uri: post.uri,
-        cid: post.cid,
+        uri: note.uri,
+        cid: note.cid,
         text: record.text,
-        author: post.author,
-        embed: post.embed,
+        author: note.author,
+        embed: note.embed,
         moderation,
       },
-      onPostSuccess: onPostSuccess,
+      onNoteSuccess: onNoteSuccess,
     })
-  }, [openComposer, post, record, onPostSuccess, moderation])
+  }, [openComposer, note, record, onNoteSuccess, moderation])
 
   const onPressShowMore = useCallback(() => {
     setLimitLines(false)
   }, [setLimitLines])
 
   return (
-    <ThreadItemTreePostOuterWrapper item={item}>
+    <ThreadItemTreeNoteOuterWrapper item={item}>
       <SubtleHover>
-        <PostHider
-          testID={`postThreadItem-by-${post.author.handle}`}
-          href={postHref}
+        <NoteHider
+          testID={`noteThreadItem-by-${note.author.username}`}
+          href={noteHref}
           disabled={overrides?.moderation === true}
           modui={moderation.ui('contentList')}
           iconSize={42}
           iconStyles={{marginLeft: 2, marginRight: 2}}
-          profile={post.author}
+          profile={note.author}
           interpretFilterAsBlur>
-          <ThreadItemTreePostInnerWrapper item={item}>
+          <ThreadItemTreeNoteInnerWrapper item={item}>
             <View style={[a.flex_1]}>
-              <PostMeta
-                author={post.author}
+              <NoteMeta
+                author={note.author}
                 moderation={moderation}
-                timestamp={post.indexedAt}
-                postHref={postHref}
+                timestamp={note.indexedAt}
+                noteHref={noteHref}
                 avatarSize={TREE_AVI_WIDTH}
                 style={[a.pb_0]}
                 showAvatar
@@ -328,11 +328,11 @@ const ThreadItemTreePostInner = memo(function ThreadItemTreePostInner({
               <View style={[a.flex_row]}>
                 <ThreadItemTreeReplyChildReplyLine item={item} />
                 <View style={[a.flex_1, a.pl_2xs]}>
-                  <LabelsOnMyPost post={post} style={[a.pb_2xs]} />
-                  <PostAlerts
+                  <LabelsOnMyNote note={note} style={[a.pb_2xs]} />
+                  <NoteAlerts
                     modui={moderation.ui('contentList')}
                     style={[a.pb_2xs]}
-                    additionalCauses={additionalPostAlerts}
+                    additionalCauses={additionalNoteAlerts}
                   />
                   {richText?.text ? (
                     <>
@@ -341,7 +341,7 @@ const ThreadItemTreePostInner = memo(function ThreadItemTreePostInner({
                         value={richText}
                         style={[a.flex_1, a.text_md]}
                         numberOfLines={limitLines ? MAX_POST_LINES : undefined}
-                        authorHandle={post.author.handle}
+                        authorUsername={note.author.username}
                         shouldProxyLinks={true}
                       />
                       {limitLines && (
@@ -352,30 +352,30 @@ const ThreadItemTreePostInner = memo(function ThreadItemTreePostInner({
                       )}
                     </>
                   ) : null}
-                  {post.embed && (
+                  {note.embed && (
                     <View style={[a.pb_xs]}>
                       <Embed
-                        embed={post.embed}
+                        embed={note.embed}
                         moderation={moderation}
-                        viewContext={PostEmbedViewContext.Feed}
+                        viewContext={NoteEmbedViewContext.Feed}
                       />
                     </View>
                   )}
-                  <PostControls
-                    post={postShadow}
+                  <NoteControls
+                    note={noteShadow}
                     record={record}
                     richText={richText}
                     onPressReply={onPressReply}
-                    logContext="PostThreadItem"
+                    logContext="NoteThreadItem"
                     threadgateRecord={threadgateRecord}
                   />
                 </View>
               </View>
             </View>
-          </ThreadItemTreePostInnerWrapper>
-        </PostHider>
+          </ThreadItemTreeNoteInnerWrapper>
+        </NoteHider>
       </SubtleHover>
-    </ThreadItemTreePostOuterWrapper>
+    </ThreadItemTreeNoteOuterWrapper>
   )
 })
 
@@ -396,7 +396,7 @@ function SubtleHover({children}: {children: React.ReactNode}) {
   )
 }
 
-export function ThreadItemTreePostSkeleton({index}: {index: number}) {
+export function ThreadItemTreeNoteSkeleton({index}: {index: number}) {
   const t = useTheme()
   const even = index % 2 === 0
   return (

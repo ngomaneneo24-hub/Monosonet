@@ -24,7 +24,7 @@ import {
   type NotificationPayload,
   notificationToURL,
   storePayloadForAccountSwitch,
-} from '#/lib/hooks/useNotificationHandler'
+} from '#/lib/hooks/useNotificationUsernamer'
 import {useWebScrollRestoration} from '#/lib/hooks/useWebScrollRestoration'
 import {logger as notyLogger} from '#/lib/notifications/util'
 import {buildStateObject} from '#/lib/routes/helpers'
@@ -61,7 +61,7 @@ import {ModerationModlistsScreen} from '#/view/screens/ModerationModlists'
 import {ModerationMutedAccounts} from '#/view/screens/ModerationMutedAccounts'
 import {NotFoundScreen} from '#/view/screens/NotFound'
 import {NotificationsScreen} from '#/view/screens/Notifications'
-import {PostThreadScreen} from '#/view/screens/PostThread'
+import {NoteThreadScreen} from '#/view/screens/NoteThread'
 import {PrivacyPolicyScreen} from '#/view/screens/PrivacyPolicy'
 import {ProfileScreen} from '#/view/screens/Profile'
 import {ProfileFeedLikedByScreen} from '#/view/screens/ProfileFeedLikedBy'
@@ -86,9 +86,9 @@ import {ModerationScreen} from '#/screens/Moderation'
 import {Screen as ModerationVerificationSettings} from '#/screens/Moderation/VerificationSettings'
 import {Screen as ModerationInteractionSettings} from '#/screens/ModerationInteractionSettings'
 import {NotificationsActivityListScreen} from '#/screens/Notifications/ActivityList'
-import {PostLikedByScreen} from '#/screens/Post/PostLikedBy'
-import {PostQuotesScreen} from '#/screens/Post/PostQuotes'
-import {PostRepostedByScreen} from '#/screens/Post/PostRepostedBy'
+import {NoteLikedByScreen} from '#/screens/Note/NoteLikedBy'
+import {NoteQuotesScreen} from '#/screens/Note/NoteQuotes'
+import {NoteRenoteedByScreen} from '#/screens/Note/NoteRenoteedBy'
 import {ProfileKnownFollowersScreen} from '#/screens/Profile/KnownFollowers'
 import {ProfileFeedScreen} from '#/screens/Profile/ProfileFeed'
 import {ProfileFollowersScreen} from '#/screens/Profile/ProfileFollowers'
@@ -112,14 +112,14 @@ import {LegacyNotificationSettingsScreen} from '#/screens/Settings/LegacyNotific
 import {NotificationSettingsScreen} from '#/screens/Settings/NotificationSettings'
 import {ActivityNotificationSettingsScreen} from '#/screens/Settings/NotificationSettings/ActivityNotificationSettings'
 import {LikeNotificationSettingsScreen} from '#/screens/Settings/NotificationSettings/LikeNotificationSettings'
-import {LikesOnRepostsNotificationSettingsScreen} from '#/screens/Settings/NotificationSettings/LikesOnRepostsNotificationSettings'
+import {LikesOnRenotesNotificationSettingsScreen} from '#/screens/Settings/NotificationSettings/LikesOnRenotesNotificationSettings'
 import {MentionNotificationSettingsScreen} from '#/screens/Settings/NotificationSettings/MentionNotificationSettings'
 import {MiscellaneousNotificationSettingsScreen} from '#/screens/Settings/NotificationSettings/MiscellaneousNotificationSettings'
 import {NewFollowerNotificationSettingsScreen} from '#/screens/Settings/NotificationSettings/NewFollowerNotificationSettings'
 import {QuoteNotificationSettingsScreen} from '#/screens/Settings/NotificationSettings/QuoteNotificationSettings'
 import {ReplyNotificationSettingsScreen} from '#/screens/Settings/NotificationSettings/ReplyNotificationSettings'
-import {RepostNotificationSettingsScreen} from '#/screens/Settings/NotificationSettings/RepostNotificationSettings'
-import {RepostsOnRepostsNotificationSettingsScreen} from '#/screens/Settings/NotificationSettings/RepostsOnRepostsNotificationSettings'
+import {RenoteNotificationSettingsScreen} from '#/screens/Settings/NotificationSettings/RenoteNotificationSettings'
+import {RenotesOnRenotesNotificationSettingsScreen} from '#/screens/Settings/NotificationSettings/RenotesOnRenotesNotificationSettings'
 import {PrivacyAndSecuritySettingsScreen} from '#/screens/Settings/PrivacyAndSecuritySettings'
 import {SettingsScreen} from '#/screens/Settings/Settings'
 import {ThreadPreferencesScreen} from '#/screens/Settings/ThreadPreferences'
@@ -136,7 +136,7 @@ import {
   useEmailDialogControl,
 } from '#/components/dialogs/EmailDialog'
 import {router} from '#/routes'
-import {Referrer} from '../modules/expo-bluesky-swiss-army'
+import {Referrer} from '../modules/expo-sonet-swiss-army'
 import {useAccountSwitcher} from './lib/hooks/useAccountSwitcher'
 import {useNonReactiveCallback} from './lib/hooks/useNonReactiveCallback'
 import {useLoggedOutViewControls} from './state/shell/logged-out'
@@ -198,7 +198,7 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
         name="ModerationInteractionSettings"
         getComponent={() => ModerationInteractionSettings}
         options={{
-          title: title(msg`Post Interaction Settings`),
+          title: title(msg`Note Interaction Settings`),
           requireAuth: true,
         }}
       />
@@ -257,35 +257,35 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
         name="ProfileSearch"
         getComponent={() => ProfileSearchScreen}
         options={({route}) => ({
-          title: title(msg`Search @${route.params.name}'s posts`),
+          title: title(msg`Search @${route.params.name}'s notes`),
         })}
       />
       <Stack.Screen
-        name="PostThread"
-        getComponent={() => PostThreadScreen}
+        name="NoteThread"
+        getComponent={() => NoteThreadScreen}
         options={({route}) => ({
-          title: title(msg`Post by @${route.params.name}`),
+          title: title(msg`Note by @${route.params.name}`),
         })}
       />
       <Stack.Screen
-        name="PostLikedBy"
-        getComponent={() => PostLikedByScreen}
+        name="NoteLikedBy"
+        getComponent={() => NoteLikedByScreen}
         options={({route}) => ({
-          title: title(msg`Post by @${route.params.name}`),
+          title: title(msg`Note by @${route.params.name}`),
         })}
       />
       <Stack.Screen
-        name="PostRepostedBy"
-        getComponent={() => PostRepostedByScreen}
+        name="NoteRenoteedBy"
+        getComponent={() => NoteRenoteedByScreen}
         options={({route}) => ({
-          title: title(msg`Post by @${route.params.name}`),
+          title: title(msg`Note by @${route.params.name}`),
         })}
       />
       <Stack.Screen
-        name="PostQuotes"
-        getComponent={() => PostQuotesScreen}
+        name="NoteQuotes"
+        getComponent={() => NoteQuotesScreen}
         options={({route}) => ({
-          title: title(msg`Post by @${route.params.name}`),
+          title: title(msg`Note by @${route.params.name}`),
         })}
       />
       <Stack.Screen
@@ -457,10 +457,10 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
         }}
       />
       <Stack.Screen
-        name="RepostNotificationSettings"
-        getComponent={() => RepostNotificationSettingsScreen}
+        name="RenoteNotificationSettings"
+        getComponent={() => RenoteNotificationSettingsScreen}
         options={{
-          title: title(msg`Repost notifications`),
+          title: title(msg`Renote notifications`),
           requireAuth: true,
         }}
       />
@@ -473,18 +473,18 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
         }}
       />
       <Stack.Screen
-        name="LikesOnRepostsNotificationSettings"
-        getComponent={() => LikesOnRepostsNotificationSettingsScreen}
+        name="LikesOnRenotesNotificationSettings"
+        getComponent={() => LikesOnRenotesNotificationSettingsScreen}
         options={{
-          title: title(msg`Likes of your reposts notifications`),
+          title: title(msg`Likes of your renotes notifications`),
           requireAuth: true,
         }}
       />
       <Stack.Screen
-        name="RepostsOnRepostsNotificationSettings"
-        getComponent={() => RepostsOnRepostsNotificationSettingsScreen}
+        name="RenotesOnRenotesNotificationSettings"
+        getComponent={() => RenotesOnRenotesNotificationSettingsScreen}
         options={{
-          title: title(msg`Reposts of your reposts notifications`),
+          title: title(msg`Renotes of your renotes notifications`),
           requireAuth: true,
         }}
       />
@@ -800,8 +800,8 @@ const FlatNavigator = () => {
 
 const LINKING = {
   // TODO figure out what we are going to use
-  // note: `bluesky://` is what is used in app.config.js
-  prefixes: ['bsky://', 'bluesky://', 'https://bsky.app'],
+          // note: `sonet://` is what is used in app.config.js
+        prefixes: ['sonet://', 'https://sonet.app'],
 
   getPathFromState(state: State) {
     // find the current node in the navigation tree
@@ -821,8 +821,8 @@ const LINKING = {
   getStateFromPath(path: string) {
     const [name, params] = router.matchPath(path)
 
-    // Any time we receive a url that starts with `intent/` we want to ignore it here. It will be handled in the
-    // intent handler hook. We should check for the trailing slash, because if there isn't one then it isn't a valid
+    // Any time we receive a url that starts with `intent/` we want to ignore it here. It will be usernamed in the
+    // intent usernamer hook. We should check for the trailing slash, because if there isn't one then it isn't a valid
     // intent
     // On web, there is no route state that's created by default, so we should initialize it as the home route. On
     // native, since the home tab and the home screen are defined as initial routes, we don't need to return a state
@@ -845,7 +845,7 @@ const LINKING = {
       if (name === 'Messages') {
         return buildStateObject('MessagesTab', 'Messages', params)
       }
-      // if the path is something else, like a post, profile, or even settings, we need to initialize the home tab as pre-existing state otherwise the back button will not work
+      // if the path is something else, like a note, profile, or even settings, we need to initialize the home tab as pre-existing state otherwise the back button will not work
       return buildStateObject('HomeTab', name, params, [
         {
           name: 'Home',
@@ -860,9 +860,9 @@ const LINKING = {
 } satisfies LinkingOptions<AllNavigatorParams>
 
 /**
- * Used to ensure we don't handle the same notification twice
+ * Used to ensure we don't username the same notification twice
  */
-let lastHandledNotificationDateDedupe: number | undefined
+let lastUsernamedNotificationDateDedupe: number | undefined
 
 function RoutesContainer({children}: React.PropsWithChildren<{}>) {
   const theme = useColorSchemeStyle(DefaultTheme, DarkTheme)
@@ -874,21 +874,21 @@ function RoutesContainer({children}: React.PropsWithChildren<{}>) {
   const closeAllActiveElements = useCloseAllActiveElements()
 
   /**
-   * Handle navigation to a conversation, or prepares for account switch.
+   * Username navigation to a conversation, or prepares for account switch.
    *
    * Non-reactive because we need the latest data from some hooks
    * after an async call - sfn
    */
-  const handleChatMessage = useNonReactiveCallback(
+  const usernameChatMessage = useNonReactiveCallback(
     (payload: Extract<NotificationPayload, {reason: 'chat-message'}>) => {
-      notyLogger.debug(`handleChatMessage`, {payload})
+      notyLogger.debug(`usernameChatMessage`, {payload})
 
-      if (payload.recipientDid !== currentAccount?.did) {
-        // handled in useNotificationHandler after account switch finishes
+      if (payload.recipientDid !== currentAccount?.userId) {
+        // usernamed in useNotificationUsernamer after account switch finishes
         storePayloadForAccountSwitch(payload)
         closeAllActiveElements()
 
-        const account = accounts.find(a => a.did === payload.recipientDid)
+        const account = accounts.find(a => a.userId === payload.recipientDid)
         if (account) {
           onPressSwitchAccount(account, 'Notification')
         } else {
@@ -906,7 +906,7 @@ function RoutesContainer({children}: React.PropsWithChildren<{}>) {
     },
   )
 
-  async function handlePushNotificationEntry() {
+  async function usernamePushNotificationEntry() {
     if (!isNative) return
 
     // deep links take precedence - on android,
@@ -922,11 +922,11 @@ function RoutesContainer({children}: React.PropsWithChildren<{}>) {
     const response = await Notifications.getLastNotificationResponseAsync()
 
     if (response) {
-      notyLogger.debug(`handlePushNotificationEntry: response`, {response})
+      notyLogger.debug(`usernamePushNotificationEntry: response`, {response})
 
-      if (response.notification.date === lastHandledNotificationDateDedupe)
+      if (response.notification.date === lastUsernamedNotificationDateDedupe)
         return
-      lastHandledNotificationDateDedupe = response.notification.date
+      lastUsernamedNotificationDateDedupe = response.notification.date
 
       const payload = getNotificationPayload(response.notification)
 
@@ -938,18 +938,18 @@ function RoutesContainer({children}: React.PropsWithChildren<{}>) {
         )
 
         if (payload.reason === 'chat-message') {
-          handleChatMessage(payload)
+          usernameChatMessage(payload)
         } else {
           const path = notificationToURL(payload)
 
           if (path === '/notifications') {
             resetToTab('NotificationsTab')
-            notyLogger.debug(`handlePushNotificationEntry: default navigate`)
+            notyLogger.debug(`usernamePushNotificationEntry: default navigate`)
           } else if (path) {
             const [screen, params] = router.matchPath(path)
             // @ts-expect-error nested navigators aren't typed -sfn
             navigate('HomeTab', {screen, params})
-            notyLogger.debug(`handlePushNotificationEntry: navigate`, {
+            notyLogger.debug(`usernamePushNotificationEntry: navigate`, {
               screen,
               params,
             })
@@ -988,13 +988,13 @@ function RoutesContainer({children}: React.PropsWithChildren<{}>) {
           logModuleInitTime()
           onReady()
           logger.metric('router:navigate', {}, {statsig: false})
-          handlePushNotificationEntry()
+          usernamePushNotificationEntry()
         }}
         // WARNING: Implicit navigation to nested navigators is depreciated in React Navigation 7.x
         // However, there's a fair amount of places we do that, especially in when popping to the top of stacks.
-        // See BottomBar.tsx for an example of how to handle nested navigators in the tabs correctly.
+        // See BottomBar.tsx for an example of how to username nested navigators in the tabs correctly.
         // I'm scared of missing a spot (esp. with push notifications etc) so let's enable this legacy behaviour for now.
-        // We will need to confirm we handle nested navigators correctly by the time we migrate to React Navigation 8.x
+        // We will need to confirm we username nested navigators correctly by the time we migrate to React Navigation 8.x
         // -sfn
         navigationInChildEnabled>
         {children}
@@ -1023,11 +1023,11 @@ function navigate<K extends keyof AllNavigatorParams>(
   if (navigationRef.isReady()) {
     return Promise.race([
       new Promise<void>(resolve => {
-        const handler = () => {
+        const usernamer = () => {
           resolve()
-          navigationRef.removeListener('state', handler)
+          navigationRef.removeListener('state', usernamer)
         }
-        navigationRef.addListener('state', handler)
+        navigationRef.addListener('state', usernamer)
 
         // @ts-ignore I dont know what would make typescript happy but I have a life -prf
         navigationRef.navigate(name, params)
@@ -1061,11 +1061,11 @@ function reset(): Promise<void> {
     return Promise.race([
       timeout(1e3),
       new Promise<void>(resolve => {
-        const handler = () => {
+        const usernamer = () => {
           resolve()
-          navigationRef.removeListener('state', handler)
+          navigationRef.removeListener('state', usernamer)
         }
-        navigationRef.addListener('state', handler)
+        navigationRef.addListener('state', usernamer)
       }),
     ])
   } else {
@@ -1073,12 +1073,12 @@ function reset(): Promise<void> {
   }
 }
 
-let didInit = false
+let userIdInit = false
 function logModuleInitTime() {
-  if (didInit) {
+  if (userIdInit) {
     return
   }
-  didInit = true
+  userIdInit = true
 
   const initMs = Math.round(
     // @ts-ignore Emitted by Metro in the bundle prelude
@@ -1091,7 +1091,7 @@ function logModuleInitTime() {
 
   if (isWeb) {
     const referrerInfo = Referrer.getReferrerInfo()
-    if (referrerInfo && referrerInfo.hostname !== 'bsky.app') {
+    if (referrerInfo && referrerInfo.hostname !== 'sonet.app') {
       logEvent('deepLink:referrerReceived', {
         to: window.location.href,
         referrer: referrerInfo?.referrer,

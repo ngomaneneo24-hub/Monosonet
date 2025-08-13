@@ -1,6 +1,6 @@
 import {useCallback, useMemo, useState} from 'react'
 import {type StyleProp, StyleSheet, View, type ViewStyle} from 'react-native'
-import { type SonetPost, type SonetProfile, type SonetFeedGenerator, type SonetPostRecord, type SonetFeedViewPost, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
+import { type SonetNote, type SonetProfile, type SonetFeedGenerator, type SonetNoteRecord, type SonetFeedViewNote, type SonetInteraction, type SonetSavedFeed } from '#/types/sonet'
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome'
 import {Trans} from '@lingui/macro'
 import {useQueryClient} from '@tanstack/react-query'
@@ -14,48 +14,48 @@ import {colors, s} from '#/lib/styles'
 import {
   POST_TOMBSTONE,
   type Shadow,
-  usePostShadow,
-} from '#/state/cache/post-shadow'
+  useNoteShadow,
+} from '#/state/cache/note-shadow'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
 import {precacheProfile} from '#/state/queries/profile'
 import {useSession} from '#/state/session'
 import {Link} from '#/view/com/util/Link'
-import {PostMeta} from '#/view/com/util/PostMeta'
+import {NoteMeta} from '#/view/com/util/NoteMeta'
 import {Text} from '#/view/com/util/text/Text'
 import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
 import {UserInfoText} from '#/view/com/util/UserInfoText'
 import {atoms as a} from '#/alf'
 import {ContentHider} from '#/components/moderation/ContentHider'
-import {LabelsOnMyPost} from '#/components/moderation/LabelsOnMe'
-import {PostAlerts} from '#/components/moderation/PostAlerts'
-import {Embed, PostEmbedViewContext} from '#/components/Post/Embed'
-import {ShowMoreTextButton} from '#/components/Post/ShowMoreTextButton'
-import {PostControls} from '#/components/PostControls'
+import {LabelsOnMyNote} from '#/components/moderation/LabelsOnMe'
+import {NoteAlerts} from '#/components/moderation/NoteAlerts'
+import {Embed, NoteEmbedViewContext} from '#/components/Note/Embed'
+import {ShowMoreTextButton} from '#/components/Note/ShowMoreTextButton'
+import {NoteControls} from '#/components/NoteControls'
 import {ProfileHoverCard} from '#/components/ProfileHoverCard'
 import {string} from '#/components/string'
 import {SubtleWebHover} from '#/components/SubtleWebHover'
 import * as bsky from '#/types/bsky'
 
-export function Post({
-  post,
+export function Note({
+  note,
   showReplyLine,
   hideTopBorder,
   style,
 }: {
-  post: SonetPost
+  note: SonetNote
   showReplyLine?: boolean
   hideTopBorder?: boolean
   style?: StyleProp<ViewStyle>
 }) {
   const moderationOpts = useModerationOpts()
-  const record = useMemo<SonetPostRecord | undefined>(
+  const record = useMemo<SonetNoteRecord | undefined>(
     () =>
-      bsky.validate(post.record, SonetPost.validateRecord)
-        ? post.record
+      bsky.validate(note.record, SonetNote.validateRecord)
+        ? note.record
         : undefined,
-    [post],
+    [note],
   )
-  const postShadowed = usePostShadow(post)
+  const noteShadowed = useNoteShadow(note)
   const richText = useMemo(
     () =>
       record
@@ -67,16 +67,16 @@ export function Post({
     [record],
   )
   const moderation = useMemo(
-    () => (moderationOpts ? moderatePost(post, moderationOpts) : undefined),
-    [moderationOpts, post],
+    () => (moderationOpts ? moderateNote(note, moderationOpts) : undefined),
+    [moderationOpts, note],
   )
-  if (postShadowed === POST_TOMBSTONE) {
+  if (noteShadowed === POST_TOMBSTONE) {
     return null
   }
   if (record && richText && moderation) {
     return (
-      <PostInner
-        post={postShadowed}
+      <NoteInner
+        note={noteShadowed}
         record={record}
         richText={richText}
         moderation={moderation}
@@ -89,8 +89,8 @@ export function Post({
   return null
 }
 
-function PostInner({
-  post,
+function NoteInner({
+  note,
   record,
   richText,
   moderation,
@@ -98,8 +98,8 @@ function PostInner({
   hideTopBorder,
   style,
 }: {
-  post: Shadow<SonetPost>
-  record: SonetPostRecord
+  note: Shadow<SonetNote>
+  record: SonetNoteRecord
   richText: RichTextAPI
   moderation: SonetModerationDecision
   showReplyLine?: boolean
@@ -112,8 +112,8 @@ function PostInner({
   const [limitLines, setLimitLines] = useState(
     () => countLines(richText?.text) >= MAX_POST_LINES,
   )
-  const itemUrip = new SonetUri(post.uri)
-  const itemHref = makeProfileLink(post.author, 'post', itemUrip.rkey)
+  const itemUrip = new SonetUri(note.uri)
+  const itemHref = makeProfileLink(note.author, 'note', itemUrip.rkey)
   let replyAuthorDid = ''
   if (record.reply) {
     const urip = new SonetUri(record.reply.parent?.uri || record.reply.root.uri)
@@ -123,26 +123,26 @@ function PostInner({
   const onPressReply = useCallback(() => {
     openComposer({
       replyTo: {
-        uri: post.uri,
-        cid: post.cid,
+        uri: note.uri,
+        cid: note.cid,
         text: record.text,
-        author: post.author,
-        embed: post.embed,
+        author: note.author,
+        embed: note.embed,
         moderation,
       },
     })
-  }, [openComposer, post, record, moderation])
+  }, [openComposer, note, record, moderation])
 
   const onPressShowMore = useCallback(() => {
     setLimitLines(false)
   }, [setLimitLines])
 
   const onBeforePress = useCallback(() => {
-    precacheProfile(queryClient, post.author)
-  }, [queryClient, post.author])
+    precacheProfile(queryClient, note.author)
+  }, [queryClient, note.author])
 
   const {currentAccount} = useSession()
-  const isMe = replyAuthorDid === currentAccount?.did
+  const isMe = replyAuthorDid === currentAccount?.userId
 
   const [hover, setHover] = useState(false)
   return (
@@ -167,17 +167,17 @@ function PostInner({
         <View style={styles.layoutAvi}>
           <PreviewableUserAvatar
             size={42}
-            profile={post.author}
+            profile={note.author}
             moderation={moderation.ui('avatar')}
-            type={post.author.associated?.labeler ? 'labeler' : 'user'}
+            type={note.author.associated?.labeler ? 'labeler' : 'user'}
           />
         </View>
         <View style={styles.layoutContent}>
-          <PostMeta
-            author={post.author}
+          <NoteMeta
+            author={note.author}
             moderation={moderation}
-            timestamp={post.indexedAt}
-            postHref={itemHref}
+            timestamp={note.indexedAt}
+            noteHref={itemHref}
           />
           {replyAuthorDid !== '' && (
             <View style={[s.flexRow, s.mb2, s.alignCenter]}>
@@ -196,10 +196,10 @@ function PostInner({
                 ) : (
                   <Trans context="description">
                     Reply to{' '}
-                    <ProfileHoverCard did={replyAuthorDid}>
+                    <ProfileHoverCard userId={replyAuthorDid}>
                       <UserInfoText
                         type="sm"
-                        did={replyAuthorDid}
+                        userId={replyAuthorDid}
                         attr="displayName"
                         style={[pal.textLight]}
                       />
@@ -209,12 +209,12 @@ function PostInner({
               </Text>
             </View>
           )}
-          <LabelsOnMyPost post={post} />
+          <LabelsOnMyNote note={note} />
           <ContentHider
             modui={moderation.ui('contentView')}
             style={styles.contentHider}
             childContainerStyle={styles.contentHiderChild}>
-            <PostAlerts
+            <NoteAlerts
               modui={moderation.ui('contentView')}
               style={[a.py_xs]}
             />
@@ -222,11 +222,11 @@ function PostInner({
               <View>
                 <string
                   enableTags
-                  testID="postText"
+                  testID="noteText"
                   value={richText}
                   numberOfLines={limitLines ? MAX_POST_LINES : undefined}
                   style={[a.flex_1, a.text_md]}
-                  authorHandle={post.author.handle}
+                  authorUsername={note.author.username}
                   shouldProxyLinks={true}
                 />
                 {limitLines && (
@@ -237,20 +237,20 @@ function PostInner({
                 )}
               </View>
             ) : undefined}
-            {post.embed ? (
+            {note.embed ? (
               <Embed
-                embed={post.embed}
+                embed={note.embed}
                 moderation={moderation}
-                viewContext={PostEmbedViewContext.Feed}
+                viewContext={NoteEmbedViewContext.Feed}
               />
             ) : null}
           </ContentHider>
-          <PostControls
-            post={post}
+          <NoteControls
+            note={note}
             record={record}
             richText={richText}
             onPressReply={onPressReply}
-            logContext="Post"
+            logContext="Note"
           />
         </View>
       </View>

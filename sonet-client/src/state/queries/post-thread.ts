@@ -1,51 +1,51 @@
 import {
-  type AppBskyActorDefs,
-  type AppBskyEmbedRecord,
-  AppBskyFeedDefs,
-  type AppBskyFeedGetPostThread,
-  AppBskyFeedPost,
+  type SonetActorDefs,
+  type SonetEmbedRecord,
+  SonetFeedDefs,
+  type SonetFeedGetNoteThread,
+  SonetFeedNote,
   AtUri,
-  moderatePost,
+  moderateNote,
   type ModerationDecision,
   type ModerationOpts,
-} from '@atproto/api'
+} from '@sonet/api'
 import {type QueryClient, useQuery, useQueryClient} from '@tanstack/react-query'
 
 import {
-  findAllPostsInQueryData as findAllPostsInExploreFeedPreviewsQueryData,
+  findAllNotesInQueryData as findAllNotesInExploreFeedPreviewsQueryData,
   findAllProfilesInQueryData as findAllProfilesInExploreFeedPreviewsQueryData,
 } from '#/state/queries/explore-feed-previews'
-import {findAllPostsInQueryData as findAllPostsInQuoteQueryData} from '#/state/queries/post-quotes'
+import {findAllNotesInQueryData as findAllNotesInQuoteQueryData} from '#/state/queries/note-quotes'
 import {type UsePreferencesQueryResponse} from '#/state/queries/preferences/types'
 import {
-  findAllPostsInQueryData as findAllPostsInSearchQueryData,
+  findAllNotesInQueryData as findAllNotesInSearchQueryData,
   findAllProfilesInQueryData as findAllProfilesInSearchQueryData,
-} from '#/state/queries/search-posts'
+} from '#/state/queries/search-notes'
 import {useAgent} from '#/state/session'
 import {useSonetApi, useSonetSession} from '#/state/session/sonet'
 import * as bsky from '#/types/bsky'
 import {
-  findAllPostsInQueryData as findAllPostsInNotifsQueryData,
+  findAllNotesInQueryData as findAllNotesInNotifsQueryData,
   findAllProfilesInQueryData as findAllProfilesInNotifsQueryData,
 } from './notifications/feed'
 import {
-  findAllPostsInQueryData as findAllPostsInFeedQueryData,
+  findAllNotesInQueryData as findAllNotesInFeedQueryData,
   findAllProfilesInQueryData as findAllProfilesInFeedQueryData,
-} from './post-feed'
+} from './note-feed'
 import {
-  didOrHandleUriMatches,
-  embedViewRecordToPostView,
-  getEmbeddedPost,
+  userIdOrUsernameUriMatches,
+  embedViewRecordToNoteView,
+  getEmbeddedNote,
 } from './util'
 
 const REPLY_TREE_DEPTH = 10
-export const RQKEY_ROOT = 'post-thread'
+export const RQKEY_ROOT = 'note-thread'
 export const RQKEY = (uri: string) => [RQKEY_ROOT, uri]
-type ThreadViewNode = AppBskyFeedGetPostThread.OutputSchema['thread']
+type ThreadViewNode = SonetFeedGetNoteThread.OutputSchema['thread']
 
 export interface ThreadCtx {
   depth: number
-  isHighlightedPost?: boolean
+  isHighlightedNote?: boolean
   hasMore?: boolean
   isParentLoading?: boolean
   isChildLoading?: boolean
@@ -53,12 +53,12 @@ export interface ThreadCtx {
   hasMoreSelfThread?: boolean
 }
 
-export type ThreadPost = {
-  type: 'post'
+export type ThreadNote = {
+  type: 'note'
   _reactKey: string
   uri: string
-  post: AppBskyFeedDefs.PostView
-  record: AppBskyFeedPost.Record
+  note: SonetFeedDefs.NoteView
+  record: SonetFeedNote.Record
   parent: ThreadNode | undefined
   replies: ThreadNode[] | undefined
   hasOPLike: boolean | undefined
@@ -85,28 +85,28 @@ export type ThreadUnknown = {
 }
 
 export type ThreadNode =
-  | ThreadPost
+  | ThreadNote
   | ThreadNotFound
   | ThreadBlocked
   | ThreadUnknown
 
 export type ThreadModerationCache = WeakMap<ThreadNode, ModerationDecision>
 
-export type PostThreadQueryData = {
+export type NoteThreadQueryData = {
   thread: ThreadNode
-  threadgate?: AppBskyFeedDefs.ThreadgateView
+  threadgate?: SonetFeedDefs.ThreadgateView
 }
 
-export function usePostThreadQuery(uri: string | undefined) {
+export function useNoteThreadQuery(uri: string | undefined) {
   const queryClient = useQueryClient()
   const agent = useAgent()
   const sonet = useSonetApi()
   const sonetSession = useSonetSession()
-  return useQuery<PostThreadQueryData, Error>({
+  return useQuery<NoteThreadQueryData, Error>({
     gcTime: 0,
     queryKey: RQKEY(uri || ''),
     async queryFn() {
-      // Sonet thread (MVP: only the main post and thread context if provided)
+      // Sonet thread (MVP: only the main note and thread context if provided)
       if (sonetSession.hasSession && uri) {
         const idMatch = /sonet:\/\/note\/([^?#]+)/.exec(uri)
         if (idMatch) {
@@ -115,7 +115,7 @@ export function usePostThreadQuery(uri: string | undefined) {
           return {thread: threadNode}
         }
       }
-      const res = await agent.getPostThread({
+      const res = await agent.getNoteThread({
         uri: uri!,
         depth: REPLY_TREE_DEPTH,
       })
@@ -125,7 +125,7 @@ export function usePostThreadQuery(uri: string | undefined) {
         return {
           thread,
           threadgate: res.data.threadgate as
-            | AppBskyFeedDefs.ThreadgateView
+            | SonetFeedDefs.ThreadgateView
             | undefined,
         }
       }
@@ -134,9 +134,9 @@ export function usePostThreadQuery(uri: string | undefined) {
     enabled: !!uri,
     placeholderData: () => {
       if (!uri) return
-      const post = findPostInQueryData(queryClient, uri)
-      if (post) {
-        return {thread: post}
+      const note = findNoteInQueryData(queryClient, uri)
+      if (note) {
+        return {thread: note}
       }
       return undefined
     },
@@ -148,8 +148,8 @@ export function fillThreadModerationCache(
   node: ThreadNode,
   moderationOpts: ModerationOpts,
 ) {
-  if (node.type === 'post') {
-    cache.set(node, moderatePost(node.post, moderationOpts))
+  if (node.type === 'note') {
+    cache.set(node, moderateNote(node.note, moderationOpts))
     if (node.parent) {
       fillThreadModerationCache(cache, node.parent, moderationOpts)
     }
@@ -166,52 +166,52 @@ export function sortThread(
   opts: UsePreferencesQueryResponse['threadViewPrefs'],
   modCache: ThreadModerationCache,
   currentDid: string | undefined,
-  justPostedUris: Set<string>,
+  justNoteedUris: Set<string>,
   threadgateRecordHiddenReplies: Set<string>,
   fetchedAtCache: Map<string, number>,
   fetchedAt: number,
   randomCache: Map<string, number>,
 ): ThreadNode {
-  if (node.type !== 'post') {
+  if (node.type !== 'note') {
     return node
   }
   if (node.replies) {
     node.replies.sort((a: ThreadNode, b: ThreadNode) => {
-      if (a.type !== 'post') {
+      if (a.type !== 'note') {
         return 1
       }
-      if (b.type !== 'post') {
+      if (b.type !== 'note') {
         return -1
       }
 
-      if (node.ctx.isHighlightedPost || opts.lab_treeViewEnabled) {
-        const aIsJustPosted =
-          a.post.author.did === currentDid && justPostedUris.has(a.post.uri)
-        const bIsJustPosted =
-          b.post.author.did === currentDid && justPostedUris.has(b.post.uri)
-        if (aIsJustPosted && bIsJustPosted) {
-          return a.post.indexedAt.localeCompare(b.post.indexedAt) // oldest
-        } else if (aIsJustPosted) {
+      if (node.ctx.isHighlightedNote || opts.lab_treeViewEnabled) {
+        const aIsJustNoteed =
+          a.note.author.userId === currentDid && justNoteedUris.has(a.note.uri)
+        const bIsJustNoteed =
+          b.note.author.userId === currentDid && justNoteedUris.has(b.note.uri)
+        if (aIsJustNoteed && bIsJustNoteed) {
+          return a.note.indexedAt.localeCompare(b.note.indexedAt) // oldest
+        } else if (aIsJustNoteed) {
           return -1 // reply while onscreen
-        } else if (bIsJustPosted) {
+        } else if (bIsJustNoteed) {
           return 1 // reply while onscreen
         }
       }
 
-      const aIsByOp = a.post.author.did === node.post?.author.did
-      const bIsByOp = b.post.author.did === node.post?.author.did
+      const aIsByOp = a.note.author.userId === node.note?.author.userId
+      const bIsByOp = b.note.author.userId === node.note?.author.userId
       if (aIsByOp && bIsByOp) {
-        return a.post.indexedAt.localeCompare(b.post.indexedAt) // oldest
+        return a.note.indexedAt.localeCompare(b.note.indexedAt) // oldest
       } else if (aIsByOp) {
         return -1 // op's own reply
       } else if (bIsByOp) {
         return 1 // op's own reply
       }
 
-      const aIsBySelf = a.post.author.did === currentDid
-      const bIsBySelf = b.post.author.did === currentDid
+      const aIsBySelf = a.note.author.userId === currentDid
+      const bIsBySelf = b.note.author.userId === currentDid
       if (aIsBySelf && bIsBySelf) {
-        return a.post.indexedAt.localeCompare(b.post.indexedAt) // oldest
+        return a.note.indexedAt.localeCompare(b.note.indexedAt) // oldest
       } else if (aIsBySelf) {
         return -1 // current account's reply
       } else if (bIsBySelf) {
@@ -249,8 +249,8 @@ export function sortThread(
       }
 
       if (opts.prioritizeFollowedUsers) {
-        const af = a.post.author.viewer?.following
-        const bf = b.post.author.viewer?.following
+        const af = a.note.author.viewer?.following
+        const bf = b.note.author.viewer?.following
         if (af && !bf) {
           return -1
         } else if (!af && bf) {
@@ -277,14 +277,14 @@ export function sortThread(
         const bHotness = getHotness(b, bFetchedAt /* same as aFetchedAt */)
         return bHotness - aHotness
       } else if (opts.sort === 'oldest') {
-        return a.post.indexedAt.localeCompare(b.post.indexedAt)
+        return a.note.indexedAt.localeCompare(b.note.indexedAt)
       } else if (opts.sort === 'newest') {
-        return b.post.indexedAt.localeCompare(a.post.indexedAt)
+        return b.note.indexedAt.localeCompare(a.note.indexedAt)
       } else if (opts.sort === 'most-likes') {
-        if (a.post.likeCount === b.post.likeCount) {
-          return b.post.indexedAt.localeCompare(a.post.indexedAt) // newest
+        if (a.note.likeCount === b.note.likeCount) {
+          return b.note.indexedAt.localeCompare(a.note.indexedAt) // newest
         } else {
-          return (b.post.likeCount || 0) - (a.post.likeCount || 0) // most likes
+          return (b.note.likeCount || 0) - (a.note.likeCount || 0) // most likes
         }
       } else if (opts.sort === 'random') {
         let aRandomScore = randomCache.get(a.uri)
@@ -300,7 +300,7 @@ export function sortThread(
         // this is vaguely criminal but we can get away with it
         return aRandomScore - bRandomScore
       } else {
-        return b.post.indexedAt.localeCompare(a.post.indexedAt)
+        return b.note.indexedAt.localeCompare(a.note.indexedAt)
       }
     })
     node.replies.forEach(reply =>
@@ -309,7 +309,7 @@ export function sortThread(
         opts,
         modCache,
         currentDid,
-        justPostedUris,
+        justNoteedUris,
         threadgateRecordHiddenReplies,
         fetchedAtCache,
         fetchedAt,
@@ -327,14 +327,14 @@ export function sortThread(
 // We want to give recent comments a real chance (and not bury them deep below the fold)
 // while also surfacing well-liked comments from the past. In the future, we can explore
 // something more sophisticated, but we don't have much data on the client right now.
-function getHotness(threadPost: ThreadPost, fetchedAt: number) {
-  const {post, hasOPLike} = threadPost
+function getHotness(threadNote: ThreadNote, fetchedAt: number) {
+  const {note, hasOPLike} = threadNote
   const hoursAgo = Math.max(
     0,
-    (new Date(fetchedAt).getTime() - new Date(post.indexedAt).getTime()) /
+    (new Date(fetchedAt).getTime() - new Date(note.indexedAt).getTime()) /
       (1000 * 60 * 60),
   )
-  const likeCount = post.likeCount ?? 0
+  const likeCount = note.likeCount ?? 0
   const likeOrder = Math.log(3 + likeCount) * (hasOPLike ? 1.45 : 1.0)
   const timePenaltyExponent = 1.5 + 1.5 / (1 + Math.log(1 + likeCount))
   const opLikeBoost = hasOPLike ? 0.8 : 1.0
@@ -348,25 +348,25 @@ function responseToThreadNodes(
   direction: 'up' | 'down' | 'start' = 'start',
 ): ThreadNode {
   if (
-    AppBskyFeedDefs.isThreadViewPost(node) &&
-    bsky.dangerousIsType<AppBskyFeedPost.Record>(
-      node.post.record,
-      AppBskyFeedPost.isRecord,
+    SonetFeedDefs.isThreadViewNote(node) &&
+    bsky.dangerousIsType<SonetFeedNote.Record>(
+      node.note.record,
+      SonetFeedNote.isRecord,
     )
   ) {
-    const post = node.post
+    const note = node.note
     // These should normally be present. They're missing only for
-    // posts that were *just* created. Ideally, the backend would
+    // notes that were *just* created. Ideally, the backend would
     // know to return zeros. Fill them in manually to compensate.
-    post.replyCount ??= 0
-    post.likeCount ??= 0
-    post.repostCount ??= 0
+    note.replyCount ??= 0
+    note.likeCount ??= 0
+    note.renoteCount ??= 0
     return {
-      type: 'post',
-      _reactKey: node.post.uri,
-      uri: node.post.uri,
-      post: post,
-      record: node.post.record,
+      type: 'note',
+      _reactKey: node.note.uri,
+      uri: node.note.uri,
+      note: note,
+      record: node.note.record,
       parent:
         node.parent && direction !== 'down'
           ? responseToThreadNodes(node.parent, depth - 1, 'up')
@@ -375,22 +375,22 @@ function responseToThreadNodes(
         node.replies?.length && direction !== 'up'
           ? node.replies
               .map(reply => responseToThreadNodes(reply, depth + 1, 'down'))
-              // do not show blocked posts in replies
+              // do not show blocked notes in replies
               .filter(node => node.type !== 'blocked')
           : undefined,
       hasOPLike: Boolean(node?.threadContext?.rootAuthorLike),
       ctx: {
         depth,
-        isHighlightedPost: depth === 0,
+        isHighlightedNote: depth === 0,
         hasMore:
-          direction === 'down' && !node.replies?.length && !!post.replyCount,
+          direction === 'down' && !node.replies?.length && !!note.replyCount,
         isSelfThread: false, // populated `annotateSelfThread`
         hasMoreSelfThread: false, // populated in `annotateSelfThread`
       },
     }
-  } else if (AppBskyFeedDefs.isBlockedPost(node)) {
+  } else if (SonetFeedDefs.isBlockedNote(node)) {
     return {type: 'blocked', _reactKey: node.uri, uri: node.uri, ctx: {depth}}
-  } else if (AppBskyFeedDefs.isNotFoundPost(node)) {
+  } else if (SonetFeedDefs.isNotFoundNote(node)) {
     return {type: 'not-found', _reactKey: node.uri, uri: node.uri, ctx: {depth}}
   } else {
     return {type: 'unknown', uri: ''}
@@ -398,16 +398,16 @@ function responseToThreadNodes(
 }
 
 function annotateSelfThread(thread: ThreadNode) {
-  if (thread.type !== 'post') {
+  if (thread.type !== 'note') {
     return
   }
-  const selfThreadNodes: ThreadPost[] = [thread]
+  const selfThreadNodes: ThreadNote[] = [thread]
 
   let parent: ThreadNode | undefined = thread.parent
   while (parent) {
     if (
-      parent.type !== 'post' ||
-      parent.post.author.did !== thread.post.author.did
+      parent.type !== 'note' ||
+      parent.note.author.userId !== thread.note.author.userId
     ) {
       // not a self-thread
       return
@@ -419,9 +419,9 @@ function annotateSelfThread(thread: ThreadNode) {
   let node = thread
   for (let i = 0; i < 10; i++) {
     const reply = node.replies?.find(
-      r => r.type === 'post' && r.post.author.did === thread.post.author.did,
+      r => r.type === 'note' && r.note.author.userId === thread.note.author.userId,
     )
-    if (reply?.type !== 'post') {
+    if (reply?.type !== 'note') {
       break
     }
     selfThreadNodes.push(reply)
@@ -436,7 +436,7 @@ function annotateSelfThread(thread: ThreadNode) {
     if (
       last &&
       last.ctx.depth === REPLY_TREE_DEPTH && // at the edge of the tree depth
-      last.post.replyCount && // has replies
+      last.note.replyCount && // has replies
       !last.replies?.length // replies were not hydrated
     ) {
       last.ctx.hasMoreSelfThread = true
@@ -444,36 +444,36 @@ function annotateSelfThread(thread: ThreadNode) {
   }
 }
 
-function findPostInQueryData(
+function findNoteInQueryData(
   queryClient: QueryClient,
   uri: string,
 ): ThreadNode | void {
   let partial
-  for (let item of findAllPostsInQueryData(queryClient, uri)) {
-    if (item.type === 'post') {
-      // Currently, the backend doesn't send full post info in some cases
-      // (for example, for quoted posts). We use missing `likeCount`
+  for (let item of findAllNotesInQueryData(queryClient, uri)) {
+    if (item.type === 'note') {
+      // Currently, the backend doesn't send full note info in some cases
+      // (for example, for quoted notes). We use missing `likeCount`
       // as a way to detect that. In the future, we should fix this on
       // the backend, which will let us always stop on the first result.
-      const hasAllInfo = item.post.likeCount != null
+      const hasAllInfo = item.note.likeCount != null
       if (hasAllInfo) {
         return item
       } else {
         partial = item
-        // Keep searching, we might still find a full post in the cache.
+        // Keep searching, we might still find a full note in the cache.
       }
     }
   }
   return partial
 }
 
-export function* findAllPostsInQueryData(
+export function* findAllNotesInQueryData(
   queryClient: QueryClient,
   uri: string,
 ): Generator<ThreadNode, void> {
   const atUri = new AtUri(uri)
 
-  const queryDatas = queryClient.getQueriesData<PostThreadQueryData>({
+  const queryDatas = queryClient.getQueriesData<NoteThreadQueryData>({
     queryKey: [RQKEY_ROOT],
   })
   for (const [_queryKey, queryData] of queryDatas) {
@@ -482,48 +482,48 @@ export function* findAllPostsInQueryData(
     }
     const {thread} = queryData
     for (const item of traverseThread(thread)) {
-      if (item.type === 'post' && didOrHandleUriMatches(atUri, item.post)) {
+      if (item.type === 'note' && userIdOrUsernameUriMatches(atUri, item.note)) {
         const placeholder = threadNodeToPlaceholderThread(item)
         if (placeholder) {
           yield placeholder
         }
       }
-      const quotedPost =
-        item.type === 'post' ? getEmbeddedPost(item.post.embed) : undefined
-      if (quotedPost && didOrHandleUriMatches(atUri, quotedPost)) {
-        yield embedViewRecordToPlaceholderThread(quotedPost)
+      const quotedNote =
+        item.type === 'note' ? getEmbeddedNote(item.note.embed) : undefined
+      if (quotedNote && userIdOrUsernameUriMatches(atUri, quotedNote)) {
+        yield embedViewRecordToPlaceholderThread(quotedNote)
       }
     }
   }
-  for (let post of findAllPostsInNotifsQueryData(queryClient, uri)) {
-    // Check notifications first. If you have a post in notifications,
-    // it's often due to a like or a repost, and we want to prioritize
-    // a post object with >0 likes/reposts over a stale version with no
-    // metrics in order to avoid a notification->post scroll jump.
-    yield postViewToPlaceholderThread(post)
+  for (let note of findAllNotesInNotifsQueryData(queryClient, uri)) {
+    // Check notifications first. If you have a note in notifications,
+    // it's often due to a like or a renote, and we want to prioritize
+    // a note object with >0 likes/renotes over a stale version with no
+    // metrics in order to avoid a notification->note scroll jump.
+    yield noteViewToPlaceholderThread(note)
   }
-  for (let post of findAllPostsInFeedQueryData(queryClient, uri)) {
-    yield postViewToPlaceholderThread(post)
+  for (let note of findAllNotesInFeedQueryData(queryClient, uri)) {
+    yield noteViewToPlaceholderThread(note)
   }
-  for (let post of findAllPostsInQuoteQueryData(queryClient, uri)) {
-    yield postViewToPlaceholderThread(post)
+  for (let note of findAllNotesInQuoteQueryData(queryClient, uri)) {
+    yield noteViewToPlaceholderThread(note)
   }
-  for (let post of findAllPostsInSearchQueryData(queryClient, uri)) {
-    yield postViewToPlaceholderThread(post)
+  for (let note of findAllNotesInSearchQueryData(queryClient, uri)) {
+    yield noteViewToPlaceholderThread(note)
   }
-  for (let post of findAllPostsInExploreFeedPreviewsQueryData(
+  for (let note of findAllNotesInExploreFeedPreviewsQueryData(
     queryClient,
     uri,
   )) {
-    yield postViewToPlaceholderThread(post)
+    yield noteViewToPlaceholderThread(note)
   }
 }
 
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
-  did: string,
-): Generator<AppBskyActorDefs.ProfileViewBasic, void> {
-  const queryDatas = queryClient.getQueriesData<PostThreadQueryData>({
+  userId: string,
+): Generator<SonetActorDefs.ProfileViewBasic, void> {
+  const queryDatas = queryClient.getQueriesData<NoteThreadQueryData>({
     queryKey: [RQKEY_ROOT],
   })
   for (const [_queryKey, queryData] of queryDatas) {
@@ -532,35 +532,35 @@ export function* findAllProfilesInQueryData(
     }
     const {thread} = queryData
     for (const item of traverseThread(thread)) {
-      if (item.type === 'post' && item.post.author.did === did) {
-        yield item.post.author
+      if (item.type === 'note' && item.note.author.userId === userId) {
+        yield item.note.author
       }
-      const quotedPost =
-        item.type === 'post' ? getEmbeddedPost(item.post.embed) : undefined
-      if (quotedPost?.author.did === did) {
-        yield quotedPost?.author
+      const quotedNote =
+        item.type === 'note' ? getEmbeddedNote(item.note.embed) : undefined
+      if (quotedNote?.author.userId === userId) {
+        yield quotedNote?.author
       }
     }
   }
-  for (let profile of findAllProfilesInFeedQueryData(queryClient, did)) {
+  for (let profile of findAllProfilesInFeedQueryData(queryClient, userId)) {
     yield profile
   }
-  for (let profile of findAllProfilesInNotifsQueryData(queryClient, did)) {
+  for (let profile of findAllProfilesInNotifsQueryData(queryClient, userId)) {
     yield profile
   }
-  for (let profile of findAllProfilesInSearchQueryData(queryClient, did)) {
+  for (let profile of findAllProfilesInSearchQueryData(queryClient, userId)) {
     yield profile
   }
   for (let profile of findAllProfilesInExploreFeedPreviewsQueryData(
     queryClient,
-    did,
+    userId,
   )) {
     yield profile
   }
 }
 
 function* traverseThread(node: ThreadNode): Generator<ThreadNode, void> {
-  if (node.type === 'post') {
+  if (node.type === 'note') {
     if (node.parent) {
       yield* traverseThread(node.parent)
     }
@@ -576,67 +576,67 @@ function* traverseThread(node: ThreadNode): Generator<ThreadNode, void> {
 function threadNodeToPlaceholderThread(
   node: ThreadNode,
 ): ThreadNode | undefined {
-  if (node.type !== 'post') {
+  if (node.type !== 'note') {
     return undefined
   }
   return {
     type: node.type,
     _reactKey: node._reactKey,
     uri: node.uri,
-    post: node.post,
+    note: node.note,
     record: node.record,
     parent: undefined,
     replies: undefined,
     hasOPLike: undefined,
     ctx: {
       depth: 0,
-      isHighlightedPost: true,
+      isHighlightedNote: true,
       hasMore: false,
       isParentLoading: !!node.record.reply,
-      isChildLoading: !!node.post.replyCount,
+      isChildLoading: !!node.note.replyCount,
     },
   }
 }
 
-function postViewToPlaceholderThread(
-  post: AppBskyFeedDefs.PostView,
+function noteViewToPlaceholderThread(
+  note: SonetFeedDefs.NoteView,
 ): ThreadNode {
   return {
-    type: 'post',
-    _reactKey: post.uri,
-    uri: post.uri,
-    post: post,
-    record: post.record as AppBskyFeedPost.Record, // validated in notifs
+    type: 'note',
+    _reactKey: note.uri,
+    uri: note.uri,
+    note: note,
+    record: note.record as SonetFeedNote.Record, // validated in notifs
     parent: undefined,
     replies: undefined,
     hasOPLike: undefined,
     ctx: {
       depth: 0,
-      isHighlightedPost: true,
+      isHighlightedNote: true,
       hasMore: false,
-      isParentLoading: !!(post.record as AppBskyFeedPost.Record).reply,
+      isParentLoading: !!(note.record as SonetFeedNote.Record).reply,
       isChildLoading: true, // assume yes (show the spinner) just in case
     },
   }
 }
 
 function embedViewRecordToPlaceholderThread(
-  record: AppBskyEmbedRecord.ViewRecord,
+  record: SonetEmbedRecord.ViewRecord,
 ): ThreadNode {
   return {
-    type: 'post',
+    type: 'note',
     _reactKey: record.uri,
     uri: record.uri,
-    post: embedViewRecordToPostView(record),
-    record: record.value as AppBskyFeedPost.Record, // validated in getEmbeddedPost
+    note: embedViewRecordToNoteView(record),
+    record: record.value as SonetFeedNote.Record, // validated in getEmbeddedNote
     parent: undefined,
     replies: undefined,
     hasOPLike: undefined,
     ctx: {
       depth: 0,
-      isHighlightedPost: true,
+      isHighlightedNote: true,
       hasMore: false,
-      isParentLoading: !!(record.value as AppBskyFeedPost.Record).reply,
+      isParentLoading: !!(record.value as SonetFeedNote.Record).reply,
       isChildLoading: true, // not available, so assume yes (to show the spinner)
     },
   }
@@ -644,31 +644,31 @@ function embedViewRecordToPlaceholderThread(
 
 function mapSonetNoteToThread(n: any): ThreadNode {
   const author = n?.author || {}
-  const post: AppBskyFeedDefs.PostView = {
+  const note: SonetFeedDefs.NoteView = {
     uri: `sonet://note/${n.id}`,
     cid: n.id,
     author: {
-      did: author.did || author.id || 'sonet:user',
-      handle: author.username || 'user',
+      userId: author.userId || author.id || 'sonet:user',
+      username: author.username || 'user',
       displayName: author.display_name,
       avatar: author.avatar_url,
     } as any,
     record: {text: n.content || n.text || ''} as any,
     likeCount: n.like_count || 0,
-    repostCount: n.renote_count || n.repost_count || 0,
+    renoteCount: n.renote_count || n.renote_count || 0,
     replyCount: n.reply_count || 0,
     indexedAt: n.created_at || new Date().toISOString(),
   }
-  const node: ThreadPost = {
-    type: 'post',
-    _reactKey: post.uri,
-    uri: post.uri,
-    post,
-    record: post.record as AppBskyFeedPost.Record,
+  const node: ThreadNote = {
+    type: 'note',
+    _reactKey: note.uri,
+    uri: note.uri,
+    note,
+    record: note.record as SonetFeedNote.Record,
     parent: undefined,
     replies: undefined,
     hasOPLike: false,
-    ctx: {depth: 0, isHighlightedPost: true},
+    ctx: {depth: 0, isHighlightedNote: true},
   } as any
   return node
 }

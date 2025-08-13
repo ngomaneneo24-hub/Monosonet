@@ -6,7 +6,7 @@ import {
   View,
 } from 'react-native'
 import {setStringAsync} from 'expo-clipboard'
-import {ComAtprotoServerDefs} from '@atproto/api'
+import {SonetServerDefs} from '@sonet/api'
 import {
   FontAwesomeIcon,
   FontAwesomeIconStyle,
@@ -138,7 +138,7 @@ function InviteCode({
   invites,
 }: {
   testID: string
-  invite: ComAtprotoServerDefs.InviteCode
+  invite: SonetServerDefs.InviteCode
   used?: boolean
   invites: InviteCodesQueryResponse
 }) {
@@ -202,11 +202,11 @@ function InviteCode({
             {uses.map((use, i) => (
               <Link
                 key={use.usedBy}
-                href={makeProfileLink({handle: use.usedBy, did: ''})}
+                href={makeProfileLink({username: use.usedBy, userId: ''})}
                 style={{
                   flexDirection: 'row',
                 }}>
-                <UserInfoText did={use.usedBy} style={pal.link} />
+                <UserInfoText userId={use.usedBy} style={pal.link} />
                 {i !== uses.length - 1 && <Text style={pal.text}>, </Text>}
               </Link>
             ))}

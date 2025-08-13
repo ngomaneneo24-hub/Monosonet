@@ -3,10 +3,10 @@ import {useWindowDimensions, View} from 'react-native'
 import {runOnJS, useAnimatedStyle} from 'react-native-reanimated'
 import Animated from 'react-native-reanimated'
 import {
-  AppBskyFeedDefs,
-  type AppBskyFeedThreadgate,
-  moderatePost,
-} from '@atproto/api'
+  SonetFeedDefs,
+  type SonetFeedThreadgate,
+  moderateNote,
+} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -28,15 +28,15 @@ import {
   type ThreadModerationCache,
   type ThreadNode,
   type ThreadNotFound,
-  type ThreadPost,
-  usePostThreadQuery,
-} from '#/state/queries/post-thread'
+  type ThreadNote,
+  useNoteThreadQuery,
+} from '#/state/queries/note-thread'
 import {useSetThreadViewPreferencesMutation} from '#/state/queries/preferences'
 import {usePreferencesQuery} from '#/state/queries/preferences'
 import {useSession} from '#/state/session'
 import {useShellLayout} from '#/state/shell/shell-layout'
 import {useMergedThreadgateHiddenReplies} from '#/state/threadgate-hidden-replies'
-import {useUnstablePostSource} from '#/state/unstable-post-source'
+import {useUnstableNoteSource} from '#/state/unstable-note-source'
 import {List, type ListMethods} from '#/view/com/util/List'
 import {atoms as a, useTheme} from '#/alf'
 import {Button, ButtonIcon} from '#/components/Button'
@@ -45,10 +45,10 @@ import {Header} from '#/components/Layout'
 import {ListFooter, ListMaybePlaceholder} from '#/components/Lists'
 import * as Menu from '#/components/Menu'
 import {Text} from '#/components/Typography'
-import {PostThreadComposePrompt} from './PostThreadComposePrompt'
-import {PostThreadItem} from './PostThreadItem'
-import {PostThreadLoadMore} from './PostThreadLoadMore'
-import {PostThreadShowHiddenReplies} from './PostThreadShowHiddenReplies'
+import {NoteThreadComposePrompt} from './NoteThreadComposePrompt'
+import {NoteThreadItem} from './NoteThreadItem'
+import {NoteThreadLoadMore} from './NoteThreadLoadMore'
+import {NoteThreadShowHiddenReplies} from './NoteThreadShowHiddenReplies'
 
 // FlatList maintainVisibleContentPosition breaks if too many items
 // are prepended. This seems to be an optimal number based on *shrug*.
@@ -68,11 +68,11 @@ const SHOW_MUTED_REPLIES = {_reactKey: '__show_muted_replies__'}
 enum HiddenRepliesState {
   Hide,
   Show,
-  ShowAndOverridePostHider,
+  ShowAndOverrideNoteHider,
 }
 
 type YieldedItem =
-  | ThreadPost
+  | ThreadNote
   | ThreadBlocked
   | ThreadNotFound
   | typeof SHOW_HIDDEN_REPLIES
@@ -85,7 +85,7 @@ type RowItem =
 
 type ThreadSkeletonParts = {
   parents: YieldedItem[]
-  highlightedPost: ThreadNode
+  highlightedNote: ThreadNode
   replies: YieldedItem[]
 }
 
@@ -93,7 +93,7 @@ const keyExtractor = (item: RowItem) => {
   return item._reactKey
 }
 
-export function PostThread({uri}: {uri: string}) {
+export function NoteThread({uri}: {uri: string}) {
   const {hasSession, currentAccount} = useSession()
   const {_} = useLingui()
   const t = useTheme()
@@ -104,8 +104,8 @@ export function PostThread({uri}: {uri: string}) {
     HiddenRepliesState.Hide,
   )
   const headerRef = React.useRef<View | null>(null)
-  const anchorPostSource = useUnstablePostSource(uri)
-  const feedFeedback = useFeedFeedback(anchorPostSource?.feed, hasSession)
+  const anchorNoteSource = useUnstableNoteSource(uri)
+  const feedFeedback = useFeedFeedback(anchorNoteSource?.feed, hasSession)
 
   const {data: preferences} = usePreferencesQuery()
   const {
@@ -115,7 +115,7 @@ export function PostThread({uri}: {uri: string}) {
     refetch,
     data: {thread, threadgate} = {},
     dataUpdatedAt: fetchedAt,
-  } = usePostThreadQuery(uri)
+  } = useNoteThreadQuery(uri)
 
   // The original source of truth for these are the server settings.
   const serverPrefs = preferences?.threadViewPrefs
@@ -158,10 +158,10 @@ export function PostThread({uri}: {uri: string}) {
     [treeViewEnabled, thread],
   )
 
-  const rootPost = thread?.type === 'post' ? thread.post : undefined
-  const rootPostRecord = thread?.type === 'post' ? thread.record : undefined
+  const rootNote = thread?.type === 'note' ? thread.note : undefined
+  const rootNoteRecord = thread?.type === 'note' ? thread.record : undefined
   const threadgateRecord = threadgate?.record as
-    | AppBskyFeedThreadgate.Record
+    | SonetFeedThreadgate.Record
     | undefined
   const threadgateHiddenReplies = useMergedThreadgateHiddenReplies({
     threadgateRecord,
@@ -170,8 +170,8 @@ export function PostThread({uri}: {uri: string}) {
   const moderationOpts = useModerationOpts()
   const isNoPwi = React.useMemo(() => {
     const mod =
-      rootPost && moderationOpts
-        ? moderatePost(rootPost, moderationOpts)
+      rootNote && moderationOpts
+        ? moderateNote(rootNote, moderationOpts)
         : undefined
     return !!mod
       ?.ui('contentList')
@@ -180,31 +180,31 @@ export function PostThread({uri}: {uri: string}) {
           cause.type === 'label' &&
           cause.labelDef.identifier === '!no-unauthenticated',
       )
-  }, [rootPost, moderationOpts])
+  }, [rootNote, moderationOpts])
 
   // Values used for proper rendering of parents
   const ref = useRef<ListMethods>(null)
-  const highlightedPostRef = useRef<View | null>(null)
+  const highlightedNoteRef = useRef<View | null>(null)
   const [maxParents, setMaxParents] = React.useState(
     isWeb ? Infinity : PARENTS_CHUNK_SIZE,
   )
   const [maxReplies, setMaxReplies] = React.useState(50)
 
   useSetTitle(
-    rootPost && !isNoPwi
+    rootNote && !isNoPwi
       ? `${sanitizeDisplayName(
-          rootPost.author.displayName || `@${rootPost.author.handle}`,
-        )}: "${rootPostRecord!.text}"`
+          rootNote.author.displayName || `@${rootNote.author.username}`,
+        )}: "${rootNoteRecord!.text}"`
       : '',
   )
 
   // On native, this is going to start out `true`. We'll toggle it to `false` after the initial render if flushed.
   // This ensures that the first render contains no parents--even if they are already available in the cache.
-  // We need to delay showing them so that we can use maintainVisibleContentPosition to keep the main post on screen.
+  // We need to delay showing them so that we can use maintainVisibleContentPosition to keep the main note on screen.
   // On the web this is not necessary because we can synchronously adjust the scroll in onContentSizeChange instead.
   const [deferParents, setDeferParents] = React.useState(isNative)
 
-  const currentDid = currentAccount?.did
+  const currentDid = currentAccount?.userId
   const threadModerationCache = React.useMemo(() => {
     const cache: ThreadModerationCache = new WeakMap()
     if (thread && moderationOpts) {
@@ -213,7 +213,7 @@ export function PostThread({uri}: {uri: string}) {
     return cache
   }, [thread, moderationOpts])
 
-  const [justPostedUris, setJustPostedUris] = React.useState(
+  const [justNoteedUris, setJustNoteedUris] = React.useState(
     () => new Set<string>(),
   )
 
@@ -232,7 +232,7 @@ export function PostThread({uri}: {uri: string}) {
         },
         threadModerationCache,
         currentDid,
-        justPostedUris,
+        justNoteedUris,
         threadgateHiddenReplies,
         fetchedAtCache,
         fetchedAt,
@@ -253,7 +253,7 @@ export function PostThread({uri}: {uri: string}) {
     treeView,
     threadModerationCache,
     hiddenRepliesState,
-    justPostedUris,
+    justNoteedUris,
     threadgateHiddenReplies,
     fetchedAtCache,
     fetchedAt,
@@ -261,22 +261,22 @@ export function PostThread({uri}: {uri: string}) {
   ])
 
   const error = React.useMemo(() => {
-    if (AppBskyFeedDefs.isNotFoundPost(thread)) {
+    if (SonetFeedDefs.isNotFoundNote(thread)) {
       return {
-        title: _(msg`Post not found`),
-        message: _(msg`The post may have been deleted.`),
+        title: _(msg`Note not found`),
+        message: _(msg`The note may have been deleted.`),
       }
-    } else if (skeleton?.highlightedPost.type === 'blocked') {
+    } else if (skeleton?.highlightedNote.type === 'blocked') {
       return {
-        title: _(msg`Post hidden`),
+        title: _(msg`Note hidden`),
         message: _(
           msg`You have blocked the author or you have been blocked by the author.`,
         ),
       }
-    } else if (threadError?.message.startsWith('Post not found')) {
+    } else if (threadError?.message.startsWith('Note not found')) {
       return {
-        title: _(msg`Post not found`),
-        message: _(msg`The post may have been deleted.`),
+        title: _(msg`Note not found`),
+        message: _(msg`The note may have been deleted.`),
       }
     } else if (isThreadError) {
       return {
@@ -285,15 +285,15 @@ export function PostThread({uri}: {uri: string}) {
     }
 
     return null
-  }, [thread, skeleton?.highlightedPost, isThreadError, _, threadError])
+  }, [thread, skeleton?.highlightedNote, isThreadError, _, threadError])
 
   // construct content
-  const posts = React.useMemo(() => {
+  const notes = React.useMemo(() => {
     if (!skeleton) return []
 
-    const {parents, highlightedPost, replies} = skeleton
+    const {parents, highlightedNote, replies} = skeleton
     let arr: RowItem[] = []
-    if (highlightedPost.type === 'post') {
+    if (highlightedNote.type === 'note') {
       // We want to wait for parents to load before rendering.
       // If you add something here, you'll need to update both
       // maintainVisibleContentPosition and onContentSizeChange
@@ -302,11 +302,11 @@ export function PostThread({uri}: {uri: string}) {
       /*
        * This is basically `!!parents.length`, see notes on `isParentLoading`
        */
-      if (!highlightedPost.ctx.isParentLoading && !deferParents) {
+      if (!highlightedNote.ctx.isParentLoading && !deferParents) {
         // When progressively revealing parents, rendering a placeholder
         // here will cause scrolling jumps. Don't add it unless you test it.
         // QT'ing this thread is a great way to test all the scrolling hacks:
-        // https://bsky.app/profile/samuel.bsky.team/post/3kjqhblh6qk2o
+        // https://sonet.app/profile/samuel.bsky.team/note/3kjqhblh6qk2o
 
         // Everything is loaded
         let startIndex = Math.max(0, parents.length - maxParents)
@@ -314,8 +314,8 @@ export function PostThread({uri}: {uri: string}) {
           arr.push(parents[i])
         }
       }
-      arr.push(highlightedPost)
-      if (!highlightedPost.post.viewer?.replyDisabled) {
+      arr.push(highlightedNote)
+      if (!highlightedNote.note.viewer?.replyDisabled) {
         arr.push(REPLY_PROMPT)
       }
       for (let i = 0; i < replies.length; i++) {
@@ -328,21 +328,21 @@ export function PostThread({uri}: {uri: string}) {
     return arr
   }, [skeleton, deferParents, maxParents, maxReplies])
 
-  // This is only used on the web to keep the post in view when its parents load.
+  // This is only used on the web to keep the note in view when its parents load.
   // On native, we rely on `maintainVisibleContentPosition` instead.
-  const didAdjustScrollWeb = useRef<boolean>(false)
+  const userIdAdjustScrollWeb = useRef<boolean>(false)
   const onContentSizeChangeWeb = React.useCallback(() => {
     // only run once
-    if (didAdjustScrollWeb.current) {
+    if (userIdAdjustScrollWeb.current) {
       return
     }
     // wait for loading to finish
-    if (thread?.type === 'post' && !!thread.parent) {
+    if (thread?.type === 'note' && !!thread.parent) {
       // Measure synchronously to avoid a layout jump.
-      const postNode = highlightedPostRef.current
+      const noteNode = highlightedNoteRef.current
       const headerNode = headerRef.current
-      if (postNode && headerNode) {
-        let pageY = (postNode as any as Element).getBoundingClientRect().top
+      if (noteNode && headerNode) {
+        let pageY = (noteNode as any as Element).getBoundingClientRect().top
         pageY -= (headerNode as any as Element).getBoundingClientRect().height
         pageY = Math.max(0, pageY)
         ref.current?.scrollToOffset({
@@ -350,7 +350,7 @@ export function PostThread({uri}: {uri: string}) {
           offset: pageY,
         })
       }
-      didAdjustScrollWeb.current = true
+      userIdAdjustScrollWeb.current = true
     }
   }, [thread])
 
@@ -381,17 +381,17 @@ export function PostThread({uri}: {uri: string}) {
   }, [bumpMaxParentsIfNeeded])
 
   const onEndReached = React.useCallback(() => {
-    if (isFetching || posts.length < maxReplies) return
+    if (isFetching || notes.length < maxReplies) return
     setMaxReplies(prev => prev + 50)
-  }, [isFetching, maxReplies, posts.length])
+  }, [isFetching, maxReplies, notes.length])
 
-  const onPostReply = React.useCallback(
-    (postUri: string | undefined) => {
+  const onNoteReply = React.useCallback(
+    (noteUri: string | undefined) => {
       refetch()
-      if (postUri) {
-        setJustPostedUris(set => {
+      if (noteUri) {
+        setJustNoteedUris(set => {
           const nextSet = new Set(set)
-          nextSet.add(postUri)
+          nextSet.add(noteUri)
           return nextSet
         })
       }
@@ -401,41 +401,41 @@ export function PostThread({uri}: {uri: string}) {
 
   const {openComposer} = useOpenComposer()
   const onReplyToAnchor = React.useCallback(() => {
-    if (thread?.type !== 'post') {
+    if (thread?.type !== 'note') {
       return
     }
-    if (anchorPostSource) {
+    if (anchorNoteSource) {
       feedFeedback.sendInteraction({
-        item: thread.post.uri,
-        event: 'app.bsky.feed.defs#interactionReply',
-        feedContext: anchorPostSource.post.feedContext,
-        reqId: anchorPostSource.post.reqId,
+        item: thread.note.uri,
+        event: 'app.sonet.feed.defs#interactionReply',
+        feedContext: anchorNoteSource.note.feedContext,
+        reqId: anchorNoteSource.note.reqId,
       })
     }
     openComposer({
       replyTo: {
-        uri: thread.post.uri,
-        cid: thread.post.cid,
+        uri: thread.note.uri,
+        cid: thread.note.cid,
         text: thread.record.text,
-        author: thread.post.author,
-        embed: thread.post.embed,
+        author: thread.note.author,
+        embed: thread.note.embed,
         moderation: threadModerationCache.get(thread),
       },
-      onPost: onPostReply,
+      onNote: onNoteReply,
     })
   }, [
     openComposer,
     thread,
-    onPostReply,
+    onNoteReply,
     threadModerationCache,
-    anchorPostSource,
+    anchorNoteSource,
     feedFeedback,
   ])
 
-  const canReply = !error && rootPost && !rootPost.viewer?.replyDisabled
+  const canReply = !error && rootNote && !rootNote.viewer?.replyDisabled
   const hasParents =
-    skeleton?.highlightedPost?.type === 'post' &&
-    (skeleton.highlightedPost.ctx.isParentLoading ||
+    skeleton?.highlightedNote?.type === 'note' &&
+    (skeleton.highlightedNote.ctx.isParentLoading ||
       Boolean(skeleton?.parents && skeleton.parents.length > 0))
 
   const renderItem = ({item, index}: {item: RowItem; index: number}) => {
@@ -443,19 +443,19 @@ export function PostThread({uri}: {uri: string}) {
       return (
         <View>
           {!isMobile && (
-            <PostThreadComposePrompt onPressCompose={onReplyToAnchor} />
+            <NoteThreadComposePrompt onPressCompose={onReplyToAnchor} />
           )}
         </View>
       )
     } else if (item === SHOW_HIDDEN_REPLIES || item === SHOW_MUTED_REPLIES) {
       return (
-        <PostThreadShowHiddenReplies
+        <NoteThreadShowHiddenReplies
           type={item === SHOW_HIDDEN_REPLIES ? 'hidden' : 'muted'}
           onPress={() =>
             setHiddenRepliesState(
               item === SHOW_HIDDEN_REPLIES
                 ? HiddenRepliesState.Show
-                : HiddenRepliesState.ShowAndOverridePostHider,
+                : HiddenRepliesState.ShowAndOverrideNoteHider,
             )
           }
           hideTopBorder={index === 0}
@@ -471,7 +471,7 @@ export function PostThread({uri}: {uri: string}) {
             t.atoms.bg_contrast_25,
           ]}>
           <Text style={[a.font_bold, a.text_md, t.atoms.text_contrast_medium]}>
-            <Trans>Deleted post.</Trans>
+            <Trans>Deleted note.</Trans>
           </Text>
         </View>
       )
@@ -485,16 +485,16 @@ export function PostThread({uri}: {uri: string}) {
             t.atoms.bg_contrast_25,
           ]}>
           <Text style={[a.font_bold, a.text_md, t.atoms.text_contrast_medium]}>
-            <Trans>Blocked post.</Trans>
+            <Trans>Blocked note.</Trans>
           </Text>
         </View>
       )
-    } else if (isThreadPost(item)) {
-      const prev = isThreadPost(posts[index - 1])
-        ? (posts[index - 1] as ThreadPost)
+    } else if (isThreadNote(item)) {
+      const prev = isThreadNote(notes[index - 1])
+        ? (notes[index - 1] as ThreadNote)
         : undefined
-      const next = isThreadPost(posts[index + 1])
-        ? (posts[index + 1] as ThreadPost)
+      const next = isThreadNote(notes[index + 1])
+        ? (notes[index + 1] as ThreadNote)
         : undefined
       const showChildReplyLine = (next?.ctx.depth || 0) > item.ctx.depth
       const showParentReplyLine =
@@ -503,35 +503,35 @@ export function PostThread({uri}: {uri: string}) {
         index === 0 && skeleton?.parents && maxParents < skeleton.parents.length
 
       if (!treeView && prev && item.ctx.hasMoreSelfThread) {
-        return <PostThreadLoadMore post={prev.post} />
+        return <NoteThreadLoadMore note={prev.note} />
       }
 
       return (
         <View
-          ref={item.ctx.isHighlightedPost ? highlightedPostRef : undefined}
+          ref={item.ctx.isHighlightedNote ? highlightedNoteRef : undefined}
           onLayout={deferParents ? () => setDeferParents(false) : undefined}>
-          <PostThreadItem
-            post={item.post}
+          <NoteThreadItem
+            note={item.note}
             record={item.record}
             threadgateRecord={threadgateRecord ?? undefined}
             moderation={threadModerationCache.get(item)}
             treeView={treeView}
             depth={item.ctx.depth}
-            prevPost={prev}
-            nextPost={next}
-            isHighlightedPost={item.ctx.isHighlightedPost}
+            prevNote={prev}
+            nextNote={next}
+            isHighlightedNote={item.ctx.isHighlightedNote}
             hasMore={item.ctx.hasMore}
             showChildReplyLine={showChildReplyLine}
             showParentReplyLine={showParentReplyLine}
             hasPrecedingItem={showParentReplyLine || !!hasUnrevealedParents}
             overrideBlur={
               hiddenRepliesState ===
-                HiddenRepliesState.ShowAndOverridePostHider &&
+                HiddenRepliesState.ShowAndOverrideNoteHider &&
               item.ctx.depth > 0
             }
-            onPostReply={onPostReply}
+            onNoteReply={onNoteReply}
             hideTopBorder={index === 0 && !item.ctx.isParentLoading}
-            anchorPostSource={anchorPostSource}
+            anchorNoteSource={anchorNoteSource}
           />
         </View>
       )
@@ -558,7 +558,7 @@ export function PostThread({uri}: {uri: string}) {
         <Header.BackButton />
         <Header.Content>
           <Header.TitleText>
-            <Trans context="description">Post</Trans>
+            <Trans context="description">Note</Trans>
           </Header.TitleText>
         </Header.Content>
         <Header.Slot>
@@ -574,7 +574,7 @@ export function PostThread({uri}: {uri: string}) {
       <ScrollProvider onMomentumEnd={onMomentumEnd}>
         <List
           ref={ref}
-          data={posts}
+          data={notes}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           onContentSizeChange={isNative ? undefined : onContentSizeChangeWeb}
@@ -599,7 +599,7 @@ export function PostThread({uri}: {uri: string}) {
               isFetchingNextPage={isFetching}
               error={cleanError(threadError)}
               onRetry={refetch}
-              // 300 is based on the minimum height of a post. This is enough extra height for the `maintainVisPos` to
+              // 300 is based on the minimum height of a note. This is enough extra height for the `maintainVisPos` to
               // work without causing weird jumps on web or glitches on native
               height={windowHeight - 200}
             />
@@ -716,12 +716,12 @@ let ThreadMenu = ({
             <Menu.ItemRadio selected={sortReplies === 'most-likes'} />
           </Menu.Item>
           <Menu.Item
-            label={_(msg`Random (aka "Poster's Roulette")`)}
+            label={_(msg`Random (aka "Noteer's Roulette")`)}
             onPress={() => {
               setSortReplies('random')
             }}>
             <Menu.ItemText>
-              <Trans>Random (aka "Poster's Roulette")</Trans>
+              <Trans>Random (aka "Noteer's Roulette")</Trans>
             </Menu.ItemText>
             <Menu.ItemRadio selected={sortReplies === 'random'} />
           </Menu.Item>
@@ -743,13 +743,13 @@ function MobileComposePrompt({onPressReply}: {onPressReply: () => unknown}) {
 
   return (
     <Animated.View style={[a.fixed, a.left_0, a.right_0, animatedStyle]}>
-      <PostThreadComposePrompt onPressCompose={onPressReply} />
+      <NoteThreadComposePrompt onPressCompose={onPressReply} />
     </Animated.View>
   )
 }
 
-function isThreadPost(v: unknown): v is ThreadPost {
-  return !!v && typeof v === 'object' && 'type' in v && v.type === 'post'
+function isThreadNote(v: unknown): v is ThreadNote {
+  return !!v && typeof v === 'object' && 'type' in v && v.type === 'note'
 }
 
 function isThreadNotFound(v: unknown): v is ThreadNotFound {
@@ -772,7 +772,7 @@ function createThreadSkeleton(
 
   return {
     parents: Array.from(flattenThreadParents(node, !!currentDid)),
-    highlightedPost: node,
+    highlightedNote: node,
     replies: Array.from(
       flattenThreadReplies(
         node,
@@ -790,11 +790,11 @@ function* flattenThreadParents(
   node: ThreadNode,
   hasSession: boolean,
 ): Generator<YieldedItem, void> {
-  if (node.type === 'post') {
+  if (node.type === 'note') {
     if (node.parent) {
       yield* flattenThreadParents(node.parent, hasSession)
     }
-    if (!node.ctx.isHighlightedPost) {
+    if (!node.ctx.isHighlightedNote) {
       yield node
     }
   } else if (node.type === 'not-found') {
@@ -819,13 +819,13 @@ function* flattenThreadReplies(
   showHiddenReplies: boolean,
   threadgateRecordHiddenReplies: Set<string>,
 ): Generator<YieldedItem, HiddenReplyType> {
-  if (node.type === 'post') {
-    // dont show pwi-opted-out posts to logged out users
+  if (node.type === 'note') {
+    // dont show pwi-opted-out notes to logged out users
     if (!currentDid && hasPwiOptOut(node)) {
       return HiddenReplyType.None
     }
 
-    // handle blurred items
+    // username blurred items
     if (node.ctx.depth > 0) {
       const modui = modCache.get(node)?.ui('contentList')
       if (modui?.blur || modui?.filter) {
@@ -839,16 +839,16 @@ function* flattenThreadReplies(
 
       if (!showHiddenReplies) {
         const hiddenByThreadgate = threadgateRecordHiddenReplies.has(
-          node.post.uri,
+          node.note.uri,
         )
-        const authorIsViewer = node.post.author.did === currentDid
+        const authorIsViewer = node.note.author.userId === currentDid
         if (hiddenByThreadgate && !authorIsViewer) {
           return HiddenReplyType.Hidden
         }
       }
     }
 
-    if (!node.ctx.isHighlightedPost) {
+    if (!node.ctx.isHighlightedNote) {
       yield node
     }
 
@@ -866,7 +866,7 @@ function* flattenThreadReplies(
         if (hiddenReply > hiddenReplies) {
           hiddenReplies = hiddenReply
         }
-        if (!treeView && !node.ctx.isHighlightedPost) {
+        if (!treeView && !node.ctx.isHighlightedNote) {
           break
         }
       }
@@ -888,15 +888,15 @@ function* flattenThreadReplies(
   return HiddenReplyType.None
 }
 
-function hasPwiOptOut(node: ThreadPost) {
-  return !!node.post.author.labels?.find(l => l.val === '!no-unauthenticated')
+function hasPwiOptOut(node: ThreadNote) {
+  return !!node.note.author.labels?.find(l => l.val === '!no-unauthenticated')
 }
 
 function hasBranchingReplies(node?: ThreadNode) {
   if (!node) {
     return false
   }
-  if (node.type !== 'post') {
+  if (node.type !== 'note') {
     return false
   }
   if (!node.replies) {

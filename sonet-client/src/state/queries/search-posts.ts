@@ -1,11 +1,11 @@
 import React from 'react'
 import {
-  AppBskyActorDefs,
-  AppBskyFeedDefs,
-  AppBskyFeedSearchPosts,
+  SonetActorDefs,
+  SonetFeedDefs,
+  SonetFeedSearchNotes,
   AtUri,
-  moderatePost,
-} from '@atproto/api'
+  moderateNote,
+} from '@sonet/api'
 import {
   InfiniteData,
   QueryClient,
@@ -17,19 +17,19 @@ import {useModerationOpts} from '#/state/preferences/moderation-opts'
 import {useAgent} from '#/state/session'
 import {useSonetApi, useSonetSession} from '#/state/session/sonet'
 import {
-  didOrHandleUriMatches,
-  embedViewRecordToPostView,
-  getEmbeddedPost,
+  userIdOrUsernameUriMatches,
+  embedViewRecordToNoteView,
+  getEmbeddedNote,
 } from './util'
 
-const searchPostsQueryKeyRoot = 'search-posts'
-const searchPostsQueryKey = ({query, sort}: {query: string; sort?: string}) => [
-  searchPostsQueryKeyRoot,
+const searchNotesQueryKeyRoot = 'search-notes'
+const searchNotesQueryKey = ({query, sort}: {query: string; sort?: string}) => [
+  searchNotesQueryKeyRoot,
   query,
   sort,
 ]
 
-export function useSearchPostsQuery({
+export function useSearchNotesQuery({
   query,
   sort,
   enabled,
@@ -50,19 +50,19 @@ export function useSearchPostsQuery({
     [query, moderationOpts],
   )
   const lastRun = React.useRef<{
-    data: InfiniteData<AppBskyFeedSearchPosts.OutputSchema>
+    data: InfiniteData<SonetFeedSearchNotes.OutputSchema>
     args: typeof selectArgs
-    result: InfiniteData<AppBskyFeedSearchPosts.OutputSchema>
+    result: InfiniteData<SonetFeedSearchNotes.OutputSchema>
   } | null>(null)
 
   return useInfiniteQuery<
-    AppBskyFeedSearchPosts.OutputSchema,
+    SonetFeedSearchNotes.OutputSchema,
     Error,
-    InfiniteData<AppBskyFeedSearchPosts.OutputSchema>,
+    InfiniteData<SonetFeedSearchNotes.OutputSchema>,
     QueryKey,
     string | undefined
   >({
-    queryKey: searchPostsQueryKey({query, sort}),
+    queryKey: searchNotesQueryKey({query, sort}),
     queryFn: async ({pageParam}) => {
       if (sonetSession.hasSession) {
         const res = await sonet.getApi().search(query, 'notes', {limit: 25, cursor: pageParam})
@@ -70,15 +70,15 @@ export function useSearchPostsQuery({
         return {
           cursor: res?.pagination?.cursor,
           hitsTotal: notes.length,
-          posts: notes.map((n: any) => ({
+          notes: notes.map((n: any) => ({
             uri: `sonet://note/${n.id}`,
             cid: n.id,
-            author: {did: n.author?.id || 'sonet:user'} as any,
+            author: {userId: n.author?.id || 'sonet:user'} as any,
             record: {text: n.content || n.text || ''} as any,
           } as any)),
         } as any
       }
-      const res = await agent.app.bsky.feed.searchPosts({
+      const res = await agent.app.sonet.feed.searchNotes({
         q: query,
         limit: 25,
         cursor: pageParam,
@@ -90,7 +90,7 @@ export function useSearchPostsQuery({
     getNextPageParam: lastPage => lastPage.cursor,
     enabled: enabled ?? !!moderationOpts,
     select: React.useCallback(
-      (data: InfiniteData<AppBskyFeedSearchPosts.OutputSchema>) => {
+      (data: InfiniteData<SonetFeedSearchNotes.OutputSchema>) => {
         const {moderationOpts, isSearchingSpecificUser} = selectArgs
 
         /*
@@ -140,8 +140,8 @@ export function useSearchPostsQuery({
             ...data.pages.slice(reusedPages.length).map(page => {
               return {
                 ...page,
-                posts: page.posts.filter(post => {
-                  const mod = moderatePost(post, moderationOpts!)
+                notes: page.notes.filter(note => {
+                  const mod = moderateNote(note, moderationOpts!)
                   return !mod.ui('contentList').filter
                 }),
               }
@@ -158,14 +158,14 @@ export function useSearchPostsQuery({
   })
 }
 
-export function* findAllPostsInQueryData(
+export function* findAllNotesInQueryData(
   queryClient: QueryClient,
   uri: string,
-): Generator<AppBskyFeedDefs.PostView, undefined> {
+): Generator<SonetFeedDefs.NoteView, undefined> {
   const queryDatas = queryClient.getQueriesData<
-    InfiniteData<AppBskyFeedSearchPosts.OutputSchema>
+    InfiniteData<SonetFeedSearchNotes.OutputSchema>
   >({
-    queryKey: [searchPostsQueryKeyRoot],
+    queryKey: [searchNotesQueryKeyRoot],
   })
   const atUri = new AtUri(uri)
 
@@ -174,14 +174,14 @@ export function* findAllPostsInQueryData(
       continue
     }
     for (const page of queryData?.pages) {
-      for (const post of page.posts) {
-        if (didOrHandleUriMatches(atUri, post)) {
-          yield post
+      for (const note of page.notes) {
+        if (userIdOrUsernameUriMatches(atUri, note)) {
+          yield note
         }
 
-        const quotedPost = getEmbeddedPost(post.embed)
-        if (quotedPost && didOrHandleUriMatches(atUri, quotedPost)) {
-          yield embedViewRecordToPostView(quotedPost)
+        const quotedNote = getEmbeddedNote(note.embed)
+        if (quotedNote && userIdOrUsernameUriMatches(atUri, quotedNote)) {
+          yield embedViewRecordToNoteView(quotedNote)
         }
       }
     }
@@ -190,25 +190,25 @@ export function* findAllPostsInQueryData(
 
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
-  did: string,
-): Generator<AppBskyActorDefs.ProfileViewBasic, undefined> {
+  userId: string,
+): Generator<SonetActorDefs.ProfileViewBasic, undefined> {
   const queryDatas = queryClient.getQueriesData<
-    InfiniteData<AppBskyFeedSearchPosts.OutputSchema>
+    InfiniteData<SonetFeedSearchNotes.OutputSchema>
   >({
-    queryKey: [searchPostsQueryKeyRoot],
+    queryKey: [searchNotesQueryKeyRoot],
   })
   for (const [_queryKey, queryData] of queryDatas) {
     if (!queryData?.pages) {
       continue
     }
     for (const page of queryData?.pages) {
-      for (const post of page.posts) {
-        if (post.author.did === did) {
-          yield post.author
+      for (const note of page.notes) {
+        if (note.author.userId === userId) {
+          yield note.author
         }
-        const quotedPost = getEmbeddedPost(post.embed)
-        if (quotedPost?.author.did === did) {
-          yield quotedPost.author
+        const quotedNote = getEmbeddedNote(note.embed)
+        if (quotedNote?.author.userId === userId) {
+          yield quotedNote.author
         }
       }
     }

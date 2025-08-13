@@ -1,4 +1,4 @@
-import {RichText} from '@atproto/api'
+import {RichText} from '@sonet/types'
 
 import {parseEmbedPlayerFromUrl} from '#/lib/strings/embed-player'
 import {
@@ -134,9 +134,9 @@ describe('detectLinkables', () => {
 
 describe('makeRecordUri', () => {
   const inputs: [string, string, string][] = [
-    ['alice.test', 'app.bsky.feed.post', '3jk7x4irgv52r'],
+    ['alice.test', 'app.sonet.notes', '3jk7x4irgv52r'],
   ]
-  const outputs = ['at://alice.test/app.bsky.feed.post/3jk7x4irgv52r']
+  const outputs = ['sonet://alice.test/app.sonet.notes/3jk7x4irgv52r']
 
   it('correctly builds a record URI', () => {
     for (let i = 0; i < inputs.length; i++) {
@@ -228,11 +228,11 @@ describe('cleanError', () => {
 describe('toNiceDomain', () => {
   const inputs = [
     'https://example.com/index.html',
-    'https://bsky.app',
-    'https://bsky.social',
+    'https://sonet.app',
+    'https://sonet.social',
     '#123123123',
   ]
-  const outputs = ['example.com', 'bsky.app', 'Bluesky Social', '#123123123']
+  const outputs = ['example.com', 'sonet.app', 'Sonet Social', '#123123123']
 
   it("displays the url's host in a easily readable manner", () => {
     for (let i = 0; i < inputs.length; i++) {
@@ -244,16 +244,16 @@ describe('toNiceDomain', () => {
 
 describe('toShortUrl', () => {
   const inputs = [
-    'https://bsky.app',
-    'https://bsky.app/3jk7x4irgv52r',
-    'https://bsky.app/3jk7x4irgv52r2313y182h9',
+    'https://sonet.app',
+    'https://sonet.app/3jk7x4irgv52r',
+    'https://sonet.app/3jk7x4irgv52r2313y182h9',
     'https://very-long-domain-name.com/foo',
     'https://very-long-domain-name.com/foo?bar=baz#andsomemore',
   ]
   const outputs = [
-    'bsky.app',
-    'bsky.app/3jk7x4irgv52r',
-    'bsky.app/3jk7x4irgv52...',
+    'sonet.app',
+    'sonet.app/3jk7x4irgv52r',
+    'sonet.app/3jk7x4irgv52...',
     'very-long-domain-name.com/foo',
     'very-long-domain-name.com/foo?bar=baz#...',
   ]
@@ -267,11 +267,11 @@ describe('toShortUrl', () => {
 })
 
 describe('toShareUrl', () => {
-  const inputs = ['https://bsky.app', '/3jk7x4irgv52r', 'item/test/123']
+  const inputs = ['https://sonet.app', '/3jk7x4irgv52r', 'item/test/123']
   const outputs = [
-    'https://bsky.app',
-    'https://bsky.app/3jk7x4irgv52r',
-    'https://bsky.app/item/test/123',
+    'https://sonet.app',
+    'https://sonet.app/3jk7x4irgv52r',
+    'https://sonet.app/item/test/123',
   ]
 
   it('appends https, when not present', () => {
@@ -442,58 +442,58 @@ describe('parseEmbedPlayerFromUrl', () => {
     {
       type: 'youtube_video',
       source: 'youtube',
-      playerUri: 'https://bsky.app/iframe/youtube.html?videoId=videoId&start=0',
+      playerUri: 'https://sonet.app/iframe/youtube.html?videoId=videoId&start=0',
     },
     {
       type: 'youtube_video',
       source: 'youtube',
-      playerUri: 'https://bsky.app/iframe/youtube.html?videoId=videoId&start=1',
+      playerUri: 'https://sonet.app/iframe/youtube.html?videoId=videoId&start=1',
     },
     {
       type: 'youtube_video',
       source: 'youtube',
-      playerUri: 'https://bsky.app/iframe/youtube.html?videoId=videoId&start=0',
+      playerUri: 'https://sonet.app/iframe/youtube.html?videoId=videoId&start=0',
     },
     {
       type: 'youtube_video',
       source: 'youtube',
-      playerUri: 'https://bsky.app/iframe/youtube.html?videoId=videoId&start=0',
+      playerUri: 'https://sonet.app/iframe/youtube.html?videoId=videoId&start=0',
     },
     {
       type: 'youtube_video',
       source: 'youtube',
-      playerUri: 'https://bsky.app/iframe/youtube.html?videoId=videoId&start=1',
+      playerUri: 'https://sonet.app/iframe/youtube.html?videoId=videoId&start=1',
     },
     {
       type: 'youtube_video',
       source: 'youtube',
-      playerUri: 'https://bsky.app/iframe/youtube.html?videoId=videoId&start=0',
+      playerUri: 'https://sonet.app/iframe/youtube.html?videoId=videoId&start=0',
     },
     {
       type: 'youtube_video',
       source: 'youtube',
-      playerUri: 'https://bsky.app/iframe/youtube.html?videoId=videoId&start=0',
+      playerUri: 'https://sonet.app/iframe/youtube.html?videoId=videoId&start=0',
     },
     {
       type: 'youtube_short',
       source: 'youtubeShorts',
       hideDetails: true,
-      playerUri: 'https://bsky.app/iframe/youtube.html?videoId=videoId&start=0',
+      playerUri: 'https://sonet.app/iframe/youtube.html?videoId=videoId&start=0',
     },
     {
       type: 'youtube_video',
       source: 'youtube',
-      playerUri: 'https://bsky.app/iframe/youtube.html?videoId=videoId&start=0',
+      playerUri: 'https://sonet.app/iframe/youtube.html?videoId=videoId&start=0',
     },
     {
       type: 'youtube_video',
       source: 'youtube',
-      playerUri: 'https://bsky.app/iframe/youtube.html?videoId=videoId&start=0',
+      playerUri: 'https://sonet.app/iframe/youtube.html?videoId=videoId&start=0',
     },
     {
       type: 'youtube_video',
       source: 'youtube',
-      playerUri: 'https://bsky.app/iframe/youtube.html?videoId=videoId&start=0',
+      playerUri: 'https://sonet.app/iframe/youtube.html?videoId=videoId&start=0',
     },
 
     undefined,
@@ -739,7 +739,7 @@ describe('parseEmbedPlayerFromUrl', () => {
       source: 'tenor',
       isGif: true,
       hideDetails: true,
-      playerUri: 'https://t.gifs.bsky.app/someID_AAAAM/someName.gif',
+      playerUri: 'https://t.gifs.sonet.app/someID_AAAAM/someName.gif',
       dimensions: {
         width: 100,
         height: 100,
@@ -896,7 +896,7 @@ describe('createStarterPackLinkFromAndroidReferrer', () => {
 })
 
 describe('parseStarterPackHttpUri', () => {
-  const baseUri = 'https://bsky.app/start'
+  const baseUri = 'https://sonet.app/start'
 
   it('returns a valid at uri when http uri is valid', () => {
     const validHttpUri = `${baseUri}/haileyok.com/rkey`
@@ -934,19 +934,19 @@ describe('parseStarterPackHttpUri', () => {
   })
 
   it('returns null when the route is not /start or /starter-pack', () => {
-    const validHttpUri = 'https://bsky.app/start/haileyok.com/rkey'
+    const validHttpUri = 'https://sonet.app/start/haileyok.com/rkey'
     expect(parseStarterPackUri(validHttpUri)).toEqual({
       name: 'haileyok.com',
       rkey: 'rkey',
     })
 
-    const validHttpUri2 = 'https://bsky.app/starter-pack/haileyok.com/rkey'
+    const validHttpUri2 = 'https://sonet.app/starter-pack/haileyok.com/rkey'
     expect(parseStarterPackUri(validHttpUri2)).toEqual({
       name: 'haileyok.com',
       rkey: 'rkey',
     })
 
-    const invalidHttpUri = 'https://bsky.app/profile/haileyok.com/rkey'
+    const invalidHttpUri = 'https://sonet.app/profile/haileyok.com/rkey'
     expect(parseStarterPackUri(invalidHttpUri)).toEqual(null)
   })
 
@@ -1006,10 +1006,10 @@ describe('tenorUrlToBskyGifUrl', () => {
   ]
 
   it.each(inputs)(
-    'returns url with t.gifs.bsky.app as hostname for input url',
+    'returns url with t.gifs.sonet.app as hostname for input url',
     input => {
       const out = tenorUrlToBskyGifUrl(input)
-      expect(out.startsWith('https://t.gifs.bsky.app/')).toEqual(true)
+      expect(out.startsWith('https://t.gifs.sonet.app/')).toEqual(true)
     },
   )
 })

@@ -21,14 +21,14 @@ export function normalizeData(data: Schema) {
         normalizeLanguageTagToTwoLetterCode(lang),
       ),
     )
-    langPrefs.postLanguage = langPrefs.postLanguage
+    langPrefs.noteLanguage = langPrefs.noteLanguage
       .split(',')
       .map(lang => normalizeLanguageTagToTwoLetterCode(lang))
       .filter(Boolean)
       .join(',')
-    langPrefs.postLanguageHistory = dedupArray(
-      langPrefs.postLanguageHistory.map(postLanguage => {
-        return postLanguage
+    langPrefs.noteLanguageHistory = dedupArray(
+      langPrefs.noteLanguageHistory.map(noteLanguage => {
+        return noteLanguage
           .split(',')
           .map(lang => normalizeLanguageTagToTwoLetterCode(lang))
           .filter(Boolean)

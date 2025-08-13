@@ -35,7 +35,7 @@ export function PrivateProfileFollowButton({
 }: PrivateProfileFollowButtonProps) {
   const {_} = useLingui()
   const {currentAccount, hasSession} = useSession()
-  const isMe = profile.did === currentAccount?.did
+  const isMe = profile.userId === currentAccount?.userId
   const [queueFollow, queueUnfollow] = useProfileFollowMutationQueue(
     profile,
     logContext,
@@ -55,13 +55,13 @@ export function PrivateProfileFollowButton({
     return null
   }
 
-  const handleFollow = useCallback(async () => {
+  const usernameFollow = useCallback(async () => {
     try {
       await queueFollow()
       Toast.show(
         _(
           msg`Following ${sanitizeDisplayName(
-            profile.displayName || profile.handle,
+            profile.displayName || profile.username,
           )}`,
         ),
       )
@@ -70,15 +70,15 @@ export function PrivateProfileFollowButton({
       console.error('Failed to follow:', error)
       Toast.show(_(msg`An issue occurred, please try again.`), 'xmark')
     }
-  }, [_, profile.displayName, profile.handle, queueFollow, onFollow])
+  }, [_, profile.displayName, profile.username, queueFollow, onFollow])
 
-  const handleUnfollow = useCallback(async () => {
+  const usernameUnfollow = useCallback(async () => {
     try {
       await queueUnfollow()
       Toast.show(
         _(
           msg`No longer following ${sanitizeDisplayName(
-            profile.displayName || profile.handle,
+            profile.displayName || profile.username,
           )}`,
         ),
       )
@@ -86,18 +86,18 @@ export function PrivateProfileFollowButton({
       console.error('Failed to unfollow:', error)
       Toast.show(_(msg`An issue occurred, please try again.`), 'xmark')
     }
-  }, [_, profile.displayName, profile.handle, queueUnfollow])
+  }, [_, profile.displayName, profile.username, queueUnfollow])
 
   // If already following, show unfollow button
   if (profile.viewer?.following) {
     return (
       <Button
-        label={_(msg`Unfollow ${profile.displayName || profile.handle}`)}
+        label={_(msg`Unfollow ${profile.displayName || profile.username}`)}
         size={size}
         variant={variant}
         color="secondary"
         shape={shape}
-        onPress={handleUnfollow}>
+        onPress={usernameUnfollow}>
         {withIcon && (
           <ButtonIcon icon={Check} position={shape === 'round' ? undefined : 'left'} />
         )}
@@ -111,7 +111,7 @@ export function PrivateProfileFollowButton({
     return (
       <PrivateProfileFollowDialog
         profile={profile}
-        onFollow={handleFollow}
+        onFollow={usernameFollow}
       />
     )
   }
@@ -119,12 +119,12 @@ export function PrivateProfileFollowButton({
   // Regular follow button for public profiles
   return (
     <Button
-      label={_(msg`Follow ${profile.displayName || profile.handle}`)}
+      label={_(msg`Follow ${profile.displayName || profile.username}`)}
       size={size}
       variant={variant}
       color={colorInverted ? 'secondary_inverted' : 'primary'}
       shape={shape}
-      onPress={handleFollow}>
+      onPress={usernameFollow}>
       {withIcon && (
         <ButtonIcon icon={Plus} position={shape === 'round' ? undefined : 'left'} />
       )}

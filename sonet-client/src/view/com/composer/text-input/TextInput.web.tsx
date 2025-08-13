@@ -1,7 +1,7 @@
 import React, {useRef} from 'react'
 import {StyleSheet, View} from 'react-native'
 import Animated, {FadeIn, FadeOut} from 'react-native-reanimated'
-import {AppBskyRichtextFacet, RichText} from '@atproto/api'
+import {SonetRichtextFacet, RichText} from '@sonet/api'
 import {Trans} from '@lingui/macro'
 import {Document} from '@tiptap/extension-document'
 import Hardbreak from '@tiptap/extension-hard-break'
@@ -123,7 +123,7 @@ export const TextInput = React.forwardRef(function TextInputImpl(
       return
     }
 
-    const handleDrop = (event: DragEvent) => {
+    const usernameDrop = (event: DragEvent) => {
       const transfer = event.dataTransfer
       if (transfer) {
         const items = transfer.items
@@ -136,7 +136,7 @@ export const TextInput = React.forwardRef(function TextInputImpl(
       event.preventDefault()
       setIsDropping(false)
     }
-    const handleDragEnter = (event: DragEvent) => {
+    const usernameDragEnter = (event: DragEvent) => {
       const transfer = event.dataTransfer
 
       event.preventDefault()
@@ -144,21 +144,21 @@ export const TextInput = React.forwardRef(function TextInputImpl(
         setIsDropping(true)
       }
     }
-    const handleDragLeave = (event: DragEvent) => {
+    const usernameDragLeave = (event: DragEvent) => {
       event.preventDefault()
       setIsDropping(false)
     }
 
-    document.body.addEventListener('drop', handleDrop)
-    document.body.addEventListener('dragenter', handleDragEnter)
-    document.body.addEventListener('dragover', handleDragEnter)
-    document.body.addEventListener('dragleave', handleDragLeave)
+    document.body.addEventListener('drop', usernameDrop)
+    document.body.addEventListener('dragenter', usernameDragEnter)
+    document.body.addEventListener('dragover', usernameDragEnter)
+    document.body.addEventListener('dragleave', usernameDragLeave)
 
     return () => {
-      document.body.removeEventListener('drop', handleDrop)
-      document.body.removeEventListener('dragenter', handleDragEnter)
-      document.body.removeEventListener('dragover', handleDragEnter)
-      document.body.removeEventListener('dragleave', handleDragLeave)
+      document.body.removeEventListener('drop', usernameDrop)
+      document.body.removeEventListener('dragenter', usernameDragEnter)
+      document.body.removeEventListener('dragover', usernameDragEnter)
+      document.body.removeEventListener('dragleave', usernameDragLeave)
     }
   }, [setIsDropping, isActive])
 
@@ -193,7 +193,7 @@ export const TextInput = React.forwardRef(function TextInputImpl(
           const fragment = Fragment.fromArray(nodes)
           return Slice.maxOpen(fragment)
         },
-        handlePaste: (view, event) => {
+        usernamePaste: (view, event) => {
           const clipboardData = event.clipboardData
           let preventDefault = false
 
@@ -201,7 +201,7 @@ export const TextInput = React.forwardRef(function TextInputImpl(
             if (clipboardData.types.includes('text/html')) {
               // Rich-text formatting is pasted, try retrieving plain text
               const text = clipboardData.getData('text/plain')
-              // `pasteText` will invoke this handler again, but `clipboardData` will be null.
+              // `pasteText` will invoke this usernamer again, but `clipboardData` will be null.
               view.pasteText(text)
               preventDefault = true
             }
@@ -214,7 +214,7 @@ export const TextInput = React.forwardRef(function TextInputImpl(
             }
           }
         },
-        handleKeyDown: (_, event) => {
+        usernameKeyDown: (_, event) => {
           if ((event.metaKey || event.ctrlKey) && event.code === 'Enter') {
             textInputWebEmitter.emit('publish')
             return true
@@ -251,7 +251,7 @@ export const TextInput = React.forwardRef(function TextInputImpl(
         if (newRt.facets) {
           for (const facet of newRt.facets) {
             for (const feature of facet.features) {
-              if (AppBskyRichtextFacet.isLink(feature)) {
+              if (SonetRichtextFacet.isLink(feature)) {
                 nextDetectedUris.set(feature.uri, {facet, rt: newRt})
               }
             }
@@ -289,7 +289,7 @@ export const TextInput = React.forwardRef(function TextInputImpl(
     }
   }, [onEmojiInserted, isActive])
 
-  React.useImperativeHandle(ref, () => ({
+  React.useImperativeUsername(ref, () => ({
     focus: () => {
       editor?.chain().focus()
     },

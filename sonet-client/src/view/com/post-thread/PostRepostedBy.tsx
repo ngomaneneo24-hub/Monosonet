@@ -1,12 +1,12 @@
 import {useCallback, useMemo, useState} from 'react'
-import {AppBskyActorDefs as ActorDefs} from '@atproto/api'
+import {SonetActorDefs as ActorDefs} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
 import {useInitialNumToRender} from '#/lib/hooks/useInitialNumToRender'
 import {cleanError} from '#/lib/strings/errors'
 import {logger} from '#/logger'
-import {usePostRepostedByQuery} from '#/state/queries/post-reposted-by'
+import {useNoteRenoteedByQuery} from '#/state/queries/note-renoteed-by'
 import {useResolveUriQuery} from '#/state/queries/resolve-uri'
 import {ProfileCardWithFollowBtn} from '#/view/com/profile/ProfileCard'
 import {List} from '#/view/com/util/List'
@@ -21,7 +21,7 @@ function renderItem({
 }) {
   return (
     <ProfileCardWithFollowBtn
-      key={item.did}
+      key={item.userId}
       profile={item}
       noBorder={index === 0}
     />
@@ -29,10 +29,10 @@ function renderItem({
 }
 
 function keyExtractor(item: ActorDefs.ProfileViewBasic) {
-  return item.did
+  return item.userId
 }
 
-export function PostRepostedBy({uri}: {uri: string}) {
+export function NoteRenoteedBy({uri}: {uri: string}) {
   const {_} = useLingui()
   const initialNumToRender = useInitialNumToRender()
 
@@ -45,19 +45,19 @@ export function PostRepostedBy({uri}: {uri: string}) {
   } = useResolveUriQuery(uri)
   const {
     data,
-    isLoading: isLoadingRepostedBy,
+    isLoading: isLoadingRenoteedBy,
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
     error,
     refetch,
-  } = usePostRepostedByQuery(resolvedUri?.uri)
+  } = useNoteRenoteedByQuery(resolvedUri?.uri)
 
   const isError = Boolean(resolveError || error)
 
-  const repostedBy = useMemo(() => {
+  const renoteedBy = useMemo(() => {
     if (data?.pages) {
-      return data.pages.flatMap(page => page.repostedBy)
+      return data.pages.flatMap(page => page.renoteedBy)
     }
     return []
   }, [data])
@@ -67,7 +67,7 @@ export function PostRepostedBy({uri}: {uri: string}) {
     try {
       await refetch()
     } catch (err) {
-      logger.error('Failed to refresh reposts', {message: err})
+      logger.error('Failed to refresh renotes', {message: err})
     }
     setIsPTRing(false)
   }, [refetch, setIsPTRing])
@@ -77,19 +77,19 @@ export function PostRepostedBy({uri}: {uri: string}) {
     try {
       await fetchNextPage()
     } catch (err) {
-      logger.error('Failed to load more reposts', {message: err})
+      logger.error('Failed to load more renotes', {message: err})
     }
   }, [isFetchingNextPage, hasNextPage, isError, fetchNextPage])
 
-  if (repostedBy.length < 1) {
+  if (renoteedBy.length < 1) {
     return (
       <ListMaybePlaceholder
-        isLoading={isLoadingUri || isLoadingRepostedBy}
+        isLoading={isLoadingUri || isLoadingRenoteedBy}
         isError={isError}
         emptyType="results"
-        emptyTitle={_(msg`No reposts yet`)}
+        emptyTitle={_(msg`No renotes yet`)}
         emptyMessage={_(
-          msg`Nobody has reposted this yet. Maybe you should be the first!`,
+          msg`Nobody has renoteed this yet. Maybe you should be the first!`,
         )}
         errorMessage={cleanError(resolveError || error)}
         sideBorders={false}
@@ -101,7 +101,7 @@ export function PostRepostedBy({uri}: {uri: string}) {
   // =
   return (
     <List
-      data={repostedBy}
+      data={renoteedBy}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
       refreshing={isPTRing}

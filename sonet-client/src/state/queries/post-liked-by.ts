@@ -1,4 +1,4 @@
-import {AppBskyActorDefs, AppBskyFeedGetLikes} from '@atproto/api'
+import {SonetActorDefs, SonetFeedGetLikes} from '@sonet/api'
 import {
   InfiniteData,
   QueryClient,
@@ -18,9 +18,9 @@ export const RQKEY = (resolvedUri: string) => [RQKEY_ROOT, resolvedUri]
 export function useLikedByQuery(resolvedUri: string | undefined) {
   const agent = useAgent()
   return useInfiniteQuery<
-    AppBskyFeedGetLikes.OutputSchema,
+    SonetFeedGetLikes.OutputSchema,
     Error,
-    InfiniteData<AppBskyFeedGetLikes.OutputSchema>,
+    InfiniteData<SonetFeedGetLikes.OutputSchema>,
     QueryKey,
     RQPageParam
   >({
@@ -41,10 +41,10 @@ export function useLikedByQuery(resolvedUri: string | undefined) {
 
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
-  did: string,
-): Generator<AppBskyActorDefs.ProfileView, void> {
+  userId: string,
+): Generator<SonetActorDefs.ProfileView, void> {
   const queryDatas = queryClient.getQueriesData<
-    InfiniteData<AppBskyFeedGetLikes.OutputSchema>
+    InfiniteData<SonetFeedGetLikes.OutputSchema>
   >({
     queryKey: [RQKEY_ROOT],
   })
@@ -54,7 +54,7 @@ export function* findAllProfilesInQueryData(
     }
     for (const page of queryData?.pages) {
       for (const like of page.likes) {
-        if (like.actor.did === did) {
+        if (like.actor.userId === userId) {
           yield like.actor
         }
       }

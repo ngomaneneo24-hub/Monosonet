@@ -1,10 +1,10 @@
 import {
-  AppBskyLabelerDefs,
-  ComAtprotoLabelDefs,
+  SonetLabelerDefs,
+  SonetLabelDefs,
   InterpretedLabelValueDefinition,
   interpretLabelValueDefinition,
   LABELS,
-} from '@atproto/api'
+} from '@sonet/api'
 import {useLingui} from '@lingui/react'
 import * as bcp47Match from 'bcp-47-match'
 
@@ -15,13 +15,13 @@ import {
 import {useLabelDefinitions} from '#/state/preferences'
 
 export interface LabelInfo {
-  label: ComAtprotoLabelDefs.Label
+  label: SonetLabelDefs.Label
   def: InterpretedLabelValueDefinition
-  strings: ComAtprotoLabelDefs.LabelValueDefinitionStrings
-  labeler: AppBskyLabelerDefs.LabelerViewDetailed | undefined
+  strings: SonetLabelDefs.LabelValueDefinitionStrings
+  labeler: SonetLabelerDefs.LabelerViewDetailed | undefined
 }
 
-export function useLabelInfo(label: ComAtprotoLabelDefs.Label): LabelInfo {
+export function useLabelInfo(label: SonetLabelDefs.Label): LabelInfo {
   const {i18n} = useLingui()
   const {labelDefs, labelers} = useLabelDefinitions()
   const globalLabelStrings = useGlobalLabelStrings()
@@ -30,13 +30,13 @@ export function useLabelInfo(label: ComAtprotoLabelDefs.Label): LabelInfo {
     label,
     def,
     strings: getLabelStrings(i18n.locale, globalLabelStrings, def),
-    labeler: labelers.find(labeler => label.src === labeler.creator.did),
+    labeler: labelers.find(labeler => label.src === labeler.creator.userId),
   }
 }
 
 export function getDefinition(
   labelDefs: Record<string, InterpretedLabelValueDefinition[]>,
-  label: ComAtprotoLabelDefs.Label,
+  label: SonetLabelDefs.Label,
 ): InterpretedLabelValueDefinition {
   // check local definitions
   const customDef =
@@ -71,13 +71,13 @@ export function getLabelStrings(
   locale: string,
   globalLabelStrings: GlobalLabelStrings,
   def: InterpretedLabelValueDefinition,
-): ComAtprotoLabelDefs.LabelValueDefinitionStrings {
+): SonetLabelDefs.LabelValueDefinitionStrings {
   if (!def.definedBy) {
     // global definition, look up strings
     if (def.identifier in globalLabelStrings) {
       return globalLabelStrings[
         def.identifier
-      ] as ComAtprotoLabelDefs.LabelValueDefinitionStrings
+      ] as SonetLabelDefs.LabelValueDefinitionStrings
     }
   } else {
     // try to find locale match in the definition's strings

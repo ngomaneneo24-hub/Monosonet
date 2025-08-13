@@ -29,7 +29,7 @@ export function ShowMoreTextButton({
 
   return (
     <Button
-      label={_(msg`Expand post text`)}
+      label={_(msg`Expand note text`)}
       onPress={onPress}
       style={[
         a.self_start,

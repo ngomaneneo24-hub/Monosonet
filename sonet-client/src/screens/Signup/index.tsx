@@ -2,7 +2,7 @@ import {useEffect, useReducer, useState} from 'react'
 import {AppState, type AppStateStatus, View} from 'react-native'
 import ReactNativeDeviceAttest from 'react-native-device-attest'
 import Animated, {FadeIn, LayoutAnimationConfig} from 'react-native-reanimated'
-import {AppBskyGraphStarterpack} from '@atproto/api'
+import {SonetGraphStarterpack} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -21,7 +21,7 @@ import {
   useSubmitSignup,
 } from '#/screens/Signup/state'
 import {StepCaptcha} from '#/screens/Signup/StepCaptcha'
-import {StepHandle} from '#/screens/Signup/StepHandle'
+import {StepUsername} from '#/screens/Signup/StepUsername'
 import {StepInfo} from '#/screens/Signup/StepInfo'
 import {atoms as a, useBreakpoints, useTheme} from '#/alf'
 import {AppLanguageDropdown} from '#/components/AppLanguageDropdown'
@@ -124,9 +124,9 @@ export function Signup({onPressBack}: {onPressBack: () => void}) {
         scrollable>
         <View testID="createAccount" style={a.flex_1}>
           {showStarterPackCard &&
-          bsky.dangerousIsType<AppBskyGraphStarterpack.Record>(
+          bsky.dangerousIsType<SonetGraphStarterpack.Record>(
             starterPack.record,
-            AppBskyGraphStarterpack.isRecord,
+            SonetGraphStarterpack.isRecord,
           ) ? (
             <Animated.View entering={!isFetchedAtMount ? FadeIn : undefined}>
               <LinearGradientBackground
@@ -190,7 +190,7 @@ export function Signup({onPressBack}: {onPressBack: () => void}) {
                   refetchServer={refetch}
                 />
               ) : state.activeStep === SignupStep.HANDLE ? (
-                <StepHandle />
+                <StepUsername />
               ) : (
                 <StepCaptcha />
               )}

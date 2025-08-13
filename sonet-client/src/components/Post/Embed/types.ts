@@ -1,25 +1,25 @@
 import {type StyleProp, type ViewStyle} from 'react-native'
-import {type AppBskyFeedDefs, type ModerationDecision} from '@atproto/api'
+import {type SonetFeedDefs, type ModerationDecision} from '@sonet/api'
 
-export enum PostEmbedViewContext {
+export enum NoteEmbedViewContext {
   ThreadHighlighted = 'ThreadHighlighted',
   Feed = 'Feed',
   FeedEmbedRecordWithMedia = 'FeedEmbedRecordWithMedia',
 }
 
 export enum QuoteEmbedViewContext {
-  FeedEmbedRecordWithMedia = PostEmbedViewContext.FeedEmbedRecordWithMedia,
+  FeedEmbedRecordWithMedia = NoteEmbedViewContext.FeedEmbedRecordWithMedia,
 }
 
 export type CommonProps = {
   moderation?: ModerationDecision
   onOpen?: () => void
   style?: StyleProp<ViewStyle>
-  viewContext?: PostEmbedViewContext
+  viewContext?: NoteEmbedViewContext
   isWithinQuote?: boolean
   allowNestedQuotes?: boolean
 }
 
 export type EmbedProps = CommonProps & {
-  embed?: AppBskyFeedDefs.PostView['embed']
+  embed?: SonetFeedDefs.NoteView['embed']
 }

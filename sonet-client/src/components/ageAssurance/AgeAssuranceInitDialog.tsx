@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import {View} from 'react-native'
-import {XRPCError} from '@atproto/xrpc'
+import {XRPCError} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {validate as validateEmail} from 'email-validator'
@@ -44,7 +44,7 @@ export function AgeAssuranceInitDialog({
   const {_} = useLingui()
   return (
     <Dialog.Outer control={control}>
-      <Dialog.Handle />
+      <Dialog.Username />
 
       <Dialog.ScrollableInner
         label={_(
@@ -151,7 +151,7 @@ function Inner() {
                 We're having issues initializing the age assurance process for
                 your account. Please{' '}
                 <InlineLinkText
-                  to={createSupportLink({code: SupportCode.AA_DID, email})}
+                  to={createSupportLink({code: SupportCode.AA_UserID, email})}
                   label={_(msg`Contact support`)}>
                   contact support
                 </InlineLinkText>{' '}

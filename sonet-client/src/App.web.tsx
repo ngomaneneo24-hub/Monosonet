@@ -60,10 +60,10 @@ import {useStarterPackEntry} from '#/components/hooks/useStarterPackEntry'
 import {Provider as IntentDialogProvider} from '#/components/intents/IntentDialogs'
 import {Provider as PolicyUpdateOverlayProvider} from '#/components/PolicyUpdateOverlay'
 import {Provider as PortalProvider} from '#/components/Portal'
-import {Provider as ActiveVideoProvider} from '#/components/Post/Embed/VideoEmbed/ActiveVideoWebContext'
-import {Provider as VideoVolumeProvider} from '#/components/Post/Embed/VideoEmbed/VideoVolumeContext'
+import {Provider as ActiveVideoProvider} from '#/components/Note/Embed/VideoEmbed/ActiveVideoWebContext'
+import {Provider as VideoVolumeProvider} from '#/components/Note/Embed/VideoEmbed/VideoVolumeContext'
 import {ToastContainer} from '#/components/Toast'
-import {BackgroundNotificationPreferencesProvider} from '../modules/expo-background-notification-handler/src/BackgroundNotificationHandlerProvider'
+import {BackgroundNotificationPreferencesProvider} from '../modules/expo-background-notification-usernamer/src/BackgroundNotificationUsernamerProvider'
 import {Provider as HideBottomBarBorderProvider} from './lib/hooks/useHideBottomBarBorder'
 
 /**
@@ -117,8 +117,8 @@ function InnerApp() {
               <ActiveVideoProvider>
                 <React.Fragment
                   // Resets the entire tree below when it changes:
-                  key={currentAccount?.did}>
-                  <QueryProvider currentDid={currentAccount?.did}>
+                  key={currentAccount?.userId}>
+                  <QueryProvider currentDid={currentAccount?.userId}>
                     <PolicyUpdateOverlayProvider>
                       <StatsigProvider>
                         <AgeAssuranceProvider>

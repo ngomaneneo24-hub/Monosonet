@@ -11,7 +11,7 @@ export enum LogContext {
   DMsAgent = 'dms-agent',
   ReportDialog = 'report-dialog',
   FeedFeedback = 'feed-feedback',
-  PostSource = 'post-source',
+  NoteSource = 'note-source',
   AgeAssurance = 'age-assurance',
   PolicyUpdate = 'policy-update',
 

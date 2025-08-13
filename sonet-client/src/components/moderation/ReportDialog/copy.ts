@@ -14,10 +14,10 @@ export function useCopyForSubject(subject: ParsedReportSubject) {
           subtitle: _(msg`Why should this user be reviewed?`),
         }
       }
-      case 'post': {
+      case 'note': {
         return {
-          title: _(msg`Report this post`),
-          subtitle: _(msg`Why should this post be reviewed?`),
+          title: _(msg`Report this note`),
+          subtitle: _(msg`Why should this note be reviewed?`),
         }
       }
       case 'list': {

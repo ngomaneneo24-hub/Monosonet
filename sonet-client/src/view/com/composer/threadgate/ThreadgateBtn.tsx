@@ -1,6 +1,6 @@
 import {Keyboard, StyleProp, ViewStyle} from 'react-native'
 import {AnimatedStyle} from 'react-native-reanimated'
-import {AppBskyFeedPostgate} from '@atproto/api'
+import {SonetFeedNotegate} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -9,18 +9,18 @@ import {ThreadgateAllowUISetting} from '#/state/queries/threadgate'
 import {native} from '#/alf'
 import {Button, ButtonIcon, ButtonText} from '#/components/Button'
 import * as Dialog from '#/components/Dialog'
-import {PostInteractionSettingsControlledDialog} from '#/components/dialogs/PostInteractionSettingsDialog'
+import {NoteInteractionSettingsControlledDialog} from '#/components/dialogs/NoteInteractionSettingsDialog'
 import {Earth_Stroke2_Corner0_Rounded as Earth} from '#/components/icons/Globe'
 import {Group3_Stroke2_Corner0_Rounded as Group} from '#/components/icons/Group'
 
 export function ThreadgateBtn({
-  postgate,
-  onChangePostgate,
+  notegate,
+  onChangeNotegate,
   threadgateAllowUISettings,
   onChangeThreadgateAllowUISettings,
 }: {
-  postgate: AppBskyFeedPostgate.Record
-  onChangePostgate: (v: AppBskyFeedPostgate.Record) => void
+  notegate: SonetFeedNotegate.Record
+  onChangeNotegate: (v: SonetFeedNotegate.Record) => void
 
   threadgateAllowUISettings: ThreadgateAllowUISetting[]
   onChangeThreadgateAllowUISettings: (v: ThreadgateAllowUISetting[]) => void
@@ -42,7 +42,7 @@ export function ThreadgateBtn({
     threadgateAllowUISettings.length === 1 &&
     threadgateAllowUISettings[0].type === 'everybody'
   const anyoneCanQuote =
-    !postgate.embeddingRules || postgate.embeddingRules.length === 0
+    !notegate.embeddingRules || notegate.embeddingRules.length === 0
   const anyoneCanInteract = anyoneCanReply && anyoneCanQuote
   const label = anyoneCanInteract
     ? _(msg`Anybody can interact`)
@@ -69,13 +69,13 @@ export function ThreadgateBtn({
         <ButtonIcon icon={anyoneCanInteract ? Earth : Group} />
         <ButtonText numberOfLines={1}>{label}</ButtonText>
       </Button>
-      <PostInteractionSettingsControlledDialog
+      <NoteInteractionSettingsControlledDialog
         control={control}
         onSave={() => {
           control.close()
         }}
-        postgate={postgate}
-        onChangePostgate={onChangePostgate}
+        notegate={notegate}
+        onChangeNotegate={onChangeNotegate}
         threadgateAllowUISettings={threadgateAllowUISettings}
         onChangeThreadgateAllowUISettings={onChangeThreadgateAllowUISettings}
       />

@@ -20,7 +20,7 @@ export function LanguageSelect({
 }) {
   const {_} = useLingui()
 
-  const handleOnChange = React.useCallback(
+  const usernameOnChange = React.useCallback(
     (value: string) => {
       if (!value) return
       onChange(sanitizeAppLanguageSetting(value))
@@ -31,7 +31,7 @@ export function LanguageSelect({
   return (
     <Select.Root
       value={value ? sanitizeAppLanguageSetting(value) : undefined}
-      onValueChange={handleOnChange}>
+      onValueChange={usernameOnChange}>
       <Select.Trigger label={_(msg`Select language`)}>
         <Select.ValueText placeholder={_(msg`Select language`)} />
         <Select.Icon />

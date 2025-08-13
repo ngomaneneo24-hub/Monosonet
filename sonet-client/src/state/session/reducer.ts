@@ -1,4 +1,4 @@
-import {type AtpSessionEvent, type BskyAgent} from '@atproto/api'
+import {type SonetSessionEvent, type SonetAppAgent} from '@sonet/api'
 
 import {createPublicAgent} from './agent'
 import {wrapSessionReducerForLogging} from './logging'
@@ -6,7 +6,7 @@ import {type SessionAccount} from './types'
 
 // A hack so that the reducer can't read anything from the agent.
 // From the reducer's point of view, it should be a completely opaque object.
-type OpaqueBskyAgent = {
+type OpaqueSonetAppAgent = {
   readonly service: URL
   readonly api: unknown
   readonly app: unknown
@@ -14,8 +14,8 @@ type OpaqueBskyAgent = {
 }
 
 type AgentState = {
-  readonly agent: OpaqueBskyAgent
-  readonly did: string | undefined
+  readonly agent: OpaqueSonetAppAgent
+  readonly userId: string | undefined
 }
 
 export type State = {
@@ -27,14 +27,14 @@ export type State = {
 export type Action =
   | {
       type: 'received-agent-event'
-      agent: OpaqueBskyAgent
+      agent: OpaqueSonetAppAgent
       accountDid: string
       refreshedAccount: SessionAccount | undefined
-      sessionEvent: AtpSessionEvent
+      sessionEvent: SonetSessionEvent
     }
   | {
       type: 'switched-to-account'
-      newAgent: OpaqueBskyAgent
+      newAgent: OpaqueSonetAppAgent
       newAccount: SessionAccount
     }
   | {
@@ -61,7 +61,7 @@ export type Action =
 function createPublicAgentState(): AgentState {
   return {
     agent: createPublicAgent(),
-    did: undefined,
+    userId: undefined,
   }
 }
 
@@ -90,7 +90,7 @@ let reducer = (state: State, action: Action): State => {
         // Assume it's transient.
         return state
       }
-      const existingAccount = state.accounts.find(a => a.did === accountDid)
+      const existingAccount = state.accounts.find(a => a.userId === accountDid)
       if (
         !existingAccount ||
         JSON.stringify(existingAccount) === JSON.stringify(refreshedAccount)
@@ -100,13 +100,13 @@ let reducer = (state: State, action: Action): State => {
       }
       return {
         accounts: state.accounts.map(a => {
-          if (a.did === accountDid) {
+          if (a.userId === accountDid) {
             if (refreshedAccount) {
               return refreshedAccount
             } else {
               return {
                 ...a,
-                // If we didn't receive a refreshed account, clear out the tokens.
+                // If we userIdn't receive a refreshed account, clear out the tokens.
                 accessJwt: undefined,
                 refreshJwt: undefined,
               }
@@ -126,10 +126,10 @@ let reducer = (state: State, action: Action): State => {
       return {
         accounts: [
           newAccount,
-          ...state.accounts.filter(a => a.did !== newAccount.did),
+          ...state.accounts.filter(a => a.userId !== newAccount.userId),
         ],
         currentAgentState: {
-          did: newAccount.did,
+          userId: newAccount.userId,
           agent: newAgent,
         },
         needsPersist: true,
@@ -138,9 +138,9 @@ let reducer = (state: State, action: Action): State => {
     case 'removed-account': {
       const {accountDid} = action
       return {
-        accounts: state.accounts.filter(a => a.did !== accountDid),
+        accounts: state.accounts.filter(a => a.userId !== accountDid),
         currentAgentState:
-          state.currentAgentState.did === accountDid
+          state.currentAgentState.userId === accountDid
             ? createPublicAgentState() // Log out if removing the current one.
             : state.currentAgentState,
         needsPersist: true,
@@ -150,7 +150,7 @@ let reducer = (state: State, action: Action): State => {
       const {currentAgentState} = state
       return {
         accounts: state.accounts.map(a =>
-          a.did === currentAgentState.did
+          a.userId === currentAgentState.userId
             ? {
                 ...a,
                 refreshJwt: undefined,
@@ -179,7 +179,7 @@ let reducer = (state: State, action: Action): State => {
       return {
         accounts: syncedAccounts,
         currentAgentState:
-          syncedCurrentDid === state.currentAgentState.did
+          syncedCurrentDid === state.currentAgentState.userId
             ? state.currentAgentState
             : createPublicAgentState(), // Log out if different user.
         needsPersist: false, // Synced from another tab. Don't persist to avoid cycles.
@@ -187,7 +187,7 @@ let reducer = (state: State, action: Action): State => {
     }
     case 'partial-refresh-session': {
       const {accountDid, patch} = action
-      const agent = state.currentAgentState.agent as BskyAgent
+      const agent = state.currentAgentState.agent as SonetAppAgent
 
       /*
        * Only mutating values that are safe. Be very careful with this.
@@ -206,7 +206,7 @@ let reducer = (state: State, action: Action): State => {
           agent,
         },
         accounts: state.accounts.map(a => {
-          if (a.did === accountDid) {
+          if (a.userId === accountDid) {
             return {
               ...a,
               emailConfirmed: patch.emailConfirmed ?? a.emailConfirmed,

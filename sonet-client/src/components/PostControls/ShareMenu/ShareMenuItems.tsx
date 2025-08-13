@@ -1,6 +1,6 @@
 import {memo, useMemo} from 'react'
 import * as ExpoClipboard from 'expo-clipboard'
-import {AtUri} from '@atproto/api'
+import {AtUri} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
@@ -29,7 +29,7 @@ import {RecentChats} from './RecentChats'
 import {type ShareMenuItemsProps} from './ShareMenuItems.types'
 
 let ShareMenuItems = ({
-  post,
+  note,
   onShare: onShareProp,
 }: ShareMenuItemsProps): React.ReactNode => {
   const {hasSession} = useSession()
@@ -39,21 +39,21 @@ let ShareMenuItems = ({
   const [devModeEnabled] = useDevMode()
   const {isAgeRestricted} = useAgeAssurance()
 
-  const postUri = post.uri
-  const postAuthor = useProfileShadow(post.author)
+  const noteUri = note.uri
+  const noteAuthor = useProfileShadow(note.author)
 
   const href = useMemo(() => {
-    const urip = new AtUri(postUri)
-    return makeProfileLink(postAuthor, 'post', urip.rkey)
-  }, [postUri, postAuthor])
+    const urip = new AtUri(noteUri)
+    return makeProfileLink(noteAuthor, 'note', urip.rkey)
+  }, [noteUri, noteAuthor])
 
   const hideInPWI = useMemo(() => {
-    return !!postAuthor.labels?.find(
+    return !!noteAuthor.labels?.find(
       label => label.val === '!no-unauthenticated',
     )
-  }, [postAuthor])
+  }, [noteAuthor])
 
-  const onSharePost = () => {
+  const onShareNote = () => {
     logger.metric('share:press:nativeShare', {}, {statsig: true})
     const url = toShareUrl(href)
     shareUrl(url)
@@ -76,16 +76,16 @@ let ShareMenuItems = ({
   const onSelectChatToShareTo = (conversation: string) => {
     navigation.navigate('MessagesConversation', {
       conversation,
-      embed: postUri,
+      embed: noteUri,
     })
   }
 
   const onShareATURI = () => {
-    shareText(postUri)
+    shareText(noteUri)
   }
 
-  const onShareAuthorDID = () => {
-    shareText(postAuthor.did)
+  const onShareAuthorUserID = () => {
+    shareText(noteAuthor.userId)
   }
 
   return (
@@ -94,10 +94,10 @@ let ShareMenuItems = ({
         {hasSession && !isAgeRestricted && (
           <Menu.Group>
             <Menu.ContainerItem>
-              <RecentChats postUri={postUri} />
+              <RecentChats noteUri={noteUri} />
             </Menu.ContainerItem>
             <Menu.Item
-              testID="postDropdownSendViaDMBtn"
+              testID="noteDropdownSendViaDMBtn"
               label={_(msg`Send via direct message`)}
               onPress={() => {
                 logger.metric('share:press:openDmSearch', {}, {statsig: true})
@@ -113,9 +113,9 @@ let ShareMenuItems = ({
 
         <Menu.Group>
           <Menu.Item
-            testID="postDropdownShareBtn"
+            testID="noteDropdownShareBtn"
             label={_(msg`Share via...`)}
-            onPress={onSharePost}>
+            onPress={onShareNote}>
             <Menu.ItemText>
               <Trans>Share via...</Trans>
             </Menu.ItemText>
@@ -123,11 +123,11 @@ let ShareMenuItems = ({
           </Menu.Item>
 
           <Menu.Item
-            testID="postDropdownShareBtn"
-            label={_(msg`Copy link to post`)}
+            testID="noteDropdownShareBtn"
+            label={_(msg`Copy link to note`)}
             onPress={onCopyLink}>
             <Menu.ItemText>
-              <Trans>Copy link to post</Trans>
+              <Trans>Copy link to note</Trans>
             </Menu.ItemText>
             <Menu.ItemIcon icon={ChainLinkIcon} position="right" />
           </Menu.Item>
@@ -137,7 +137,7 @@ let ShareMenuItems = ({
           <Menu.Group>
             <Menu.ContainerItem>
               <Admonition type="warning" style={[a.flex_1, a.border_0, a.p_0]}>
-                <Trans>This post is only visible to logged-in users.</Trans>
+                <Trans>This note is only visible to logged-in users.</Trans>
               </Admonition>
             </Menu.ContainerItem>
           </Menu.Group>
@@ -146,20 +146,20 @@ let ShareMenuItems = ({
         {devModeEnabled && (
           <Menu.Group>
             <Menu.Item
-              testID="postAtUriShareBtn"
-              label={_(msg`Share post at:// URI`)}
+              testID="noteAtUriShareBtn"
+              label={_(msg`Share note sonet:// URI`)}
               onPress={onShareATURI}>
               <Menu.ItemText>
-                <Trans>Share post at:// URI</Trans>
+                <Trans>Share note sonet:// URI</Trans>
               </Menu.ItemText>
               <Menu.ItemIcon icon={ClipboardIcon} position="right" />
             </Menu.Item>
             <Menu.Item
-              testID="postAuthorDIDShareBtn"
-              label={_(msg`Share author DID`)}
-              onPress={onShareAuthorDID}>
+              testID="noteAuthorUserIDShareBtn"
+              label={_(msg`Share author UserID`)}
+              onPress={onShareAuthorUserID}>
               <Menu.ItemText>
-                <Trans>Share author DID</Trans>
+                <Trans>Share author UserID</Trans>
               </Menu.ItemText>
               <Menu.ItemIcon icon={ClipboardIcon} position="right" />
             </Menu.Item>

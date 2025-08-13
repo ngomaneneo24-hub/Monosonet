@@ -29,10 +29,10 @@ export const router = new Router<AllNavigatableRoutes>({
   ProfileKnownFollowers: '/profile/:name/known-followers',
   ProfileSearch: '/profile/:name/search',
   ProfileList: '/profile/:name/lists/:rkey',
-  PostThread: '/profile/:name/post/:rkey',
-  PostLikedBy: '/profile/:name/post/:rkey/liked-by',
-  PostRepostedBy: '/profile/:name/post/:rkey/reposted-by',
-  PostQuotes: '/profile/:name/post/:rkey/quotes',
+  NoteThread: '/profile/:name/note/:rkey',
+  NoteLikedBy: '/profile/:name/note/:rkey/liked-by',
+  NoteRenoteedBy: '/profile/:name/note/:rkey/renoteed-by',
+  NoteQuotes: '/profile/:name/note/:rkey/quotes',
   ProfileFeed: '/profile/:name/feed/:rkey',
   ProfileFeedLikedBy: '/profile/:name/feed/:rkey/liked-by',
   ProfileLabelerLikedBy: '/profile/:name/labeler/liked-by',
@@ -61,12 +61,12 @@ export const router = new Router<AllNavigatableRoutes>({
   MentionNotificationSettings: '/settings/notifications/mentions',
   QuoteNotificationSettings: '/settings/notifications/quotes',
   LikeNotificationSettings: '/settings/notifications/likes',
-  RepostNotificationSettings: '/settings/notifications/reposts',
+  RenoteNotificationSettings: '/settings/notifications/renotes',
   NewFollowerNotificationSettings: '/settings/notifications/new-followers',
-  LikesOnRepostsNotificationSettings:
-    '/settings/notifications/likes-on-reposts',
-  RepostsOnRepostsNotificationSettings:
-    '/settings/notifications/reposts-on-reposts',
+  LikesOnRenotesNotificationSettings:
+    '/settings/notifications/likes-on-renotes',
+  RenotesOnRenotesNotificationSettings:
+    '/settings/notifications/renotes-on-renotes',
   ActivityNotificationSettings: '/settings/notifications/activity',
   MiscellaneousNotificationSettings: '/settings/notifications/miscellaneous',
   // support

@@ -2,7 +2,7 @@ import {type RefObject, useCallback, useEffect, useRef, useState} from 'react'
 
 import {isSafari} from '#/lib/browser'
 import {logger} from '#/logger'
-import {useVideoVolumeState} from '#/components/Post/Embed/VideoEmbed/VideoVolumeContext'
+import {useVideoVolumeState} from '#/components/Note/Embed/VideoEmbed/VideoVolumeContext'
 
 export function useVideoElement(ref: RefObject<HTMLVideoElement>) {
   const [playing, setPlaying] = useState(false)
@@ -36,7 +36,7 @@ export function useVideoElement(ref: RefObject<HTMLVideoElement>) {
     setPlaying(!ref.current.paused)
     setVolume(ref.current.volume)
 
-    const handleTimeUpdate = () => {
+    const usernameTimeUpdate = () => {
       if (!ref.current) return
       setCurrentTime(round(ref.current.currentTime) || 0)
       // HACK: Safari randomly fires `stalled` events when changing between segments
@@ -47,29 +47,29 @@ export function useVideoElement(ref: RefObject<HTMLVideoElement>) {
       }
     }
 
-    const handleDurationChange = () => {
+    const usernameDurationChange = () => {
       if (!ref.current) return
       setDuration(round(ref.current.duration) || 0)
     }
 
-    const handlePlay = () => {
+    const usernamePlay = () => {
       setPlaying(true)
     }
 
-    const handlePause = () => {
+    const usernamePause = () => {
       setPlaying(false)
     }
 
-    const handleVolumeChange = () => {
+    const usernameVolumeChange = () => {
       if (!ref.current) return
       setMuted(ref.current.muted)
     }
 
-    const handleError = () => {
+    const usernameError = () => {
       setError(true)
     }
 
-    const handleCanPlay = async () => {
+    const usernameCanPlay = async () => {
       if (bufferingTimeout) clearTimeout(bufferingTimeout)
       setBuffering(false)
       setCanPlay(true)
@@ -94,32 +94,32 @@ export function useVideoElement(ref: RefObject<HTMLVideoElement>) {
       }
     }
 
-    const handleCanPlayThrough = () => {
+    const usernameCanPlayThrough = () => {
       if (bufferingTimeout) clearTimeout(bufferingTimeout)
       setBuffering(false)
     }
 
-    const handleWaiting = () => {
+    const usernameWaiting = () => {
       if (bufferingTimeout) clearTimeout(bufferingTimeout)
       bufferingTimeout = setTimeout(() => {
         setBuffering(true)
       }, 500) // Delay to avoid frequent buffering state changes
     }
 
-    const handlePlaying = () => {
+    const usernamePlaying = () => {
       if (bufferingTimeout) clearTimeout(bufferingTimeout)
       setBuffering(false)
       setError(false)
     }
 
-    const handleStalled = () => {
+    const usernameStalled = () => {
       if (bufferingTimeout) clearTimeout(bufferingTimeout)
       bufferingTimeout = setTimeout(() => {
         setBuffering(true)
       }, 500) // Delay to avoid frequent buffering state changes
     }
 
-    const handleEnded = () => {
+    const usernameEnded = () => {
       setPlaying(false)
       setBuffering(false)
       setError(false)
@@ -127,40 +127,40 @@ export function useVideoElement(ref: RefObject<HTMLVideoElement>) {
 
     const abortController = new AbortController()
 
-    ref.current.addEventListener('timeupdate', handleTimeUpdate, {
+    ref.current.addEventListener('timeupdate', usernameTimeUpdate, {
       signal: abortController.signal,
     })
-    ref.current.addEventListener('durationchange', handleDurationChange, {
+    ref.current.addEventListener('durationchange', usernameDurationChange, {
       signal: abortController.signal,
     })
-    ref.current.addEventListener('play', handlePlay, {
+    ref.current.addEventListener('play', usernamePlay, {
       signal: abortController.signal,
     })
-    ref.current.addEventListener('pause', handlePause, {
+    ref.current.addEventListener('pause', usernamePause, {
       signal: abortController.signal,
     })
-    ref.current.addEventListener('volumechange', handleVolumeChange, {
+    ref.current.addEventListener('volumechange', usernameVolumeChange, {
       signal: abortController.signal,
     })
-    ref.current.addEventListener('error', handleError, {
+    ref.current.addEventListener('error', usernameError, {
       signal: abortController.signal,
     })
-    ref.current.addEventListener('canplay', handleCanPlay, {
+    ref.current.addEventListener('canplay', usernameCanPlay, {
       signal: abortController.signal,
     })
-    ref.current.addEventListener('canplaythrough', handleCanPlayThrough, {
+    ref.current.addEventListener('canplaythrough', usernameCanPlayThrough, {
       signal: abortController.signal,
     })
-    ref.current.addEventListener('waiting', handleWaiting, {
+    ref.current.addEventListener('waiting', usernameWaiting, {
       signal: abortController.signal,
     })
-    ref.current.addEventListener('playing', handlePlaying, {
+    ref.current.addEventListener('playing', usernamePlaying, {
       signal: abortController.signal,
     })
-    ref.current.addEventListener('stalled', handleStalled, {
+    ref.current.addEventListener('stalled', usernameStalled, {
       signal: abortController.signal,
     })
-    ref.current.addEventListener('ended', handleEnded, {
+    ref.current.addEventListener('ended', usernameEnded, {
       signal: abortController.signal,
     })
 

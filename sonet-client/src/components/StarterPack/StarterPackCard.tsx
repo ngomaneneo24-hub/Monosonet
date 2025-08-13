@@ -1,12 +1,12 @@
 import React from 'react'
 import {View} from 'react-native'
 import {Image} from 'expo-image'
-import {AppBskyGraphStarterpack, AtUri} from '@atproto/api'
+import {SonetGraphStarterpack, AtUri} from '@sonet/api'
 import {msg, Plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
 
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {getStarterPackOgCard} from '#/lib/strings/starter-pack'
 import {precacheResolvedUri} from '#/state/queries/resolve-uri'
 import {precacheStarterPack} from '#/state/queries/starter-packs'
@@ -62,9 +62,9 @@ export function Card({
   const {currentAccount} = useSession()
 
   if (
-    !bsky.dangerousIsType<AppBskyGraphStarterpack.Record>(
+    !bsky.dangerousIsType<SonetGraphStarterpack.Record>(
       record,
-      AppBskyGraphStarterpack.isRecord,
+      SonetGraphStarterpack.isRecord,
     )
   ) {
     return null
@@ -85,9 +85,9 @@ export function Card({
             emoji
             style={[a.leading_snug, t.atoms.text_contrast_medium]}
             numberOfLines={1}>
-            {creator?.did === currentAccount?.did
+            {creator?.userId === currentAccount?.userId
               ? _(msg`Starter pack by you`)
-              : _(msg`Starter pack by ${sanitizeHandle(creator.handle, '@')}`)}
+              : _(msg`Starter pack by ${sanitizeUsername(creator.username, '@')}`)}
           </Text>
         </View>
       </View>
@@ -114,19 +114,19 @@ export function useStarterPackLink({
 }) {
   const {_} = useLingui()
   const qc = useQueryClient()
-  const {rkey, handleOrDid} = React.useMemo(() => {
+  const {rkey, usernameOrDid} = React.useMemo(() => {
     const rkey = new AtUri(view.uri).rkey
     const {creator} = view
-    return {rkey, handleOrDid: creator.handle || creator.did}
+    return {rkey, usernameOrDid: creator.username || creator.userId}
   }, [view])
   const precache = () => {
-    precacheResolvedUri(qc, view.creator.handle, view.creator.did)
+    precacheResolvedUri(qc, view.creator.username, view.creator.userId)
     precacheStarterPack(qc, view)
   }
 
   return {
-    to: `/starter-pack/${handleOrDid}/${rkey}`,
-    label: AppBskyGraphStarterpack.isRecord(view.record)
+    to: `/starter-pack/${usernameOrDid}/${rkey}`,
+    label: SonetGraphStarterpack.isRecord(view.record)
       ? _(msg`Navigate to ${view.record.name}`)
       : _(msg`Navigate to starter pack`),
     precache,
@@ -144,25 +144,25 @@ export function Link({
   const {_} = useLingui()
   const queryClient = useQueryClient()
   const {record} = starterPack
-  const {rkey, handleOrDid} = React.useMemo(() => {
+  const {rkey, usernameOrDid} = React.useMemo(() => {
     const rkey = new AtUri(starterPack.uri).rkey
     const {creator} = starterPack
-    return {rkey, handleOrDid: creator.handle || creator.did}
+    return {rkey, usernameOrDid: creator.username || creator.userId}
   }, [starterPack])
 
-  if (!AppBskyGraphStarterpack.isRecord(record)) {
+  if (!SonetGraphStarterpack.isRecord(record)) {
     return null
   }
 
   return (
     <BaseLink
-      to={`/starter-pack/${handleOrDid}/${rkey}`}
+      to={`/starter-pack/${usernameOrDid}/${rkey}`}
       label={_(msg`Navigate to ${record.name}`)}
       onPress={() => {
         precacheResolvedUri(
           queryClient,
-          starterPack.creator.handle,
-          starterPack.creator.did,
+          starterPack.creator.username,
+          starterPack.creator.userId,
         )
         precacheStarterPack(queryClient, starterPack)
       }}

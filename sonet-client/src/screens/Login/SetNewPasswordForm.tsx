@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import {ActivityIndicator, View} from 'react-native'
-import {BskyAgent} from '@atproto/api'
+import {SonetAppAgent} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -63,8 +63,8 @@ export const SetNewPasswordForm = ({
     setIsProcessing(true)
 
     try {
-      const agent = new BskyAgent({service: serviceUrl})
-      await agent.com.atproto.server.resetPassword({
+      const agent = new SonetAppAgent({service: serviceUrl})
+      await agent.com.sonet.server.resetPassword({
         token: formattedCode,
         password,
       })

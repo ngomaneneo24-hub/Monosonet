@@ -1,6 +1,6 @@
 import React from 'react'
 import {View} from 'react-native'
-import {AppBskyLabelerDefs} from '@atproto/api'
+import {SonetLabelerDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -27,7 +27,7 @@ import {ReportDialogProps} from './types'
 
 export function SelectReportOptionView(props: {
   params: ReportDialogProps['params']
-  labelers: AppBskyLabelerDefs.LabelerViewDetailed[]
+  labelers: SonetLabelerDefs.LabelerViewDetailed[]
   onSelectReportOption: (reportOption: ReportOption) => void
   goBack: () => void
 }) {
@@ -44,9 +44,9 @@ export function SelectReportOptionView(props: {
     if (props.params.type === 'account') {
       title = _(msg`Report this user`)
       description = _(msg`Why should this user be reviewed?`)
-    } else if (props.params.type === 'post') {
-      title = _(msg`Report this post`)
-      description = _(msg`Why should this post be reviewed?`)
+    } else if (props.params.type === 'note') {
+      title = _(msg`Report this note`)
+      description = _(msg`Why should this note be reviewed?`)
     } else if (props.params.type === 'list') {
       title = _(msg`Report this list`)
       description = _(msg`Why should this list be reviewed?`)
@@ -106,7 +106,7 @@ export function SelectReportOptionView(props: {
           )
         })}
 
-        {(props.params.type === 'post' || props.params.type === 'account') && (
+        {(props.params.type === 'note' || props.params.type === 'account') && (
           <View
             style={[
               a.flex_row,

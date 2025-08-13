@@ -1,8 +1,8 @@
 import {
-  type AppBskyFeedDefs,
-  type AppBskyGraphDefs,
-  type AppBskyNotificationListNotifications,
-} from '@atproto/api'
+  type SonetFeedDefs,
+  type SonetGraphDefs,
+  type SonetNotificationListNotifications,
+} from '@sonet/api'
 
 export type NotificationType =
   | StarterPackNotificationType
@@ -11,11 +11,11 @@ export type NotificationType =
 export type FeedNotification =
   | (FeedNotificationBase & {
       type: StarterPackNotificationType
-      subject?: AppBskyGraphDefs.StarterPackViewBasic
+      subject?: SonetGraphDefs.StarterPackViewBasic
     })
   | (FeedNotificationBase & {
       type: OtherNotificationType
-      subject?: AppBskyFeedDefs.PostView
+      subject?: SonetFeedDefs.NoteView
     })
 
 export interface FeedPage {
@@ -37,8 +37,8 @@ export interface CachedFeedPage {
 
 type StarterPackNotificationType = 'starterpack-joined'
 type OtherNotificationType =
-  | 'post-like'
-  | 'repost'
+  | 'note-like'
+  | 'renote'
   | 'mention'
   | 'reply'
   | 'quote'
@@ -46,15 +46,15 @@ type OtherNotificationType =
   | 'feedgen-like'
   | 'verified'
   | 'unverified'
-  | 'like-via-repost'
-  | 'repost-via-repost'
-  | 'subscribed-post'
+  | 'like-via-renote'
+  | 'renote-via-renote'
+  | 'subscribed-note'
   | 'unknown'
 
 type FeedNotificationBase = {
   _reactKey: string
-  notification: AppBskyNotificationListNotifications.Notification
-  additional?: AppBskyNotificationListNotifications.Notification[]
+  notification: SonetNotificationListNotifications.Notification
+  additional?: SonetNotificationListNotifications.Notification[]
   subjectUri?: string
-  subject?: AppBskyFeedDefs.PostView | AppBskyGraphDefs.StarterPackViewBasic
+  subject?: SonetFeedDefs.NoteView | SonetGraphDefs.StarterPackViewBasic
 }

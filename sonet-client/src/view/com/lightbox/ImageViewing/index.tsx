@@ -11,7 +11,7 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react'
 import {LayoutAnimation, PixelRatio, StyleSheet, View} from 'react-native'
 import {SystemBars} from 'react-native-edge-to-edge'
-import {Gesture} from 'react-native-gesture-handler'
+import {Gesture} from 'react-native-gesture-usernamer'
 import PagerView from 'react-native-pager-view'
 import Animated, {
   type AnimatedRef,
@@ -47,7 +47,7 @@ import {Text} from '#/view/com/util/text/Text'
 import {ScrollView} from '#/view/com/util/Views'
 import {useTheme} from '#/alf'
 import {setSystemUITheme} from '#/alf/util/systemUI'
-import {PlatformInfo} from '../../../../../modules/expo-bluesky-swiss-army'
+import {PlatformInfo} from '../../../../../modules/expo-sonet-swiss-army'
 import {type ImageSource, type Transform} from './@types'
 import ImageDefaultHeader from './components/ImageDefaultHeader'
 import ImageItem from './components/ImageItem/ImageItem'

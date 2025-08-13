@@ -3,12 +3,12 @@ import {View} from 'react-native'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
-import {type ThreadItem} from '#/state/queries/usePostThread'
+import {type ThreadItem} from '#/state/queries/useNoteThread'
 import {
   LINEAR_AVI_WIDTH,
   OUTER_SPACE,
   REPLY_LINE_WIDTH,
-} from '#/screens/PostThread/const'
+} from '#/screens/NoteThread/const'
 import {atoms as a, useTheme} from '#/alf'
 import {ArrowTopCircle_Stroke2_Corner0_Rounded as UpIcon} from '#/components/icons/ArrowTopCircle'
 import {Link} from '#/components/Link'

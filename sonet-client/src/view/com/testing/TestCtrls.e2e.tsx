@@ -103,7 +103,7 @@ export function TestCtrls() {
       />
       <Pressable
         testID="e2eRefreshHome"
-        onPress={() => queryClient.invalidateQueries({queryKey: ['post-feed']})}
+        onPress={() => queryClient.invalidateQueries({queryKey: ['note-feed']})}
         accessibilityRole="button"
         style={BTN}
       />

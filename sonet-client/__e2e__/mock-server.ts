@@ -1,10 +1,10 @@
 import {createServer as createHTTPServer} from 'node:http'
 import {parse} from 'node:url'
 
-import {createServer, TestPDS} from '../jest/test-pds'
+import {createServer, TestSonet} from '../jest/test-sonet'
 
 async function main() {
-  let server: TestPDS
+  let server: TestSonet
   createHTTPServer(async (req, res) => {
     const url = parse(req.url || '/', true)
     if (req.method !== 'POST') {
@@ -16,7 +16,7 @@ async function main() {
       console.log('Starting new server')
       const inviteRequired = url?.query && 'invite' in url.query
       server = await createServer({inviteRequired})
-      console.log('Listening at', server.pdsUrl)
+      console.log('Listening at', server.sonetUrl)
       if (url?.query) {
         if ('users' in url.query) {
           console.log('Generating mock users')
@@ -509,7 +509,7 @@ async function main() {
         }
       }
       console.log('Ready')
-      return res.writeHead(200).end(server.pdsUrl)
+              return res.writeHead(200).end(server.sonetUrl)
     } catch (e) {
       console.error('Error!', e)
       return res.writeHead(500).end()

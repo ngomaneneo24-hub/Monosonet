@@ -1,11 +1,11 @@
 import {useCallback} from 'react'
-import {type AppBskyActorDefs, type AppBskyFeedDefs, AtUri} from '@atproto/api'
+import {type SonetActorDefs, type SonetFeedDefs, AtUri} from '@sonet/api'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 
 import {useToggleMutationQueue} from '#/lib/hooks/useToggleMutationQueue'
 import {type LogEvents, toClout} from '#/lib/statsig/statsig'
 import {logger} from '#/logger'
-import {updatePostShadow} from '#/state/cache/post-shadow'
+import {updateNoteShadow} from '#/state/cache/note-shadow'
 import {type Shadow} from '#/state/cache/types'
 import {useAgent, useSession} from '#/state/session'
 import {useSonetApi, useSonetSession} from '#/state/session/sonet'
@@ -13,26 +13,26 @@ import * as userActionHistory from '#/state/userActionHistory'
 import {useIsThreadMuted, useSetThreadMute} from '../cache/thread-mutes'
 import {findProfileQueryData} from './profile'
 
-const RQKEY_ROOT = 'post'
-export const RQKEY = (postUri: string) => [RQKEY_ROOT, postUri]
+const RQKEY_ROOT = 'note'
+export const RQKEY = (noteUri: string) => [RQKEY_ROOT, noteUri]
 
-export function usePostQuery(uri: string | undefined) {
+export function useNoteQuery(uri: string | undefined) {
   const agent = useAgent()
-  return useQuery<AppBskyFeedDefs.PostView>({
+  return useQuery<SonetFeedDefs.NoteView>({
     queryKey: RQKEY(uri || ''),
     async queryFn() {
       const urip = new AtUri(uri!)
 
-      if (!urip.host.startsWith('did:')) {
-        const res = await agent.resolveHandle({
-          handle: urip.host,
+      if (!urip.host.startsWith('userId:')) {
+        const res = await agent.resolveUsername({
+          username: urip.host,
         })
-        urip.host = res.data.did
+        urip.host = res.data.userId
       }
 
-      const res = await agent.getPosts({uris: [urip.toString()]})
-      if (res.success && res.data.posts[0]) {
-        return res.data.posts[0]
+      const res = await agent.getNotes({uris: [urip.toString()]})
+      if (res.success && res.data.notes[0]) {
+        return res.data.notes[0]
       }
 
       throw new Error('No data')
@@ -41,7 +41,7 @@ export function usePostQuery(uri: string | undefined) {
   })
 }
 
-export function useGetPost() {
+export function useGetNote() {
   const queryClient = useQueryClient()
   const agent = useAgent()
   return useCallback(
@@ -51,22 +51,22 @@ export function useGetPost() {
         async queryFn() {
           const urip = new AtUri(uri)
 
-          if (!urip.host.startsWith('did:')) {
-            const res = await agent.resolveHandle({
-              handle: urip.host,
+          if (!urip.host.startsWith('userId:')) {
+            const res = await agent.resolveUsername({
+              username: urip.host,
             })
-            urip.host = res.data.did
+            urip.host = res.data.userId
           }
 
-          const res = await agent.getPosts({
+          const res = await agent.getNotes({
             uris: [urip.toString()],
           })
 
-          if (res.success && res.data.posts[0]) {
-            return res.data.posts[0]
+          if (res.success && res.data.notes[0]) {
+            return res.data.notes[0]
           }
 
-          throw new Error('useGetPost: post not found')
+          throw new Error('useGetNote: note not found')
         },
       })
     },
@@ -74,7 +74,7 @@ export function useGetPost() {
   )
 }
 
-export function useGetPosts() {
+export function useGetNotes() {
   const queryClient = useQueryClient()
   const agent = useAgent()
   return useCallback(
@@ -82,14 +82,14 @@ export function useGetPosts() {
       return queryClient.fetchQuery({
         queryKey: RQKEY(uris.join(',') || ''),
         async queryFn() {
-          const res = await agent.getPosts({
+          const res = await agent.getNotes({
             uris,
           })
 
           if (res.success) {
-            return res.data.posts
+            return res.data.notes
           } else {
-            throw new Error('useGetPosts failed')
+            throw new Error('useGetNotes failed')
           }
         },
       })
@@ -98,45 +98,45 @@ export function useGetPosts() {
   )
 }
 
-export function usePostLikeMutationQueue(
-  post: Shadow<AppBskyFeedDefs.PostView>,
-  viaRepost: {uri: string; cid: string} | undefined,
+export function useNoteLikeMutationQueue(
+  note: Shadow<SonetFeedDefs.NoteView>,
+  viaRenote: {uri: string; cid: string} | undefined,
   feedDescriptor: string | undefined,
-  logContext: LogEvents['post:like']['logContext'] &
-    LogEvents['post:unlike']['logContext'],
+  logContext: LogEvents['note:like']['logContext'] &
+    LogEvents['note:unlike']['logContext'],
 ) {
   const queryClient = useQueryClient()
-  const postUri = post.uri
-  const postCid = post.cid
-  const initialLikeUri = post.viewer?.like
-  const likeMutation = usePostLikeMutation(feedDescriptor, logContext, post)
-  const unlikeMutation = usePostUnlikeMutation(feedDescriptor, logContext)
+  const noteUri = note.uri
+  const noteCid = note.cid
+  const initialLikeUri = note.viewer?.like
+  const likeMutation = useNoteLikeMutation(feedDescriptor, logContext, note)
+  const unlikeMutation = useNoteUnlikeMutation(feedDescriptor, logContext)
 
   const queueToggle = useToggleMutationQueue({
     initialState: initialLikeUri,
     runMutation: async (prevLikeUri, shouldLike) => {
       if (shouldLike) {
         const {uri: likeUri} = await likeMutation.mutateAsync({
-          uri: postUri,
-          cid: postCid,
-          via: viaRepost,
+          uri: noteUri,
+          cid: noteCid,
+          via: viaRenote,
         })
-        userActionHistory.like([postUri])
+        userActionHistory.like([noteUri])
         return likeUri
       } else {
         if (prevLikeUri) {
           await unlikeMutation.mutateAsync({
-            postUri: postUri,
+            noteUri: noteUri,
             likeUri: prevLikeUri,
           })
-          userActionHistory.unlike([postUri])
+          userActionHistory.unlike([noteUri])
         }
         return undefined
       }
     },
     onSuccess(finalLikeUri) {
       // finalize
-      updatePostShadow(queryClient, postUri, {
+      updateNoteShadow(queryClient, noteUri, {
         likeUri: finalLikeUri,
       })
     },
@@ -144,58 +144,58 @@ export function usePostLikeMutationQueue(
 
   const queueLike = useCallback(() => {
     // optimistically update
-    updatePostShadow(queryClient, postUri, {
+    updateNoteShadow(queryClient, noteUri, {
       likeUri: 'pending',
     })
     return queueToggle(true)
-  }, [queryClient, postUri, queueToggle])
+  }, [queryClient, noteUri, queueToggle])
 
   const queueUnlike = useCallback(() => {
     // optimistically update
-    updatePostShadow(queryClient, postUri, {
+    updateNoteShadow(queryClient, noteUri, {
       likeUri: undefined,
     })
     return queueToggle(false)
-  }, [queryClient, postUri, queueToggle])
+  }, [queryClient, noteUri, queueToggle])
 
   return [queueLike, queueUnlike]
 }
 
-function usePostLikeMutation(
+function useNoteLikeMutation(
   feedDescriptor: string | undefined,
-  logContext: LogEvents['post:like']['logContext'],
-  post: Shadow<AppBskyFeedDefs.PostView>,
+  logContext: LogEvents['note:like']['logContext'],
+  note: Shadow<SonetFeedDefs.NoteView>,
 ) {
   const {currentAccount} = useSession()
   const queryClient = useQueryClient()
-  const postAuthor = post.author
+  const noteAuthor = note.author
   const agent = useAgent()
   const sonet = useSonetApi()
   const sonetSession = useSonetSession()
   return useMutation<
     {uri: string}, // responds with the uri of the like
     Error,
-    {uri: string; cid: string; via?: {uri: string; cid: string}} // the post's uri and cid, and the repost uri/cid if present
+    {uri: string; cid: string; via?: {uri: string; cid: string}} // the note's uri and cid, and the renote uri/cid if present
   >({
     mutationFn: ({uri, cid, via}) => {
-      let ownProfile: AppBskyActorDefs.ProfileViewDetailed | undefined
+      let ownProfile: SonetActorDefs.ProfileViewDetailed | undefined
       if (currentAccount) {
-        ownProfile = findProfileQueryData(queryClient, currentAccount.did)
+        ownProfile = findProfileQueryData(queryClient, currentAccount.userId)
       }
-      logger.metric('post:like', {
+      logger.metric('note:like', {
         logContext,
-        doesPosterFollowLiker: postAuthor.viewer
-          ? Boolean(postAuthor.viewer.followedBy)
+        doesNoteerFollowLiker: noteAuthor.viewer
+          ? Boolean(noteAuthor.viewer.followedBy)
           : undefined,
-        doesLikerFollowPoster: postAuthor.viewer
-          ? Boolean(postAuthor.viewer.following)
+        doesLikerFollowNoteer: noteAuthor.viewer
+          ? Boolean(noteAuthor.viewer.following)
           : undefined,
         likerClout: toClout(ownProfile?.followersCount),
-        postClout:
-          post.likeCount != null &&
-          post.repostCount != null &&
-          post.replyCount != null
-            ? toClout(post.likeCount + post.repostCount + post.replyCount)
+        noteClout:
+          note.likeCount != null &&
+          note.renoteCount != null &&
+          note.replyCount != null
+            ? toClout(note.likeCount + note.renoteCount + note.replyCount)
             : undefined,
         feedDescriptor: feedDescriptor,
       })
@@ -208,18 +208,18 @@ function usePostLikeMutation(
   })
 }
 
-function usePostUnlikeMutation(
+function useNoteUnlikeMutation(
   feedDescriptor: string | undefined,
-  logContext: LogEvents['post:unlike']['logContext'],
+  logContext: LogEvents['note:unlike']['logContext'],
 ) {
   const agent = useAgent()
   const sonet = useSonetApi()
   const sonetSession = useSonetSession()
-  return useMutation<void, Error, {postUri: string; likeUri: string}>({
+  return useMutation<void, Error, {noteUri: string; likeUri: string}>({
     mutationFn: ({likeUri}) => {
-      logger.metric('post:unlike', {logContext, feedDescriptor})
+      logger.metric('note:unlike', {logContext, feedDescriptor})
       if (sonetSession.hasSession) {
-        const id = extractSonetNoteId(likeUri) || extractSonetNoteIdFromPostUri(likeUri)
+        const id = extractSonetNoteId(likeUri) || extractSonetNoteIdFromNoteUri(likeUri)
         return sonet.getApi().likeNote(id, false).then(() => {})
       }
       return agent.deleteLike(likeUri)
@@ -232,134 +232,134 @@ function extractSonetNoteId(uri: string): string {
   const m = /sonet:\/\/note\/([^?#]+)/.exec(uri)
   return m?.[1] || uri
 }
-function extractSonetNoteIdFromPostUri(uri: string): string {
+function extractSonetNoteIdFromNoteUri(uri: string): string {
   const m = /sonet:\/\/note\/([^?#]+)/.exec(uri)
   return m?.[1] || uri
 }
 
-export function usePostRepostMutationQueue(
-  post: Shadow<AppBskyFeedDefs.PostView>,
-  viaRepost: {uri: string; cid: string} | undefined,
+export function useNoteRenoteMutationQueue(
+  note: Shadow<SonetFeedDefs.NoteView>,
+  viaRenote: {uri: string; cid: string} | undefined,
   feedDescriptor: string | undefined,
-  logContext: LogEvents['post:repost']['logContext'] &
-    LogEvents['post:unrepost']['logContext'],
+  logContext: LogEvents['note:renote']['logContext'] &
+    LogEvents['note:unrenote']['logContext'],
 ) {
   const queryClient = useQueryClient()
-  const postUri = post.uri
-  const postCid = post.cid
-  const initialRepostUri = post.viewer?.repost
-  const repostMutation = usePostRepostMutation(feedDescriptor, logContext)
-  const unrepostMutation = usePostUnrepostMutation(feedDescriptor, logContext)
+  const noteUri = note.uri
+  const noteCid = note.cid
+  const initialRenoteUri = note.viewer?.renote
+  const renoteMutation = useNoteRenoteMutation(feedDescriptor, logContext)
+  const unrenoteMutation = useNoteUnrenoteMutation(feedDescriptor, logContext)
 
   const queueToggle = useToggleMutationQueue({
-    initialState: initialRepostUri,
-    runMutation: async (prevRepostUri, shouldRepost) => {
-      if (shouldRepost) {
-        const {uri: repostUri} = await repostMutation.mutateAsync({
-          uri: postUri,
-          cid: postCid,
-          via: viaRepost,
+    initialState: initialRenoteUri,
+    runMutation: async (prevRenoteUri, shouldRenote) => {
+      if (shouldRenote) {
+        const {uri: renoteUri} = await renoteMutation.mutateAsync({
+          uri: noteUri,
+          cid: noteCid,
+          via: viaRenote,
         })
-        return repostUri
+        return renoteUri
       } else {
-        if (prevRepostUri) {
-          await unrepostMutation.mutateAsync({
-            postUri: postUri,
-            repostUri: prevRepostUri,
+        if (prevRenoteUri) {
+          await unrenoteMutation.mutateAsync({
+            noteUri: noteUri,
+            renoteUri: prevRenoteUri,
           })
         }
         return undefined
       }
     },
-    onSuccess(finalRepostUri) {
+    onSuccess(finalRenoteUri) {
       // finalize
-      updatePostShadow(queryClient, postUri, {
-        repostUri: finalRepostUri,
+      updateNoteShadow(queryClient, noteUri, {
+        renoteUri: finalRenoteUri,
       })
     },
   })
 
-  const queueRepost = useCallback(() => {
+  const queueRenote = useCallback(() => {
     // optimistically update
-    updatePostShadow(queryClient, postUri, {
-      repostUri: 'pending',
+    updateNoteShadow(queryClient, noteUri, {
+      renoteUri: 'pending',
     })
     return queueToggle(true)
-  }, [queryClient, postUri, queueToggle])
+  }, [queryClient, noteUri, queueToggle])
 
-  const queueUnrepost = useCallback(() => {
+  const queueUnrenote = useCallback(() => {
     // optimistically update
-    updatePostShadow(queryClient, postUri, {
-      repostUri: undefined,
+    updateNoteShadow(queryClient, noteUri, {
+      renoteUri: undefined,
     })
     return queueToggle(false)
-  }, [queryClient, postUri, queueToggle])
+  }, [queryClient, noteUri, queueToggle])
 
-  return [queueRepost, queueUnrepost]
+  return [queueRenote, queueUnrenote]
 }
 
-function usePostRepostMutation(
+function useNoteRenoteMutation(
   feedDescriptor: string | undefined,
-  logContext: LogEvents['post:repost']['logContext'],
+  logContext: LogEvents['note:renote']['logContext'],
 ) {
   const agent = useAgent()
   const sonet = useSonetApi()
   const sonetSession = useSonetSession()
   return useMutation<
-    {uri: string}, // responds with the uri of the repost
+    {uri: string}, // responds with the uri of the renote
     Error,
-    {uri: string; cid: string; via?: {uri: string; cid: string}} // the post's uri and cid, and the repost uri/cid if present
+    {uri: string; cid: string; via?: {uri: string; cid: string}} // the note's uri and cid, and the renote uri/cid if present
   >({
     mutationFn: ({uri, cid, via}) => {
-      logger.metric('post:repost', {logContext, feedDescriptor})
+      logger.metric('note:renote', {logContext, feedDescriptor})
       if (sonetSession.hasSession) {
         const id = extractSonetNoteId(uri)
         return sonet.getApi().renote(id, true).then(() => ({uri}))
       }
-      return agent.repost(uri, cid, via)
+      return agent.renote(uri, cid, via)
     },
   })
 }
 
-function usePostUnrepostMutation(
+function useNoteUnrenoteMutation(
   feedDescriptor: string | undefined,
-  logContext: LogEvents['post:unrepost']['logContext'],
+  logContext: LogEvents['note:unrenote']['logContext'],
 ) {
   const agent = useAgent()
   const sonet = useSonetApi()
   const sonetSession = useSonetSession()
-  return useMutation<void, Error, {postUri: string; repostUri: string}>({
-    mutationFn: ({repostUri}) => {
-      logger.metric('post:unrepost', {logContext, feedDescriptor})
+  return useMutation<void, Error, {noteUri: string; renoteUri: string}>({
+    mutationFn: ({renoteUri}) => {
+      logger.metric('note:unrenote', {logContext, feedDescriptor})
       if (sonetSession.hasSession) {
-        const id = extractSonetNoteId(repostUri)
+        const id = extractSonetNoteId(renoteUri)
         return sonet.getApi().renote(id, false).then(() => {})
       }
-      return agent.deleteRepost(repostUri)
+      return agent.deleteRenote(renoteUri)
     },
   })
 }
 
-export function usePostDeleteMutation() {
+export function useNoteDeleteMutation() {
   const queryClient = useQueryClient()
   const agent = useAgent()
   return useMutation<void, Error, {uri: string}>({
     mutationFn: async ({uri}) => {
-      await agent.deletePost(uri)
+      await agent.deleteNote(uri)
     },
     onSuccess(_, variables) {
-      updatePostShadow(queryClient, variables.uri, {isDeleted: true})
+      updateNoteShadow(queryClient, variables.uri, {isDeleted: true})
     },
   })
 }
 
 export function useThreadMuteMutationQueue(
-  post: Shadow<AppBskyFeedDefs.PostView>,
+  note: Shadow<SonetFeedDefs.NoteView>,
   rootUri: string,
 ) {
   const threadMuteMutation = useThreadMuteMutation()
   const threadUnmuteMutation = useThreadUnmuteMutation()
-  const isThreadMuted = useIsThreadMuted(rootUri, post.viewer?.threadMuted)
+  const isThreadMuted = useIsThreadMuted(rootUri, note.viewer?.threadMuted)
   const setThreadMute = useSetThreadMute()
 
   const queueToggle = useToggleMutationQueue<boolean>({
@@ -403,11 +403,11 @@ function useThreadMuteMutation() {
   return useMutation<
     {},
     Error,
-    {uri: string} // the root post's uri
+    {uri: string} // the root note's uri
   >({
     mutationFn: ({uri}) => {
-      logger.metric('post:mute', {})
-      return agent.api.app.bsky.graph.muteThread({root: uri})
+      logger.metric('note:mute', {})
+      return agent.api.app.sonet.graph.muteThread({root: uri})
     },
   })
 }
@@ -416,8 +416,8 @@ function useThreadUnmuteMutation() {
   const agent = useAgent()
   return useMutation<{}, Error, {uri: string}>({
     mutationFn: ({uri}) => {
-      logger.metric('post:unmute', {})
-      return agent.api.app.bsky.graph.unmuteThread({root: uri})
+      logger.metric('note:unmute', {})
+      return agent.api.app.sonet.graph.unmuteThread({root: uri})
     },
   })
 }

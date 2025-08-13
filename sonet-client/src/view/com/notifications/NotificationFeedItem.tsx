@@ -15,16 +15,16 @@ import {
   View,
 } from 'react-native'
 import {
-  type AppBskyActorDefs,
-  type AppBskyFeedDefs,
-  AppBskyFeedPost,
-  AppBskyGraphFollow,
+  type SonetActorDefs,
+  type SonetFeedDefs,
+  SonetFeedNote,
+  SonetGraphFollow,
   moderateProfile,
   type ModerationDecision,
   type ModerationOpts,
-} from '@atproto/api'
-import {AtUri} from '@atproto/api'
-import {TID} from '@atproto/common-web'
+} from '@sonet/api'
+import {AtUri} from '@sonet/api'
+import {TID} from '@sonet/types'
 import {msg, Plural, plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
@@ -37,7 +37,7 @@ import {makeProfileLink} from '#/lib/routes/links'
 import {type NavigationProp} from '#/lib/routes/types'
 import {forceLTR} from '#/lib/strings/bidi'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {niceDate} from '#/lib/strings/time'
 import {s} from '#/lib/styles'
 import {logger} from '#/logger'
@@ -46,7 +46,7 @@ import {type FeedNotification} from '#/state/queries/notifications/feed'
 import {unstableCacheProfileView} from '#/state/queries/unstable-profile-cache'
 import {useAgent} from '#/state/session'
 import {FeedSourceCard} from '#/view/com/feeds/FeedSourceCard'
-import {Post} from '#/view/com/post/Post'
+import {Note} from '#/view/com/note/Note'
 import {formatCount} from '#/view/com/util/numeric/format'
 import {TimeElapsed} from '#/view/com/util/TimeElapsed'
 import {PreviewableUserAvatar, UserAvatar} from '#/view/com/util/UserAvatar'
@@ -59,7 +59,7 @@ import {
 } from '#/components/icons/Chevron'
 import {Heart2_Filled_Stroke2_Corner0_Rounded as HeartIconFilled} from '#/components/icons/Heart2'
 import {PersonPlus_Filled_Stroke2_Corner0_Rounded as PersonPlusIcon} from '#/components/icons/Person'
-import {Repost_Stroke2_Corner2_Rounded as RepostIcon} from '#/components/icons/Repost'
+import {Renote_Stroke2_Corner2_Rounded as RenoteIcon} from '#/components/icons/Renote'
 import {StarterPack} from '#/components/icons/StarterPack'
 import {VerifiedCheck} from '#/components/icons/VerifiedCheck'
 import {InlineLinkText, Link} from '#/components/Link'
@@ -77,7 +77,7 @@ const MAX_AUTHORS = 5
 const EXPANDED_AUTHOR_EL_HEIGHT = 35
 
 interface Author {
-  profile: AppBskyActorDefs.ProfileView
+  profile: SonetActorDefs.ProfileView
   href: string
   moderation: ModerationDecision
 }
@@ -100,13 +100,13 @@ let NotificationFeedItem = ({
   const [isAuthorsExpanded, setAuthorsExpanded] = useState<boolean>(false)
   const itemHref = useMemo(() => {
     switch (item.type) {
-      case 'post-like':
-      case 'repost':
-      case 'like-via-repost':
-      case 'repost-via-repost': {
+      case 'note-like':
+      case 'renote':
+      case 'like-via-renote':
+      case 'renote-via-renote': {
         if (item.subjectUri) {
           const urip = new AtUri(item.subjectUri)
-          return `/profile/${urip.host}/post/${urip.rkey}`
+          return `/profile/${urip.host}/note/${urip.rkey}`
         }
         break
       }
@@ -119,7 +119,7 @@ let NotificationFeedItem = ({
       case 'mention':
       case 'quote': {
         const uripReply = new AtUri(item.notification.uri)
-        return `/profile/${uripReply.host}/post/${uripReply.rkey}`
+        return `/profile/${uripReply.host}/note/${uripReply.rkey}`
       }
       case 'feedgen-like':
       case 'starterpack-joined': {
@@ -129,12 +129,12 @@ let NotificationFeedItem = ({
         }
         break
       }
-      case 'subscribed-post': {
-        const posts: string[] = []
-        for (const post of [item.notification, ...(item.additional ?? [])]) {
-          posts.push(post.uri)
+      case 'subscribed-note': {
+        const notes: string[] = []
+        for (const note of [item.notification, ...(item.additional ?? [])]) {
+          notes.push(note.uri)
         }
-        return `/notifications/activity?posts=${encodeURIComponent(posts.slice(0, 25).join(','))}`
+        return `/notifications/activity?notes=${encodeURIComponent(notes.slice(0, 25).join(','))}`
       }
     }
 
@@ -167,7 +167,7 @@ let NotificationFeedItem = ({
       })) || []),
     ].filter(
       (author, index, arr) =>
-        arr.findIndex(au => au.profile.did === author.profile.did) === index,
+        arr.findIndex(au => au.profile.userId === author.profile.userId) === index,
     )
   }, [item, moderationOpts])
 
@@ -177,11 +177,11 @@ let NotificationFeedItem = ({
     profile: firstAuthor.profile,
   })
   const firstAuthorName = sanitizeDisplayName(
-    firstAuthor.profile.displayName || firstAuthor.profile.handle,
+    firstAuthor.profile.displayName || firstAuthor.profile.username,
   )
 
   if (item.subjectUri && !item.subject && item.type !== 'feedgen-like') {
-    // don't render anything if the target post was deleted or unfindable
+    // don't render anything if the target note was deleted or unfindable
     return <View />
   }
 
@@ -195,9 +195,9 @@ let NotificationFeedItem = ({
     }
     const isHighlighted = highlightUnread && !item.notification.isRead
     return (
-      <View testID={`feedItem-by-${item.notification.author.handle}`}>
-        <Post
-          post={item.subject}
+      <View testID={`feedItem-by-${item.notification.author.username}`}>
+        <Note
+          note={item.subject}
           style={
             isHighlighted && {
               backgroundColor: pal.colors.unreadNotifBg,
@@ -211,7 +211,7 @@ let NotificationFeedItem = ({
   }
 
   const firstAuthorLink = (
-    <ProfileHoverCard did={firstAuthor.profile.did} inline>
+    <ProfileHoverCard userId={firstAuthor.profile.userId} inline>
       <InlineLinkText
         key={firstAuthor.href}
         style={[t.atoms.text, a.font_bold, a.text_md, a.leading_tight]}
@@ -259,15 +259,15 @@ let NotificationFeedItem = ({
     />
   )
 
-  if (item.type === 'post-like') {
+  if (item.type === 'note-like') {
     a11yLabel = hasMultipleAuthors
       ? _(
           msg`${firstAuthorName} and ${plural(additionalAuthorsCount, {
             one: `${formattedAuthorsCount} other`,
             other: `${formattedAuthorsCount} others`,
-          })} liked your post`,
+          })} liked your note`,
         )
-      : _(msg`${firstAuthorName} liked your post`)
+      : _(msg`${firstAuthorName} liked your note`)
     notificationContent = hasMultipleAuthors ? (
       <Trans>
         {firstAuthorLink} and{' '}
@@ -278,20 +278,20 @@ let NotificationFeedItem = ({
             other={`${formattedAuthorsCount} others`}
           />
         </Text>{' '}
-        liked your post
+        liked your note
       </Trans>
     ) : (
-      <Trans>{firstAuthorLink} liked your post</Trans>
+      <Trans>{firstAuthorLink} liked your note</Trans>
     )
-  } else if (item.type === 'repost') {
+  } else if (item.type === 'renote') {
     a11yLabel = hasMultipleAuthors
       ? _(
           msg`${firstAuthorName} and ${plural(additionalAuthorsCount, {
             one: `${formattedAuthorsCount} other`,
             other: `${formattedAuthorsCount} others`,
-          })} reposted your post`,
+          })} renoteed your note`,
         )
-      : _(msg`${firstAuthorName} reposted your post`)
+      : _(msg`${firstAuthorName} renoteed your note`)
     notificationContent = hasMultipleAuthors ? (
       <Trans>
         {firstAuthorLink} and{' '}
@@ -302,20 +302,20 @@ let NotificationFeedItem = ({
             other={`${formattedAuthorsCount} others`}
           />
         </Text>{' '}
-        reposted your post
+        renoteed your note
       </Trans>
     ) : (
-      <Trans>{firstAuthorLink} reposted your post</Trans>
+      <Trans>{firstAuthorLink} renoteed your note</Trans>
     )
-    icon = <RepostIcon size="xl" style={{color: t.palette.positive_600}} />
+    icon = <RenoteIcon size="xl" style={{color: t.palette.positive_600}} />
   } else if (item.type === 'follow') {
     let isFollowBack = false
 
     if (
       item.notification.author.viewer?.following &&
-      bsky.dangerousIsType<AppBskyGraphFollow.Record>(
+      bsky.dangerousIsType<SonetGraphFollow.Record>(
         item.notification.record,
-        AppBskyGraphFollow.isRecord,
+        SonetGraphFollow.isRecord,
       )
     ) {
       let followingTimestamp
@@ -471,15 +471,15 @@ let NotificationFeedItem = ({
       </Trans>
     )
     icon = <VerifiedCheck size="xl" fill={t.palette.contrast_500} />
-  } else if (item.type === 'like-via-repost') {
+  } else if (item.type === 'like-via-renote') {
     a11yLabel = hasMultipleAuthors
       ? _(
           msg`${firstAuthorName} and ${plural(additionalAuthorsCount, {
             one: `${formattedAuthorsCount} other`,
             other: `${formattedAuthorsCount} others`,
-          })} liked your repost`,
+          })} liked your renote`,
         )
-      : _(msg`${firstAuthorName} liked your repost`)
+      : _(msg`${firstAuthorName} liked your renote`)
     notificationContent = hasMultipleAuthors ? (
       <Trans>
         {firstAuthorLink} and{' '}
@@ -490,20 +490,20 @@ let NotificationFeedItem = ({
             other={`${formattedAuthorsCount} others`}
           />
         </Text>{' '}
-        liked your repost
+        liked your renote
       </Trans>
     ) : (
-      <Trans>{firstAuthorLink} liked your repost</Trans>
+      <Trans>{firstAuthorLink} liked your renote</Trans>
     )
-  } else if (item.type === 'repost-via-repost') {
+  } else if (item.type === 'renote-via-renote') {
     a11yLabel = hasMultipleAuthors
       ? _(
           msg`${firstAuthorName} and ${plural(additionalAuthorsCount, {
             one: `${formattedAuthorsCount} other`,
             other: `${formattedAuthorsCount} others`,
-          })} reposted your repost`,
+          })} renoteed your renote`,
         )
-      : _(msg`${firstAuthorName} reposted your repost`)
+      : _(msg`${firstAuthorName} renoteed your renote`)
     notificationContent = hasMultipleAuthors ? (
       <Trans>
         {firstAuthorLink} and{' '}
@@ -514,17 +514,17 @@ let NotificationFeedItem = ({
             other={`${formattedAuthorsCount} others`}
           />
         </Text>{' '}
-        reposted your repost
+        renoteed your renote
       </Trans>
     ) : (
-      <Trans>{firstAuthorLink} reposted your repost</Trans>
+      <Trans>{firstAuthorLink} renoteed your renote</Trans>
     )
-    icon = <RepostIcon size="xl" style={{color: t.palette.positive_600}} />
-  } else if (item.type === 'subscribed-post') {
-    const postsCount = 1 + (item.additional?.length || 0)
+    icon = <RenoteIcon size="xl" style={{color: t.palette.positive_600}} />
+  } else if (item.type === 'subscribed-note') {
+    const notesCount = 1 + (item.additional?.length || 0)
     a11yLabel = hasMultipleAuthors
       ? _(
-          msg`New posts from ${firstAuthorName} and ${plural(
+          msg`New notes from ${firstAuthorName} and ${plural(
             additionalAuthorsCount,
             {
               one: `${formattedAuthorsCount} other`,
@@ -533,14 +533,14 @@ let NotificationFeedItem = ({
           )}`,
         )
       : _(
-          msg`New ${plural(postsCount, {
-            one: 'post',
-            other: 'posts',
+          msg`New ${plural(notesCount, {
+            one: 'note',
+            other: 'notes',
           })} from ${firstAuthorName}`,
         )
     notificationContent = hasMultipleAuthors ? (
       <Trans>
-        New posts from {firstAuthorLink} and{' '}
+        New notes from {firstAuthorLink} and{' '}
         <Text style={[a.text_md, a.font_bold, a.leading_snug]}>
           <Plural
             value={additionalAuthorsCount}
@@ -551,7 +551,7 @@ let NotificationFeedItem = ({
       </Trans>
     ) : (
       <Trans>
-        New <Plural value={postsCount} one="post" other="posts" /> from{' '}
+        New <Plural value={notesCount} one="note" other="notes" /> from{' '}
         {firstAuthorLink}
       </Trans>
     )
@@ -564,7 +564,7 @@ let NotificationFeedItem = ({
   return (
     <Link
       label={a11yLabel}
-      testID={`feedItem-by-${item.notification.author.handle}`}
+      testID={`feedItem-by-${item.notification.author.username}`}
       style={[
         a.flex_row,
         a.align_start,
@@ -597,7 +597,7 @@ let NotificationFeedItem = ({
                 name: 'viewProfile',
                 label: _(
                   msg`View ${
-                    authors[0].profile.displayName || authors[0].profile.handle
+                    authors[0].profile.displayName || authors[0].profile.username
                   }'s profile`,
                 ),
               },
@@ -663,13 +663,13 @@ let NotificationFeedItem = ({
                 </TimeElapsed>
               </Text>
             </ExpandListPressable>
-            {item.type === 'post-like' ||
-            item.type === 'repost' ||
-            item.type === 'like-via-repost' ||
-            item.type === 'repost-via-repost' ||
-            item.type === 'subscribed-post' ? (
+            {item.type === 'note-like' ||
+            item.type === 'renote' ||
+            item.type === 'like-via-renote' ||
+            item.type === 'renote-via-renote' ||
+            item.type === 'subscribed-note' ? (
               <View style={[a.pt_2xs]}>
-                <AdditionalPostText post={item.subject} />
+                <AdditionalNoteText note={item.subject} />
               </View>
             ) : null}
             {item.type === 'feedgen-like' && item.subjectUri ? (
@@ -732,7 +732,7 @@ function ExpandListPressable({
   }
 }
 
-function SayHelloBtn({profile}: {profile: AppBskyActorDefs.ProfileView}) {
+function SayHelloBtn({profile}: {profile: SonetActorDefs.ProfileView}) {
   const {_} = useLingui()
   const agent = useAgent()
   const navigation = useNavigation<NavigationProp>()
@@ -759,7 +759,7 @@ function SayHelloBtn({profile}: {profile: AppBskyActorDefs.ProfileView}) {
           setIsLoading(true)
           const res = await agent.api.chat.bsky.convo.getConvoForMembers(
             {
-              members: [profile.did, agent.session!.did!],
+              members: [profile.userId, agent.session!.userId!],
             },
             {headers: DM_SERVICE_HEADERS},
           )
@@ -887,7 +887,7 @@ function ExpandedAuthorsList({
     <Animated.View style={[a.overflow_hidden, heightStyle]}>
       {visible &&
         authors.map(author => (
-          <ExpandedAuthorCard key={author.profile.did} author={author} />
+          <ExpandedAuthorCard key={author.profile.userId} author={author} />
         ))}
     </Animated.View>
   )
@@ -901,16 +901,16 @@ function ExpandedAuthorCard({author}: {author: Author}) {
   })
   return (
     <Link
-      key={author.profile.did}
-      label={author.profile.displayName || author.profile.handle}
+      key={author.profile.userId}
+      label={author.profile.displayName || author.profile.username}
       accessibilityHint={_(msg`Opens this profile`)}
       to={makeProfileLink({
-        did: author.profile.did,
-        handle: author.profile.handle,
+        userId: author.profile.userId,
+        username: author.profile.username,
       })}
       style={styles.expandedAuthor}>
       <View style={[a.mr_sm]}>
-        <ProfileHoverCard did={author.profile.did}>
+        <ProfileHoverCard userId={author.profile.userId}>
           <UserAvatar
             size={35}
             avatar={author.profile.avatar}
@@ -931,7 +931,7 @@ function ExpandedAuthorCard({author}: {author: Author}) {
               {maxWidth: '70%'},
             ]}>
             {sanitizeDisplayName(
-              author.profile.displayName || author.profile.handle,
+              author.profile.displayName || author.profile.username,
             )}
           </Text>
           {verification.showBadge && (
@@ -951,7 +951,7 @@ function ExpandedAuthorCard({author}: {author: Author}) {
               a.flex_shrink,
               t.atoms.text_contrast_medium,
             ]}>
-            {sanitizeHandle(author.profile.handle, '@')}
+            {sanitizeUsername(author.profile.username, '@')}
           </Text>
         </View>
       </View>
@@ -959,16 +959,16 @@ function ExpandedAuthorCard({author}: {author: Author}) {
   )
 }
 
-function AdditionalPostText({post}: {post?: AppBskyFeedDefs.PostView}) {
+function AdditionalNoteText({note}: {note?: SonetFeedDefs.NoteView}) {
   const t = useTheme()
   if (
-    post &&
-    bsky.dangerousIsType<AppBskyFeedPost.Record>(
-      post?.record,
-      AppBskyFeedPost.isRecord,
+    note &&
+    bsky.dangerousIsType<SonetFeedNote.Record>(
+      note?.record,
+      SonetFeedNote.isRecord,
     )
   ) {
-    const text = post.record.text
+    const text = note.record.text
 
     return (
       <>
@@ -981,8 +981,8 @@ function AdditionalPostText({post}: {post?: AppBskyFeedDefs.PostView}) {
           </Text>
         )}
         <MediaPreview.Embed
-          embed={post.embed}
-          style={styles.additionalPostImages}
+          embed={note.embed}
+          style={styles.additionalNoteImages}
         />
       </>
     )
@@ -999,7 +999,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
     marginTop: 4,
   },
-  additionalPostImages: {
+  additionalNoteImages: {
     marginTop: 5,
     marginLeft: 2,
     opacity: 0.8,

@@ -1,11 +1,11 @@
-import {ComAtprotoServerDefs} from '@atproto/api'
+import {SonetServerDefs} from '@sonet/api'
 import {useQuery} from '@tanstack/react-query'
 
 import {cleanError} from '#/lib/strings/errors'
 import {STALE} from '#/state/queries'
 import {useAgent} from '#/state/session'
 
-function isInviteAvailable(invite: ComAtprotoServerDefs.InviteCode): boolean {
+function isInviteAvailable(invite: SonetServerDefs.InviteCode): boolean {
   return invite.available - invite.uses.length > 0 && !invite.disabled
 }
 
@@ -21,7 +21,7 @@ export function useInviteCodesQuery() {
     staleTime: STALE.MINUTES.FIVE,
     queryKey: [inviteCodesQueryKeyRoot],
     queryFn: async () => {
-      const res = await agent.com.atproto.server
+      const res = await agent.com.sonet.server
         .getAccountInviteCodes({})
         .catch(e => {
           if (cleanError(e) === 'Bad token scope') {

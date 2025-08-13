@@ -25,7 +25,7 @@ import {PencilLine_Stroke2_Corner2_Rounded as PencilIcon} from '#/components/ico
 import {ShieldCheck_Stroke2_Corner0_Rounded as ShieldIcon} from '#/components/icons/Shield'
 import {Trash_Stroke2_Corner2_Rounded} from '#/components/icons/Trash'
 import * as Layout from '#/components/Layout'
-import {ChangeHandleDialog} from './components/ChangeHandleDialog'
+import {ChangeUsernameDialog} from './components/ChangeUsernameDialog'
 import {DeactivateAccountDialog} from './components/DeactivateAccountDialog'
 import {ExportCarDialog} from './components/ExportCarDialog'
 
@@ -38,7 +38,7 @@ export function AccountSettingsScreen({}: Props) {
   const {openModal} = useModalControls()
   const emailDialogControl = useEmailDialogControl()
   const birthdayControl = useDialogControl()
-  const changeHandleControl = useDialogControl()
+  const changeUsernameControl = useDialogControl()
   const exportCarControl = useDialogControl()
   const deactivateAccountControl = useDialogControl()
 
@@ -59,7 +59,7 @@ export function AccountSettingsScreen({}: Props) {
             <SettingsList.ItemIcon icon={EnvelopeIcon} />
             {/* Tricky flexbox situation here: we want the email to truncate, but by default it will make the "Email" text wrap instead.
                 For numberOfLines to work, we need flex: 1 on the BadgeText, but that means it goes to width: 50% because the
-                ItemText is also flex: 1. So we need to set flex: 0 on the ItemText to prevent it from growing, but if we did that everywhere
+                ItemText is also flex: 1. So we need to set flex: 0 on the ItemText to prevent it from growing, but if we userId that everywhere
                 it wouldn't push the BadgeText/Chevron/whatever to the right.
                 TODO: find a general solution for this. workaround in this case is to set the ItemText to flex: 1 and BadgeText to flex: 0 -sfn */}
             <SettingsList.ItemText style={[a.flex_0]}>
@@ -128,12 +128,12 @@ export function AccountSettingsScreen({}: Props) {
           </SettingsList.PressableItem>
           {!sonetSession.hasSession && (
             <SettingsList.PressableItem
-              label={_(msg`Handle`)}
-              accessibilityHint={_(msg`Opens change handle dialog`)}
-              onPress={() => changeHandleControl.open()}>
+              label={_(msg`Username`)}
+              accessibilityHint={_(msg`Opens change username dialog`)}
+              onPress={() => changeUsernameControl.open()}>
               <SettingsList.ItemIcon icon={AtIcon} />
               <SettingsList.ItemText>
-                <Trans>Handle</Trans>
+                <Trans>Username</Trans>
               </SettingsList.ItemText>
               <SettingsList.Chevron />
             </SettingsList.PressableItem>
@@ -185,7 +185,7 @@ export function AccountSettingsScreen({}: Props) {
       </Layout.Content>
 
       <BirthDateSettingsDialog control={birthdayControl} />
-      {!sonetSession.hasSession && <ChangeHandleDialog control={changeHandleControl} />}
+      {!sonetSession.hasSession && <ChangeUsernameDialog control={changeUsernameControl} />}
       {!sonetSession.hasSession && <ExportCarDialog control={exportCarControl} />}
       <DeactivateAccountDialog control={deactivateAccountControl} />
     </Layout.Screen>

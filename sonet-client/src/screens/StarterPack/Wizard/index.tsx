@@ -4,12 +4,12 @@ import {KeyboardAwareScrollView} from 'react-native-keyboard-controller'
 import {useSafeAreaInsets} from 'react-native-safe-area-context'
 import {Image} from 'expo-image'
 import {
-  type AppBskyActorDefs,
-  type AppBskyGraphDefs,
+  type SonetActorDefs,
+  type SonetGraphDefs,
   AtUri,
   type ModerationOpts,
-} from '@atproto/api'
-import {type GeneratorView} from '@atproto/api/dist/client/types/app/bsky/feed/defs'
+} from '@sonet/api'
+import {type GeneratorView} from '@sonet/api/dist/client/types/app/bsky/feed/defs'
 import {msg, Plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useFocusEffect, useNavigation} from '@react-navigation/native'
@@ -24,7 +24,7 @@ import {
 } from '#/lib/routes/types'
 import {logEvent} from '#/lib/statsig/statsig'
 import {sanitizeDisplayName} from '#/lib/strings/display-names'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {enforceLen} from '#/lib/strings/helpers'
 import {
   getStarterPackOgCard,
@@ -78,7 +78,7 @@ export function Wizard({
     data: starterPack,
     isLoading: isLoadingStarterPack,
     isError: isErrorStarterPack,
-  } = useStarterPackQuery({did: currentAccount!.did, rkey})
+  } = useStarterPackQuery({userId: currentAccount!.userId, rkey})
   const listUri = starterPack?.list?.uri
 
   const {
@@ -91,7 +91,7 @@ export function Wizard({
     data: profile,
     isLoading: isLoadingProfile,
     isError: isErrorProfile,
-  } = useProfileQuery({did: currentAccount?.did})
+  } = useProfileQuery({userId: currentAccount?.userId})
 
   const isEdit = Boolean(rkey)
   const isReady =
@@ -111,7 +111,7 @@ export function Wizard({
         />
       </Layout.Screen>
     )
-  } else if (isEdit && starterPack?.creator.did !== currentAccount?.did) {
+  } else if (isEdit && starterPack?.creator.userId !== currentAccount?.userId) {
     return (
       <Layout.Screen>
         <ListMaybePlaceholder
@@ -145,9 +145,9 @@ function WizardInner({
   profile,
   moderationOpts,
 }: {
-  currentStarterPack?: AppBskyGraphDefs.StarterPackView
-  currentListItems?: AppBskyGraphDefs.ListItemView[]
-  profile: AppBskyActorDefs.ProfileViewDetailed
+  currentStarterPack?: SonetGraphDefs.StarterPackView
+  currentListItems?: SonetGraphDefs.ListItemView[]
+  profile: SonetActorDefs.ProfileViewDetailed
   moderationOpts: ModerationOpts
 }) {
   const navigation = useNavigation<NavigationProp>()
@@ -156,7 +156,7 @@ function WizardInner({
   const [state, dispatch] = useWizardState()
   const {currentAccount} = useSession()
   const {data: currentProfile} = useProfileQuery({
-    did: currentAccount?.did,
+    userId: currentAccount?.userId,
     staleTime: 0,
   })
   const parsed = parseStarterPackUri(currentStarterPack?.uri)
@@ -211,10 +211,10 @@ function WizardInner({
       profilesCount: state.profiles.length,
       feedsCount: state.feeds.length,
     })
-    Image.prefetch([getStarterPackOgCard(currentProfile!.did, rkey)])
+    Image.prefetch([getStarterPackOgCard(currentProfile!.userId, rkey)])
     dispatch({type: 'SetProcessing', processing: false})
     navigation.replace('StarterPack', {
-      name: currentAccount!.handle,
+      name: currentAccount!.username,
       rkey,
       new: true,
     })
@@ -225,7 +225,7 @@ function WizardInner({
       navigation.goBack()
     } else {
       navigation.replace('StarterPack', {
-        name: currentAccount!.handle,
+        name: currentAccount!.username,
         rkey: parsed!.rkey,
       })
     }
@@ -368,7 +368,7 @@ function Container({children}: {children: React.ReactNode}) {
   return (
     <KeyboardAwareScrollView
       style={[a.flex_1]}
-      keyboardShouldPersistTaps="handled">
+      keyboardShouldPersistTaps="usernamed">
       {children}
       {state.currentStep === 'Details' && (
         <>
@@ -396,7 +396,7 @@ function Footer({
 }: {
   onNext: () => void
   nextBtnText: string
-  profile: AppBskyActorDefs.ProfileViewDetailed
+  profile: SonetActorDefs.ProfileViewDetailed
 }) {
   const t = useTheme()
   const [state] = useWizardState()
@@ -594,8 +594,8 @@ function Footer({
 function getName(item: bsky.profile.AnyProfileView | GeneratorView) {
   if (typeof item.displayName === 'string') {
     return enforceLen(sanitizeDisplayName(item.displayName), 28, true)
-  } else if ('handle' in item && typeof item.handle === 'string') {
-    return enforceLen(sanitizeHandle(item.handle), 28, true)
+  } else if ('username' in item && typeof item.username === 'string') {
+    return enforceLen(sanitizeUsername(item.username), 28, true)
   }
   return ''
 }

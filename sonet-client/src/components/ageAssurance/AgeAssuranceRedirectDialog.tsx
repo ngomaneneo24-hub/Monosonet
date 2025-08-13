@@ -68,7 +68,7 @@ export function AgeAssuranceRedirectDialog() {
 
   return (
     <Dialog.Outer control={control.control} onClose={() => control.clear()}>
-      <Dialog.Handle />
+      <Dialog.Username />
 
       <Dialog.ScrollableInner
         label={_(msg`Verifying your age assurance status`)}
@@ -106,11 +106,11 @@ export function Inner({}: {optimisticState?: AgeAssuranceRedirectDialogState}) {
           if (!agent.session) return
           if (unmounted.current) return
 
-          const {data} = await agent.app.bsky.unspecced.getAgeAssuranceState()
+          const {data} = await agent.app.sonet.unspecced.getAgeAssuranceState()
 
           if (data.status !== 'assured') {
             throw new Error(
-              `Polling for age assurance state did not receive assured status`,
+              `Polling for age assurance state userId not receive assured status`,
             )
           }
 

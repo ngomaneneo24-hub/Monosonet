@@ -1,5 +1,5 @@
 import {View} from 'react-native'
-import {type AppBskyActorDefs} from '@atproto/api'
+import {type SonetActorDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -35,7 +35,7 @@ export function VerificationsDialog({
 }) {
   return (
     <Dialog.Outer control={control}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <Inner
         control={control}
         profile={profile}
@@ -177,7 +177,7 @@ function VerifierCard({
   subject,
   outerDialogControl,
 }: {
-  verification: AppBskyActorDefs.VerificationView
+  verification: SonetActorDefs.VerificationView
   subject: bsky.profile.AnyProfileView
   outerDialogControl: Dialog.DialogControlProps
 }) {
@@ -185,9 +185,9 @@ function VerifierCard({
   const {_, i18n} = useLingui()
   const {currentAccount} = useSession()
   const moderationOpts = useModerationOpts()
-  const {data: profile, error} = useProfileQuery({did: verification.issuer})
+  const {data: profile, error} = useProfileQuery({userId: verification.issuer})
   const verificationRemovePromptControl = useDialogControl()
-  const canAdminister = verification.issuer === currentAccount?.did
+  const canAdminister = verification.issuer === currentAccount?.userId
 
   return (
     <View
@@ -260,7 +260,7 @@ function VerifierCard({
           ) : (
             <>
               <ProfileCard.AvatarPlaceholder />
-              <ProfileCard.NameAndHandlePlaceholder />
+              <ProfileCard.NameAndUsernamePlaceholder />
             </>
           )}
         </ProfileCard.Header>

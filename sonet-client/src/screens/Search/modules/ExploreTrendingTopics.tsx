@@ -1,6 +1,6 @@
 import {useMemo} from 'react'
 import {Pressable, View} from 'react-native'
-import {type AppBskyUnspeccedDefs, moderateProfile} from '@atproto/api'
+import {type SonetUnspeccedDefs, moderateProfile} from '@sonet/api'
 import {msg, plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -34,7 +34,7 @@ function Inner() {
 
   return isLoading || isRefetching ? (
     Array.from({length: TOPIC_COUNT}).map((__, i) => (
-      <TrendingTopicRowSkeleton key={i} withPosts={i === 0} />
+      <TrendingTopicRowSkeleton key={i} withNotes={i === 0} />
     ))
   ) : error || !trending?.trends || noTopics ? null : (
     <>
@@ -62,7 +62,7 @@ export function TrendRow({
   children,
   onPress,
 }: ViewStyleProp & {
-  trend: AppBskyUnspeccedDefs.TrendView
+  trend: SonetUnspeccedDefs.TrendView
   rank: number
   children?: React.ReactNode
   onPress?: () => void
@@ -77,10 +77,10 @@ export function TrendRow({
       (1000 * 60 * 60),
   )
   const badgeType = trend.status === 'hot' ? 'hot' : age < 2 ? 'new' : age
-  const postCount = trend.postCount
+  const noteCount = trend.noteCount
     ? _(
-        plural(trend.postCount, {
-          other: `${formatCount(i18n, trend.postCount)} posts`,
+        plural(trend.noteCount, {
+          other: `${formatCount(i18n, trend.noteCount)} notes`,
         }),
       )
     : null
@@ -135,8 +135,8 @@ export function TrendRow({
                     web(a.leading_snug),
                   ]}
                   numberOfLines={1}>
-                  {postCount}
-                  {postCount && category && <> &middot; </>}
+                  {noteCount}
+                  {noteCount && category && <> &middot; </>}
                   {category}
                 </Text>
               </View>
@@ -224,7 +224,7 @@ function TrendingIndicator({type}: {type: TrendingIndicatorType | 'skeleton'}) {
 }
 
 function useCategoryDisplayName(
-  category: AppBskyUnspeccedDefs.TrendView['category'],
+  category: SonetUnspeccedDefs.TrendView['category'],
 ) {
   const {_} = useLingui()
 
@@ -245,7 +245,7 @@ function useCategoryDisplayName(
   }
 }
 
-export function TrendingTopicRowSkeleton({}: {withPosts: boolean}) {
+export function TrendingTopicRowSkeleton({}: {withNotes: boolean}) {
   const t = useTheme()
   const gutters = useGutters([0, 'base'])
 
@@ -285,7 +285,7 @@ export function TrendingTopicRowSkeleton({}: {withPosts: boolean}) {
 }
 
 function useModerateTrendingActors(
-  actors: AppBskyUnspeccedDefs.TrendView['actors'],
+  actors: SonetUnspeccedDefs.TrendView['actors'],
 ) {
   const moderationOpts = useModerationOpts()
 

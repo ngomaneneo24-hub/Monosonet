@@ -39,10 +39,10 @@ function DeactivateAccountDialogInner({
   const [pending, setPending] = React.useState(false)
   const [error, setError] = React.useState<string | undefined>()
 
-  const handleDeactivate = React.useCallback(async () => {
+  const usernameDeactivate = React.useCallback(async () => {
     try {
       setPending(true)
-      await agent.com.atproto.server.deactivateAccount({})
+      await agent.com.sonet.server.deactivateAccount({})
       control.close(() => {
         logoutCurrentAccount('Deactivated')
       })
@@ -73,7 +73,7 @@ function DeactivateAccountDialogInner({
       <Prompt.TitleText>{_(msg`Deactivate account`)}</Prompt.TitleText>
       <Prompt.DescriptionText>
         <Trans>
-          Your profile, posts, feeds, and lists will no longer be visible to
+          Your profile, notes, feeds, and lists will no longer be visible to
           other Bluesky users. You can reactivate your account at any time by
           logging in.
         </Trans>
@@ -90,7 +90,7 @@ function DeactivateAccountDialogInner({
           </Text>
           <Text style={[t.atoms.text_contrast_medium, a.leading_snug]}>
             <Trans>
-              If you're trying to change your handle or email, do so before you
+              If you're trying to change your username or email, do so before you
               deactivate.
             </Trans>
           </Text>
@@ -104,7 +104,7 @@ function DeactivateAccountDialogInner({
           color="negative"
           size={gtMobile ? 'small' : 'large'}
           label={_(msg`Yes, deactivate`)}
-          onPress={handleDeactivate}>
+          onPress={usernameDeactivate}>
           <ButtonText>{_(msg`Yes, deactivate`)}</ButtonText>
           {pending && <ButtonIcon icon={Loader} position="right" />}
         </Button>

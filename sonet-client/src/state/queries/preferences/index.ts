@@ -1,9 +1,9 @@
 import {useCallback} from 'react'
 import {
-  type AppBskyActorDefs,
+  type SonetActorDefs,
   type BskyFeedViewPreference,
   type LabelPreference,
-} from '@atproto/api'
+} from '@sonet/api'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 
 import {PROD_DEFAULT_FEED} from '#/lib/constants'
@@ -42,15 +42,15 @@ export function usePreferencesQuery() {
     refetchOnWindowFocus: true,
     queryKey: preferencesQueryKey,
     queryFn: async () => {
-      if (!agent.did) {
+      if (!agent.userId) {
         return DEFAULT_LOGGED_OUT_PREFERENCES
       } else {
         const res = await agent.getPreferences()
 
         // save to local storage to ensure there are labels on initial requests
         saveLabelers(
-          agent.did,
-          res.moderationPrefs.labelers.map(l => l.did),
+          agent.userId,
+          res.moderationPrefs.labelers.map(l => l.userId),
         )
 
         const preferences: UsePreferencesQueryResponse = {
@@ -97,7 +97,7 @@ export function useClearPreferencesMutation() {
 
   return useMutation({
     mutationFn: async () => {
-      await agent.app.bsky.actor.putPreferences({preferences: []})
+      await agent.app.sonet.actor.putPreferences({preferences: []})
       // triggers a refetch
       await queryClient.invalidateQueries({
         queryKey: preferencesQueryKey,
@@ -221,7 +221,7 @@ export function useOverwriteSavedFeedsMutation() {
   const queryClient = useQueryClient()
   const agent = useAgent()
 
-  return useMutation<void, unknown, AppBskyActorDefs.SavedFeed[]>({
+  return useMutation<void, unknown, SonetActorDefs.SavedFeed[]>({
     mutationFn: async savedFeeds => {
       await agent.overwriteSavedFeeds(savedFeeds)
       // triggers a refetch
@@ -239,7 +239,7 @@ export function useAddSavedFeedsMutation() {
   return useMutation<
     void,
     unknown,
-    Pick<AppBskyActorDefs.SavedFeed, 'type' | 'value' | 'pinned'>[]
+    Pick<SonetActorDefs.SavedFeed, 'type' | 'value' | 'pinned'>[]
   >({
     mutationFn: async savedFeeds => {
       await agent.addSavedFeeds(savedFeeds)
@@ -255,7 +255,7 @@ export function useRemoveFeedMutation() {
   const queryClient = useQueryClient()
   const agent = useAgent()
 
-  return useMutation<void, unknown, Pick<AppBskyActorDefs.SavedFeed, 'id'>>({
+  return useMutation<void, unknown, Pick<SonetActorDefs.SavedFeed, 'id'>>({
     mutationFn: async savedFeed => {
       await agent.removeSavedFeeds([savedFeed.id])
       // triggers a refetch
@@ -275,8 +275,8 @@ export function useReplaceForYouWithDiscoverFeedMutation() {
       forYouFeedConfig,
       discoverFeedConfig,
     }: {
-      forYouFeedConfig: AppBskyActorDefs.SavedFeed | undefined
-      discoverFeedConfig: AppBskyActorDefs.SavedFeed | undefined
+      forYouFeedConfig: SonetActorDefs.SavedFeed | undefined
+      discoverFeedConfig: SonetActorDefs.SavedFeed | undefined
     }) => {
       if (forYouFeedConfig) {
         await agent.removeSavedFeeds([forYouFeedConfig.id])
@@ -309,7 +309,7 @@ export function useUpdateSavedFeedsMutation() {
   const queryClient = useQueryClient()
   const agent = useAgent()
 
-  return useMutation<void, unknown, AppBskyActorDefs.SavedFeed[]>({
+  return useMutation<void, unknown, SonetActorDefs.SavedFeed[]>({
     mutationFn: async feeds => {
       await agent.updateSavedFeeds(feeds)
 
@@ -326,7 +326,7 @@ export function useUpsertMutedWordsMutation() {
   const agent = useAgent()
 
   return useMutation({
-    mutationFn: async (mutedWords: AppBskyActorDefs.MutedWord[]) => {
+    mutationFn: async (mutedWords: SonetActorDefs.MutedWord[]) => {
       await agent.upsertMutedWords(mutedWords)
       // triggers a refetch
       await queryClient.invalidateQueries({
@@ -341,7 +341,7 @@ export function useUpdateMutedWordMutation() {
   const agent = useAgent()
 
   return useMutation({
-    mutationFn: async (mutedWord: AppBskyActorDefs.MutedWord) => {
+    mutationFn: async (mutedWord: SonetActorDefs.MutedWord) => {
       await agent.updateMutedWord(mutedWord)
       // triggers a refetch
       await queryClient.invalidateQueries({
@@ -356,7 +356,7 @@ export function useRemoveMutedWordMutation() {
   const agent = useAgent()
 
   return useMutation({
-    mutationFn: async (mutedWord: AppBskyActorDefs.MutedWord) => {
+    mutationFn: async (mutedWord: SonetActorDefs.MutedWord) => {
       await agent.removeMutedWord(mutedWord)
       // triggers a refetch
       await queryClient.invalidateQueries({
@@ -371,7 +371,7 @@ export function useRemoveMutedWordsMutation() {
   const agent = useAgent()
 
   return useMutation({
-    mutationFn: async (mutedWords: AppBskyActorDefs.MutedWord[]) => {
+    mutationFn: async (mutedWords: SonetActorDefs.MutedWord[]) => {
       await agent.removeMutedWords(mutedWords)
       // triggers a refetch
       await queryClient.invalidateQueries({
@@ -417,7 +417,7 @@ export function useSetActiveProgressGuideMutation() {
 
   return useMutation({
     mutationFn: async (
-      guide: AppBskyActorDefs.BskyAppProgressGuide | undefined,
+      guide: SonetActorDefs.BskyAppProgressGuide | undefined,
     ) => {
       await agent.bskyAppSetActiveProgressGuide(guide)
       // triggers a refetch
@@ -432,7 +432,7 @@ export function useSetVerificationPrefsMutation() {
   const queryClient = useQueryClient()
   const agent = useAgent()
 
-  return useMutation<void, unknown, AppBskyActorDefs.VerificationPrefs>({
+  return useMutation<void, unknown, SonetActorDefs.VerificationPrefs>({
     mutationFn: async prefs => {
       await agent.setVerificationPrefs(prefs)
       if (prefs.hideBadges) {

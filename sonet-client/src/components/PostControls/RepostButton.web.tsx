@@ -7,27 +7,27 @@ import {EventStopper} from '#/view/com/util/EventStopper'
 import {formatCount} from '#/view/com/util/numeric/format'
 import {useTheme} from '#/alf'
 import {CloseQuote_Stroke2_Corner1_Rounded as Quote} from '#/components/icons/Quote'
-import {Repost_Stroke2_Corner2_Rounded as Repost} from '#/components/icons/Repost'
+import {Renote_Stroke2_Corner2_Rounded as Renote} from '#/components/icons/Renote'
 import * as Menu from '#/components/Menu'
 import {
-  PostControlButton,
-  PostControlButtonIcon,
-  PostControlButtonText,
-} from './PostControlButton'
+  NoteControlButton,
+  NoteControlButtonIcon,
+  NoteControlButtonText,
+} from './NoteControlButton'
 
 interface Props {
-  isReposted: boolean
-  repostCount?: number
-  onRepost: () => void
+  isRenoteed: boolean
+  renoteCount?: number
+  onRenote: () => void
   onQuote: () => void
   big?: boolean
   embeddingDisabled: boolean
 }
 
-export const RepostButton = ({
-  isReposted,
-  repostCount,
-  onRepost,
+export const RenoteButton = ({
+  isRenoteed,
+  renoteCount,
+  onRenote,
   onQuote,
   big,
   embeddingDisabled,
@@ -40,55 +40,55 @@ export const RepostButton = ({
   return hasSession ? (
     <EventStopper onKeyDown={false}>
       <Menu.Root>
-        <Menu.Trigger label={_(msg`Repost or quote post`)}>
+        <Menu.Trigger label={_(msg`Renote or quote note`)}>
           {({props}) => {
             return (
-              <PostControlButton
-                testID="repostBtn"
-                active={isReposted}
+              <NoteControlButton
+                testID="renoteBtn"
+                active={isRenoteed}
                 activeColor={t.palette.positive_600}
                 label={props.accessibilityLabel}
                 big={big}
                 {...props}>
-                <PostControlButtonIcon icon={Repost} />
-                {typeof repostCount !== 'undefined' && repostCount > 0 && (
-                  <PostControlButtonText testID="repostCount">
-                    {formatCount(i18n, repostCount)}
-                  </PostControlButtonText>
+                <NoteControlButtonIcon icon={Renote} />
+                {typeof renoteCount !== 'undefined' && renoteCount > 0 && (
+                  <NoteControlButtonText testID="renoteCount">
+                    {formatCount(i18n, renoteCount)}
+                  </NoteControlButtonText>
                 )}
-              </PostControlButton>
+              </NoteControlButton>
             )
           }}
         </Menu.Trigger>
         <Menu.Outer style={{minWidth: 170}}>
           <Menu.Item
             label={
-              isReposted
-                ? _(msg`Undo repost`)
-                : _(msg({message: `Repost`, context: `action`}))
+              isRenoteed
+                ? _(msg`Undo renote`)
+                : _(msg({message: `Renote`, context: `action`}))
             }
-            testID="repostDropdownRepostBtn"
-            onPress={onRepost}>
+            testID="renoteDropdownRenoteBtn"
+            onPress={onRenote}>
             <Menu.ItemText>
-              {isReposted
-                ? _(msg`Undo repost`)
-                : _(msg({message: `Repost`, context: `action`}))}
+              {isRenoteed
+                ? _(msg`Undo renote`)
+                : _(msg({message: `Renote`, context: `action`}))}
             </Menu.ItemText>
-            <Menu.ItemIcon icon={Repost} position="right" />
+            <Menu.ItemIcon icon={Renote} position="right" />
           </Menu.Item>
           <Menu.Item
             disabled={embeddingDisabled}
             label={
               embeddingDisabled
-                ? _(msg`Quote posts disabled`)
-                : _(msg`Quote post`)
+                ? _(msg`Quote notes disabled`)
+                : _(msg`Quote note`)
             }
-            testID="repostDropdownQuoteBtn"
+            testID="renoteDropdownQuoteBtn"
             onPress={onQuote}>
             <Menu.ItemText>
               {embeddingDisabled
-                ? _(msg`Quote posts disabled`)
-                : _(msg`Quote post`)}
+                ? _(msg`Quote notes disabled`)
+                : _(msg`Quote note`)}
             </Menu.ItemText>
             <Menu.ItemIcon icon={Quote} position="right" />
           </Menu.Item>
@@ -96,18 +96,18 @@ export const RepostButton = ({
       </Menu.Root>
     </EventStopper>
   ) : (
-    <PostControlButton
+    <NoteControlButton
       onPress={() => requireAuth(() => {})}
-      active={isReposted}
+      active={isRenoteed}
       activeColor={t.palette.positive_600}
-      label={_(msg`Repost or quote post`)}
+      label={_(msg`Renote or quote note`)}
       big={big}>
-      <PostControlButtonIcon icon={Repost} />
-      {typeof repostCount !== 'undefined' && repostCount > 0 && (
-        <PostControlButtonText testID="repostCount">
-          {formatCount(i18n, repostCount)}
-        </PostControlButtonText>
+      <NoteControlButtonIcon icon={Renote} />
+      {typeof renoteCount !== 'undefined' && renoteCount > 0 && (
+        <NoteControlButtonText testID="renoteCount">
+          {formatCount(i18n, renoteCount)}
+        </NoteControlButtonText>
       )}
-    </PostControlButton>
+    </NoteControlButton>
   )
 }

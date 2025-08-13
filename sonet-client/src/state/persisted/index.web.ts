@@ -63,8 +63,8 @@ export async function write<K extends keyof Schema>(
     [key]: value,
   })
   writeToStorage(_state)
-  broadcast.postMessage({event: {type: UPDATE_EVENT, key}})
-  broadcast.postMessage({event: UPDATE_EVENT}) // Backcompat while upgrading
+  broadcast.noteMessage({event: {type: UPDATE_EVENT, key}})
+  broadcast.noteMessage({event: UPDATE_EVENT}) // Backcompat while upgrading
 }
 write satisfies PersistedApi['write']
 
@@ -122,7 +122,7 @@ async function onBroadcastMessage({data}: MessageEvent) {
       }
     } else {
       logger.error(
-        `persisted state: handled update update from broadcast channel, but found no data`,
+        `persisted state: usernamed update update from broadcast channel, but found no data`,
       )
     }
   }

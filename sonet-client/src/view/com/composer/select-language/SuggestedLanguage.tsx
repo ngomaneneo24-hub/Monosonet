@@ -6,7 +6,7 @@ import lande from 'lande'
 
 import {code3ToCode2Strict, codeToLanguageName} from '#/locale/helpers'
 import {
-  toPostLanguages,
+  toNoteLanguages,
   useLanguagePrefs,
   useLanguagePrefsApi,
 } from '#/state/preferences/languages'
@@ -31,7 +31,7 @@ export function SuggestedLanguage({text}: {text: string}) {
   useEffect(() => {
     const textTrimmed = text.trim()
 
-    // Don't run the language model on small posts, the results are likely
+    // Don't run the language model on small notes, the results are likely
     // to be inaccurate anyway.
     if (textTrimmed.length < 40) {
       setSuggestedLanguage(undefined)
@@ -47,7 +47,7 @@ export function SuggestedLanguage({text}: {text: string}) {
 
   if (
     suggestedLanguage &&
-    !toPostLanguages(langPrefs.postLanguage).includes(suggestedLanguage)
+    !toNoteLanguages(langPrefs.noteLanguage).includes(suggestedLanguage)
   ) {
     const suggestedLanguageName = codeToLanguageName(
       suggestedLanguage,
@@ -81,8 +81,8 @@ export function SuggestedLanguage({text}: {text: string}) {
           color="secondary"
           size="small"
           variant="solid"
-          onPress={() => setLangPrefs.setPostLanguage(suggestedLanguage)}
-          label={_(msg`Change post language to ${suggestedLanguageName}`)}>
+          onPress={() => setLangPrefs.setNoteLanguage(suggestedLanguage)}
+          label={_(msg`Change note language to ${suggestedLanguageName}`)}>
           <ButtonText>
             <Trans>Yes</Trans>
           </ButtonText>

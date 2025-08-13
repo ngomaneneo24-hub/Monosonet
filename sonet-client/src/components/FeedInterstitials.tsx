@@ -1,7 +1,7 @@
 import React from 'react'
 import {View} from 'react-native'
-import {ScrollView} from 'react-native-gesture-handler'
-import {type AppBskyFeedDefs, AtUri} from '@atproto/api'
+import {ScrollView} from 'react-native-gesture-usernamer'
+import {type SonetFeedDefs, AtUri} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
@@ -11,12 +11,12 @@ import {logEvent} from '#/lib/statsig/statsig'
 import {logger} from '#/logger'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
 import {useGetPopularFeedsQuery} from '#/state/queries/feed'
-import {type FeedDescriptor} from '#/state/queries/post-feed'
+import {type FeedDescriptor} from '#/state/queries/note-feed'
 import {useProfilesQuery} from '#/state/queries/profile'
 import {useSuggestedFollowsByActorQuery} from '#/state/queries/suggested-follows'
 import {useSession} from '#/state/session'
 import * as userActionHistory from '#/state/userActionHistory'
-import {type SeenPost} from '#/state/userActionHistory'
+import {type SeenNote} from '#/state/userActionHistory'
 import {BlockDrawerGesture} from '#/view/shell/BlockDrawerGesture'
 import {
   atoms as a,
@@ -107,38 +107,38 @@ export function SuggestedFeedsCardPlaceholder() {
   )
 }
 
-function getRank(seenPost: SeenPost): string {
+function getRank(seenNote: SeenNote): string {
   let tier: string
-  if (seenPost.feedContext === 'popfriends') {
+  if (seenNote.feedContext === 'popfriends') {
     tier = 'a'
-  } else if (seenPost.feedContext?.startsWith('cluster')) {
+  } else if (seenNote.feedContext?.startsWith('cluster')) {
     tier = 'b'
-  } else if (seenPost.feedContext === 'popcluster') {
+  } else if (seenNote.feedContext === 'popcluster') {
     tier = 'c'
-  } else if (seenPost.feedContext?.startsWith('ntpc')) {
+  } else if (seenNote.feedContext?.startsWith('ntpc')) {
     tier = 'd'
-  } else if (seenPost.feedContext?.startsWith('t-')) {
+  } else if (seenNote.feedContext?.startsWith('t-')) {
     tier = 'e'
-  } else if (seenPost.feedContext === 'nettop') {
+  } else if (seenNote.feedContext === 'nettop') {
     tier = 'f'
   } else {
     tier = 'g'
   }
   let score = Math.round(
     Math.log(
-      1 + seenPost.likeCount + seenPost.repostCount + seenPost.replyCount,
+      1 + seenNote.likeCount + seenNote.renoteCount + seenNote.replyCount,
     ),
   )
-  if (seenPost.isFollowedBy || Math.random() > 0.9) {
+  if (seenNote.isFollowedBy || Math.random() > 0.9) {
     score *= 2
   }
   const rank = 100 - score
   return `${tier}-${rank}`
 }
 
-function sortSeenPosts(postA: SeenPost, postB: SeenPost): 0 | 1 | -1 {
-  const rankA = getRank(postA)
-  const rankB = getRank(postB)
+function sortSeenNotes(noteA: SeenNote, noteB: SeenNote): 0 | 1 | -1 {
+  const rankA = getRank(noteA)
+  const rankB = getRank(noteB)
   // Yes, we're comparing strings here.
   // The "larger" string means a worse rank.
   if (rankA > rankB) {
@@ -153,12 +153,12 @@ function sortSeenPosts(postA: SeenPost, postB: SeenPost): 0 | 1 | -1 {
 function useExperimentalSuggestedUsersQuery() {
   const {currentAccount} = useSession()
   const userActionSnapshot = userActionHistory.useActionHistorySnapshot()
-  const dids = React.useMemo(() => {
+  const userIds = React.useMemo(() => {
     const {likes, follows, followSuggestions, seen} = userActionSnapshot
     const likeDids = likes
       .map(l => new AtUri(l))
       .map(uri => uri.host)
-      .filter(did => !follows.includes(did))
+      .filter(userId => !follows.includes(userId))
     let suggestedDids: string[] = []
     if (followSuggestions.length > 0) {
       suggestedDids = [
@@ -170,15 +170,15 @@ function useExperimentalSuggestedUsersQuery() {
       ]
     }
     const seenDids = seen
-      .sort(sortSeenPosts)
+      .sort(sortSeenNotes)
       .map(l => new AtUri(l.uri))
       .map(uri => uri.host)
     return [...new Set([...suggestedDids, ...likeDids, ...seenDids])].filter(
-      did => did !== currentAccount?.did,
+      userId => userId !== currentAccount?.userId,
     )
   }, [userActionSnapshot, currentAccount])
   const {data, isLoading, error} = useProfilesQuery({
-    handles: dids.slice(0, 16),
+    usernames: userIds.slice(0, 16),
   })
 
   const profiles = data
@@ -198,23 +198,23 @@ export function SuggestedFollows({feed}: {feed: FeedDescriptor}) {
   const {currentAccount} = useSession()
   const [feedType, feedUriOrDid] = feed.split('|')
   if (feedType === 'author') {
-    if (currentAccount?.did === feedUriOrDid) {
+    if (currentAccount?.userId === feedUriOrDid) {
       return null
     } else {
-      return <SuggestedFollowsProfile did={feedUriOrDid} />
+      return <SuggestedFollowsProfile userId={feedUriOrDid} />
     }
   } else {
     return <SuggestedFollowsHome />
   }
 }
 
-export function SuggestedFollowsProfile({did}: {did: string}) {
+export function SuggestedFollowsProfile({userId}: {userId: string}) {
   const {
     isLoading: isSuggestionsLoading,
     data,
     error,
   } = useSuggestedFollowsByActorQuery({
-    did,
+    userId,
   })
   return (
     <ProfileGrid
@@ -284,7 +284,7 @@ export function ProfileGrid({
     <>
       {profiles.slice(0, maxLength).map((profile, index) => (
         <ProfileCard.Link
-          key={profile.did}
+          key={profile.userId}
           profile={profile}
           onPress={() => {
             logEvent('suggestedUser:press', {
@@ -463,7 +463,7 @@ export function SuggestedFeeds() {
   const {gtMobile} = useBreakpoints()
 
   const feeds = React.useMemo(() => {
-    const items: AppBskyFeedDefs.GeneratorView[] = []
+    const items: SonetFeedDefs.GeneratorView[] = []
 
     if (!data) return items
 

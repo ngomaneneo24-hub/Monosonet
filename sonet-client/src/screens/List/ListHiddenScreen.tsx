@@ -1,12 +1,12 @@
 import React from 'react'
 import {View} from 'react-native'
-import {AppBskyGraphDefs} from '@atproto/api'
+import {SonetGraphDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
 
 import {useGoBack} from '#/lib/hooks/useGoBack'
-import {sanitizeHandle} from '#/lib/strings/handles'
+import {sanitizeUsername} from '#/lib/strings/usernames'
 import {logger} from '#/logger'
 import {RQKEY_ROOT as listQueryRoot} from '#/state/queries/list'
 import {useListBlockMutation, useListMuteMutation} from '#/state/queries/list'
@@ -28,18 +28,18 @@ export function ListHiddenScreen({
   list,
   preferences,
 }: {
-  list: AppBskyGraphDefs.ListView
+  list: SonetGraphDefs.ListView
   preferences: UsePreferencesQueryResponse
 }) {
   const {_} = useLingui()
   const t = useTheme()
   const {currentAccount} = useSession()
   const {gtMobile} = useBreakpoints()
-  const isOwner = currentAccount?.did === list.creator.did
+  const isOwner = currentAccount?.userId === list.creator.userId
   const goBack = useGoBack()
   const queryClient = useQueryClient()
 
-  const isModList = list.purpose === AppBskyGraphDefs.MODLIST
+  const isModList = list.purpose === SonetGraphDefs.MODLIST
 
   const [isProcessing, setIsProcessing] = React.useState(false)
   const listBlockMutation = useListBlockMutation()
@@ -151,7 +151,7 @@ export function ListHiddenScreen({
               <Trans>
                 This list – created by{' '}
                 <Text style={[a.font_bold]}>
-                  {sanitizeHandle(list.creator.handle, '@')}
+                  {sanitizeUsername(list.creator.username, '@')}
                 </Text>{' '}
                 – contains possible violations of Bluesky's community guidelines
                 in its name or description.

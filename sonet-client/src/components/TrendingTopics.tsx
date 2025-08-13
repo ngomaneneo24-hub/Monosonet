@@ -1,6 +1,6 @@
 import React from 'react'
 import {View} from 'react-native'
-import {AtUri} from '@atproto/api'
+import {AtUri} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -175,7 +175,7 @@ export function useTopic(raw: TrendingTopic): ParsedTrendingTopic {
     if (link.startsWith('/search')) {
       return {
         type: 'topic',
-        label: _(msg`Browse posts about ${displayName}`),
+        label: _(msg`Browse notes about ${displayName}`),
         displayName,
         uri: undefined,
         url: link,
@@ -183,7 +183,7 @@ export function useTopic(raw: TrendingTopic): ParsedTrendingTopic {
     } else if (link.startsWith('/hashtag')) {
       return {
         type: 'tag',
-        label: _(msg`Browse posts tagged with ${displayName}`),
+        label: _(msg`Browse notes tagged with ${displayName}`),
         displayName,
         // displayName: displayName.replace(/^#/, ''),
         uri: undefined,
@@ -200,21 +200,21 @@ export function useTopic(raw: TrendingTopic): ParsedTrendingTopic {
     }
 
     /*
-    if (!link.startsWith('at://')) {
+    if (!link.startsWith('sonet://')) {
       // above logic
     } else {
       const urip = new AtUri(link)
       switch (urip.collection) {
-        case 'app.bsky.actor.profile': {
+        case 'app.sonet.actor.profile': {
           return {
             type: 'profile',
             label: _(msg`View ${displayName}'s profile`),
             displayName,
             uri: urip,
-            url: makeProfileLink({did: urip.host, handle: urip.host}),
+            url: makeProfileLink({userId: urip.host, username: urip.host}),
           }
         }
-        case 'app.bsky.feed.generator': {
+        case 'app.sonet.feed.generator': {
           return {
             type: 'feed',
             label: _(msg`Browse the ${displayName} feed`),

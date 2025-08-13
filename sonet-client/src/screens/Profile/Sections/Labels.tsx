@@ -1,11 +1,11 @@
-import {useCallback, useEffect, useImperativeHandle, useMemo} from 'react'
-import {findNodeHandle, type ListRenderItemInfo, View} from 'react-native'
+import {useCallback, useEffect, useImperativeUsername, useMemo} from 'react'
+import {findNodeUsername, type ListRenderItemInfo, View} from 'react-native'
 import {
-  type AppBskyLabelerDefs,
+  type SonetLabelerDefs,
   type InterpretedLabelValueDefinition,
   interpretLabelValueDefinitions,
   type ModerationOpts,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -25,7 +25,7 @@ import {type SectionRef} from './types'
 interface LabelsSectionProps {
   ref: React.Ref<SectionRef>
   isLabelerLoading: boolean
-  labelerInfo: AppBskyLabelerDefs.LabelerViewDetailed | undefined
+  labelerInfo: SonetLabelerDefs.LabelerViewDetailed | undefined
   labelerError: Error | null
   moderationOpts: ModerationOpts
   scrollElRef: ListRef
@@ -55,13 +55,13 @@ export function ProfileLabelsSection({
     })
   }, [scrollElRef, headerHeight])
 
-  useImperativeHandle(ref, () => ({
+  useImperativeUsername(ref, () => ({
     scrollToTop: onScrollToTop,
   }))
 
   useEffect(() => {
     if (isIOS && isFocused && scrollElRef.current) {
-      const nativeTag = findNodeHandle(scrollElRef.current)
+      const nativeTag = findNodeUsername(scrollElRef.current)
       setScrollViewTag(nativeTag)
     }
   }, [isFocused, scrollElRef, setScrollViewTag])
@@ -109,7 +109,7 @@ export function ProfileLabelsSection({
           <LabelerLabelPreference
             disabled={isSubscribed ? undefined : true}
             labelDefinition={item}
-            labelerDid={labelerInfo.creator.did}
+            labelerDid={labelerInfo.creator.userId}
           />
         </View>
       )
@@ -160,7 +160,7 @@ export function LabelerListHeader({
 }: {
   isLabelerLoading: boolean
   labelerError?: Error | null
-  labelerInfo?: AppBskyLabelerDefs.LabelerViewDetailed
+  labelerInfo?: SonetLabelerDefs.LabelerViewDetailed
   hasValues: boolean
   isSubscribed: boolean
 }) {
@@ -229,7 +229,7 @@ export function LabelerListHeader({
             a.text_sm,
           ]}>
           <Trans>
-            Subscribe to @{labelerInfo.creator.handle} to use these labels:
+            Subscribe to @{labelerInfo.creator.username} to use these labels:
           </Trans>
         </Text>
       ) : null}

@@ -1,6 +1,6 @@
 import React from 'react'
 import {
-  findNodeHandle,
+  findNodeUsername,
   type ListRenderItemInfo,
   type StyleProp,
   View,
@@ -33,7 +33,7 @@ interface SectionRef {
 }
 
 interface ProfileListsProps {
-  did: string
+  userId: string
   scrollElRef: ListRef
   headerOffset: number
   enabled?: boolean
@@ -44,7 +44,7 @@ interface ProfileListsProps {
 
 export const ProfileLists = React.forwardRef<SectionRef, ProfileListsProps>(
   function ProfileListsImpl(
-    {did, scrollElRef, headerOffset, enabled, style, testID, setScrollViewTag},
+    {userId, scrollElRef, headerOffset, enabled, style, testID, setScrollViewTag},
     ref,
   ) {
     const t = useTheme()
@@ -60,7 +60,7 @@ export const ProfileLists = React.forwardRef<SectionRef, ProfileListsProps>(
       isError,
       error,
       refetch,
-    } = useProfileListsQuery(did, opts)
+    } = useProfileListsQuery(userId, opts)
     const isEmpty = !isPending && !data?.pages[0]?.lists.length
 
     const items = React.useMemo(() => {
@@ -93,10 +93,10 @@ export const ProfileLists = React.forwardRef<SectionRef, ProfileListsProps>(
         animated: isNative,
         offset: -headerOffset,
       })
-      queryClient.invalidateQueries({queryKey: RQKEY(did)})
-    }, [scrollElRef, queryClient, headerOffset, did])
+      queryClient.invalidateQueries({queryKey: RQKEY(userId)})
+    }, [scrollElRef, queryClient, headerOffset, userId])
 
-    React.useImperativeHandle(ref, () => ({
+    React.useImperativeUsername(ref, () => ({
       scrollToTop: onScrollToTop,
     }))
 
@@ -172,7 +172,7 @@ export const ProfileLists = React.forwardRef<SectionRef, ProfileListsProps>(
 
     React.useEffect(() => {
       if (isIOS && enabled && scrollElRef.current) {
-        const nativeTag = findNodeHandle(scrollElRef.current)
+        const nativeTag = findNodeUsername(scrollElRef.current)
         setScrollViewTag(nativeTag)
       }
     }, [enabled, scrollElRef, setScrollViewTag])

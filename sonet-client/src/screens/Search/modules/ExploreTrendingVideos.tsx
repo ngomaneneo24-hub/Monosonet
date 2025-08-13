@@ -1,6 +1,6 @@
 import {useMemo} from 'react'
 import {ScrollView, View} from 'react-native'
-import {AppBskyEmbedVideo, AtUri} from '@atproto/api'
+import {SonetEmbedVideo, AtUri} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useFocusEffect} from '@react-navigation/native'
@@ -9,7 +9,7 @@ import {useQueryClient} from '@tanstack/react-query'
 import {VIDEO_FEED_URI} from '#/lib/constants'
 import {makeCustomFeedLink} from '#/lib/routes/links'
 import {logger} from '#/logger'
-import {RQKEY, usePostFeedQuery} from '#/state/queries/post-feed'
+import {RQKEY, useNoteFeedQuery} from '#/state/queries/note-feed'
 import {BlockDrawerGesture} from '#/view/shell/BlockDrawerGesture'
 import {atoms as a, tokens, useGutters, useTheme} from '#/alf'
 import {ButtonIcon} from '#/components/Button'
@@ -17,9 +17,9 @@ import {ChevronRight_Stroke2_Corner0_Rounded as ChevronRight} from '#/components
 import {Link} from '#/components/Link'
 import {Text} from '#/components/Typography'
 import {
-  CompactVideoPostCard,
-  CompactVideoPostCardPlaceholder,
-} from '#/components/VideoPostCard'
+  CompactVideoNoteCard,
+  CompactVideoNoteCardPlaceholder,
+} from '#/components/VideoNoteCard'
 
 const CARD_WIDTH = 100
 
@@ -33,7 +33,7 @@ const FEED_PARAMS: {
 export function ExploreTrendingVideos() {
   const {_} = useLingui()
   const gutters = useGutters([0, 'base'])
-  const {data, isLoading, error} = usePostFeedQuery(FEED_DESC, FEED_PARAMS)
+  const {data, isLoading, error} = useNoteFeedQuery(FEED_DESC, FEED_PARAMS)
 
   // Refetch on tab change if nothing else is using this query.
   const queryClient = useQueryClient()
@@ -100,7 +100,7 @@ export function ExploreTrendingVideos() {
                 .fill(0)
                 .map((_, i) => (
                   <View key={i} style={[{width: CARD_WIDTH}]}>
-                    <CompactVideoPostCardPlaceholder />
+                    <CompactVideoNoteCardPlaceholder />
                   </View>
                 ))
             ) : error || !data ? (
@@ -148,7 +148,7 @@ export function ExploreTrendingVideos() {
 function VideoCards({
   data,
 }: {
-  data: Exclude<ReturnType<typeof usePostFeedQuery>['data'], undefined>
+  data: Exclude<ReturnType<typeof useNoteFeedQuery>['data'], undefined>
 }) {
   const t = useTheme()
   const {_} = useLingui()
@@ -157,7 +157,7 @@ function VideoCards({
       .flatMap(page => page.slices)
       .map(slice => slice.items[0])
       .filter(Boolean)
-      .filter(item => AppBskyEmbedVideo.isView(item.post.embed))
+      .filter(item => SonetEmbedVideo.isView(item.note.embed))
       .slice(0, 8)
   }, [data])
   const href = useMemo(() => {
@@ -168,9 +168,9 @@ function VideoCards({
   return (
     <>
       {items.map(item => (
-        <View key={item.post.uri} style={[{width: CARD_WIDTH}]}>
-          <CompactVideoPostCard
-            post={item.post}
+        <View key={item.note.uri} style={[{width: CARD_WIDTH}]}>
+          <CompactVideoNoteCard
+            note={item.note}
             moderation={item.moderation}
             sourceContext={{
               type: 'feedgen',

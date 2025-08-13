@@ -18,7 +18,7 @@ export function StepDetails() {
 
   const {currentAccount} = useSession()
   const {data: currentProfile} = useProfileQuery({
-    did: currentAccount?.did,
+    userId: currentAccount?.userId,
     staleTime: 300,
   })
 
@@ -44,7 +44,7 @@ export function StepDetails() {
             <TextField.Input
               label={_(
                 msg`${
-                  currentProfile?.displayName || currentProfile?.handle
+                  currentProfile?.displayName || currentProfile?.username
                 }'s starter pack`,
               )}
               value={state.name}
@@ -72,7 +72,7 @@ export function StepDetails() {
             <TextField.Input
               label={_(
                 msg`${
-                  currentProfile?.displayName || currentProfile?.handle
+                  currentProfile?.displayName || currentProfile?.username
                 }'s favorite feeds and people - join me!`,
               )}
               value={state.description}

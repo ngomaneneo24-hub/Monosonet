@@ -3,7 +3,7 @@ import {useLingui} from '@lingui/react'
 import {type NativeStackScreenProps} from '@react-navigation/native-stack'
 
 import {type AllNavigatorParams} from '#/lib/routes/types'
-import {PostFeed} from '#/view/com/posts/PostFeed'
+import {NoteFeed} from '#/view/com/notes/NoteFeed'
 import {EmptyState} from '#/view/com/util/EmptyState'
 import * as Layout from '#/components/Layout'
 import {ListFooter} from '#/components/Lists'
@@ -14,10 +14,10 @@ type Props = NativeStackScreenProps<
 >
 export function NotificationsActivityListScreen({
   route: {
-    params: {posts},
+    params: {notes},
   },
 }: Props) {
-  const uris = decodeURIComponent(posts)
+  const uris = decodeURIComponent(notes)
   const {_} = useLingui()
 
   return (
@@ -31,11 +31,11 @@ export function NotificationsActivityListScreen({
         </Layout.Header.Content>
         <Layout.Header.Slot />
       </Layout.Header.Outer>
-      <PostFeed
-        feed={`posts|${uris}`}
+      <NoteFeed
+        feed={`notes|${uris}`}
         disablePoll
         renderEmptyState={() => (
-          <EmptyState icon="growth" message={_(msg`No posts here`)} />
+          <EmptyState icon="growth" message={_(msg`No notes here`)} />
         )}
         renderEndOfFeed={() => <ListFooter />}
       />

@@ -1,7 +1,7 @@
 import {useMemo} from 'react'
 import {View} from 'react-native'
-import {type AppBskyNotificationDefs} from '@atproto/api'
-import {type FilterablePreference} from '@atproto/api/dist/client/types/app/bsky/notification/defs'
+import {type SonetNotificationDefs} from '@sonet/api'
+import {type FilterablePreference} from '@sonet/api/dist/client/types/app/bsky/notification/defs'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -19,13 +19,13 @@ export function PreferenceControls({
   preference,
   allowDisableInApp = true,
 }: {
-  name: Exclude<keyof AppBskyNotificationDefs.Preferences, '$type'>
+  name: Exclude<keyof SonetNotificationDefs.Preferences, '$type'>
   /**
    * Keep other prefs in sync with `name`. For use in the "everything else" category
    * which groups starterpack joins + verified + unverified notifications into a single toggle.
    */
-  syncOthers?: Exclude<keyof AppBskyNotificationDefs.Preferences, '$type'>[]
-  preference?: AppBskyNotificationDefs.Preference | FilterablePreference
+  syncOthers?: Exclude<keyof SonetNotificationDefs.Preferences, '$type'>[]
+  preference?: SonetNotificationDefs.Preference | FilterablePreference
   allowDisableInApp?: boolean
 }) {
   if (!preference)
@@ -51,9 +51,9 @@ export function Inner({
   preference,
   allowDisableInApp,
 }: {
-  name: Exclude<keyof AppBskyNotificationDefs.Preferences, '$type'>
-  syncOthers?: Exclude<keyof AppBskyNotificationDefs.Preferences, '$type'>[]
-  preference: AppBskyNotificationDefs.Preference | FilterablePreference
+  name: Exclude<keyof SonetNotificationDefs.Preferences, '$type'>
+  syncOthers?: Exclude<keyof SonetNotificationDefs.Preferences, '$type'>[]
+  preference: SonetNotificationDefs.Preference | FilterablePreference
   allowDisableInApp: boolean
 }) {
   const t = useTheme()

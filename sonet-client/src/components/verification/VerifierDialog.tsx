@@ -29,7 +29,7 @@ export function VerifierDialog({
 }) {
   return (
     <Dialog.Outer control={control}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <Inner
         control={control}
         profile={profile}
@@ -53,7 +53,7 @@ function Inner({
   const {gtMobile} = useBreakpoints()
   const {currentAccount} = useSession()
 
-  const isSelf = profile.did === currentAccount?.did
+  const isSelf = profile.userId === currentAccount?.userId
   const userName = getUserDisplayName(profile)
   const label = isSelf
     ? _(msg`You are a trusted verifier`)

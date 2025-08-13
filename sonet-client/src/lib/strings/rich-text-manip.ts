@@ -1,4 +1,4 @@
-import {AppBskyRichtextFacet, RichText, UnicodeString} from '@atproto/api'
+import {SonetRichtextFacet, RichText, UnicodeString} from '@sonet/api'
 
 import {toShortUrl} from './url-helpers'
 
@@ -10,7 +10,7 @@ export function shortenLinks(rt: RichText): RichText {
   // enumerate the link facets
   if (rt.facets) {
     for (const facet of rt.facets) {
-      const isLink = !!facet.features.find(AppBskyRichtextFacet.isLink)
+      const isLink = !!facet.features.find(SonetRichtextFacet.isLink)
       if (!isLink) {
         continue
       }
@@ -32,7 +32,7 @@ export function shortenLinks(rt: RichText): RichText {
   return rt
 }
 
-// filter out any mention facets that didn't map to a user
+// filter out any mention facets that userIdn't map to a user
 export function stripInvalidMentions(rt: RichText): RichText {
   if (!rt.facets?.length) {
     return rt
@@ -40,8 +40,8 @@ export function stripInvalidMentions(rt: RichText): RichText {
   rt = rt.clone()
   if (rt.facets) {
     rt.facets = rt.facets?.filter(facet => {
-      const mention = facet.features.find(AppBskyRichtextFacet.isMention)
-      if (mention && !mention.did) {
+      const mention = facet.features.find(SonetRichtextFacet.isMention)
+      if (mention && !mention.userId) {
         return false
       }
       return true

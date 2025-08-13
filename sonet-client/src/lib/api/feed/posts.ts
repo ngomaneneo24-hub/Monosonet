@@ -1,23 +1,23 @@
 import {
   type Agent,
-  type AppBskyFeedDefs,
-  type AppBskyFeedGetPosts,
-} from '@atproto/api'
+  type SonetFeedDefs,
+  type SonetFeedGetNotes,
+} from '@sonet/api'
 
 import {logger} from '#/logger'
 import {type FeedAPI, type FeedAPIResponse} from './types'
 
-export class PostListFeedAPI implements FeedAPI {
+export class NoteListFeedAPI implements FeedAPI {
   agent: Agent
-  params: AppBskyFeedGetPosts.QueryParams
-  peek: AppBskyFeedDefs.FeedViewPost | null = null
+  params: SonetFeedGetNotes.QueryParams
+  peek: SonetFeedDefs.FeedViewNote | null = null
 
   constructor({
     agent,
     feedParams,
   }: {
     agent: Agent
-    feedParams: AppBskyFeedGetPosts.QueryParams
+    feedParams: SonetFeedGetNotes.QueryParams
   }) {
     this.agent = agent
     if (feedParams.uris.length > 25) {
@@ -30,19 +30,19 @@ export class PostListFeedAPI implements FeedAPI {
     }
   }
 
-  async peekLatest(): Promise<AppBskyFeedDefs.FeedViewPost> {
+  async peekLatest(): Promise<SonetFeedDefs.FeedViewNote> {
     if (this.peek) return this.peek
     throw new Error('Has not fetched yet')
   }
 
   async fetch({}: {}): Promise<FeedAPIResponse> {
-    const res = await this.agent.app.bsky.feed.getPosts({
+    const res = await this.agent.app.sonet.feed.getNotes({
       ...this.params,
     })
     if (res.success) {
-      this.peek = {post: res.data.posts[0]}
+      this.peek = {note: res.data.notes[0]}
       return {
-        feed: res.data.posts.map(post => ({post})),
+        feed: res.data.notes.map(note => ({note})),
       }
     }
     return {

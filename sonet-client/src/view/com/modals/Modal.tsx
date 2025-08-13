@@ -12,7 +12,7 @@ import * as CreateOrEditListModal from './CreateOrEditList'
 import * as DeleteAccountModal from './DeleteAccount'
 import * as InviteCodesModal from './InviteCodes'
 import * as ContentLanguagesSettingsModal from './lang-settings/ContentLanguagesSettings'
-import * as PostLanguagesSettingsModal from './lang-settings/PostLanguagesSettings'
+import * as NoteLanguagesSettingsModal from './lang-settings/NoteLanguagesSettings'
 import * as UserAddRemoveListsModal from './UserAddRemoveLists'
 
 const DEFAULT_SNAPPOINTS = ['90%']
@@ -61,9 +61,9 @@ export function ModalsContainer() {
   } else if (activeModal?.name === 'content-languages-settings') {
     snapPoints = ContentLanguagesSettingsModal.snapPoints
     element = <ContentLanguagesSettingsModal.Component />
-  } else if (activeModal?.name === 'post-languages-settings') {
-    snapPoints = PostLanguagesSettingsModal.snapPoints
-    element = <PostLanguagesSettingsModal.Component />
+  } else if (activeModal?.name === 'note-languages-settings') {
+    snapPoints = NoteLanguagesSettingsModal.snapPoints
+    element = <NoteLanguagesSettingsModal.Component />
   } else if (activeModal?.name === 'change-password') {
     snapPoints = ChangePasswordModal.snapPoints
     element = <ChangePasswordModal.Component />
@@ -86,7 +86,7 @@ export function ModalsContainer() {
       <BottomSheet
         ref={bottomSheetRef}
         snapPoints={snapPoints}
-        handleHeight={HANDLE_HEIGHT}
+        usernameHeight={HANDLE_HEIGHT}
         index={isModalActive ? 0 : -1}
         enablePanDownToClose
         android_keyboardInputMode="adjustResize"
@@ -94,8 +94,8 @@ export function ModalsContainer() {
         backdropComponent={
           isModalActive ? createCustomBackdrop(onClose) : undefined
         }
-        handleIndicatorStyle={{backgroundColor: pal.text.color}}
-        handleStyle={[styles.handle, pal.view]}
+        usernameIndicatorStyle={{backgroundColor: pal.text.color}}
+        usernameStyle={[styles.username, pal.view]}
         backgroundStyle={pal.view}
         onChange={onBottomSheetChange}>
         {element}
@@ -105,7 +105,7 @@ export function ModalsContainer() {
 }
 
 const styles = StyleSheet.create({
-  handle: {
+  username: {
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
   },

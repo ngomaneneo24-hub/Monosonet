@@ -1,6 +1,6 @@
 import {Fragment, useCallback} from 'react'
 import {Linking, View} from 'react-native'
-import {LABELS} from '@atproto/api'
+import {LABELS} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useFocusEffect} from '@react-navigation/native'
@@ -214,7 +214,7 @@ export function ModerationScreenInner({
           t.atoms.bg_contrast_25,
         ]}>
         <Link
-          label={_(msg`View your default post interaction settings`)}
+          label={_(msg`View your default note interaction settings`)}
           testID="interactionSettingsBtn"
           to="/moderation/interaction-settings">
           {state => (
@@ -408,10 +408,10 @@ export function ModerationScreenInner({
                             to=""
                             onPress={evt => {
                               evt.preventDefault()
-                              Linking.openURL('https://bsky.app/')
+                              Linking.openURL('https://sonet.app/')
                               return false
                             }}>
-                            bsky.app
+                            sonet.app
                           </InlineLinkText>
                           .
                         </Trans>
@@ -470,7 +470,7 @@ export function ModerationScreenInner({
         <View style={[a.rounded_sm, t.atoms.bg_contrast_25]}>
           {labelers.map((labeler, i) => {
             return (
-              <Fragment key={labeler.creator.did}>
+              <Fragment key={labeler.creator.userId}>
                 {i !== 0 && <Divider />}
                 <LabelingService.Link labeler={labeler}>
                   {state => (
@@ -493,15 +493,15 @@ export function ModerationScreenInner({
                         <LabelingService.Title
                           value={getLabelingServiceTitle({
                             displayName: labeler.creator.displayName,
-                            handle: labeler.creator.handle,
+                            username: labeler.creator.username,
                           })}
                         />
                         <LabelingService.Description
                           value={labeler.creator.description}
-                          handle={labeler.creator.handle}
+                          username={labeler.creator.username}
                         />
                         {isNonConfigurableModerationAuthority(
-                          labeler.creator.did,
+                          labeler.creator.userId,
                         ) && <LabelingService.RegionalNotice />}
                       </LabelingService.Content>
                     </LabelingService.Outer>

@@ -1,6 +1,6 @@
 import React, {
   useCallback,
-  useImperativeHandle,
+  useImperativeUsername,
   useMemo,
   useRef,
   useState,
@@ -43,7 +43,7 @@ export function GifSelectDialog({
 }) {
   const control = Dialog.useDialogControl()
 
-  useImperativeHandle(controlRef, () => ({
+  useImperativeUsername(controlRef, () => ({
     open: () => control.open(),
   }))
 
@@ -68,7 +68,7 @@ export function GifSelectDialog({
         // use system corner radius on iOS
         ...ios({cornerRadius: undefined}),
       }}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <ErrorBoundary renderError={renderErrorBoundary}>
         <GifList control={control} onSelectGif={onSelectGif} />
       </ErrorBoundary>

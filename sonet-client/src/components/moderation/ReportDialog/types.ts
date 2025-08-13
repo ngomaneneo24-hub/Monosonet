@@ -1,29 +1,17 @@
-import {
-  $Typed,
-  AppBskyActorDefs,
-  AppBskyFeedDefs,
-  AppBskyGraphDefs,
-  ChatBskyConvoDefs,
-} from '@atproto/api'
-
 import * as Dialog from '#/components/Dialog'
+import {SonetUser, SonetNote, SonetConversation, SonetMessage} from '@sonet/types'
 
 export type ReportSubject =
-  | $Typed<AppBskyActorDefs.ProfileViewBasic>
-  | $Typed<AppBskyActorDefs.ProfileView>
-  | $Typed<AppBskyActorDefs.ProfileViewDetailed>
-  | $Typed<AppBskyGraphDefs.ListView>
-  | $Typed<AppBskyFeedDefs.GeneratorView>
-  | $Typed<AppBskyGraphDefs.StarterPackView>
-  | $Typed<AppBskyFeedDefs.PostView>
-  | {convoId: string; message: ChatBskyConvoDefs.MessageView}
+  | SonetUser
+  | SonetNote
+  | SonetConversation
+  | {conversationId: string; message: SonetMessage}
 
 export type ParsedReportSubject =
   | {
-      type: 'post'
+      type: 'note'
       uri: string
-      cid: string
-      nsid: string
+      id: string
       attributes: {
         reply: boolean
         image: boolean
@@ -35,30 +23,26 @@ export type ParsedReportSubject =
   | {
       type: 'list'
       uri: string
-      cid: string
-      nsid: string
+      id: string
     }
   | {
       type: 'feed'
       uri: string
-      cid: string
-      nsid: string
+      id: string
     }
   | {
       type: 'starterPack'
       uri: string
-      cid: string
-      nsid: string
+      id: string
     }
   | {
       type: 'account'
-      did: string
-      nsid: string
+      userId: string
     }
   | {
       type: 'chatMessage'
-      convoId: string
-      message: ChatBskyConvoDefs.MessageView
+      conversationId: string
+      message: SonetMessage
     }
 
 export type ReportDialogProps = {

@@ -1,4 +1,4 @@
-import {useCallback, useImperativeHandle, useRef, useState} from 'react'
+import {useCallback, useImperativeUsername, useRef, useState} from 'react'
 import {View} from 'react-native'
 import {useWindowDimensions} from 'react-native'
 import {msg, Trans} from '@lingui/macro'
@@ -50,7 +50,7 @@ export function ServerInputDialog({
       control={control}
       onClose={onClose}
       nativeOptions={{minHeight: height / 2}}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <DialogInner
         formRef={formRef}
         fixedOption={fixedOption}
@@ -85,7 +85,7 @@ function DialogInner({
   )
   const sonetSession = useSonetSession()
 
-  useImperativeHandle(
+  useImperativeUsername(
     formRef,
     () => ({
       getFormState: () => {

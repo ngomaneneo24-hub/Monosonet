@@ -1,22 +1,17 @@
 import {type ImagePickerAsset} from 'expo-image-picker'
-import {
-  type AppBskyFeedPostgate,
-  AppBskyRichtextFacet,
-  type BskyPreferences,
-  RichText,
-} from '@atproto/api'
+import {RichText, SonetNotegate, SonetThreadgateRule} from '@sonet/types'
 import {nanoid} from 'nanoid/non-secure'
 
 import {type SelfLabel} from '#/lib/moderation'
 import {insertMentionAt} from '#/lib/strings/mention-manip'
 import {shortenLinks} from '#/lib/strings/rich-text-manip'
 import {
-  isBskyPostUrl,
-  postUriToRelativePath,
+  isBskyNoteUrl,
+  noteUriToRelativePath,
   toBskyAppUrl,
 } from '#/lib/strings/url-helpers'
 import {type ComposerImage, createInitialImages} from '#/state/gallery'
-import {createPostgateRecord} from '#/state/queries/postgate/util'
+import {createNotegateRecord} from '#/state/queries/notegate/util'
 import {type Gif} from '#/state/queries/tenor'
 import {threadgateRecordToAllowUISetting} from '#/state/queries/threadgate'
 import {type ThreadgateAllowUISetting} from '#/state/queries/threadgate'
@@ -54,7 +49,7 @@ type Link = {
 }
 
 // This structure doesn't exactly correspond to the data model.
-// Instead, it maps to how the UI is organized, and how we present a post.
+// Instead, it maps to how the UI is organized, and how we present a note.
 export type EmbedDraft = {
   // We'll always submit quote and actual media (images, video, gifs) chosen by the user.
   quote: Link | undefined
@@ -63,7 +58,7 @@ export type EmbedDraft = {
   link: Link | undefined
 }
 
-export type PostDraft = {
+export type NoteDraft = {
   id: string
   richtext: RichText
   labels: SelfLabel[]
@@ -71,7 +66,7 @@ export type PostDraft = {
   shortenedGraphemeLength: number
 }
 
-export type PostAction =
+export type NoteAction =
   | {type: 'update_richtext'; richtext: RichText}
   | {type: 'update_labels'; labels: SelfLabel[]}
   | {type: 'embed_add_images'; images: ComposerImage[]}
@@ -92,35 +87,35 @@ export type PostAction =
   | {type: 'embed_remove_gif'}
 
 export type ThreadDraft = {
-  posts: PostDraft[]
-  postgate: AppBskyFeedPostgate.Record
-  threadgate: ThreadgateAllowUISetting[]
+  notes: NoteDraft[]
+  notegate: SonetNotegate
+  threadgate: SonetThreadgateRule[]
 }
 
 export type ComposerState = {
   thread: ThreadDraft
-  activePostIndex: number
+  activeNoteIndex: number
   mutableNeedsFocusActive: boolean
 }
 
 export type ComposerAction =
-  | {type: 'update_postgate'; postgate: AppBskyFeedPostgate.Record}
+  | {type: 'update_notegate'; notegate: SonetFeedNotegate.Record}
   | {type: 'update_threadgate'; threadgate: ThreadgateAllowUISetting[]}
   | {
-      type: 'update_post'
-      postId: string
-      postAction: PostAction
+      type: 'update_note'
+      noteId: string
+      noteAction: NoteAction
     }
   | {
-      type: 'add_post'
+      type: 'add_note'
     }
   | {
-      type: 'remove_post'
-      postId: string
+      type: 'remove_note'
+      noteId: string
     }
   | {
-      type: 'focus_post'
-      postId: string
+      type: 'focus_note'
+      noteId: string
     }
 
 export const MAX_IMAGES = 4
@@ -130,12 +125,12 @@ export function composerReducer(
   action: ComposerAction,
 ): ComposerState {
   switch (action.type) {
-    case 'update_postgate': {
+    case 'update_notegate': {
       return {
         ...state,
         thread: {
           ...state.thread,
-          postgate: action.postgate,
+          notegate: action.notegate,
         },
       }
     }
@@ -148,30 +143,30 @@ export function composerReducer(
         },
       }
     }
-    case 'update_post': {
-      let nextPosts = state.thread.posts
-      const postIndex = state.thread.posts.findIndex(
-        p => p.id === action.postId,
+    case 'update_note': {
+      let nextNotes = state.thread.notes
+      const noteIndex = state.thread.notes.findIndex(
+        p => p.id === action.noteId,
       )
-      if (postIndex !== -1) {
-        nextPosts = state.thread.posts.slice()
-        nextPosts[postIndex] = postReducer(
-          state.thread.posts[postIndex],
-          action.postAction,
+      if (noteIndex !== -1) {
+        nextNotes = state.thread.notes.slice()
+        nextNotes[noteIndex] = noteReducer(
+          state.thread.notes[noteIndex],
+          action.noteAction,
         )
       }
       return {
         ...state,
         thread: {
           ...state.thread,
-          posts: nextPosts,
+          notes: nextNotes,
         },
       }
     }
-    case 'add_post': {
-      const activePostIndex = state.activePostIndex
-      const nextPosts = [...state.thread.posts]
-      nextPosts.splice(activePostIndex + 1, 0, {
+    case 'add_note': {
+      const activeNoteIndex = state.activeNoteIndex
+      const nextNotes = [...state.thread.notes]
+      nextNotes.splice(activeNoteIndex + 1, 0, {
         id: nanoid(),
         richtext: new RichText({text: ''}),
         shortenedGraphemeLength: 0,
@@ -186,53 +181,53 @@ export function composerReducer(
         ...state,
         thread: {
           ...state.thread,
-          posts: nextPosts,
+          notes: nextNotes,
         },
       }
     }
-    case 'remove_post': {
-      if (state.thread.posts.length < 2) {
+    case 'remove_note': {
+      if (state.thread.notes.length < 2) {
         return state
       }
-      let nextActivePostIndex = state.activePostIndex
-      const indexToRemove = state.thread.posts.findIndex(
-        p => p.id === action.postId,
+      let nextActiveNoteIndex = state.activeNoteIndex
+      const indexToRemove = state.thread.notes.findIndex(
+        p => p.id === action.noteId,
       )
-      let nextPosts = [...state.thread.posts]
+      let nextNotes = [...state.thread.notes]
       if (indexToRemove !== -1) {
-        const postToRemove = state.thread.posts[indexToRemove]
-        if (postToRemove.embed.media?.type === 'video') {
-          postToRemove.embed.media.video.abortController.abort()
+        const noteToRemove = state.thread.notes[indexToRemove]
+        if (noteToRemove.embed.media?.type === 'video') {
+          noteToRemove.embed.media.video.abortController.abort()
         }
-        nextPosts.splice(indexToRemove, 1)
-        nextActivePostIndex = Math.max(0, indexToRemove - 1)
+        nextNotes.splice(indexToRemove, 1)
+        nextActiveNoteIndex = Math.max(0, indexToRemove - 1)
       }
       return {
         ...state,
-        activePostIndex: nextActivePostIndex,
+        activeNoteIndex: nextActiveNoteIndex,
         mutableNeedsFocusActive: true,
         thread: {
           ...state.thread,
-          posts: nextPosts,
+          notes: nextNotes,
         },
       }
     }
-    case 'focus_post': {
-      const nextActivePostIndex = state.thread.posts.findIndex(
-        p => p.id === action.postId,
+    case 'focus_note': {
+      const nextActiveNoteIndex = state.thread.notes.findIndex(
+        p => p.id === action.noteId,
       )
-      if (nextActivePostIndex === -1) {
+      if (nextActiveNoteIndex === -1) {
         return state
       }
       return {
         ...state,
-        activePostIndex: nextActivePostIndex,
+        activeNoteIndex: nextActiveNoteIndex,
       }
     }
   }
 }
 
-function postReducer(state: PostDraft, action: PostAction): PostDraft {
+function noteReducer(state: NoteDraft, action: NoteAction): NoteDraft {
   switch (action.type) {
     case 'update_richtext': {
       return {
@@ -383,7 +378,7 @@ function postReducer(state: PostDraft, action: PostAction): PostDraft {
       const prevLink = state.embed.link
       let nextQuote = prevQuote
       let nextLink = prevLink
-      if (isBskyPostUrl(action.uri)) {
+      if (isBskyNoteUrl(action.uri)) {
         if (!prevQuote) {
           nextQuote = {
             type: 'link',
@@ -494,7 +489,7 @@ export function createComposerState({
   initImageUris: ComposerOpts['imageUris']
   initQuoteUri: string | undefined
   initInteractionSettings:
-    | BskyPreferences['postInteractionSettings']
+    | BskyPreferences['noteInteractionSettings']
     | undefined
 }): ComposerState {
   let media: ImagesMedia | undefined
@@ -507,7 +502,7 @@ export function createComposerState({
   let quote: Link | undefined
   if (initQuoteUri) {
     // TODO: Consider passing the app url directly.
-    const path = postUriToRelativePath(initQuoteUri)
+    const path = noteUriToRelativePath(initQuoteUri)
     if (path) {
       quote = {
         type: 'link',
@@ -531,23 +526,23 @@ export function createComposerState({
 
   /**
    * `initText` atm is only used for compose intents, meaning share links from
-   * external sources. If `initText` is defined, we want to extract links/posts
+   * external sources. If `initText` is defined, we want to extract links/notes
    * from `initText` and suggest them as embeds.
    *
-   * This checks for posts separately from other types of links so that posts
+   * This checks for notes separately from other types of links so that notes
    * can become quotes. The util `suggestLinkCardUri` is then applied to ensure
    * we suggest at most 1 of each.
    */
   if (initText) {
     initRichText.detectFacetsWithoutResolution()
     const detectedExtUris = new Map<string, LinkFacetMatch>()
-    const detectedPostUris = new Map<string, LinkFacetMatch>()
+    const detectedNoteUris = new Map<string, LinkFacetMatch>()
     if (initRichText.facets) {
       for (const facet of initRichText.facets) {
         for (const feature of facet.features) {
-          if (AppBskyRichtextFacet.isLink(feature)) {
-            if (isBskyPostUrl(feature.uri)) {
-              detectedPostUris.set(feature.uri, {facet, rt: initRichText})
+          if (SonetRichtextFacet.isLink(feature)) {
+            if (isBskyNoteUrl(feature.uri)) {
+              detectedNoteUris.set(feature.uri, {facet, rt: initRichText})
             } else {
               detectedExtUris.set(feature.uri, {facet, rt: initRichText})
             }
@@ -568,13 +563,13 @@ export function createComposerState({
         uri: suggestedExtUri,
       }
     }
-    const suggestedPostUri = suggestLinkCardUri(
+    const suggestedNoteUri = suggestLinkCardUri(
       true,
-      detectedPostUris,
+      detectedNoteUris,
       new Map(),
       pastSuggestedUris,
     )
-    if (suggestedPostUri) {
+    if (suggestedNoteUri) {
       /*
        * `initQuote` is only populated via in-app user action, but we're being
        * future-defensive here.
@@ -582,17 +577,17 @@ export function createComposerState({
       if (!quote) {
         quote = {
           type: 'link',
-          uri: suggestedPostUri,
+          uri: suggestedNoteUri,
         }
       }
     }
   }
 
   return {
-    activePostIndex: 0,
+    activeNoteIndex: 0,
     mutableNeedsFocusActive: false,
     thread: {
-      posts: [
+      notes: [
         {
           id: nanoid(),
           richtext: initRichText,
@@ -605,13 +600,13 @@ export function createComposerState({
           },
         },
       ],
-      postgate: createPostgateRecord({
-        post: '',
-        embeddingRules: initInteractionSettings?.postgateEmbeddingRules || [],
+      notegate: createNotegateRecord({
+        note: '',
+        embeddingRules: initInteractionSettings?.notegateEmbeddingRules || [],
       }),
       threadgate: threadgateRecordToAllowUISetting({
-        $type: 'app.bsky.feed.threadgate',
-        post: '',
+        type: "sonet",
+        note: '',
         createdAt: new Date().toString(),
         allow: initInteractionSettings?.threadgateAllowRules,
       }),

@@ -1,12 +1,12 @@
-import {AppBskyFeedDefs} from '@atproto/api'
+import {SonetFeedDefs} from '@sonet/api'
 
 export interface FeedAPIResponse {
   cursor?: string
-  feed: AppBskyFeedDefs.FeedViewPost[]
+  feed: SonetFeedDefs.FeedViewNote[]
 }
 
 export interface FeedAPI {
-  peekLatest(): Promise<AppBskyFeedDefs.FeedViewPost>
+  peekLatest(): Promise<SonetFeedDefs.FeedViewNote>
   fetch({
     cursor,
     limit,
@@ -17,7 +17,7 @@ export interface FeedAPI {
 }
 
 export interface ReasonFeedSource {
-  $type: 'reasonFeedSource'
+  type: "sonet"
   uri: string
   href: string
 }

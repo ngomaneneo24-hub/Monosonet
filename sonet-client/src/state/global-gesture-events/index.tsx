@@ -5,15 +5,15 @@ import {
   GestureDetector,
   type GestureStateChangeEvent,
   type GestureUpdateEvent,
-  type PanGestureHandlerEventPayload,
-} from 'react-native-gesture-handler'
+  type PanGestureUsernamerEventPayload,
+} from 'react-native-gesture-usernamer'
 import EventEmitter from 'eventemitter3'
 
 export type GlobalGestureEvents = {
-  begin: GestureStateChangeEvent<PanGestureHandlerEventPayload>
-  update: GestureUpdateEvent<PanGestureHandlerEventPayload>
-  end: GestureStateChangeEvent<PanGestureHandlerEventPayload>
-  finalize: GestureStateChangeEvent<PanGestureHandlerEventPayload>
+  begin: GestureStateChangeEvent<PanGestureUsernamerEventPayload>
+  update: GestureUpdateEvent<PanGestureUsernamerEventPayload>
+  end: GestureStateChangeEvent<PanGestureUsernamerEventPayload>
+  finalize: GestureStateChangeEvent<PanGestureUsernamerEventPayload>
 }
 
 const Context = createContext<{

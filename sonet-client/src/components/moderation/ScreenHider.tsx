@@ -5,7 +5,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native'
-import {ModerationUI} from '@atproto/api'
+import {ModerationUI} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'

@@ -1,8 +1,8 @@
 import {
-  type AppBskyActorDefs,
-  type AppBskyNotificationDeclaration,
-  type AppBskyNotificationListActivitySubscriptions,
-} from '@atproto/api'
+  type SonetActorDefs,
+  type SonetNotificationDeclaration,
+  type SonetNotificationListActivitySubscriptions,
+} from '@sonet/api'
 import {t} from '@lingui/macro'
 import {
   type InfiniteData,
@@ -26,7 +26,7 @@ export function useActivitySubscriptionsQuery() {
     queryKey: RQKEY_getActivitySubscriptions,
     queryFn: async ({pageParam}) => {
       const response =
-        await agent.app.bsky.notification.listActivitySubscriptions({
+        await agent.app.sonet.notification.listActivitySubscriptions({
           cursor: pageParam,
         })
       return response.data
@@ -43,8 +43,8 @@ export function useNotificationDeclarationQuery() {
     queryKey: RQKEY_getNotificationDeclaration,
     queryFn: async () => {
       try {
-        const response = await agent.app.bsky.notification.declaration.get({
-          repo: currentAccount!.did,
+        const response = await agent.app.sonet.notification.declaration.get({
+          repo: currentAccount!.userId,
           rkey: 'self',
         })
         return response
@@ -55,9 +55,9 @@ export function useNotificationDeclarationQuery() {
         ) {
           return {
             value: {
-              $type: 'app.bsky.notification.declaration',
+              type: "sonet",
               allowSubscriptions: 'followers',
-            } satisfies AppBskyNotificationDeclaration.Record,
+            } satisfies SonetNotificationDeclaration.Record,
           }
         } else {
           throw err
@@ -72,10 +72,10 @@ export function useNotificationDeclarationMutation() {
   const {currentAccount} = useSession()
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (record: AppBskyNotificationDeclaration.Record) => {
-      const response = await agent.app.bsky.notification.declaration.put(
+    mutationFn: async (record: SonetNotificationDeclaration.Record) => {
+      const response = await agent.app.sonet.notification.declaration.put(
         {
-          repo: currentAccount!.did,
+          repo: currentAccount!.userId,
           rkey: 'self',
         },
         record,
@@ -88,7 +88,7 @@ export function useNotificationDeclarationMutation() {
         (old?: {
           uri: string
           cid: string
-          value: AppBskyNotificationDeclaration.Record
+          value: SonetNotificationDeclaration.Record
         }) => {
           if (!old) return old
           return {
@@ -108,10 +108,10 @@ export function useNotificationDeclarationMutation() {
 
 export function* findAllProfilesInQueryData(
   queryClient: QueryClient,
-  did: string,
-): Generator<AppBskyActorDefs.ProfileView, void> {
+  userId: string,
+): Generator<SonetActorDefs.ProfileView, void> {
   const queryDatas = queryClient.getQueriesData<
-    InfiniteData<AppBskyNotificationListActivitySubscriptions.OutputSchema>
+    InfiniteData<SonetNotificationListActivitySubscriptions.OutputSchema>
   >({
     queryKey: RQKEY_getActivitySubscriptions,
   })
@@ -121,7 +121,7 @@ export function* findAllProfilesInQueryData(
     }
     for (const page of queryData.pages) {
       for (const subscription of page.subscriptions) {
-        if (subscription.did === did) {
+        if (subscription.userId === userId) {
           yield subscription
         }
       }

@@ -23,7 +23,7 @@ function SonetMessagingTestInner({chatId}: {chatId: string}) {
   }, [])
 
   // Test sending message
-  const handleSendMessage = async () => {
+  const usernameSendMessage = async () => {
     if (!messageText.trim()) return
 
     try {
@@ -38,7 +38,7 @@ function SonetMessagingTestInner({chatId}: {chatId: string}) {
   }
 
   // Test loading messages
-  const handleLoadMessages = async () => {
+  const usernameLoadMessages = async () => {
     try {
       await actions.loadMessages({refresh: true})
     } catch (error) {
@@ -47,7 +47,7 @@ function SonetMessagingTestInner({chatId}: {chatId: string}) {
   }
 
   // Test encryption toggle
-  const handleToggleEncryption = async () => {
+  const usernameToggleEncryption = async () => {
     try {
       if (state.encryptionStatus === 'enabled') {
         await actions.disableEncryption()
@@ -60,7 +60,7 @@ function SonetMessagingTestInner({chatId}: {chatId: string}) {
   }
 
   // Test typing indicator
-  const handleTyping = async (isTyping: boolean) => {
+  const usernameTyping = async (isTyping: boolean) => {
     try {
       await actions.setTyping(isTyping)
     } catch (error) {
@@ -135,18 +135,18 @@ function SonetMessagingTestInner({chatId}: {chatId: string}) {
           placeholder="Type a message..."
           multiline
         />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSendMessage}>
+        <TouchableOpacity style={styles.sendButton} onPress={usernameSendMessage}>
           <Text style={styles.sendButtonText}>Send</Text>
         </TouchableOpacity>
       </View>
 
       {/* Test Controls */}
       <View style={styles.testControls}>
-        <TouchableOpacity style={styles.testButton} onPress={handleLoadMessages}>
+        <TouchableOpacity style={styles.testButton} onPress={usernameLoadMessages}>
           <Text style={styles.testButtonText}>Refresh Messages</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.testButton} onPress={handleToggleEncryption}>
+        <TouchableOpacity style={styles.testButton} onPress={usernameToggleEncryption}>
           <Text style={styles.testButtonText}>
             {state.encryptionStatus === 'enabled' ? 'Disable' : 'Enable'} Encryption
           </Text>
@@ -154,8 +154,8 @@ function SonetMessagingTestInner({chatId}: {chatId: string}) {
         
         <TouchableOpacity 
           style={styles.testButton} 
-          onPress={() => handleTyping(true)}
-          onPressOut={() => handleTyping(false)}
+          onPress={() => usernameTyping(true)}
+          onPressOut={() => usernameTyping(false)}
         >
           <Text style={styles.testButtonText}>Hold to Type</Text>
         </TouchableOpacity>

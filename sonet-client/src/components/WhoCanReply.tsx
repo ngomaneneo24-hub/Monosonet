@@ -7,11 +7,11 @@ import {
   type ViewStyle,
 } from 'react-native'
 import {
-  type AppBskyFeedDefs,
-  AppBskyFeedPost,
-  type AppBskyGraphDefs,
+  type SonetFeedDefs,
+  SonetFeedNote,
+  type SonetGraphDefs,
   AtUri,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -27,9 +27,9 @@ import {Button, ButtonText} from '#/components/Button'
 import * as Dialog from '#/components/Dialog'
 import {useDialogControl} from '#/components/Dialog'
 import {
-  PostInteractionSettingsDialog,
-  usePrefetchPostInteractionSettings,
-} from '#/components/dialogs/PostInteractionSettingsDialog'
+  NoteInteractionSettingsDialog,
+  usePrefetchNoteInteractionSettings,
+} from '#/components/dialogs/NoteInteractionSettingsDialog'
 import {CircleBanSign_Stroke2_Corner0_Rounded as CircleBanSign} from '#/components/icons/CircleBanSign'
 import {Earth_Stroke2_Corner0_Rounded as Earth} from '#/components/icons/Globe'
 import {Group3_Stroke2_Corner0_Rounded as Group} from '#/components/icons/Group'
@@ -39,35 +39,35 @@ import * as bsky from '#/types/bsky'
 import {PencilLine_Stroke2_Corner0_Rounded as PencilLine} from './icons/Pencil'
 
 interface WhoCanReplyProps {
-  post: AppBskyFeedDefs.PostView
+  note: SonetFeedDefs.NoteView
   isThreadAuthor: boolean
   style?: StyleProp<ViewStyle>
 }
 
-export function WhoCanReply({post, isThreadAuthor, style}: WhoCanReplyProps) {
+export function WhoCanReply({note, isThreadAuthor, style}: WhoCanReplyProps) {
   const {_} = useLingui()
   const t = useTheme()
   const infoDialogControl = useDialogControl()
   const editDialogControl = useDialogControl()
 
   /*
-   * `WhoCanReply` is only used for root posts atm, in case this changes
+   * `WhoCanReply` is only used for root notes atm, in case this changes
    * unexpectedly, we should check to make sure it's for sure the root URI.
    */
   const rootUri =
-    bsky.dangerousIsType<AppBskyFeedPost.Record>(
-      post.record,
-      AppBskyFeedPost.isRecord,
-    ) && post.record.reply?.root
-      ? post.record.reply.root.uri
-      : post.uri
+    bsky.dangerousIsType<SonetFeedNote.Record>(
+      note.record,
+      SonetFeedNote.isRecord,
+    ) && note.record.reply?.root
+      ? note.record.reply.root.uri
+      : note.uri
   const settings = useMemo(() => {
-    return threadgateViewToAllowUISetting(post.threadgate)
-  }, [post.threadgate])
+    return threadgateViewToAllowUISetting(note.threadgate)
+  }, [note.threadgate])
 
-  const prefetchPostInteractionSettings = usePrefetchPostInteractionSettings({
-    postUri: post.uri,
-    rootPostUri: rootUri,
+  const prefetchNoteInteractionSettings = usePrefetchNoteInteractionSettings({
+    noteUri: note.uri,
+    rootNoteUri: rootUri,
   })
 
   const anyoneCanReply =
@@ -100,10 +100,10 @@ export function WhoCanReply({post, isThreadAuthor, style}: WhoCanReplyProps) {
         {...(isThreadAuthor
           ? Platform.select({
               web: {
-                onHoverIn: prefetchPostInteractionSettings,
+                onHoverIn: prefetchNoteInteractionSettings,
               },
               native: {
-                onPressIn: prefetchPostInteractionSettings,
+                onPressIn: prefetchNoteInteractionSettings,
               },
             })
           : {})}
@@ -133,18 +133,18 @@ export function WhoCanReply({post, isThreadAuthor, style}: WhoCanReplyProps) {
       </Button>
 
       {isThreadAuthor ? (
-        <PostInteractionSettingsDialog
-          postUri={post.uri}
-          rootPostUri={rootUri}
+        <NoteInteractionSettingsDialog
+          noteUri={note.uri}
+          rootNoteUri={rootUri}
           control={editDialogControl}
-          initialThreadgateView={post.threadgate}
+          initialThreadgateView={note.threadgate}
         />
       ) : (
         <WhoCanReplyDialog
           control={infoDialogControl}
-          post={post}
+          note={note}
           settings={settings}
-          embeddingDisabled={Boolean(post.viewer?.embeddingDisabled)}
+          embeddingDisabled={Boolean(note.viewer?.embeddingDisabled)}
         />
       )}
     </>
@@ -170,12 +170,12 @@ function Icon({
 
 function WhoCanReplyDialog({
   control,
-  post,
+  note,
   settings,
   embeddingDisabled,
 }: {
   control: Dialog.DialogControlProps
-  post: AppBskyFeedDefs.PostView
+  note: SonetFeedDefs.NoteView
   settings: ThreadgateAllowUISetting[]
   embeddingDisabled: boolean
 }) {
@@ -183,16 +183,16 @@ function WhoCanReplyDialog({
 
   return (
     <Dialog.Outer control={control} nativeOptions={{preventExpansion: true}}>
-      <Dialog.Handle />
+      <Dialog.Username />
       <Dialog.ScrollableInner
-        label={_(msg`Dialog: adjust who can interact with this post`)}
+        label={_(msg`Dialog: adjust who can interact with this note`)}
         style={web({maxWidth: 400})}>
         <View style={[a.gap_sm]}>
           <Text style={[a.font_bold, a.text_xl, a.pb_sm]}>
-            <Trans>Who can interact with this post?</Trans>
+            <Trans>Who can interact with this note?</Trans>
           </Text>
           <Rules
-            post={post}
+            note={note}
             settings={settings}
             embeddingDisabled={embeddingDisabled}
           />
@@ -217,11 +217,11 @@ function WhoCanReplyDialog({
 }
 
 function Rules({
-  post,
+  note,
   settings,
   embeddingDisabled,
 }: {
-  post: AppBskyFeedDefs.PostView
+  note: SonetFeedDefs.NoteView
   settings: ThreadgateAllowUISetting[]
   embeddingDisabled: boolean
 }) {
@@ -238,19 +238,19 @@ function Rules({
         ]}>
         {settings.length === 0 ? (
           <Trans>
-            This post has an unknown type of threadgate on it. Your app may be
+            This note has an unknown type of threadgate on it. Your app may be
             out of date.
           </Trans>
         ) : settings[0].type === 'everybody' ? (
-          <Trans>Everybody can reply to this post.</Trans>
+          <Trans>Everybody can reply to this note.</Trans>
         ) : settings[0].type === 'nobody' ? (
-          <Trans>Replies to this post are disabled.</Trans>
+          <Trans>Replies to this note are disabled.</Trans>
         ) : (
           <Trans>
             Only{' '}
             {settings.map((rule, i) => (
               <Fragment key={`rule-${i}`}>
-                <Rule rule={rule} post={post} lists={post.threadgate!.lists} />
+                <Rule rule={rule} note={note} lists={note.threadgate!.lists} />
                 <Separator i={i} length={settings.length} />
               </Fragment>
             ))}{' '}
@@ -266,7 +266,7 @@ function Rules({
             a.flex_wrap,
             t.atoms.text_contrast_medium,
           ]}>
-          <Trans>No one but the author can quote this post.</Trans>
+          <Trans>No one but the author can quote this note.</Trans>
         </Text>
       )}
     </>
@@ -275,12 +275,12 @@ function Rules({
 
 function Rule({
   rule,
-  post,
+  note,
   lists,
 }: {
   rule: ThreadgateAllowUISetting
-  post: AppBskyFeedDefs.PostView
-  lists: AppBskyGraphDefs.ListViewBasic[] | undefined
+  note: SonetFeedDefs.NoteView
+  lists: SonetGraphDefs.ListViewBasic[] | undefined
 }) {
   if (rule.type === 'mention') {
     return <Trans>mentioned users</Trans>
@@ -290,10 +290,10 @@ function Rule({
       <Trans>
         users following{' '}
         <InlineLinkText
-          label={`@${post.author.handle}`}
-          to={makeProfileLink(post.author)}
+          label={`@${note.author.username}`}
+          to={makeProfileLink(note.author)}
           style={[a.text_sm, a.leading_snug]}>
-          @{post.author.handle}
+          @{note.author.username}
         </InlineLinkText>
       </Trans>
     )
@@ -303,10 +303,10 @@ function Rule({
       <Trans>
         users followed by{' '}
         <InlineLinkText
-          label={`@${post.author.handle}`}
-          to={makeProfileLink(post.author)}
+          label={`@${note.author.username}`}
+          to={makeProfileLink(note.author)}
           style={[a.text_sm, a.leading_snug]}>
-          @{post.author.handle}
+          @{note.author.username}
         </InlineLinkText>
       </Trans>
     )

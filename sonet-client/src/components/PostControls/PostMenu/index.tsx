@@ -1,27 +1,27 @@
 import {memo, useMemo, useState} from 'react'
 import {
-  type AppBskyFeedDefs,
-  type AppBskyFeedPost,
-  type AppBskyFeedThreadgate,
+  type SonetFeedDefs,
+  type SonetFeedNote,
+  type SonetFeedThreadgate,
   type RichText as RichTextAPI,
-} from '@atproto/api'
+} from '@sonet/api'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import type React from 'react'
 
-import {type Shadow} from '#/state/cache/post-shadow'
+import {type Shadow} from '#/state/cache/note-shadow'
 import {EventStopper} from '#/view/com/util/EventStopper'
 import {DotGrid_Stroke2_Corner0_Rounded as DotsHorizontal} from '#/components/icons/DotGrid'
 import {useMenuControl} from '#/components/Menu'
 import * as Menu from '#/components/Menu'
-import {PostControlButton, PostControlButtonIcon} from '../PostControlButton'
-import {PostMenuItems} from './PostMenuItems'
+import {NoteControlButton, NoteControlButtonIcon} from '../NoteControlButton'
+import {NoteMenuItems} from './NoteMenuItems'
 
-let PostMenuButton = ({
+let NoteMenuButton = ({
   testID,
-  post,
-  postFeedContext,
-  postReqId,
+  note,
+  noteFeedContext,
+  noteReqId,
   big,
   record,
   richText,
@@ -30,15 +30,15 @@ let PostMenuButton = ({
   onShowLess,
 }: {
   testID: string
-  post: Shadow<AppBskyFeedDefs.PostView>
-  postFeedContext: string | undefined
-  postReqId: string | undefined
+  note: Shadow<SonetFeedDefs.NoteView>
+  noteFeedContext: string | undefined
+  noteReqId: string | undefined
   big?: boolean
-  record: AppBskyFeedPost.Record
+  record: SonetFeedNote.Record
   richText: RichTextAPI
   timestamp: string
-  threadgateRecord?: AppBskyFeedThreadgate.Record
-  onShowLess?: (interaction: AppBskyFeedDefs.Interaction) => void
+  threadgateRecord?: SonetFeedThreadgate.Record
+  onShowLess?: (interaction: SonetFeedDefs.Interaction) => void
 }): React.ReactNode => {
   const {_} = useLingui()
 
@@ -59,26 +59,26 @@ let PostMenuButton = ({
   return (
     <EventStopper onKeyDown={false}>
       <Menu.Root control={lazyMenuControl}>
-        <Menu.Trigger label={_(msg`Open post options menu`)}>
+        <Menu.Trigger label={_(msg`Open note options menu`)}>
           {({props}) => {
             return (
-              <PostControlButton
-                testID="postDropdownBtn"
+              <NoteControlButton
+                testID="noteDropdownBtn"
                 big={big}
                 label={props.accessibilityLabel}
                 {...props}>
-                <PostControlButtonIcon icon={DotsHorizontal} />
-              </PostControlButton>
+                <NoteControlButtonIcon icon={DotsHorizontal} />
+              </NoteControlButton>
             )
           }}
         </Menu.Trigger>
         {hasBeenOpen && (
           // Lazily initialized. Once mounted, they stay mounted.
-          <PostMenuItems
+          <NoteMenuItems
             testID={testID}
-            post={post}
-            postFeedContext={postFeedContext}
-            postReqId={postReqId}
+            note={note}
+            noteFeedContext={noteFeedContext}
+            noteReqId={noteReqId}
             record={record}
             richText={richText}
             timestamp={timestamp}
@@ -91,5 +91,5 @@ let PostMenuButton = ({
   )
 }
 
-PostMenuButton = memo(PostMenuButton)
-export {PostMenuButton}
+NoteMenuButton = memo(NoteMenuButton)
+export {NoteMenuButton}

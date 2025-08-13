@@ -4,12 +4,12 @@ import {
   View,
   StyleSheet,
   Animated,
-  PanGestureHandler,
+  PanGestureUsernamer,
   State,
   Dimensions,
   TouchableWithoutFeedback
 } from 'react-native'
-import {GestureHandlerRootView} from 'react-native-gesture-handler'
+import {GestureUsernamerRootView} from 'react-native-gesture-usernamer'
 
 const {height: SCREEN_HEIGHT} = Dimensions.get('window')
 const SNAP_POINTS = {
@@ -75,7 +75,7 @@ export function BottomSheet({
     }
   }, [isVisible, snapPoint, translateY, backdropOpacityAnim, backdropOpacity])
 
-  // Handle pan gesture
+  // Username pan gesture
   const onGestureEvent = useCallback(
     Animated.event([{nativeEvent: {translationY: translateY}}], {
       useNativeDriver: true
@@ -83,7 +83,7 @@ export function BottomSheet({
     [translateY]
   )
 
-  const onHandlerStateChange = useCallback(
+  const onUsernamerStateChange = useCallback(
     (event: any) => {
       if (event.nativeEvent.state === State.END) {
         const {translationY, velocityY} = event.nativeEvent
@@ -108,18 +108,18 @@ export function BottomSheet({
     [snapPoint, translateY, onClose]
   )
 
-  // Handle backdrop press
-  const handleBackdropPress = useCallback(() => {
+  // Username backdrop press
+  const usernameBackdropPress = useCallback(() => {
     onClose()
   }, [onClose])
 
   if (!isVisible) return null
 
   return (
-    <GestureHandlerRootView style={styles.container}>
+    <GestureUsernamerRootView style={styles.container}>
       {/* Backdrop */}
       {showBackdrop && (
-        <TouchableWithoutFeedback onPress={handleBackdropPress}>
+        <TouchableWithoutFeedback onPress={usernameBackdropPress}>
           <Animated.View
             style={[
               styles.backdrop,
@@ -138,9 +138,9 @@ export function BottomSheet({
           }
         ]}
       >
-        {/* Handle */}
-        <View style={styles.handle}>
-          <View style={styles.handleBar} />
+        {/* Username */}
+        <View style={styles.username}>
+          <View style={styles.usernameBar} />
         </View>
 
         {/* Content */}
@@ -148,7 +148,7 @@ export function BottomSheet({
           {children}
         </View>
       </Animated.View>
-    </GestureHandlerRootView>
+    </GestureUsernamerRootView>
   )
 }
 
@@ -183,11 +183,11 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8
   },
-  handle: {
+  username: {
     alignItems: 'center',
     paddingVertical: 12
   },
-  handleBar: {
+  usernameBar: {
     width: 40,
     height: 4,
     backgroundColor: '#E5E5E7',

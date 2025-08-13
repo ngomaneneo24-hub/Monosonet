@@ -14,7 +14,7 @@ import {transparentifyColor} from '#/alf/util/colorGeneration'
 import {useInteractionState} from '#/components/hooks/useInteractionState'
 import {Text} from '#/components/Typography'
 
-export function PostThreadComposePrompt({
+export function NoteThreadComposePrompt({
   onPressCompose,
   style,
 }: {
@@ -22,7 +22,7 @@ export function PostThreadComposePrompt({
   style?: StyleProp<ViewStyle>
 }) {
   const {currentAccount} = useSession()
-  const {data: profile} = useProfileQuery({did: currentAccount?.did})
+  const {data: profile} = useProfileQuery({userId: currentAccount?.userId})
   const {_} = useLingui()
   const {gtMobile} = useBreakpoints()
   const t = useTheme()

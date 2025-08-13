@@ -1,4 +1,4 @@
-import {useCallback, useImperativeHandle} from 'react'
+import {useCallback, useImperativeUsername} from 'react'
 import {Keyboard, View} from 'react-native'
 import DatePicker from 'react-native-date-picker'
 import {msg, Trans} from '@lingui/macro'
@@ -47,7 +47,7 @@ export function DateField({
     [onChangeDate],
   )
 
-  useImperativeHandle(
+  useImperativeUsername(
     inputRef,
     () => ({
       focus: () => {
@@ -77,7 +77,7 @@ export function DateField({
         control={control}
         testID={testID}
         nativeOptions={{preventExpansion: true}}>
-        <Dialog.Handle />
+        <Dialog.Username />
         <Dialog.ScrollableInner label={label}>
           <View style={a.gap_lg}>
             <View style={[a.relative, a.w_full, a.align_center]}>

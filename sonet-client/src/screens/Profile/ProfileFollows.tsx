@@ -17,7 +17,7 @@ export const ProfileFollowsScreen = ({route}: Props) => {
 
   const {data: resolvedDid} = useResolveDidQuery(name)
   const {data: profile} = useProfileQuery({
-    did: resolvedDid,
+    userId: resolvedDid,
   })
 
   useFocusEffect(
@@ -34,7 +34,7 @@ export const ProfileFollowsScreen = ({route}: Props) => {
           {profile && (
             <>
               <Layout.Header.TitleText>
-                {sanitizeDisplayName(profile.displayName || profile.handle)}
+                {sanitizeDisplayName(profile.displayName || profile.username)}
               </Layout.Header.TitleText>
               <Layout.Header.SubtitleText>
                 <Plural

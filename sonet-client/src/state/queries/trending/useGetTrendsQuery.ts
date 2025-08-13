@@ -1,6 +1,6 @@
 import React from 'react'
-import {type AppBskyUnspeccedGetTrends} from '@atproto/api'
-import {hasMutedWord} from '@atproto/api/dist/moderation/mutewords'
+import {type SonetUnspeccedGetTrends} from '@sonet/api'
+import {hasMutedWord} from '@sonet/api/dist/moderation/mutewords'
 import {useQuery} from '@tanstack/react-query'
 
 import {
@@ -29,7 +29,7 @@ export function useGetTrendsQuery() {
     queryKey: createGetTrendsQueryKey(),
     queryFn: async () => {
       const contentLangs = getContentLanguages().join(',')
-      const {data} = await agent.app.bsky.unspecced.getTrends(
+      const {data} = await agent.app.sonet.unspecced.getTrends(
         {
           limit: DEFAULT_LIMIT,
         },
@@ -43,7 +43,7 @@ export function useGetTrendsQuery() {
       return data
     },
     select: React.useCallback(
-      (data: AppBskyUnspeccedGetTrends.OutputSchema) => {
+      (data: SonetUnspeccedGetTrends.OutputSchema) => {
         return {
           trends: (data.trends ?? []).filter(t => {
             return !hasMutedWord({
