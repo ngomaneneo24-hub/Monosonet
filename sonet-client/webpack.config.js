@@ -33,6 +33,7 @@ module.exports = async function (env, argv) {
   config.resolve = config.resolve || {}
   config.resolve.alias = {
     ...(config.resolve.alias || {}),
+    '#': path.resolve(__dirname, 'src'),
     '@sonet/api': path.resolve(__dirname, 'src/api/sonet-client.ts'),
     '@sonet/types': path.resolve(__dirname, 'src/types/sonet.ts'),
   }
