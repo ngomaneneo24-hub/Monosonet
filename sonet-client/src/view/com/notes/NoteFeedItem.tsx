@@ -512,11 +512,11 @@ let FeedItemInner = ({
           <View style={styles.engagementRow}>
             <View style={styles.engagementLeft}>
               <AvatarStack note={note} />
-              <View style={styles.engagementStats}>
-                <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
-                  {note.likeCount || 0} likes • {note.replyCount || 0} replies • {note.viewCount || 0} views
-                </Text>
-              </View>
+                          <View style={styles.engagementStats}>
+              <Text style={[a.text_sm, t.atoms.text_contrast_medium, styles.engagementStatsText]}>
+                {note.likeCount || 0} likes • {note.replyCount || 0} replies • {note.viewCount || 0} views
+              </Text>
+            </View>
             </View>
             <View style={styles.engagementRight}>
               <EnhancedActionButtons
@@ -705,18 +705,30 @@ function ReplyToLabel({
 function AvatarStack({note}: {note: SonetFeedDefs.NoteView}) {
   const t = useTheme()
   
-  // In a real implementation, this would come from actual likes/replies data
-  // For now, we'll show the author's avatar as a placeholder
-  // This could be enhanced to show recent likers or repliers
+  // Get the first 3 users who liked the post
+  // In a real implementation, this would come from the note.likes array
+  // For now, we'll simulate with the author and some mock data
   const avatarSize = 32
   const overlap = 8
   
+  // Mock data - in real implementation, this would be note.likes.slice(0, 3)
+  const likeAvatars = [
+    note.author, // First liker (usually the author or first person to like)
+    { ...note.author, username: 'user2', displayName: 'User Two' }, // Second liker
+    { ...note.author, username: 'user3', displayName: 'User Three' }, // Third liker
+  ].slice(0, 3)
+  
+  // Only show avatar stack if there are likes
+  if (!note.likeCount || note.likeCount === 0) {
+    return null
+  }
+  
   return (
     <View style={styles.avatarStack}>
-      {/* Show up to 3 avatars with overlap effect */}
-      {[0, 1, 2].map((index) => (
+      {/* Show first 3 likers with perfect triangular overlap */}
+      {likeAvatars.map((profile, index) => (
         <View
-          key={index}
+          key={profile.username || index}
           style={[
             styles.avatarStackItem,
             {
@@ -726,7 +738,7 @@ function AvatarStack({note}: {note: SonetFeedDefs.NoteView}) {
           ]}>
           <PreviewableUserAvatar
             size={avatarSize}
-            profile={note.author}
+            profile={profile}
             moderation={undefined}
             type="user"
           />
@@ -796,7 +808,21 @@ function EnhancedActionButtons({
           styles.actionButton,
           isLiked && styles.actionButtonActive
         ]}
-        onTouchEnd={onPressLike}>
+        onTouchEnd={onPressLike}
+        onTouchStart={() => {
+          // Add press animation
+          const element = event?.target as HTMLElement
+          if (element) {
+            element.style.transform = 'scale(0.95)'
+          }
+        }}
+        onTouchEnd={() => {
+          // Reset press animation
+          const element = event?.target as HTMLElement
+          if (element) {
+            element.style.transform = 'scale(1)'
+          }
+        }}>
         {isLiked ? (
           <Heart2_Filled_Stroke2_Corner0_Rounded 
             width={20} 
@@ -815,7 +841,21 @@ function EnhancedActionButtons({
       {/* Reply Button */}
       <View 
         style={styles.actionButton}
-        onTouchEnd={onPressReply}>
+        onTouchEnd={onPressReply}
+        onTouchStart={() => {
+          // Add press animation
+          const element = event?.target as HTMLElement
+          if (element) {
+            element.style.transform = 'scale(0.95)'
+          }
+        }}
+        onTouchEnd={() => {
+          // Reset press animation
+          const element = event?.target as HTMLElement
+          if (element) {
+            element.style.transform = 'scale(1)'
+          }
+        }}>
         <Bubble_Stroke2_Corner2_Rounded 
           width={20} 
           height={20} 
@@ -829,7 +869,21 @@ function EnhancedActionButtons({
           styles.actionButton,
           isRenoted && styles.actionButtonActive
         ]}
-        onTouchEnd={onPressRepost}>
+        onTouchEnd={onPressRepost}
+        onTouchStart={() => {
+          // Add press animation
+          const element = event?.target as HTMLElement
+          if (element) {
+            element.style.transform = 'scale(0.95)'
+          }
+        }}
+        onTouchEnd={() => {
+          // Reset press animation
+          const element = event?.target as HTMLElement
+          if (element) {
+            element.style.transform = 'scale(1)'
+          }
+        }}>
         {isRenoted ? (
           <Renote_Stroke2_Corner2_Rounded 
             width={20} 
@@ -854,6 +908,13 @@ const styles = StyleSheet.create({
     paddingRight: 15,
     // @ts-ignore web only -prf
     cursor: 'pointer',
+    // Enhanced post card styling
+    backgroundColor: 'transparent',
+    transition: 'all 0.2s ease',
+    // Subtle hover effect for web
+    ':hover': {
+      backgroundColor: 'rgba(0, 0, 0, 0.02)',
+    },
   },
   replyLine: {
     width: 2,
@@ -880,13 +941,16 @@ const styles = StyleSheet.create({
     position: 'relative',
     flex: 1,
     zIndex: 0,
+    // Enhanced content spacing
+    paddingRight: 8,
   },
   alert: {
     marginTop: 6,
     marginBottom: 6,
   },
   contentHiderChild: {
-    marginTop: 6,
+    marginTop: 8,
+    marginBottom: 4,
   },
   embed: {
     marginBottom: 6,
@@ -936,12 +1000,20 @@ const styles = StyleSheet.create({
   engagementStats: {
     justifyContent: 'center',
     minWidth: 0,
+    flex: 1,
+  },
+  engagementStatsText: {
+    // Enhanced text styling
+    lineHeight: 1.4,
+    letterSpacing: 0.2,
   },
   // Avatar Stack Styles
   avatarStack: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 4,
+    marginRight: 8,
+    // Perfect triangular stack positioning
+    position: 'relative',
   },
   avatarStackItem: {
     borderRadius: 16,
@@ -953,6 +1025,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.8,
     shadowRadius: 2,
     elevation: 2,
+    // Smooth transitions for interactions
+    transition: 'all 0.2s ease',
   },
   // Action Buttons Styles
   actionButtonsContainer: {
@@ -971,13 +1045,18 @@ const styles = StyleSheet.create({
     // Web hover effects
     cursor: 'pointer',
     transition: 'all 0.2s ease',
+    // Enhanced touch states
+    position: 'relative',
   },
   actionButtonActive: {
     // Active state styling
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    transform: [{scale: 1.05}],
   },
   actionButtonIcon: {
     // Icon styling
     transition: 'all 0.2s ease',
+    // Smooth icon transitions
+    transform: [{scale: 1}],
   },
 })
