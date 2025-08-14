@@ -10,11 +10,11 @@ import {logger as notyLogger} from '#/lib/notifications/util'
 import {isNative} from '#/platform/detection'
 import {useAgeAssuranceContext} from '#/state/ageAssurance'
 import {type SessionAccount, useAgent, useSession} from '#/state/session'
-import BackgroundNotificationUsernamer from '#/../modules/expo-background-notification-usernamer'
+import BackgroundNotificationUsernamer from '#/../modules/expo-background-notification-handler'
 
 /**
  * @private
- * Registers the device's push notification token with the Bluesky server.
+ * Registers the device's push notification token with the Sonet server.
  */
 async function _registerPushToken({
   agent,
