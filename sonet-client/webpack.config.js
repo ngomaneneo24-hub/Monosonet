@@ -10,7 +10,8 @@ const GENERATE_STATS = process.env.EXPO_PUBLIC_GENERATE_STATS === '1'
 const OPEN_ANALYZER = process.env.EXPO_PUBLIC_OPEN_ANALYZER === '1'
 
 const reactNativeWebWebviewConfiguration = {
-  test: /noteMock.html$/,
+  // Load the mock HTML file that react-native-web-webview imports on web
+  test: /postMock.html$/,
   use: {
     loader: 'file-loader',
     options: {
