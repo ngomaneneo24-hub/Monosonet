@@ -32,7 +32,7 @@ import {
 } from '#/types/bsky/note'
 import {ExternalEmbed} from './ExternalEmbed'
 import {ModeratedFeedEmbed} from './FeedEmbed'
-import {ImageEmbed} from './ImageEmbed'
+import {EnhancedImageEmbed} from './EnhancedImageEmbed'
 import {ModeratedListEmbed} from './ListEmbed'
 import {NotePlaceholder as NotePlaceholderText} from './NotePlaceholder'
 import {
@@ -88,7 +88,7 @@ function MediaEmbed({
     case 'images': {
       return (
         <ContentHider modui={rest.moderation?.ui('contentMedia')}>
-          <ImageEmbed embed={embed} {...rest} />
+          <EnhancedImageEmbed embed={embed} {...rest} />
         </ContentHider>
       )
     }

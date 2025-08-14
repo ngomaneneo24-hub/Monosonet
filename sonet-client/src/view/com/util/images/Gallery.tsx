@@ -12,6 +12,8 @@ import {atoms as a, useTheme} from '#/alf'
 import {MediaInsetBorder} from '#/components/MediaInsetBorder'
 import {NoteEmbedViewContext} from '#/components/Note/Embed/types'
 import {Text} from '#/components/Typography'
+import {AdvancedMediaCarousel} from './AdvancedMediaCarousel'
+import {PinchGestureHandler} from './PinchGestureHandler'
 
 type EventFunction = (index: number) => void
 
@@ -115,6 +117,82 @@ export function GalleryItem({
           </Text>
         </View>
       ) : null}
+    </View>
+  )
+}
+
+// Enhanced Gallery function with advanced carousel support
+export function EnhancedGallery({
+  images,
+  onPress,
+  onLongPress,
+  onPressIn,
+  imageStyle,
+  viewContext,
+  insetBorderStyle,
+  containerRefs,
+  thumbDimsRef,
+}: {
+  images: SonetEmbedImages.ViewImage[]
+  onPress?: (
+    index: number,
+    containerRefs: AnimatedRef<any>[],
+    fetchedDims: (Dimensions | null)[],
+  ) => void
+  onLongPress?: EventFunction
+  onPressIn?: EventFunction
+  imageStyle?: StyleProp<ImageStyle>
+  viewContext?: NoteEmbedViewContext
+  insetBorderStyle?: StyleProp<ViewStyle>
+  containerRefs: AnimatedRef<any>[]
+  thumbDimsRef: React.MutableRefObject<(Dimensions | null)[]>
+}) {
+  const t = useTheme()
+  const {_} = useLingui()
+  const largeAltBadge = useLargeAltBadgeEnabled()
+  const hideBadges =
+    viewContext === NoteEmbedViewContext.FeedEmbedRecordWithMedia
+  
+  // Use advanced carousel for multiple images (3+ images)
+  if (images.length >= 3) {
+    return (
+      <PinchGestureHandler
+        onPinchCombine={() => {
+          // Handle combine mode - could trigger a creative layout
+          console.log('Media combined - creative mode activated!')
+        }}
+        onPinchSeparate={() => {
+          // Handle separate mode - return to normal layout
+          console.log('Media separated - normal mode activated!')
+        }}>
+        <AdvancedMediaCarousel
+          images={images}
+          onPress={onPress ? (index) => onPress(index, containerRefs, thumbDimsRef.current.slice()) : undefined}
+          onLongPress={onLongPress}
+          viewContext={viewContext}
+        />
+      </PinchGestureHandler>
+    )
+  }
+  
+  // Use traditional grid layout for 1-2 images
+  return (
+    <View style={[a.flex_1, a.overflow_hidden, a.rounded_md]}>
+      {images.map((image, index) => (
+        <GalleryItem
+          key={image.thumb}
+          images={images}
+          index={index}
+          imageStyle={imageStyle}
+          onPress={onPress}
+          onPressIn={onPressIn}
+          onLongPress={onLongPress}
+          viewContext={viewContext}
+          insetBorderStyle={insetBorderStyle}
+          containerRefs={containerRefs}
+          thumbDimsRef={thumbDimsRef}
+        />
+      ))}
     </View>
   )
 }

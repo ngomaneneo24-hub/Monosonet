@@ -118,7 +118,7 @@ export type ComposerAction =
       noteId: string
     }
 
-export const MAX_IMAGES = 4
+export const MAX_IMAGES = 10
 
 export function composerReducer(
   state: ComposerState,

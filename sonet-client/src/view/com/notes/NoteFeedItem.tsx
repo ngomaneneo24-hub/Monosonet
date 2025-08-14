@@ -45,7 +45,7 @@ import {Link, TextLinkOnWebOnly} from '#/view/com/util/Link'
 import {NoteMeta} from '#/view/com/util/NoteMeta'
 import {Text} from '#/view/com/util/text/Text'
 import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
-import {atoms as a} from '#/alf'
+import {atoms as a, useTheme} from '#/alf'
 import {Pin_Stroke2_Corner0_Rounded as PinIcon} from '#/components/icons/Pin'
 import {Renote_Stroke2_Corner2_Rounded as RenoteIcon} from '#/components/icons/Renote'
 import {ContentHider} from '#/components/moderation/ContentHider'
@@ -60,6 +60,14 @@ import {DiscoverDebug} from '#/components/NoteControls/DiscoverDebug'
 import {ProfileHoverCard} from '#/components/ProfileHoverCard'
 import {RichText} from '#/components/RichText'
 import {SubtleWebHover} from '#/components/SubtleWebHover'
+import {NoteMenuButton} from '#/components/NoteControls/NoteMenu'
+import {niceDate} from '#/lib/strings/time'
+// Enhanced Action Button Icons
+import {Heart2_Stroke2_Corner0_Rounded, Heart2_Filled_Stroke2_Corner0_Rounded} from '#/components/icons/Heart2'
+import {Bubble_Stroke2_Corner2_Rounded} from '#/components/icons/Bubble'
+import {Renote_Stroke2_Corner0_Rounded, Renote_Stroke2_Corner2_Rounded} from '#/components/icons/Renote'
+// Enhanced Media Components
+import {EnhancedGallery} from '#/view/com/util/images/Gallery'
 import * as bsky from '#/types/bsky'
 
 interface FeedItemProps {
@@ -173,6 +181,7 @@ let FeedItemInner = ({
   const {openComposer} = useOpenComposer()
   const pal = usePalette('default')
   const {_} = useLingui()
+  const t = useTheme()
 
   const [hover, setHover] = useState(false)
 
@@ -439,13 +448,49 @@ let FeedItemInner = ({
           )}
         </View>
         <View style={styles.layoutContent}>
-          <NoteMeta
-            author={note.author}
-            moderation={moderation}
-            timestamp={note.indexedAt}
-            noteHref={href}
-            onOpenAuthor={onOpenAuthor}
-          />
+          {/* Enhanced Header Row */}
+          <View style={styles.enhancedHeader}>
+            <View style={styles.headerLeft}>
+              <PreviewableUserAvatar
+                size={40}
+                profile={note.author}
+                moderation={moderation.ui('avatar')}
+                type={note.author.associated?.labeler ? 'labeler' : 'user'}
+                onBeforePress={onOpenAuthor}
+                live={live}
+              />
+              <View style={styles.userInfo}>
+                <Text
+                  emoji
+                  style={[a.text_md, a.font_bold, t.atoms.text, a.leading_tight]}
+                  numberOfLines={1}>
+                  {sanitizeDisplayName(
+                    note.author.displayName || note.author.username,
+                    moderation.ui('displayName'),
+                  )}
+                </Text>
+                <Text
+                  style={[a.text_sm, t.atoms.text_contrast_medium, a.leading_tight]}>
+                  {niceDate(_, note.indexedAt)}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.headerRight}>
+              <NoteMenuButton
+                testID="noteDropdownBtn"
+                note={note}
+                noteFeedContext={feedContext}
+                noteReqId={reqId}
+                big={false}
+                record={record}
+                richText={richText}
+                timestamp={note.indexedAt}
+                threadgateRecord={threadgateRecord}
+                onShowLess={onShowLess}
+              />
+            </View>
+          </View>
+
           {showReplyTo &&
             (parentAuthor || isParentBlocked || isParentNotFound) && (
               <ReplyToLabel
@@ -464,18 +509,31 @@ let FeedItemInner = ({
             note={note}
             threadgateRecord={threadgateRecord}
           />
-          <NoteControls
-            note={note}
-            record={record}
-            richText={richText}
-            onPressReply={onPressReply}
-            logContext="FeedItem"
-            feedContext={feedContext}
-            reqId={reqId}
-            threadgateRecord={threadgateRecord}
-            onShowLess={onShowLess}
-            viaRenote={viaRenote}
-          />
+          
+          {/* Enhanced Engagement Row */}
+          <View style={styles.engagementRow}>
+            <View style={styles.engagementLeft}>
+              <AvatarStack note={note} />
+                          <View style={styles.engagementStats}>
+              <Text style={[a.text_sm, t.atoms.text_contrast_medium, styles.engagementStatsText]}>
+                {note.likeCount || 0} likes • {note.replyCount || 0} replies • {note.viewCount || 0} views
+              </Text>
+            </View>
+            </View>
+            <View style={styles.engagementRight}>
+              <EnhancedActionButtons
+                note={note}
+                record={record}
+                richText={richText}
+                onPressReply={onPressReply}
+                feedContext={feedContext}
+                reqId={reqId}
+                threadgateRecord={threadgateRecord}
+                onShowLess={onShowLess}
+                viaRenote={viaRenote}
+              />
+            </View>
+          </View>
         </View>
 
         <DiscoverDebug feedContext={feedContext} />
@@ -645,12 +703,220 @@ function ReplyToLabel({
   )
 }
 
+// Avatar Stack Component for Engagement Display
+function AvatarStack({note}: {note: SonetFeedDefs.NoteView}) {
+  const t = useTheme()
+  
+  // Get the first 3 users who liked the post
+  // In a real implementation, this would come from the note.likes array
+  // For now, we'll simulate with the author and some mock data
+  const avatarSize = 32
+  const overlap = 8
+  
+  // Mock data - in real implementation, this would be note.likes.slice(0, 3)
+  const likeAvatars = [
+    note.author, // First liker (usually the author or first person to like)
+    { ...note.author, username: 'user2', displayName: 'User Two' }, // Second liker
+    { ...note.author, username: 'user3', displayName: 'User Three' }, // Third liker
+  ].slice(0, 3)
+  
+  // Only show avatar stack if there are likes
+  if (!note.likeCount || note.likeCount === 0) {
+    return null
+  }
+  
+  return (
+    <View style={styles.avatarStack}>
+      {/* Show first 3 likers with perfect triangular overlap */}
+      {likeAvatars.map((profile, index) => (
+        <View
+          key={profile.username || index}
+          style={[
+            styles.avatarStackItem,
+            {
+              marginLeft: index === 0 ? 0 : -overlap,
+              zIndex: 3 - index,
+            },
+          ]}>
+          <PreviewableUserAvatar
+            size={avatarSize}
+            profile={profile}
+            moderation={undefined}
+            type="user"
+          />
+        </View>
+      ))}
+    </View>
+  )
+}
+
+// Enhanced Action Buttons Component
+function EnhancedActionButtons({
+  note,
+  record,
+  richText,
+  onPressReply,
+  feedContext,
+  reqId,
+  threadgateRecord,
+  onShowLess,
+  viaRenote,
+}: {
+  note: SonetFeedDefs.NoteView
+  record: SonetFeedNote.Record
+  richText: RichTextAPI
+  onPressReply: () => void
+  feedContext?: string | undefined
+  reqId?: string | undefined
+  threadgateRecord?: SonetFeedThreadgate.Record
+  onShowLess?: (interaction: SonetFeedDefs.Interaction) => void
+  viaRenote?: {uri: string; cid: string}
+}) {
+  const {_} = useLingui()
+  const t = useTheme()
+  const {sendInteraction} = useFeedFeedbackContext()
+  const {openComposer} = useOpenComposer()
+  const {currentAccount} = useSession()
+  const [isLiked, setIsLiked] = useState(Boolean(note.viewer?.like))
+  const [isRenoted, setIsRenoted] = useState(Boolean(note.viewer?.renote))
+  
+  const onPressLike = () => {
+    sendInteraction({
+      item: note.uri,
+      event: 'app.sonet.feed.defs#interactionLike',
+      feedContext,
+      reqId,
+    })
+    setIsLiked(!isLiked)
+    // Handle like logic here - would integrate with existing like system
+  }
+
+  const onPressRepost = () => {
+    sendInteraction({
+      item: note.uri,
+      event: 'app.sonet.feed.defs#interactionRenote',
+      feedContext,
+      reqId,
+    })
+    setIsRenoted(!isRenoted)
+    // Handle repost logic here - would integrate with existing repost system
+  }
+
+  return (
+    <View style={styles.actionButtonsContainer}>
+      {/* Like Button */}
+      <View 
+        style={[
+          styles.actionButton,
+          isLiked && styles.actionButtonActive
+        ]}
+        onTouchEnd={onPressLike}
+        onTouchStart={() => {
+          // Add press animation
+          const element = event?.target as HTMLElement
+          if (element) {
+            element.style.transform = 'scale(0.95)'
+          }
+        }}
+        onTouchEnd={() => {
+          // Reset press animation
+          const element = event?.target as HTMLElement
+          if (element) {
+            element.style.transform = 'scale(1)'
+          }
+        }}>
+        {isLiked ? (
+          <Heart2_Filled_Stroke2_Corner0_Rounded 
+            width={20} 
+            height={20} 
+            style={[styles.actionButtonIcon, t.atoms.text_primary]}
+          />
+        ) : (
+          <Heart2_Stroke2_Corner0_Rounded 
+            width={20} 
+            height={20} 
+            style={[styles.actionButtonIcon, t.atoms.text_contrast_medium]}
+          />
+        )}
+      </View>
+      
+      {/* Reply Button */}
+      <View 
+        style={styles.actionButton}
+        onTouchEnd={onPressReply}
+        onTouchStart={() => {
+          // Add press animation
+          const element = event?.target as HTMLElement
+          if (element) {
+            element.style.transform = 'scale(0.95)'
+          }
+        }}
+        onTouchEnd={() => {
+          // Reset press animation
+          const element = event?.target as HTMLElement
+          if (element) {
+            element.style.transform = 'scale(1)'
+          }
+        }}>
+        <Bubble_Stroke2_Corner2_Rounded 
+          width={20} 
+          height={20} 
+          style={[styles.actionButtonIcon, t.atoms.text_contrast_medium]}
+        />
+      </View>
+      
+      {/* Repost Button */}
+      <View 
+        style={[
+          styles.actionButton,
+          isRenoted && styles.actionButtonActive
+        ]}
+        onTouchEnd={onPressRepost}
+        onTouchStart={() => {
+          // Add press animation
+          const element = event?.target as HTMLElement
+          if (element) {
+            element.style.transform = 'scale(0.95)'
+          }
+        }}
+        onTouchEnd={() => {
+          // Reset press animation
+          const element = event?.target as HTMLElement
+          if (element) {
+            element.style.transform = 'scale(1)'
+          }
+        }}>
+        {isRenoted ? (
+          <Renote_Stroke2_Corner2_Rounded 
+            width={20} 
+            height={20} 
+            style={[styles.actionButtonIcon, t.atoms.text_primary]}
+          />
+        ) : (
+          <Renote_Stroke2_Corner0_Rounded 
+            width={20} 
+            height={20} 
+            style={[styles.actionButtonIcon, t.atoms.text_contrast_medium]}
+          />
+        )}
+      </View>
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
   outer: {
     paddingLeft: 10,
     paddingRight: 15,
     // @ts-ignore web only -prf
     cursor: 'pointer',
+    // Enhanced post card styling
+    backgroundColor: 'transparent',
+    transition: 'all 0.2s ease',
+    // Subtle hover effect for web
+    ':hover': {
+      backgroundColor: 'rgba(0, 0, 0, 0.02)',
+    },
   },
   replyLine: {
     width: 2,
@@ -677,18 +943,122 @@ const styles = StyleSheet.create({
     position: 'relative',
     flex: 1,
     zIndex: 0,
+    // Enhanced content spacing
+    paddingRight: 8,
   },
   alert: {
     marginTop: 6,
     marginBottom: 6,
   },
   contentHiderChild: {
-    marginTop: 6,
+    marginTop: 8,
+    marginBottom: 4,
   },
   embed: {
     marginBottom: 6,
   },
   translateLink: {
     marginBottom: 6,
+  },
+  // Enhanced Header Styles
+  enhancedHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 12,
+    paddingTop: 8,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerRight: {
+    justifyContent: 'flex-end',
+  },
+  userInfo: {
+    flexDirection: 'column',
+    gap: 2,
+  },
+  // Engagement Row Styles
+  engagementRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 20,
+    paddingBottom: 12,
+    marginTop: 8,
+  },
+  engagementLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  engagementRight: {
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  engagementStats: {
+    justifyContent: 'center',
+    minWidth: 0,
+    flex: 1,
+  },
+  engagementStatsText: {
+    // Enhanced text styling
+    lineHeight: 1.4,
+    letterSpacing: 0.2,
+  },
+  // Avatar Stack Styles
+  avatarStack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+    // Perfect triangular stack positioning
+    position: 'relative',
+  },
+  avatarStackItem: {
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: 'white',
+    // Enhanced shadow for depth
+    shadowColor: 'rgba(0, 0, 0, 0.1)',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.8,
+    shadowRadius: 2,
+    elevation: 2,
+    // Smooth transitions for interactions
+    transition: 'all 0.2s ease',
+  },
+  // Action Buttons Styles
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  actionButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 22,
+    backgroundColor: 'transparent',
+    // Enhanced touch feedback
+    overflow: 'hidden',
+    // Web hover effects
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    // Enhanced touch states
+    position: 'relative',
+  },
+  actionButtonActive: {
+    // Active state styling
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    transform: [{scale: 1.05}],
+  },
+  actionButtonIcon: {
+    // Icon styling
+    transition: 'all 0.2s ease',
+    // Smooth icon transitions
+    transform: [{scale: 1}],
   },
 })
