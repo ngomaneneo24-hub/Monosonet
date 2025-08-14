@@ -62,6 +62,10 @@ import {RichText} from '#/components/RichText'
 import {SubtleWebHover} from '#/components/SubtleWebHover'
 import {NoteMenuButton} from '#/components/NoteControls/NoteMenu'
 import {niceDate} from '#/lib/strings/time'
+// Enhanced Action Button Icons
+import {Heart2_Stroke2_Corner0_Rounded, Heart2_Filled_Stroke2_Corner0_Rounded} from '#/components/icons/Heart2'
+import {Bubble_Stroke2_Corner2_Rounded} from '#/components/icons/Bubble'
+import {Renote_Stroke2_Corner0_Rounded, Renote_Stroke2_Corner2_Rounded} from '#/components/icons/Renote'
 import * as bsky from '#/types/bsky'
 
 interface FeedItemProps {
@@ -701,28 +705,28 @@ function ReplyToLabel({
 function AvatarStack({note}: {note: SonetFeedDefs.NoteView}) {
   const t = useTheme()
   
-  // Mock data for now - in real implementation, this would come from likes/replies
-  const mockAvatars = [
-    {id: '1', src: note.author.avatar},
-    {id: '2', src: note.author.avatar}, // This would be actual like/reply avatars
-    {id: '3', src: note.author.avatar},
-  ]
-
+  // In a real implementation, this would come from actual likes/replies data
+  // For now, we'll show the author's avatar as a placeholder
+  // This could be enhanced to show recent likers or repliers
+  const avatarSize = 32
+  const overlap = 8
+  
   return (
     <View style={styles.avatarStack}>
-      {mockAvatars.slice(0, 3).map((avatar, index) => (
+      {/* Show up to 3 avatars with overlap effect */}
+      {[0, 1, 2].map((index) => (
         <View
-          key={avatar.id}
+          key={index}
           style={[
             styles.avatarStackItem,
             {
-              marginLeft: index === 0 ? 0 : -8,
+              marginLeft: index === 0 ? 0 : -overlap,
               zIndex: 3 - index,
             },
           ]}>
           <PreviewableUserAvatar
-            size={32}
-            profile={{...note.author, avatar: avatar.src}}
+            size={avatarSize}
+            profile={note.author}
             moderation={undefined}
             type="user"
           />
@@ -759,6 +763,8 @@ function EnhancedActionButtons({
   const {sendInteraction} = useFeedFeedbackContext()
   const {openComposer} = useOpenComposer()
   const {currentAccount} = useSession()
+  const [isLiked, setIsLiked] = useState(Boolean(note.viewer?.like))
+  const [isRenoted, setIsRenoted] = useState(Boolean(note.viewer?.renote))
   
   const onPressLike = () => {
     sendInteraction({
@@ -767,7 +773,8 @@ function EnhancedActionButtons({
       feedContext,
       reqId,
     })
-    // Handle like logic here
+    setIsLiked(!isLiked)
+    // Handle like logic here - would integrate with existing like system
   }
 
   const onPressRepost = () => {
@@ -777,25 +784,65 @@ function EnhancedActionButtons({
       feedContext,
       reqId,
     })
-    // Handle repost logic here
+    setIsRenoted(!isRenoted)
+    // Handle repost logic here - would integrate with existing repost system
   }
 
   return (
     <View style={styles.actionButtonsContainer}>
-      <View style={styles.actionButton}>
-        <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
-          ❤️
-        </Text>
+      {/* Like Button */}
+      <View 
+        style={[
+          styles.actionButton,
+          isLiked && styles.actionButtonActive
+        ]}
+        onTouchEnd={onPressLike}>
+        {isLiked ? (
+          <Heart2_Filled_Stroke2_Corner0_Rounded 
+            width={20} 
+            height={20} 
+            style={[styles.actionButtonIcon, t.atoms.text_primary]}
+          />
+        ) : (
+          <Heart2_Stroke2_Corner0_Rounded 
+            width={20} 
+            height={20} 
+            style={[styles.actionButtonIcon, t.atoms.text_contrast_medium]}
+          />
+        )}
       </View>
-      <View style={styles.actionButton}>
-        <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
-          💬
-        </Text>
+      
+      {/* Reply Button */}
+      <View 
+        style={styles.actionButton}
+        onTouchEnd={onPressReply}>
+        <Bubble_Stroke2_Corner2_Rounded 
+          width={20} 
+          height={20} 
+          style={[styles.actionButtonIcon, t.atoms.text_contrast_medium]}
+        />
       </View>
-      <View style={styles.actionButton}>
-        <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
-          🔄
-        </Text>
+      
+      {/* Repost Button */}
+      <View 
+        style={[
+          styles.actionButton,
+          isRenoted && styles.actionButtonActive
+        ]}
+        onTouchEnd={onPressRepost}>
+        {isRenoted ? (
+          <Renote_Stroke2_Corner2_Rounded 
+            width={20} 
+            height={20} 
+            style={[styles.actionButtonIcon, t.atoms.text_primary]}
+          />
+        ) : (
+          <Renote_Stroke2_Corner0_Rounded 
+            width={20} 
+            height={20} 
+            style={[styles.actionButtonIcon, t.atoms.text_contrast_medium]}
+          />
+        )}
       </View>
     </View>
   )
@@ -872,29 +919,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 16,
-    paddingBottom: 8,
+    paddingTop: 20,
+    paddingBottom: 12,
+    marginTop: 8,
   },
   engagementLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
   },
   engagementRight: {
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   engagementStats: {
     justifyContent: 'center',
+    minWidth: 0,
   },
   // Avatar Stack Styles
   avatarStack: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 4,
   },
   avatarStackItem: {
     borderRadius: 16,
     borderWidth: 2,
     borderColor: 'white',
+    // Enhanced shadow for depth
+    shadowColor: 'rgba(0, 0, 0, 0.1)',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.8,
+    shadowRadius: 2,
+    elevation: 2,
   },
   // Action Buttons Styles
   actionButtonsContainer: {
@@ -908,5 +966,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 22,
     backgroundColor: 'transparent',
+    // Enhanced touch feedback
+    overflow: 'hidden',
+    // Web hover effects
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+  },
+  actionButtonActive: {
+    // Active state styling
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  actionButtonIcon: {
+    // Icon styling
+    transition: 'all 0.2s ease',
   },
 })
