@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useState} from 'react'
-import {BackUsernamer, useWindowDimensions, View} from 'react-native'
+import {BackHandler, useWindowDimensions, View} from 'react-native'
 import {Drawer} from 'react-native-drawer-layout'
 import {SystemBars} from 'react-native-edge-to-edge'
 import {Gesture} from 'react-native-gesture-usernamer'
@@ -8,7 +8,7 @@ import {useNavigation, useNavigationState} from '@react-navigation/native'
 
 import {useDedupe} from '#/lib/hooks/useDedupe'
 import {useIntentUsernamer} from '#/lib/hooks/useIntentUsernamer'
-import {useNotificationsUsernamer} from '#/lib/hooks/useNotificationUsernamer'
+import {useNotificationsUsernamer} from '#/lib/hooks/useNotificationHandler'
 import {useNotificationsRegistration} from '#/lib/notifications/notifications'
 import {isStateAtTabRoot} from '#/lib/routes/helpers'
 import {isAndroid, isIOS} from '#/platform/detection'
@@ -69,7 +69,7 @@ function ShellInner() {
 
   useEffect(() => {
     if (isAndroid) {
-      const listener = BackUsernamer.addEventListener('hardwareBackPress', () => {
+      const listener = BackHandler.addEventListener('hardwareBackPress', () => {
         return closeAnyActiveElement()
       })
 
@@ -110,7 +110,7 @@ function ShellInner() {
           <Drawer
             renderDrawerContent={renderDrawerContent}
             drawerStyle={{width: Math.min(400, winDim.width * 0.8)}}
-            configureGestureUsernamer={usernamer => {
+            configureGesture={usernamer => {
               usernamer = usernamer.requireExternalGestureToFail(
                 trendingScrollGesture,
               )

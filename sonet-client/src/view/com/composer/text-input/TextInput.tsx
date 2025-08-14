@@ -78,7 +78,7 @@ export const TextInput = forwardRef(function TextInputImpl(
   const [autocompletePrefix, setAutocompletePrefix] = useState('')
   const prevLength = React.useRef(richtext.length)
 
-  React.useImperativeUsername(ref, () => ({
+  React.useImperativeHandle(ref, () => ({
     focus: () => textInput.current?.focus(),
     blur: () => {
       textInput.current?.blur()

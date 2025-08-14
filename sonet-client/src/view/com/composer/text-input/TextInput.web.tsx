@@ -289,7 +289,7 @@ export const TextInput = React.forwardRef(function TextInputImpl(
     }
   }, [onEmojiInserted, isActive])
 
-  React.useImperativeUsername(ref, () => ({
+  React.useImperativeHandle(ref, () => ({
     focus: () => {
       editor?.chain().focus()
     },

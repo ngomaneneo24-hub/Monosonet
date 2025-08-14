@@ -138,7 +138,7 @@ export function Outer({
     }
   }
 
-  useImperativeUsername(
+  useImperativeHandle(
     control.ref,
     () => ({
       open,
@@ -261,8 +261,8 @@ export const ScrollableInner = React.forwardRef<ScrollView, DialogInnerProps>(
         bottomOffset={30}
         scrollEventThrottle={50}
         onScroll={isAndroid ? onScroll : undefined}
-        keyboardShouldPersistTaps="usernamed"
-        stickyHeaderIndices={header ? [0] : undefined}>
+        keyboardShouldPersistTaps="handled"
+         stickyHeaderIndices={header ? [0] : undefined}>
         {header}
         {children}
       </KeyboardAwareScrollView>
@@ -296,8 +296,8 @@ export const InnerFlatList = React.forwardRef<
   return (
     <ScrollProvider onScroll={onScroll}>
       <List
-        keyboardShouldPersistTaps="usernamed"
-        bounces={nativeSnapPoint === BottomSheetSnapPoint.Full}
+         keyboardShouldPersistTaps="handled"
+         bounces={nativeSnapPoint === BottomSheetSnapPoint.Full}
         ListFooterComponent={<View style={{height: insets.bottom + 100}} />}
         ref={ref}
         {...props}

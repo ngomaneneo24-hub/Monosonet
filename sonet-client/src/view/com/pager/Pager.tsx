@@ -1,7 +1,7 @@
 import {
   useCallback,
   useContext,
-  useImperativeUsername,
+  useImperativeHandle,
   useRef,
   useState,
 } from 'react'
@@ -82,7 +82,7 @@ export function Pager({
     }, [setDrawerSwipeDisabled, selectedPage, isIdle]),
   )
 
-  useImperativeUsername(ref, () => ({
+  useImperativeHandle(ref, () => ({
     setPage: (index: number) => {
       pagerView.current?.setPage(index)
     },
@@ -172,7 +172,7 @@ function usePagerUsernamers(
   },
   dependencies: unknown[],
 ) {
-  const {doDependenciesDiffer} = useUsernamer(usernamers as any, dependencies)
+  const {doDependenciesDiffer} = useEvent(usernamers as any, dependencies)
   const subscribeForEvents = [
     'onPageScroll',
     'onPageScrollStateChanged',

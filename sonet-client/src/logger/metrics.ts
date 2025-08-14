@@ -1,4 +1,4 @@
-import {type NotificationReason} from '#/lib/hooks/useNotificationUsernamer'
+import {type NotificationReason} from '#/lib/hooks/useNotificationHandler'
 import {type FeedDescriptor} from '#/state/queries/note-feed'
 
 export type MetricEvents = {
