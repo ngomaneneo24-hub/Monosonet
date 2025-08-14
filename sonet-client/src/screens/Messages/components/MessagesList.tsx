@@ -366,7 +366,7 @@ export function MessagesList({
           initialNumToRender={isNative ? 32 : 62}
           maxToRenderPerBatch={isWeb ? 32 : 62}
           keyboardDismissMode="on-drag"
-          keyboardShouldPersistTaps="usernamed"
+          keyboardShouldPersistTaps="handled"
           maintainVisibleContentPosition={{
             minIndexForVisible: 0,
           }}

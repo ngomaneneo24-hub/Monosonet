@@ -47,7 +47,7 @@ export function DateField({
     [onChangeDate],
   )
 
-  useImperativeUsername(
+  useImperativeHandle(
     inputRef,
     () => ({
       focus: () => {

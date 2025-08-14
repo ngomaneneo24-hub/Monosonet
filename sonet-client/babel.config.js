@@ -43,6 +43,10 @@ module.exports = function (api) {
             '^@atproto/api/dist/.*$': './src/shims/atproto-api-dist.ts',
             '^@atproto/common-web$': './src/shims/atproto-common-web.ts',
             '^@atproto/lexicon$': './src/shims/atproto-lexicon.ts',
+            // Fix typos introduced in migration
+            'react-native-gesture-usernamer': './src/shims/react-native-gesture-usernamer',
+            'react-native-keyboard-controller': './src/shims/react-native-keyboard-controller',
+            'react-native-draggable-flatlist': './src/shims/react-native-draggable-flatlist',
           },
         },
       ],

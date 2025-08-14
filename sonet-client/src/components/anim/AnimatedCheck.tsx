@@ -56,7 +56,7 @@ export const AnimatedCheck = React.forwardRef<
     [circleAnim, checkAnim],
   )
 
-  React.useImperativeUsername(ref, () => ({
+  React.useImperativeHandle(ref, () => ({
     play,
   }))
 

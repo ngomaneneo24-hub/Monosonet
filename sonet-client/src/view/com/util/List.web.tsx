@@ -170,18 +170,18 @@ function ListImpl<ItemT>(
         scrollBy(options: ScrollToOptions) {
           window.scrollBy(options)
         },
-        addEventListener(event: string, usernamer: any) {
-          window.addEventListener(event, usernamer)
+        addEventListener(event: string, listener: any) {
+          window.addEventListener(event, listener)
         },
-        removeEventListener(event: string, usernamer: any) {
-          window.removeEventListener(event, usernamer)
+        removeEventListener(event: string, listener: any) {
+          window.removeEventListener(event, listener)
         },
       }
     }
   }, [disableFullWindowScroll])
 
   const nativeRef = React.useRef<HTMLDivElement>(null)
-  React.useImperativeUsername(
+  React.useImperativeHandle(
     ref,
     () =>
       ({

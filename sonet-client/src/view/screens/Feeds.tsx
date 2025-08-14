@@ -537,7 +537,7 @@ export function FeedsScreen(_props: Props) {
           initialNumToRender={10}
           onEndReached={onEndReached}
           desktopFixedHeight
-          keyboardShouldPersistTaps="usernamed"
+          keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           sideBorders={false}
         />
