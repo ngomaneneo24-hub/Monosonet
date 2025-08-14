@@ -8,7 +8,9 @@
 
 #include "service.h"
 
-#include "../../../proto/grpc_stub.h"
+#include <grpcpp/server.h>
+#include <grpcpp/server_builder.h>
+#include <grpcpp/server_context.h>
 #include <iostream>
 #include "../../core/logging/logger.h"
 

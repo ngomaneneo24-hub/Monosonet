@@ -45,9 +45,9 @@ endif()
 
 add_library(media_service_core STATIC ${MEDIA_SERVICE_ALL_SOURCES})
 add_executable(media_service ${MEDIA_SERVICE_MAIN})
-target_link_libraries(media_service PRIVATE media_service_core)
-
+# Ensure local include first
 target_include_directories(media_service_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# Defer media_service to include same dirs
 target_include_directories(media_service PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Generate gRPC/Protobuf sources for media service only
@@ -79,19 +79,28 @@ if(PROTOC AND GRPC_CPP_PLUGIN)
 		COMMENT "Generating gRPC sources for media.proto"
 	)
 	target_sources(media_service_core PRIVATE ${GEN_SRCS})
-	target_include_directories(media_service_core PUBLIC ${GEN_DIR} ${PROTO_DIR})
+	# CRITICAL: Put generated include directory before proto dir to avoid stubs
+	target_include_directories(media_service_core PUBLIC ${GEN_DIR})
+	# Do NOT include ${PROTO_DIR} for this target to avoid picking stub headers
 else()
 	message(WARNING "protoc or grpc_cpp_plugin not found; expecting pre-generated sources in include path.")
+	# If protoc missing, we still need proto dir to find stubbed headers, but in real builds we avoid it
 	target_include_directories(media_service PRIVATE ${PROTO_DIR})
 endif()
 
-# Link against proto lib and common libs
+# Link against proto aggregator and common libs
 target_link_libraries(media_service_core PUBLIC sonet_proto)
-target_link_libraries(media_service PRIVATE sonet_proto)
-
-# Link protobuf/grpc - use the targets from main CMakeLists.txt
-# The sonet_proto target already includes all necessary gRPC and protobuf libraries
-# No need to find and link them manually here
+# gRPC depends on absl and gpr; ensure link for executable
+find_package(absl QUIET)
+if(absl_FOUND)
+	target_link_libraries(media_service PRIVATE absl::synchronization absl::strings)
+else()
+	# Fallback to system libs
+	target_link_libraries(media_service PRIVATE absl_synchronization absl_strings)
+endif()
+# Link gRPC core libs explicitly if available
+target_link_libraries(media_service PRIVATE grpc gpr grpc++)
+target_link_libraries(media_service PRIVATE media_service_core sonet_proto)
 
 # libpqxx (optional)
 find_package(PkgConfig)
