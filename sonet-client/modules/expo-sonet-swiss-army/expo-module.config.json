@@ -1,0 +1,19 @@
+{
+  "platforms": ["ios", "tvos", "android", "web"],
+  "ios": {
+    "modules": [
+      "ExpoSonetSharedPrefsModule",
+      "ExpoSonetReferrerModule",
+      "ExpoSonetVisibilityViewModule",
+      "ExpoPlatformInfoModule"
+    ]
+  },
+  "android": {
+    "modules": [
+      "expo.modules.sonetswissarmy.sharedprefs.ExpoSonetSharedPrefsModule",
+      "expo.modules.sonetswissarmy.referrer.ExpoSonetReferrerModule",
+      "expo.modules.sonetswissarmy.visibilityview.ExpoSonetVisibilityViewModule",
+      "expo.modules.sonetswissarmy.platforminfo.ExpoPlatformInfoModule"
+    ]
+  }
+}

@@ -12,6 +12,119 @@ import {
   SonetValidationError
 } from '../types/sonet'
 
+// Core types that the codebase expects
+export interface SonetEmbedRecord {
+  View: any
+  ViewRecord: any
+  ViewDetached: any
+  Main: any
+  isView: (obj: any) => boolean
+  isViewRecord: (obj: any) => boolean
+  isViewDetached: (obj: any) => boolean
+}
+
+export interface SonetEmbedRecordWithMedia {
+  View: any
+  ViewRecord: any
+  Main: any
+  isView: (obj: any) => boolean
+}
+
+export interface SonetFeedNote {
+  Record: any
+  isRecord: (obj: any) => boolean
+}
+
+export interface SonetFeedDefs {
+  NoteView: any
+}
+
+export interface SonetActorDefs {
+  ProfileViewBasic: any
+}
+
+export interface SonetUnspeccedDefs {
+  ThreadItemNote: any
+  ThreadItemNoUnauthenticated: any
+  ThreadItemNotFound: any
+  ThreadItemBlocked: any
+}
+
+export interface SonetUnspeccedGetNoteThreadV2 {
+  ThreadItem: any
+}
+
+export interface SonetEmbedExternal {
+  View: any
+  isView: (obj: any) => boolean
+}
+
+export interface SonetEmbedImages {
+  View: any
+  isView: (obj: any) => boolean
+}
+
+export interface SonetEmbedVideo {
+  View: any
+  isView: (obj: any) => boolean
+}
+
+export interface SonetAppAgent {
+  assertDid: string
+}
+
+export interface SonetLabelDefs {
+  // Add label definitions as needed
+}
+
+export interface SonetRepoApplyWrites {
+  Create: any
+}
+
+export interface SonetRenoTerongRef {
+  // Add reno terong ref definitions as needed
+}
+
+export interface ModerationOpts {
+  userDid: string
+  // Add other moderation options as needed
+}
+
+export interface AtUri {
+  href: string
+  host: string
+  rkey: string
+}
+
+export interface BlobRef {
+  // Add blob ref definitions as needed
+}
+
+export interface RichText {
+  text: string
+  // Add other rich text properties as needed
+}
+
+export interface TID {
+  // Add TID definitions as needed
+}
+
+// Utility type for typed objects
+export type $Typed<T> = T
+
+// Moderation function
+export function moderateNote(note: any, moderationOpts: ModerationOpts) {
+  // Implement proper moderation logic
+  return {
+    ui: (context: string) => ({
+      blur: false,
+      filter: false,
+      blurs: [],
+      filters: [],
+    }),
+  }
+}
+
 export class SonetClient {
   private baseUrl: string
   private accessToken?: string
@@ -25,7 +138,7 @@ export class SonetClient {
   async login(identifier: string, password: string): Promise<SonetAuthResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/auth/login`, {
-        method: 'NOTE',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -49,7 +162,7 @@ export class SonetClient {
   async register(username: string, email: string, password: string): Promise<SonetAuthResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/auth/register`, {
-        method: 'NOTE',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -74,7 +187,7 @@ export class SonetClient {
     try {
       if (this.accessToken) {
         await fetch(`${this.baseUrl}/api/v1/auth/logout`, {
-          method: 'NOTE',
+          method: 'POST',
           headers: {
             'Authorization': `Bearer ${this.accessToken}`,
           },
@@ -91,7 +204,7 @@ export class SonetClient {
 
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/auth/activate`, {
-        method: 'NOTE',
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.accessToken}`,
         },
@@ -112,7 +225,7 @@ export class SonetClient {
 
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/notes`, {
-        method: 'NOTE',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.accessToken}`,
@@ -182,7 +295,7 @@ export class SonetClient {
 
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/notes/${noteId}/react`, {
-        method: 'NOTE',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.accessToken}`,
@@ -227,7 +340,7 @@ export class SonetClient {
 
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/follow`, {
-        method: 'NOTE',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.accessToken}`,
@@ -327,3 +440,6 @@ export const sonetClient = new SonetClient()
 
 // Export for backward compatibility during migration
 export default SonetClient
+
+// Re-export all types and functions for @sonet/api compatibility
+export * from '../types/sonet'
