@@ -45,7 +45,7 @@ import {Link, TextLinkOnWebOnly} from '#/view/com/util/Link'
 import {NoteMeta} from '#/view/com/util/NoteMeta'
 import {Text} from '#/view/com/util/text/Text'
 import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
-import {atoms as a} from '#/alf'
+import {atoms as a, useTheme} from '#/alf'
 import {Pin_Stroke2_Corner0_Rounded as PinIcon} from '#/components/icons/Pin'
 import {Renote_Stroke2_Corner2_Rounded as RenoteIcon} from '#/components/icons/Renote'
 import {ContentHider} from '#/components/moderation/ContentHider'
@@ -60,6 +60,8 @@ import {DiscoverDebug} from '#/components/NoteControls/DiscoverDebug'
 import {ProfileHoverCard} from '#/components/ProfileHoverCard'
 import {RichText} from '#/components/RichText'
 import {SubtleWebHover} from '#/components/SubtleWebHover'
+import {NoteMenuButton} from '#/components/NoteControls/NoteMenu'
+import {niceDate} from '#/lib/strings/time'
 import * as bsky from '#/types/bsky'
 
 interface FeedItemProps {
@@ -173,6 +175,7 @@ let FeedItemInner = ({
   const {openComposer} = useOpenComposer()
   const pal = usePalette('default')
   const {_} = useLingui()
+  const t = useTheme()
 
   const [hover, setHover] = useState(false)
 
@@ -439,13 +442,49 @@ let FeedItemInner = ({
           )}
         </View>
         <View style={styles.layoutContent}>
-          <NoteMeta
-            author={note.author}
-            moderation={moderation}
-            timestamp={note.indexedAt}
-            noteHref={href}
-            onOpenAuthor={onOpenAuthor}
-          />
+          {/* Enhanced Header Row */}
+          <View style={styles.enhancedHeader}>
+            <View style={styles.headerLeft}>
+              <PreviewableUserAvatar
+                size={40}
+                profile={note.author}
+                moderation={moderation.ui('avatar')}
+                type={note.author.associated?.labeler ? 'labeler' : 'user'}
+                onBeforePress={onOpenAuthor}
+                live={live}
+              />
+              <View style={styles.userInfo}>
+                <Text
+                  emoji
+                  style={[a.text_md, a.font_bold, t.atoms.text, a.leading_tight]}
+                  numberOfLines={1}>
+                  {sanitizeDisplayName(
+                    note.author.displayName || note.author.username,
+                    moderation.ui('displayName'),
+                  )}
+                </Text>
+                <Text
+                  style={[a.text_sm, t.atoms.text_contrast_medium, a.leading_tight]}>
+                  {niceDate(_, note.indexedAt)}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.headerRight}>
+              <NoteMenuButton
+                testID="noteDropdownBtn"
+                note={note}
+                noteFeedContext={feedContext}
+                noteReqId={reqId}
+                big={false}
+                record={record}
+                richText={richText}
+                timestamp={note.indexedAt}
+                threadgateRecord={threadgateRecord}
+                onShowLess={onShowLess}
+              />
+            </View>
+          </View>
+
           {showReplyTo &&
             (parentAuthor || isParentBlocked || isParentNotFound) && (
               <ReplyToLabel
@@ -464,18 +503,31 @@ let FeedItemInner = ({
             note={note}
             threadgateRecord={threadgateRecord}
           />
-          <NoteControls
-            note={note}
-            record={record}
-            richText={richText}
-            onPressReply={onPressReply}
-            logContext="FeedItem"
-            feedContext={feedContext}
-            reqId={reqId}
-            threadgateRecord={threadgateRecord}
-            onShowLess={onShowLess}
-            viaRenote={viaRenote}
-          />
+          
+          {/* Enhanced Engagement Row */}
+          <View style={styles.engagementRow}>
+            <View style={styles.engagementLeft}>
+              <AvatarStack note={note} />
+              <View style={styles.engagementStats}>
+                <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
+                  {note.likeCount || 0} likes • {note.replyCount || 0} replies • {note.viewCount || 0} views
+                </Text>
+              </View>
+            </View>
+            <View style={styles.engagementRight}>
+              <EnhancedActionButtons
+                note={note}
+                record={record}
+                richText={richText}
+                onPressReply={onPressReply}
+                feedContext={feedContext}
+                reqId={reqId}
+                threadgateRecord={threadgateRecord}
+                onShowLess={onShowLess}
+                viaRenote={viaRenote}
+              />
+            </View>
+          </View>
         </View>
 
         <DiscoverDebug feedContext={feedContext} />
@@ -645,6 +697,110 @@ function ReplyToLabel({
   )
 }
 
+// Avatar Stack Component for Engagement Display
+function AvatarStack({note}: {note: SonetFeedDefs.NoteView}) {
+  const t = useTheme()
+  
+  // Mock data for now - in real implementation, this would come from likes/replies
+  const mockAvatars = [
+    {id: '1', src: note.author.avatar},
+    {id: '2', src: note.author.avatar}, // This would be actual like/reply avatars
+    {id: '3', src: note.author.avatar},
+  ]
+
+  return (
+    <View style={styles.avatarStack}>
+      {mockAvatars.slice(0, 3).map((avatar, index) => (
+        <View
+          key={avatar.id}
+          style={[
+            styles.avatarStackItem,
+            {
+              marginLeft: index === 0 ? 0 : -8,
+              zIndex: 3 - index,
+            },
+          ]}>
+          <PreviewableUserAvatar
+            size={32}
+            profile={{...note.author, avatar: avatar.src}}
+            moderation={undefined}
+            type="user"
+          />
+        </View>
+      ))}
+    </View>
+  )
+}
+
+// Enhanced Action Buttons Component
+function EnhancedActionButtons({
+  note,
+  record,
+  richText,
+  onPressReply,
+  feedContext,
+  reqId,
+  threadgateRecord,
+  onShowLess,
+  viaRenote,
+}: {
+  note: SonetFeedDefs.NoteView
+  record: SonetFeedNote.Record
+  richText: RichTextAPI
+  onPressReply: () => void
+  feedContext?: string | undefined
+  reqId?: string | undefined
+  threadgateRecord?: SonetFeedThreadgate.Record
+  onShowLess?: (interaction: SonetFeedDefs.Interaction) => void
+  viaRenote?: {uri: string; cid: string}
+}) {
+  const {_} = useLingui()
+  const t = useTheme()
+  const {sendInteraction} = useFeedFeedbackContext()
+  const {openComposer} = useOpenComposer()
+  const {currentAccount} = useSession()
+  
+  const onPressLike = () => {
+    sendInteraction({
+      item: note.uri,
+      event: 'app.sonet.feed.defs#interactionLike',
+      feedContext,
+      reqId,
+    })
+    // Handle like logic here
+  }
+
+  const onPressRepost = () => {
+    sendInteraction({
+      item: note.uri,
+      event: 'app.sonet.feed.defs#interactionRenote',
+      feedContext,
+      reqId,
+    })
+    // Handle repost logic here
+  }
+
+  return (
+    <View style={styles.actionButtonsContainer}>
+      <View style={styles.actionButton}>
+        <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
+          ❤️
+        </Text>
+      </View>
+      <View style={styles.actionButton}>
+        <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
+          💬
+        </Text>
+      </View>
+      <View style={styles.actionButton}>
+        <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
+          🔄
+        </Text>
+      </View>
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
   outer: {
     paddingLeft: 10,
@@ -690,5 +846,67 @@ const styles = StyleSheet.create({
   },
   translateLink: {
     marginBottom: 6,
+  },
+  // Enhanced Header Styles
+  enhancedHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 12,
+    paddingTop: 8,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerRight: {
+    justifyContent: 'flex-end',
+  },
+  userInfo: {
+    flexDirection: 'column',
+    gap: 2,
+  },
+  // Engagement Row Styles
+  engagementRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  engagementLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  engagementRight: {
+    justifyContent: 'flex-end',
+  },
+  engagementStats: {
+    justifyContent: 'center',
+  },
+  // Avatar Stack Styles
+  avatarStack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarStackItem: {
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: 'white',
+  },
+  // Action Buttons Styles
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  actionButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 22,
+    backgroundColor: 'transparent',
   },
 })
