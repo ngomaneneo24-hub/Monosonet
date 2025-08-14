@@ -66,6 +66,8 @@ import {niceDate} from '#/lib/strings/time'
 import {Heart2_Stroke2_Corner0_Rounded, Heart2_Filled_Stroke2_Corner0_Rounded} from '#/components/icons/Heart2'
 import {Bubble_Stroke2_Corner2_Rounded} from '#/components/icons/Bubble'
 import {Renote_Stroke2_Corner0_Rounded, Renote_Stroke2_Corner2_Rounded} from '#/components/icons/Renote'
+// Enhanced Media Components
+import {EnhancedGallery} from '#/view/com/util/images/Gallery'
 import * as bsky from '#/types/bsky'
 
 interface FeedItemProps {
