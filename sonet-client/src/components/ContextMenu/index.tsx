@@ -7,7 +7,7 @@ import React, {
   useState,
 } from 'react'
 import {
-  BackUsernamer,
+  BackHandler,
   Keyboard,
   type LayoutChangeEvent,
   Pressable,
@@ -209,7 +209,7 @@ export function Root({children}: {children: React.ReactNode}) {
 
   useEffect(() => {
     if (isAndroid && context.isOpen) {
-      const listener = BackUsernamer.addEventListener('hardwareBackPress', () => {
+      const listener = BackHandler.addEventListener('hardwareBackPress', () => {
         context.close()
         return true
       })

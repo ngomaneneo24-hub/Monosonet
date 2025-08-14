@@ -99,7 +99,7 @@ export const ProfileFeedgens = React.forwardRef<
     queryClient.invalidateQueries({queryKey: RQKEY(userId)})
   }, [scrollElRef, queryClient, headerOffset, userId])
 
-  React.useImperativeUsername(ref, () => ({
+  React.useImperativeHandle(ref, () => ({
     scrollToTop: onScrollToTop,
   }))
 

@@ -96,7 +96,7 @@ export const ProfileLists = React.forwardRef<SectionRef, ProfileListsProps>(
       queryClient.invalidateQueries({queryKey: RQKEY(userId)})
     }, [scrollElRef, queryClient, headerOffset, userId])
 
-    React.useImperativeUsername(ref, () => ({
+    React.useImperativeHandle(ref, () => ({
       scrollToTop: onScrollToTop,
     }))
 

@@ -40,7 +40,7 @@ export function VideoEmbedInnerNative({
   const [timeRemaining, setTimeRemaining] = useState(0)
   const [error, setError] = useState<string>()
 
-  useImperativeUsername(ref, () => ({
+  useImperativeHandle(ref, () => ({
     togglePlayback: () => {
       videoRef.current?.togglePlayback()
     },
