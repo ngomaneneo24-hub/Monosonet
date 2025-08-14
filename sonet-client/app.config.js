@@ -35,6 +35,7 @@ module.exports = function (_config) {
       version: VERSION,
       name: 'Sonet',
       slug: 'sonet',
+      entryPoint: './index.js',
       scheme: 'sonet',
       owner: 'entativa',
       runtimeVersion: {
