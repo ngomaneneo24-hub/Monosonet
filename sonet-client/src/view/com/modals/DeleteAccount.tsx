@@ -95,7 +95,7 @@ export function Component({}: {}) {
   }
   return (
     <SafeAreaView style={[s.flex1]}>
-      <ScrollView style={[pal.view]} keyboardShouldPersistTaps="usernamed">
+      <ScrollView style={[pal.view]} keyboardShouldPersistTaps="handled">
         <View style={[styles.titleContainer, pal.view]}>
           <Text type="title-xl" style={[s.textCenter, pal.text]}>
             <Trans>

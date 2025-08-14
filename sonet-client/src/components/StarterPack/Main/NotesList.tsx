@@ -28,7 +28,7 @@ export const NotesList = React.forwardRef<SectionRef, ProfilesListProps>(
       })
     }, [scrollElRef, headerHeight])
 
-    React.useImperativeUsername(ref, () => ({
+    React.useImperativeHandle(ref, () => ({
       scrollToTop: onScrollToTop,
     }))
 

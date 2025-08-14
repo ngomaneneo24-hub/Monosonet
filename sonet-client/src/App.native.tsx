@@ -76,7 +76,7 @@ import {Provider as PortalProvider} from '#/components/Portal'
 import {Provider as VideoVolumeProvider} from '#/components/Note/Embed/VideoEmbed/VideoVolumeContext'
 import {Splash} from '#/Splash'
 import {BottomSheetProvider} from '../modules/bottom-sheet'
-import {BackgroundNotificationPreferencesProvider} from '../modules/expo-background-notification-usernamer/src/BackgroundNotificationUsernamerProvider'
+import {BackgroundNotificationPreferencesProvider} from '../modules/expo-background-notification-handler/src/BackgroundNotificationHandlerProvider'
 
 SplashScreen.preventAutoHideAsync()
 if (isIOS) {

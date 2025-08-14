@@ -14,7 +14,7 @@ import {BottomSheetSnapPoint} from '../../../modules/bottom-sheet/src/BottomShee
 type A11yProps = Required<AccessibilityProps>
 
 /**
- * Mutated by useImperativeUsername to provide a public API for controlling the
+ * Mutated by useImperativeHandle to provide a public API for controlling the
  * dialog. The methods here will actually become the usernamers defined within
  * the `Dialog.Outer` component.
  *

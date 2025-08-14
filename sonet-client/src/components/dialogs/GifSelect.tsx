@@ -43,7 +43,7 @@ export function GifSelectDialog({
 }) {
   const control = Dialog.useDialogControl()
 
-  useImperativeUsername(controlRef, () => ({
+  useImperativeHandle(controlRef, () => ({
     open: () => control.open(),
   }))
 

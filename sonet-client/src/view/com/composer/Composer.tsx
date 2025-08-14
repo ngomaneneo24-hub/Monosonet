@@ -9,7 +9,7 @@ import React, {
 } from 'react'
 import {
   ActivityIndicator,
-  BackUsernamer,
+  BackHandler,
   Keyboard,
   KeyboardAvoidingView,
   type LayoutChangeEvent,
@@ -437,7 +437,7 @@ export const ComposeNote = ({
     if (!isAndroid) {
       return
     }
-    const backUsernamer = BackUsernamer.addEventListener(
+    const backUsernamer = BackHandler.addEventListener(
       'hardwareBackPress',
       () => {
         if (closeAllDialogs() || closeAllModals()) {

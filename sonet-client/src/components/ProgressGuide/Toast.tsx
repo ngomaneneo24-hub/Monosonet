@@ -96,7 +96,7 @@ export const ProgressGuideToast = React.forwardRef<
     timeoutRef.current = setTimeout(close, visibleDuration || 5e3)
   }, [setIsOpen, translateY, opacity, insets, close, visibleDuration])
 
-  useImperativeUsername(
+  useImperativeHandle(
     ref,
     () => ({
       open,

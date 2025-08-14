@@ -10,7 +10,7 @@ import {logger as notyLogger} from '#/lib/notifications/util'
 import {isNative} from '#/platform/detection'
 import {useAgeAssuranceContext} from '#/state/ageAssurance'
 import {type SessionAccount, useAgent, useSession} from '#/state/session'
-import BackgroundNotificationUsernamer from '#/../modules/expo-background-notification-usernamer'
+import BackgroundNotificationHandler from '#/../modules/expo-background-notification-handler'
 
 /**
  * @private
@@ -277,11 +277,11 @@ export async function decrementBadgeCount(by: number) {
     count = 0
   }
 
-  await BackgroundNotificationUsernamer.setBadgeCountAsync(count)
+  await BackgroundNotificationHandler.setBadgeCountAsync(count)
   await setBadgeCountAsync(count)
 }
 
 export async function resetBadgeCount() {
-  await BackgroundNotificationUsernamer.setBadgeCountAsync(0)
+  await BackgroundNotificationHandler.setBadgeCountAsync(0)
   await setBadgeCountAsync(0)
 }

@@ -76,7 +76,7 @@ export const ViewSelector = React.forwardRef<
     onSelectView?.(selectedIndex)
   }, [selectedIndex, onSelectView])
 
-  React.useImperativeUsername(ref, () => ({
+  React.useImperativeHandle(ref, () => ({
     scrollToTop: () => {
       flatListRef.current?.scrollToOffset({offset: 0})
     },
