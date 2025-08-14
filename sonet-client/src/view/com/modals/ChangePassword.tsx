@@ -145,7 +145,7 @@ export function Component() {
           styles.container,
           isMobile && styles.containerMobile,
         ]}
-        keyboardShouldPersistTaps="usernamed">
+        keyboardShouldPersistTaps="handled">
         <View>
           <View style={styles.titleSection}>
             <Text type="title-lg" style={[pal.text, styles.title]}>

@@ -18,7 +18,7 @@ import {Divider} from '#/components/Divider'
 import * as Toggle from '#/components/forms/Toggle'
 import * as Layout from '#/components/Layout'
 import {Text} from '#/components/Typography'
-import {useBackgroundNotificationPreferences} from '../../../modules/expo-background-notification-usernamer/src/BackgroundNotificationUsernamerProvider'
+import {useBackgroundNotificationPreferences} from '../../../modules/expo-background-notification-handler/src/BackgroundNotificationHandlerProvider'
 
 type AllowIncoming = 'all' | 'none' | 'following'
 

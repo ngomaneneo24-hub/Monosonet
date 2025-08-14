@@ -826,7 +826,7 @@ const FeedSection = React.forwardRef<SectionRef, FeedSectionProps>(
       queryClient.resetQueries({queryKey: FEED_RQKEY(feed)})
       setHasNew(false)
     }, [scrollElRef, headerHeight, queryClient, feed, setHasNew])
-    React.useImperativeUsername(ref, () => ({
+    React.useImperativeHandle(ref, () => ({
       scrollToTop: onScrollToTop,
     }))
 
@@ -908,7 +908,7 @@ const AboutSection = React.forwardRef<SectionRef, AboutSectionProps>(
       })
     }, [scrollElRef, headerHeight])
 
-    React.useImperativeUsername(ref, () => ({
+    React.useImperativeHandle(ref, () => ({
       scrollToTop: onScrollToTop,
     }))
 

@@ -36,7 +36,7 @@ export function DateField({
     [onChangeDate, setOpen],
   )
 
-  useImperativeUsername(
+  useImperativeHandle(
     inputRef,
     () => ({
       focus: () => {
