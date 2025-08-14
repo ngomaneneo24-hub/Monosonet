@@ -1,4 +1,4 @@
-import 'react-native-gesture-handler' // must be first
+import '#/shims/react-native-gesture-handler' // web shim; must be first
 import '#/platform/polyfills'
 
 import {LogBox} from 'react-native'

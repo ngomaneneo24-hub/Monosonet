@@ -15,13 +15,13 @@ import {useLingui} from '@lingui/react'
 import DraggableFlatList, {
   type RenderItemParams,
   type ScaleDecorator,
-} from 'react-native-draggable-flatlist'
+} from '#/shims/react-native-draggable-flatlist'
 
 import {atoms as a, useTheme} from '#/alf'
 import {Text} from '#/components/Typography'
 import {Button} from '#/components/Button'
 import {ComposerImage} from '#/state/gallery'
-import {MAX_IMAGES} from '../../state/composer'
+import {MAX_IMAGES} from '#/view/com/composer/state/composer'
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window')
 const ITEM_SIZE = (SCREEN_WIDTH - 48) / 2 // 2 columns with gaps
