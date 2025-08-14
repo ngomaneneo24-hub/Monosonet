@@ -1,6 +1,6 @@
-import {useTheme} from '#/lib/ThemeContext'
+import {useThemeName} from '#/alf/util/useColorModeTheme'
 
 export function useColorSchemeStyle<T>(lightStyle: T, darkStyle: T) {
-  const colorScheme = useTheme().colorScheme
-  return colorScheme === 'dark' ? darkStyle : lightStyle
+  const themeName = useThemeName()
+  return themeName === 'dark' ? darkStyle : lightStyle
 }
