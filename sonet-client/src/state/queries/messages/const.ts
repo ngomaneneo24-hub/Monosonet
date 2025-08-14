@@ -1,0 +1,1 @@
+export const DM_SERVICE_HEADERS: Record<string, string> = {}

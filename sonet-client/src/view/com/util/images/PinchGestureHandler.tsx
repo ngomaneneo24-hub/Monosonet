@@ -4,7 +4,7 @@ import {
   GestureDetector,
   Gesture,
   GestureHandlerRootView,
-} from 'react-native-gesture-handler'
+} from '#/shims/react-native-gesture-handler'
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -122,51 +122,19 @@ export function PinchGestureHandler({
       runOnJS(handlePinchGesture)('end', 1)
     })
   
-  // Animated styles
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
       {scale: scale.value},
-      {rotate: `${rotation.value}deg`},
+      {rotateZ: `${rotation.value}deg`},
     ],
     opacity: opacity.value,
   }))
   
-  // Combined mode indicator style
-  const combinedIndicatorStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      scale.value,
-      [threshold.combine, 1],
-      [1, 0],
-      Extrapolate.CLAMP
-    ),
-    transform: [
-      {
-        scale: interpolate(
-          scale.value,
-          [threshold.combine, 1],
-          [1.2, 1],
-          Extrapolate.CLAMP
-        ),
-      },
-    ],
-  }))
-  
   return (
-    <GestureHandlerRootView style={[styles.container, style]}>
+    <GestureHandlerRootView style={style}>
       <GestureDetector gesture={pinchGesture}>
-        <Animated.View style={[styles.content, animatedStyle]}>
+        <Animated.View style={animatedStyle}>
           {children}
-          
-          {/* Combine mode indicator */}
-          <Animated.View style={[styles.combineIndicator, combinedIndicatorStyle]}>
-            <View style={styles.combineIndicatorContent}>
-              <View style={styles.combineIcon}>
-                <View style={styles.combineDot} />
-                <View style={styles.combineDot} />
-                <View style={styles.combineDot} />
-              </View>
-            </View>
-          </Animated.View>
         </Animated.View>
       </GestureDetector>
     </GestureHandlerRootView>
@@ -176,35 +144,5 @@ export function PinchGestureHandler({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  content: {
-    flex: 1,
-    position: 'relative',
-  },
-  combineIndicator: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{translateX: -25}, {translateY: -25}],
-    width: 50,
-    height: 50,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  combineIndicatorContent: {
-    alignItems: 'center',
-  },
-  combineIcon: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  combineDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'white',
   },
 })
