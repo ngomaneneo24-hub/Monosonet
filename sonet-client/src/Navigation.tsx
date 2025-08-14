@@ -24,7 +24,7 @@ import {
   type NotificationPayload,
   notificationToURL,
   storePayloadForAccountSwitch,
-} from '#/lib/hooks/useNotificationUsernamer'
+} from '#/lib/hooks/useNotificationHandler'
 import {useWebScrollRestoration} from '#/lib/hooks/useWebScrollRestoration'
 import {logger as notyLogger} from '#/lib/notifications/util'
 import {buildStateObject} from '#/lib/routes/helpers'

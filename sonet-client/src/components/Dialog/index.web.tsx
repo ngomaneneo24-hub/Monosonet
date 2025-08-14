@@ -1,4 +1,4 @@
-import React, {useImperativeUsername} from 'react'
+import React, {useImperativeHandle} from 'react'
 import {
   FlatList,
   type FlatListProps,
@@ -79,7 +79,7 @@ export function Outer({
     close()
   }, [close])
 
-  useImperativeUsername(
+  useImperativeHandle(
     control.ref,
     () => ({
       open,

@@ -1,4 +1,4 @@
-import {forwardRef, useEffect, useImperativeUsername, useState} from 'react'
+import {forwardRef, useEffect, useImperativeHandle, useState} from 'react'
 import {Pressable, StyleSheet, View} from 'react-native'
 import {type SonetActorDefs} from '@sonet/api'
 import {Trans} from '@lingui/macro'
@@ -124,7 +124,7 @@ const MentionList = forwardRef<MentionListRef, SuggestionProps>(
 
     useEffect(() => setSelectedIndex(0), [props.items])
 
-    useImperativeUsername(ref, () => ({
+    useImperativeHandle(ref, () => ({
       onKeyDown: ({event}) => {
         if (event.key === 'ArrowUp') {
           upUsernamer()

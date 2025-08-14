@@ -33,7 +33,7 @@ export function Storybook() {
         </Layout.Header.Content>
         <Layout.Header.Slot />
       </Layout.Header.Outer>
-      <Layout.Content keyboardShouldPersistTaps="usernamed">
+      <Layout.Content keyboardShouldPersistTaps="handled">
         <StorybookInner />
       </Layout.Content>
     </Layout.Screen>

@@ -1,14 +1,17 @@
 {
-  "extends": "@react-native/typescript-config/tsconfig.json",
-  "compilerOptions": {
-    "jsx": "react-jsx",
-    "module": "esnext",
-    "types": ["node", "jest"],
-    "baseUrl": ".",
-    "paths": {
-      "#/*": ["./src/*"],
-      "crypto": ["./src/platform/crypto.ts"]
-    }
-  },
-  "exclude": ["sonetweb", "sonetembed", "web-build"]
+	"extends": "@react-native/typescript-config/tsconfig.json",
+	"compilerOptions": {
+		"jsx": "react-jsx",
+		"module": "esnext",
+		"types": ["node", "jest"],
+		"baseUrl": ".",
+		"paths": {
+			"#/*": ["./src/*"],
+			"crypto": ["./src/platform/crypto.ts"],
+			"react-native-gesture-usernamer": ["./src/shims/react-native-gesture-usernamer"],
+			"react-native-keyboard-controller": ["./src/shims/react-native-keyboard-controller"],
+			"react-native-draggable-flatlist": ["./src/shims/react-native-draggable-flatlist"]
+		}
+	},
+	"exclude": ["sonetweb", "sonetembed", "web-build"]
 }
