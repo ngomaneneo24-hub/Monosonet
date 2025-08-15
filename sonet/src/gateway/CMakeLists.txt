@@ -8,6 +8,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(nlohmann_json QUIET)
 find_package(Boost COMPONENTS system filesystem thread QUIET)
 find_package(spdlog QUIET)
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+	pkg_check_modules(HTTPLIB QUIET cpp-httplib)
+endif()
 
 add_library(sonet_gateway_lib
 	gateway.cpp
@@ -28,6 +32,10 @@ if (Boost_FOUND)
 endif()
 if (spdlog_FOUND)
 	target_link_libraries(sonet_gateway_lib PUBLIC spdlog::spdlog_header_only)
+endif()
+if(HTTPLIB_FOUND)
+	target_include_directories(sonet_gateway_lib PUBLIC ${HTTPLIB_INCLUDE_DIRS})
+	target_link_libraries(sonet_gateway_lib PUBLIC ${HTTPLIB_LIBRARIES})
 endif()
 
 add_executable(sonet_gateway main.cpp)
