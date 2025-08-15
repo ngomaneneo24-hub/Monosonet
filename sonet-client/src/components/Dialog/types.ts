@@ -8,7 +8,7 @@ import {ViewStyle} from 'react-native'
 import {StyleProp} from 'react-native'
 
 import {ViewStyleProp} from '#/alf'
-import {BottomSheetViewProps} from '../../../modules/bottom-sheet'
+import type {BottomSheetViewProps} from '../../../modules/bottom-sheet'
 import {BottomSheetSnapPoint} from '../../../modules/bottom-sheet/src/BottomSheet.types'
 
 type A11yProps = Required<AccessibilityProps>

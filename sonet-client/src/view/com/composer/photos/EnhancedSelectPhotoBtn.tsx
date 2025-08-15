@@ -11,7 +11,7 @@ import {atoms as a, useTheme} from '#/alf'
 import {Button} from '#/components/Button'
 import {useSheetWrapper} from '#/components/Dialog/sheet-wrapper'
 import {Image_Stroke2_Corner0_Rounded as Image} from '#/components/icons/Image'
-import {MAX_IMAGES} from '../../state/composer'
+import {MAX_IMAGES} from '../state/composer'
 
 type Props = {
   size: number
