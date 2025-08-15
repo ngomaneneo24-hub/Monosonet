@@ -13,7 +13,7 @@ import {
 import {Button, type ButtonColor, ButtonText} from '#/components/Button'
 import * as Dialog from '#/components/Dialog'
 import {Text} from '#/components/Typography'
-import {type BottomSheetViewProps} from '../../modules/bottom-sheet'
+import type {BottomSheetViewProps} from '../../modules/bottom-sheet'
 
 export {
   type DialogControlProps as PromptControlProps,
