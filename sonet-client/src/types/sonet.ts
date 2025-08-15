@@ -237,3 +237,66 @@ export interface SonetModerationDecision {
     noOverride: boolean
   }
 }
+
+export class AtUri {
+	public href: string
+	public host: string
+	public rkey: string
+
+	constructor(uri: string) {
+		this.href = uri || ''
+		// Expected formats in code: `sonet://<host>/.../<rkey>` or `at://<host>/.../<rkey>` or `did:.../...`
+		try {
+			const u = new URL(uri.replace(/^at:\/\//, 'https://').replace(/^sonet:\/\//, 'https://'))
+			this.host = u.hostname || ''
+			const parts = u.pathname.split('/').filter(Boolean)
+			this.rkey = parts.at(-1) || ''
+		} catch {
+			// Fall back to simple parsing
+			const m = /^(?:[a-z]+:\/\/)?([^/]+).*\/([^/]+)$/.exec(uri || '')
+			this.host = m?.[1] || ''
+			this.rkey = m?.[2] || ''
+		}
+	}
+
+	static make(host: string, nsid: string, rkey?: string): AtUri {
+		// Minimal join that mirrors AT-style URIs but works for our app
+		const path = rkey ? `${nsid}/${rkey}` : nsid
+		return new AtUri(`sonet://${host}/${path}`)
+	}
+
+	toString(): string {
+		return this.href || `sonet://${this.host}/${this.rkey ? this.rkey : ''}`
+	}
+}
+
+// TID: simple timestamp-based sortable id utility used in a few places
+export class TID {
+	private value: bigint
+	private constructor(value: bigint) {
+		this.value = value
+	}
+
+	static next(prev?: TID): TID {
+		const now = BigInt(Date.now())
+		const inc = prev ? prev.value + 1n : 0n
+		return new TID(now << 8n | (inc & 0xffn))
+	}
+
+	static nextStr(): string {
+		return TID.next().toString()
+	}
+
+	static fromStr(s: string): TID {
+		const n = BigInt(s)
+		return new TID(n)
+	}
+
+	timestamp(): number {
+		return Number(this.value >> 8n)
+	}
+
+	toString(): string {
+		return this.value.toString()
+	}
+}

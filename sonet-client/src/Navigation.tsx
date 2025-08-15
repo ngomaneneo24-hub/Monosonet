@@ -950,9 +950,6 @@ function RoutesContainer({children}: React.PropsWithChildren<{}>) {
             // @ts-expect-error nested navigators aren't typed -sfn
             navigate('HomeTab', {screen, params})
             // Debug logging removed for production
-              screen,
-              params,
-            })
           }
         }
       }
