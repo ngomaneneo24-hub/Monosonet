@@ -10,9 +10,12 @@ pkg_check_modules(GRPC REQUIRED grpc++)
 # Looks for gRPC pkg-config module, for CMAKE to install
 find_program(_PROTOBUF_PROTOC protoc)
 find_program(_GRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin
-    HINTS /usr/bin
-    PATHS /usr/bin /usr/local/bin
+    HINTS /usr/local/bin /usr/bin
+    PATHS /usr/local/bin /usr/bin
 )
+if(NOT _GRPC_CPP_PLUGIN_EXECUTABLE)
+    set(_GRPC_CPP_PLUGIN_EXECUTABLE "/usr/local/bin/grpc_cpp_plugin")
+endif()
 
 # Proto file directory
 set(PROTO_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
