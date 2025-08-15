@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../../../nlohmann/spdlog.h"
-#include "../../../../nlohmann/json.hpp"
+#include <nlohmann/json.hpp>
 #include <cstdlib>
 #include <string>
 #include <memory>
@@ -49,8 +49,20 @@ inline void log_json(spdlog::level::level_enum level,
     j["environment"] = env ? env : "development";
     j["level"] = spdlog::level::to_string_view(level);
     j["message"] = message;
-    for (auto it = extra.begin(); it != extra.end(); ++it) {
-        j[it->first] = it->second;
+
+    // Merge extra fields if provided
+    if (!extra.is_null()) {
+        // For real nlohmann, we can iterate as items()
+        // For stub, we fall back to dump/parse
+        try {
+            for (auto it = extra.begin(); it != extra.end(); ++it) {
+                // Attempt to assign via key; stub may not support structured iteration
+                j[it.key()] = *it;
+            }
+        } catch (...) {
+            // Fallback: best-effort append stringified extra
+            j["extra"] = extra.dump();
+        }
     }
 
     switch (level) {
