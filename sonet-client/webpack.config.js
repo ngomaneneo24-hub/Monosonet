@@ -36,6 +36,7 @@ module.exports = async function (env, argv) {
     ...(config.resolve.alias || {}),
     '#': path.resolve(__dirname, 'src'),
     '@sonet/api': path.resolve(__dirname, 'src/lib/api/sonet-api.ts'),
+    '@sonet/api/dist': path.resolve(__dirname, 'src/lib/api/dist'),
     '@sonet/types': path.resolve(__dirname, 'src/types/sonet.ts'),
     // Stubs for optional native/libs not needed on web
     'statsig-react': path.resolve(__dirname, 'src/shims/statsig-react.ts'),

@@ -174,3 +174,30 @@ export function useSonetListConvosState(): SonetListConvosState {
 export function useSonetListConvosActions(): SonetListConvosActions {
   return useSonetListConvos().actions
 }
+
+// A query-like API for screens wanting "infinite" data
+export function useSonetListChatsQuery(_opts?: {type?: 'direct' | 'group'}) {
+  const {state, actions} = useSonetListConvos()
+  const [fetchingNext, setFetchingNext] = useState(false)
+
+  const fetchNextPage = async () => {
+    if (fetchingNext) return
+    setFetchingNext(true)
+    try {
+      await actions.loadMoreChats()
+    } finally {
+      setFetchingNext(false)
+    }
+  }
+
+  return {
+    data: {pages: [{chats: state.chats}], chats: state.chats},
+    isLoading: state.isLoading,
+    isFetchingNextPage: fetchingNext,
+    hasNextPage: state.hasMore,
+    fetchNextPage,
+    isError: !!state.error,
+    error: state.error ? new Error(state.error) : undefined,
+    refetch: () => actions.refreshChats(),
+  }
+}

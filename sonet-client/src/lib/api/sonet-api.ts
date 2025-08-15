@@ -136,6 +136,29 @@ export function moderateNote(_: any, __: ModerationOpts) {
 	}
 }
 
+// Simple mute-word helper used by a few queries
+export function hasMutedWord({
+	mutedWords = [],
+	text = '',
+	facets,
+	outlineTags,
+	languages,
+	actor,
+}: {
+	mutedWords?: Array<{word: string} | string>
+	text?: string
+	facets?: unknown
+	outlineTags?: string[]
+	languages?: string[]
+	actor?: unknown
+}): boolean {
+	const words = (mutedWords || []).map(w =>
+		typeof w === 'string' ? w.toLowerCase() : String((w as any).word || '').toLowerCase(),
+	)
+	const hay = (text || '').toLowerCase()
+	return words.some(w => w && hay.includes(w))
+}
+
 export class AtUri {
 	href: string
 	host: string
