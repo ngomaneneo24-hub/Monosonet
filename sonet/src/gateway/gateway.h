@@ -3,16 +3,16 @@
 
 #include <memory>
 #include <thread>
-#pragma once
-#include <memory>
 #include <atomic>
-#include <thread>
 #include <unordered_map>
 #include <string>
 #include <nlohmann/json.hpp>
 #include <httplib.h>
-#include "rate_limiting/rate_limiter.h"
-#include "responses.h"
+
+namespace sonet::gateway {
+
+namespace rate_limiting { class RateLimiter; }
+namespace responses {}
 
 using json = nlohmann::json;
 
@@ -21,6 +21,7 @@ struct GatewayRateLimitConfig {
 	int auth_login_per_minute{10};
 	int auth_register_per_minute{5};
 	int timeline_home_per_minute{30};
+	int notes_create_per_minute{30};
 };
 
 class RestGateway {
@@ -40,5 +41,7 @@ private:
 	std::unique_ptr<httplib::Server> server_;
 	std::atomic<bool> running_{false};
 	std::thread server_thread_;
-	std::unordered_map<std::string, std::shared_ptr<RateLimiter>> limiters_;
+	std::unordered_map<std::string, std::unique_ptr<rate_limiting::RateLimiter>> limiters_;
 };
+
+} // namespace sonet::gateway

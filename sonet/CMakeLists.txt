@@ -107,10 +107,8 @@ if(BUILD_GLOBAL_PROTO)
     endif()
     target_include_directories(sonet_proto PUBLIC ${PROTO_OUTPUT_DIR})
 else()
-    # If not generating protos, assume include path is the source proto dir for service-local includes
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/proto)
+    # Do NOT globally add proto include dir; each target should opt-in to avoid stub collisions
     add_library(sonet_proto INTERFACE)
-    
     target_link_libraries(sonet_proto INTERFACE 
         gRPC::grpc++ 
         gRPC::grpc++_reflection
@@ -120,7 +118,9 @@ endif()
 
 # Add subdirectories
 # Enable proto generation for real mode
-add_subdirectory(proto)
+if(BUILD_GLOBAL_PROTO)
+    add_subdirectory(proto)
+endif()
 add_subdirectory(src/services)
 add_subdirectory(src/gateway)
 option(BUILD_EXTERNAL "Build external helper libs" OFF)
@@ -129,7 +129,7 @@ if(BUILD_EXTERNAL)
 endif()
 
 # Ensure all targets have access to real headers
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/proto)
+# Do NOT include ${CMAKE_CURRENT_SOURCE_DIR}/proto globally to avoid stub collisions
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external)
 
 # Tests

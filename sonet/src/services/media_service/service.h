@@ -13,10 +13,13 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../../../proto/grpc_stub.h"
+#include <grpcpp/grpcpp.h>
+#include <grpcpp/server.h>
+#include <grpcpp/server_builder.h>
+#include <grpcpp/server_context.h>
 
-// Generated from proto (built at top-level into include path)
-#include "../../../proto/services/media.grpc.pb.h"
+// Generated gRPC headers for media service will be included via CMake-generated include dirs
+#include "services/media.grpc.pb.h"
 
 namespace sonet::media_service {
 

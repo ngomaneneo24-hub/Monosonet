@@ -19,9 +19,11 @@
 #include <condition_variable>
 #include <deque>
 
-// Stub includes for compilation testing
-#include "../../../proto/grpc_stub.h"
-#include "../../../proto/services/stub_protos.h"
+// Use real types; concrete proto types will be included where needed via CMake
+namespace grpc { class Server; class ServerBuilder; class ServerContext; }
+
+namespace sonet { namespace note { class Note; } }
+namespace sonet { namespace timeline { struct ContentSource; struct RankingSignals; } }
 
 namespace sonet::timeline {
 
@@ -55,7 +57,7 @@ struct RankedTimelineItem {
     }
 };
 
-// User engagement profile for personalization - defined in stub_protos.h
+// User engagement profile for personalization - defined in real protos
 
 // Timeline generation configuration
 struct TimelineConfig {
