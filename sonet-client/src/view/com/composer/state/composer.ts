@@ -8,7 +8,7 @@ import {shortenLinks} from '#/lib/strings/rich-text-manip'
 import {
   isBskyNoteUrl,
   noteUriToRelativePath,
-  toBskyAppUrl,
+  toSonetAppUrl,
 } from '#/lib/strings/url-helpers'
 import {type ComposerImage, createInitialImages} from '#/state/gallery'
 import {createNotegateRecord} from '#/state/queries/notegate/util'
@@ -506,7 +506,7 @@ export function createComposerState({
     if (path) {
       quote = {
         type: 'link',
-        uri: toBskyAppUrl(path),
+        uri: toSonetAppUrl(path),
       }
     }
   }
