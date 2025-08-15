@@ -37,6 +37,9 @@ module.exports = async function (env, argv) {
     '#': path.resolve(__dirname, 'src'),
     '@sonet/api': path.resolve(__dirname, 'src/lib/api/sonet-api.ts'),
     '@sonet/types': path.resolve(__dirname, 'src/types/sonet.ts'),
+    // Stubs for optional native/libs not needed on web
+    'statsig-react': path.resolve(__dirname, 'src/shims/statsig-react.ts'),
+    '@sentry/react-native': path.resolve(__dirname, 'src/shims/sentry-react-native.web.ts'),
   }
   config.resolve.extensions = [
     '.web.tsx', '.web.ts', '.tsx', '.ts', '.web.js', '.js', '.json'

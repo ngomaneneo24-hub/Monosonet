@@ -196,8 +196,8 @@ export class TID {
 }
 
 // Re-export SonetClient and helpers for convenience
-export { SonetClient, sonetClient } from '../api/sonet-client'
-export * from '../types/sonet'
+export { SonetClient, sonetClient } from '../../api/sonet-client'
+export * from '../../types/sonet'
 
 export type $Typed<T> = T
 export type Un$Typed<T> = T
