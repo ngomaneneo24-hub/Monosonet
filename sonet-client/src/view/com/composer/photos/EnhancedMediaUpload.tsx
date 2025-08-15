@@ -18,7 +18,7 @@ import {useLingui} from '@lingui/react'
 import {atoms as a, useTheme} from '#/alf'
 import {Text as TypographyText} from '#/components/Typography'
 import {Button} from '#/components/Button'
-import {MAX_IMAGES} from '../../state/composer'
+import {MAX_IMAGES} from '../state/composer'
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window')
 const PREVIEW_SIZE = (SCREEN_WIDTH - 48) / 3 // 3 columns with gaps

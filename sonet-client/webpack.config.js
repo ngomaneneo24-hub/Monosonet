@@ -35,7 +35,7 @@ module.exports = async function (env, argv) {
   config.resolve.alias = {
     ...(config.resolve.alias || {}),
     '#': path.resolve(__dirname, 'src'),
-    '@sonet/api': path.resolve(__dirname, 'src/api/sonet-client.ts'),
+    '@sonet/api': path.resolve(__dirname, 'src/lib/api/sonet-api.ts'),
     '@sonet/types': path.resolve(__dirname, 'src/types/sonet.ts'),
   }
   config.resolve.extensions = [
