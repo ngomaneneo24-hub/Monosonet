@@ -36,10 +36,11 @@ import {
   type MessagesTabNavigatorParams,
   type MyProfileTabNavigatorParams,
   type NotificationsTabNavigatorParams,
+  type PremiumTabNavigatorParams,
   type SearchTabNavigatorParams,
 } from '#/lib/routes/types'
 import {type RouteParams, type State} from '#/lib/routes/types'
-import {attachRouteToLogEvents, logEvent} from '#/lib/statsig/statsig'
+import {attachRouteToLogEvents, logEvent, useGate} from '#/lib/statsig/statsig'
 import {bskyTitle} from '#/lib/strings/headings'
 import {logger} from '#/logger'
 import {isNative, isWeb} from '#/platform/detection'
@@ -98,6 +99,7 @@ import {ProfileSearchScreen} from '#/screens/Profile/ProfileSearch'
 import {SearchScreen} from '#/screens/Search'
 import {AboutSettingsScreen} from '#/screens/Settings/AboutSettings'
 import {AccessibilitySettingsScreen} from '#/screens/Settings/AccessibilitySettings'
+import {PremiumScreen} from '#/screens/Premium'
 import {AccountSettingsScreen} from '#/screens/Settings/AccountSettings'
 import {ActivityPrivacySettingsScreen} from '#/screens/Settings/ActivityPrivacySettings'
 import {AppearanceSettingsScreen} from '#/screens/Settings/AppearanceSettings'
@@ -152,6 +154,8 @@ const MyProfileTab =
   createNativeStackNavigatorWithAuth<MyProfileTabNavigatorParams>()
 const MessagesTab =
   createNativeStackNavigatorWithAuth<MessagesTabNavigatorParams>()
+const PremiumTab =
+  createNativeStackNavigatorWithAuth<PremiumTabNavigatorParams>()
 const Flat = createNativeStackNavigatorWithAuth<FlatNavigatorParams>()
 const Tab = createBottomTabNavigator<BottomTabNavigatorParams>()
 
@@ -537,6 +541,14 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
         }}
       />
       <Stack.Screen
+        name="Premium"
+        getComponent={() => PremiumScreen}
+        options={{
+          title: title(msg`Premium`),
+          requireAuth: true,
+        }}
+      />
+      <Stack.Screen
         name="Hashtag"
         getComponent={() => HashtagScreen}
         options={{title: title(msg`Hashtag`)}}
@@ -633,6 +645,7 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
  * in 3 distinct tab-stacks with a different root screen on each.
  */
 function TabsNavigator() {
+  const gate = useGate()
   const tabBar = useCallback(
     (props: JSX.IntrinsicAttributes & BottomTabBarProps) => (
       <BottomBar {...props} />
@@ -652,6 +665,12 @@ function TabsNavigator() {
         name="MessagesTab"
         getComponent={() => MessagesTabNavigator}
       />
+      {gate('premium_subscriptions') && (
+        <Tab.Screen
+          name="PremiumTab"
+          getComponent={() => PremiumTabNavigator}
+        />
+      )}
       <Tab.Screen
         name="NotificationsTab"
         getComponent={() => NotificationsTabNavigator}
@@ -749,6 +768,22 @@ function MessagesTabNavigator() {
   )
 }
 
+function PremiumTabNavigator() {
+  const t = useTheme()
+  return (
+    <PremiumTab.Navigator
+      screenOptions={screenOptions(t)}
+      initialRouteName="Premium">
+      <PremiumTab.Screen
+        name="Premium"
+        getComponent={() => PremiumScreen}
+        options={{requireAuth: true}}
+      />
+      {commonScreens(PremiumTab as typeof Flat)}
+    </PremiumTab.Navigator>
+  )
+}
+
 /**
  * The FlatNavigator is used by Web to represent the routes
  * in a single ("flat") stack.
@@ -757,6 +792,7 @@ const FlatNavigator = () => {
   const t = useTheme()
   const numUnread = useUnreadNotifications()
   const screenListeners = useWebScrollRestoration()
+  const gate = useGate()
   const title = (page: MessageDescriptor) => bskyTitle(i18n._(page), numUnread)
 
   return (
@@ -783,6 +819,13 @@ const FlatNavigator = () => {
         getComponent={() => MessagesScreen}
         options={{title: title(msg`Messages`), requireAuth: true}}
       />
+      {gate('premium_subscriptions') && (
+        <Flat.Screen
+          name="Premium"
+          getComponent={() => PremiumScreen}
+          options={{title: title(msg`Premium`), requireAuth: true}}
+        />
+      )}
       <Flat.Screen
         name="Start"
         getComponent={() => HomeScreen}
