@@ -8,6 +8,7 @@ import {type NativeStackScreenProps} from '@react-navigation/native-stack'
 import {PressableScale} from '#/lib/custom-animations/PressableScale'
 import {type CommonNavigatorParams} from '#/lib/routes/types'
 import {useSubscription} from '#/state/subscription'
+import {useGate} from '#/lib/statsig/statsig'
 import {isAndroid} from '#/platform/detection'
 import {AppIconImage} from '#/screens/Settings/AppIconSettings/AppIconImage'
 import {type AppIconSet} from '#/screens/Settings/AppIconSettings/types'
@@ -24,6 +25,7 @@ export function AppIconSettingsScreen({navigation}: Props) {
   const {_} = useLingui()
   const sets = useAppIconSets()
   const {currentTier, hasFeature} = useSubscription()
+  const gate = useGate()
   const [currentAppIcon, setCurrentAppIcon] = useState(() =>
     getAppIconName(DynamicAppIcon.getAppIcon()),
   )
@@ -86,74 +88,76 @@ export function AppIconSettingsScreen({navigation}: Props) {
           ))}
         </Group>
 
-        {hasFeature('pro') ? (
-          <>
-            <Text
+        {gate('premium_subscriptions') && (
+          hasFeature('pro') ? (
+            <>
+              <Text
+                style={[
+                  a.text_md,
+                  a.mt_xl,
+                  a.mb_sm,
+                  a.font_bold,
+                  t.atoms.text_contrast_medium,
+                ]}>
+                <Trans>Sonet Premium Icons</Trans>
+              </Text>
+              <Group
+                label={_(msg`Premium icons`)}
+                value={currentAppIcon}
+                onChange={onSetAppIcon}>
+                {sets.core.map((icon, i) => (
+                  <Row
+                    key={icon.id}
+                    icon={icon}
+                    isEnd={i === sets.core.length - 1}>
+                    <AppIcon icon={icon} key={icon.id} size={40} />
+                    <RowText>{icon.name}</RowText>
+                  </Row>
+                ))}
+              </Group>
+            </>
+          ) : (
+            <View
               style={[
-                a.text_md,
-                a.mt_xl,
-                a.mb_sm,
-                a.font_bold,
-                t.atoms.text_contrast_medium,
+                a.p_md,
+                a.rounded_md,
+                a.border,
+                t.atoms.border_contrast_low,
+                t.atoms.bg_contrast_25,
               ]}>
-              <Trans>Sonet Premium Icons</Trans>
-            </Text>
-            <Group
-              label={_(msg`Premium icons`)}
-              value={currentAppIcon}
-              onChange={onSetAppIcon}>
-              {sets.core.map((icon, i) => (
-                <Row
-                  key={icon.id}
-                  icon={icon}
-                  isEnd={i === sets.core.length - 1}>
-                  <AppIcon icon={icon} key={icon.id} size={40} />
-                  <RowText>{icon.name}</RowText>
-                </Row>
-              ))}
-            </Group>
-          </>
-        ) : (
-          <View
-            style={[
-              a.p_md,
-              a.rounded_md,
-              a.border,
-              t.atoms.border_contrast_low,
-              t.atoms.bg_contrast_25,
-            ]}>
-            <Text
-              style={[
-                a.text_md,
-                a.font_bold,
-                a.text_center,
-                a.mb_sm,
-                t.atoms.text_contrast_high,
-              ]}>
-              <Trans>Unlock Premium Icons</Trans>
-            </Text>
-            <Text
-              style={[
-                a.text_sm,
-                a.text_center,
-                a.mb_md,
-                a.leading_relaxed,
-                t.atoms.text_contrast_medium,
-              ]}>
-              <Trans>
-                Get access to 20+ exclusive app icon designs with Sonet Pro
-              </Trans>
-            </Text>
-            <Button
-              label={_(msg`Upgrade to Pro`)}
-              size="md"
-              variant="primary"
-              onPress={() => {
-                // Navigate to Premium screen
-                navigation.navigate('Premium')
-              }}
-            />
-          </View>
+              <Text
+                style={[
+                  a.text_md,
+                  a.font_bold,
+                  a.text_center,
+                  a.mb_sm,
+                  t.atoms.text_contrast_high,
+                ]}>
+                <Trans>Unlock Premium Icons</Trans>
+              </Text>
+                              <Text
+                  style={[
+                    a.text_sm,
+                    a.text_center,
+                    a.mb_md,
+                    a.leading_relaxed,
+                    t.atoms.text_contrast_medium,
+                  ]}>
+                <Trans>
+                  Get access to 20+ exclusive app icon designs with Sonet Pro
+                </Trans>
+              </Text>
+              <Button
+                label={_(msg`Upgrade to Pro`)}
+                size="md"
+                variant="primary"
+                onPress={() => {
+                  // Navigate to Premium screen
+                  navigation.navigate('Premium')
+                }}
+              />
+            </View>
+          )
         )}
       </Layout.Content>
     </Layout.Screen>

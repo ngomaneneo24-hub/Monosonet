@@ -40,7 +40,7 @@ import {
   type SearchTabNavigatorParams,
 } from '#/lib/routes/types'
 import {type RouteParams, type State} from '#/lib/routes/types'
-import {attachRouteToLogEvents, logEvent} from '#/lib/statsig/statsig'
+import {attachRouteToLogEvents, logEvent, useGate} from '#/lib/statsig/statsig'
 import {bskyTitle} from '#/lib/strings/headings'
 import {logger} from '#/logger'
 import {isNative, isWeb} from '#/platform/detection'
@@ -645,6 +645,7 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
  * in 3 distinct tab-stacks with a different root screen on each.
  */
 function TabsNavigator() {
+  const gate = useGate()
   const tabBar = useCallback(
     (props: JSX.IntrinsicAttributes & BottomTabBarProps) => (
       <BottomBar {...props} />
@@ -664,10 +665,12 @@ function TabsNavigator() {
         name="MessagesTab"
         getComponent={() => MessagesTabNavigator}
       />
-      <Tab.Screen
-        name="PremiumTab"
-        getComponent={() => PremiumTabNavigator}
-      />
+      {gate('premium_subscriptions') && (
+        <Tab.Screen
+          name="PremiumTab"
+          getComponent={() => PremiumTabNavigator}
+        />
+      )}
       <Tab.Screen
         name="NotificationsTab"
         getComponent={() => NotificationsTabNavigator}
@@ -789,6 +792,7 @@ const FlatNavigator = () => {
   const t = useTheme()
   const numUnread = useUnreadNotifications()
   const screenListeners = useWebScrollRestoration()
+  const gate = useGate()
   const title = (page: MessageDescriptor) => bskyTitle(i18n._(page), numUnread)
 
   return (
@@ -815,11 +819,13 @@ const FlatNavigator = () => {
         getComponent={() => MessagesScreen}
         options={{title: title(msg`Messages`), requireAuth: true}}
       />
-      <Flat.Screen
-        name="Premium"
-        getComponent={() => PremiumScreen}
-        options={{title: title(msg`Premium`), requireAuth: true}}
-      />
+      {gate('premium_subscriptions') && (
+        <Flat.Screen
+          name="Premium"
+          getComponent={() => PremiumScreen}
+          options={{title: title(msg`Premium`), requireAuth: true}}
+        />
+      )}
       <Flat.Screen
         name="Start"
         getComponent={() => HomeScreen}
