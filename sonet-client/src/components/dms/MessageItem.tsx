@@ -246,7 +246,7 @@ let MessageItemMetadata = ({
   const {_} = useLingui()
   const {message} = item
 
-  const usernameRetry = useCallback(
+  const handleRetry = useCallback(
     (e: GestureResponderEvent) => {
       if (item.type === 'pending-message' && item.retry) {
         e.preventDefault()
@@ -316,7 +316,7 @@ let MessageItemMetadata = ({
               <InlineLinkText
                 label={_(msg`Click to retry failed message`)}
                 to="#"
-                onPress={usernameRetry}
+                onPress={handleRetry}
                 style={[a.text_xs]}>
                 {_(msg`Retry`)}
               </InlineLinkText>

@@ -63,8 +63,8 @@ export const VideoDetailModal: React.FC<VideoDetailModalProps> = ({
     }
   }, [video, engagementMutation])
 
-  // Username renote
-  const usernameRenote = useCallback(() => {
+  // Handle renote
+  const handleRenote = useCallback(() => {
     if (video) {
       engagementMutation.mutate({
         user_id: 'current-user-id', // TODO: Get from auth context
@@ -76,8 +76,8 @@ export const VideoDetailModal: React.FC<VideoDetailModalProps> = ({
     }
   }, [video, engagementMutation])
 
-  // Username share
-  const usernameShare = useCallback(() => {
+  // Handle share
+  const handleShare = useCallback(() => {
     if (video) {
       engagementMutation.mutate({
         user_id: 'current-user-id', // TODO: Get from auth context
@@ -92,8 +92,8 @@ export const VideoDetailModal: React.FC<VideoDetailModalProps> = ({
     }
   }, [video, engagementMutation])
 
-  // Username modal close
-  const usernameClose = useCallback(() => {
+  // Handle modal close
+  const handleClose = useCallback(() => {
     setIsActive(false)
     setTimeout(() => {
       onClose()
@@ -101,15 +101,15 @@ export const VideoDetailModal: React.FC<VideoDetailModalProps> = ({
     }, 200)
   }, [onClose])
 
-  // Username modal show
-  const usernameShow = useCallback(() => {
+  // Handle modal show
+  const handleShow = useCallback(() => {
     if (Platform.OS === 'ios') {
       StatusBar.setHidden(true, 'slide')
     }
   }, [])
 
-  // Username modal hide
-  const usernameHide = useCallback(() => {
+  // Handle modal hide
+  const handleHide = useCallback(() => {
     if (Platform.OS === 'ios') {
       StatusBar.setHidden(false, 'slide')
     }
@@ -122,20 +122,20 @@ export const VideoDetailModal: React.FC<VideoDetailModalProps> = ({
       visible={isVisible}
       animationType="slide"
       presentationStyle="fullScreen"
-      onShow={usernameShow}
-      onDismiss={usernameHide}
-      onRequestClose={usernameClose}
+      onShow={handleShow}
+      onDismiss={handleHide}
+      onRequestClose={handleClose}
     >
       <VideoPlayer
         video={video}
         isVisible={isVisible}
         isActive={isActive}
-        onPlaybackStatusUpdate={usernamePlaybackStatusUpdate}
-        onViewTrack={usernameViewTrack}
-        onLike={usernameLike}
-        onRenote={usernameRenote}
-        onShare={usernameShare}
-        onClose={usernameClose}
+        onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+        onViewTrack={handleViewTrack}
+        onLike={handleLike}
+        onRenote={handleRenote}
+        onShare={handleShare}
+        onClose={handleClose}
       />
     </Modal>
   )

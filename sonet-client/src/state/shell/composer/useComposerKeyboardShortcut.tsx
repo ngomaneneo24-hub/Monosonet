@@ -51,7 +51,7 @@ export function useComposerKeyboardShortcut() {
       return
     }
 
-    function usernamer(event: KeyboardEvent) {
+    function handler(event: KeyboardEvent) {
       if (shouldIgnore(event)) return
       if (
         openDialogs?.current.size > 0 ||
@@ -64,8 +64,8 @@ export function useComposerKeyboardShortcut() {
         openComposer({})
       }
     }
-    document.addEventListener('keydown', usernamer)
-    return () => document.removeEventListener('keydown', usernamer)
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
   }, [
     openComposer,
     isModalActive,

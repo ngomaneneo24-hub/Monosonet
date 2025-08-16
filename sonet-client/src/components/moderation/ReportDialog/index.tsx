@@ -1,6 +1,6 @@
 import React from 'react'
 import {Pressable, View} from 'react-native'
-import {type ScrollView} from 'react-native-gesture-usernamer'
+import {type ScrollView} from 'react-native-gesture-handler'
 import {type SonetLabelerDefs} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'

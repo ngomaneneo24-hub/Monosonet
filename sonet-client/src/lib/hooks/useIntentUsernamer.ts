@@ -20,7 +20,7 @@ const VALID_IMAGE_REGEX = /^[\w.:\-_/]+\|\d+(\.\d+)?\|\d+(\.\d+)?$/
 // This needs to stay outside of react to persist between account switches
 let previousIntentUrl = ''
 
-export function useIntentUsernamer() {
+export function useIntentHandler() {
   const incomingUrl = Linking.useURL()
   const composeIntent = useComposeIntent()
   const verifyEmailIntent = useVerifyEmailIntent()

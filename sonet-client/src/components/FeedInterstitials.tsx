@@ -1,6 +1,6 @@
 import React from 'react'
 import {View} from 'react-native'
-import {ScrollView} from 'react-native-gesture-usernamer'
+import {ScrollView} from 'react-native-gesture-handler'
 import {type SonetFeedDefs, AtUri} from '@sonet/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'

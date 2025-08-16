@@ -8,7 +8,7 @@ import {
   Platform,
   ActivityIndicator,
   Animated,
-  PanGestureUsernamer,
+  PanGestureHandler,
   State
 } from 'react-native'
 import {Video, ResizeMode, AVPlaybackStatus} from 'expo-av'
@@ -152,20 +152,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, [showControls, hideControls])
 
-  // Username like
-  const usernameLike = useCallback(() => {
+  // Handle like
+  const handleLike = useCallback(() => {
     setIsLiked(!isLiked)
     onLike()
   }, [isLiked, onLike])
 
-  // Username renote
-  const usernameRenote = useCallback(() => {
+  // Handle renote
+  const handleRenote = useCallback(() => {
     setIsRenoteed(!isRenoteed)
     onRenote()
   }, [isRenoteed, onRenote])
 
-  // Username progress bar tap
-  const usernameProgressBarTap = useCallback((event: any) => {
+  // Handle progress bar tap
+  const handleProgressBarTap = useCallback((event: any) => {
     const {locationX} = event.nativeEvent
     const progressBarWidth = event.target.measure((x: number, y: number, width: number) => {
       const progress = locationX / width
@@ -315,7 +315,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.actionButton} onPress={usernameLike}>
+            <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
               <Text style={[styles.actionIcon, isLiked && styles.likedIcon]}>
                 {isLiked ? '❤️' : '🤍'}
               </Text>
@@ -324,7 +324,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionButton} onPress={usernameRenote}>
+            <TouchableOpacity style={styles.actionButton} onPress={handleRenote}>
               <Text style={[styles.actionIcon, isRenoteed && styles.renoteedIcon]}>
                 {isRenoteed ? '🔄' : '↩️'}
               </Text>

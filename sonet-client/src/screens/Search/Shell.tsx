@@ -511,7 +511,7 @@ function useQueryManager({
     }),
     [lang, initialParams, fixedParams],
   )
-  const usernamers = useMemo(
+  const handlers = useMemo(
     () => ({
       setLang,
     }),
@@ -524,10 +524,10 @@ function useQueryManager({
       queryWithParams: makeSearchQuery(query, params),
       params: {
         ...params,
-        ...usernamers,
+        ...handlers,
       },
     }
-  }, [query, params, usernamers])
+  }, [query, params, handlers])
 }
 
 function scrollToTopWeb() {

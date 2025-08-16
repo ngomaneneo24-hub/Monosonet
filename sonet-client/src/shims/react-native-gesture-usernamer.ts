@@ -1,6 +1,6 @@
-export {GestureHandlerRootView as GestureUsernamerRootView, GestureDetector, Gesture} from 'react-native-gesture-handler'
+export {GestureHandlerRootView as GestureHandlerRootView, GestureDetector, Gesture} from 'react-native-gesture-handler'
 export type {
-	PanGestureHandlerEventPayload as PanGestureUsernamerEventPayload,
+	PanGestureHandlerEventPayload as PanGestureHandlerEventPayload,
 	GestureStateChangeEvent,
 	GestureUpdateEvent,
 	PanGesture,

@@ -221,7 +221,7 @@ function InnerReady({
        * HACKFIX
        *
        * Load bearing timeout, to bump this state update until the after the
-       * `navigator.addListener('state')` usernamer closes elements from
+       * `navigator.addListener('state')` handler closes elements from
        * `shell/index.*.tsx`  - sfn & esb
        */
       setTimeout(() =>

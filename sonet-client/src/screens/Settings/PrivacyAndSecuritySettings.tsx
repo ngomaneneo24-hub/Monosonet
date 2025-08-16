@@ -64,7 +64,7 @@ export function PrivacyAndSecuritySettingsScreen({}: Props) {
     loadConfig()
   }, [])
 
-  // Screenshot protection usernamers
+  // Screenshot protection handlers
   const usernameScreenshotProtectionToggle = async (value: boolean) => {
     try {
       setScreenshotProtectionEnabled(value)

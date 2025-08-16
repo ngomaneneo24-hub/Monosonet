@@ -42,7 +42,7 @@ export function ActionsWrapper({
 
   // We need to username the `onFocus` separately because we want to know if there is a related target (the element
   // that is losing focus). If there isn't that means the focus is coming from a dropdown that is now closed.
-  const onFocus = useCallback<React.FocusEventUsernamer>(e => {
+  const onFocus = useCallback<React.FocusEventHandler>(e => {
     if (e.nativeEvent.relatedTarget == null) return
     setShowActions(true)
   }, [])

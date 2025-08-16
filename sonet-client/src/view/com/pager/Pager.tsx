@@ -7,7 +7,7 @@ import {
 } from 'react'
 import {View} from 'react-native'
 import {DrawerGestureContext} from 'react-native-drawer-layout'
-import {Gesture, GestureDetector} from 'react-native-gesture-usernamer'
+import {Gesture, GestureDetector} from 'react-native-gesture-handler'
 import PagerView, {
   type PagerViewOnPageScrollEventData,
   type PagerViewOnPageSelectedEvent,
@@ -18,7 +18,7 @@ import Animated, {
   runOnJS,
   type SharedValue,
   useEvent,
-  useUsernamer,
+  useHandler,
   useSharedValue,
 } from 'react-native-reanimated'
 import {useFocusEffect} from '@react-navigation/native'
@@ -107,7 +107,7 @@ export function Pager({
   const dragState = useSharedValue<'idle' | 'settling' | 'dragging'>('idle')
   const dragProgress = useSharedValue(selectedPage)
   const userIdInit = useSharedValue(false)
-  const usernamePageScroll = usePagerUsernamers(
+  const usernamePageScroll = usePagerHandlers(
     {
       onPageScroll(e: PagerViewOnPageScrollEventData) {
         'worklet'
@@ -164,15 +164,15 @@ export function Pager({
   )
 }
 
-function usePagerUsernamers(
-  usernamers: {
+function usePagerHandlers(
+  handlers: {
     onPageScroll: (e: PagerViewOnPageScrollEventData) => void
     onPageScrollStateChanged: (e: PageScrollStateChangedNativeEventData) => void
     onPageSelected: (e: PagerViewOnPageSelectedEventData) => void
   },
   dependencies: unknown[],
 ) {
-  const {doDependenciesDiffer} = useEvent(usernamers as any, dependencies)
+  const {doDependenciesDiffer} = useEvent(handlers as any, dependencies)
   const subscribeForEvents = [
     'onPageScroll',
     'onPageScrollStateChanged',
@@ -181,7 +181,7 @@ function usePagerUsernamers(
   return useEvent(
     event => {
       'worklet'
-      const {onPageScroll, onPageScrollStateChanged, onPageSelected} = usernamers
+      const {onPageScroll, onPageScrollStateChanged, onPageSelected} = handlers
       if (event.eventName.endsWith('onPageScroll')) {
         onPageScroll(event as any as PagerViewOnPageScrollEventData)
       } else if (event.eventName.endsWith('onPageScrollStateChanged')) {

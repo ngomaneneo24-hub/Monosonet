@@ -11,7 +11,7 @@ import {
 } from 'react-native'
 import {
   KeyboardAwareScrollView,
-  useKeyboardUsernamer,
+  useKeyboardHandler,
 } from 'react-native-keyboard-controller'
 import {runOnJS} from 'react-native-reanimated'
 import {type ReanimatedScrollEvent} from 'react-native-reanimated/lib/typescript/hook/commonTypes'
@@ -209,7 +209,7 @@ export const ScrollableInner = React.forwardRef<ScrollView, DialogInnerProps>(
 
     const [keyboardHeight, setKeyboardHeight] = React.useState(0)
 
-    useKeyboardUsernamer(
+    useKeyboardHandler(
       {
         onEnd: e => {
           'worklet'

@@ -114,7 +114,7 @@ export function Verify({config, showScreen}: ScreenProps<ScreenID.Verify>) {
     }
   })
 
-  const usernameRequestEmailVerification = async () => {
+  const handleRequestEmailVerification = async () => {
     dispatch({
       type: 'setMutationStatus',
       status: 'pending',
@@ -294,7 +294,7 @@ export function Verify({config, showScreen}: ScreenProps<ScreenID.Verify>) {
             size="large"
             variant="solid"
             color="primary"
-            onPress={usernameRequestEmailVerification}
+            onPress={handleRequestEmailVerification}
             disabled={state.mutationStatus === 'pending'}>
             <ButtonText>
               <Trans>Send email</Trans>

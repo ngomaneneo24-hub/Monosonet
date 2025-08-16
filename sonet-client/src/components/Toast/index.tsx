@@ -3,8 +3,8 @@ import {AccessibilityInfo} from 'react-native'
 import {
   Gesture,
   GestureDetector,
-  GestureUsernamerRootView,
-} from 'react-native-gesture-usernamer'
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler'
 import Animated, {
   Easing,
   runOnJS,
@@ -169,7 +169,7 @@ function AnimatedToast({
   })
 
   return (
-    <GestureUsernamerRootView
+    <GestureHandlerRootView
       style={[a.absolute, {top: topOffset, left: 16, right: 16}]}
       pointerEvents="box-none">
       {alive && (
@@ -192,6 +192,6 @@ function AnimatedToast({
           </GestureDetector>
         </Animated.View>
       )}
-    </GestureUsernamerRootView>
+    </GestureHandlerRootView>
   )
 }

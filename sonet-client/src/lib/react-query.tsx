@@ -90,17 +90,17 @@ focusManager.setEventListener(onFocus => {
 
     return () => subscription.remove()
   } else if (typeof window !== 'undefined' && window.addEventListener) {
-    // these usernamers are a bit redundant but focus catches when the browser window
+    // these handlers are a bit redundant but focus catches when the browser window
     // is blurred/focused while visibilitychange seems to only username when the
     // window minimizes (both of them catch tab changes)
     // there's no harm to redundant fires because refetchOnWindowFocus is only
     // used with queries that employ stale data times
-    const usernamer = () => onFocus()
-    window.addEventListener('focus', usernamer, false)
-    window.addEventListener('visibilitychange', usernamer, false)
+    const handler = () => onFocus()
+    window.addEventListener('focus', handler, false)
+    window.addEventListener('visibilitychange', handler, false)
     return () => {
-      window.removeEventListener('visibilitychange', usernamer)
-      window.removeEventListener('focus', usernamer)
+      window.removeEventListener('visibilitychange', handler, false)
+      window.removeEventListener('focus', handler)
     }
   }
 })

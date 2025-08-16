@@ -83,7 +83,7 @@ export function NativeDropdown({
       return
     }
 
-    function clickUsernamer(e: MouseEvent) {
+    function clickHandler(e: MouseEvent) {
       const t = e.target
 
       if (!open) return
@@ -106,17 +106,17 @@ export function NativeDropdown({
       }
     }
 
-    function keydownUsernamer(e: KeyboardEvent) {
+    function keydownHandler(e: KeyboardEvent) {
       if (e.key === 'Escape' && open) {
         setOpen(false)
       }
     }
 
-    document.addEventListener('click', clickUsernamer, true)
-    window.addEventListener('keydown', keydownUsernamer, true)
+    document.addEventListener('click', clickHandler, true)
+    window.addEventListener('keydown', keydownHandler, true)
     return () => {
-      document.removeEventListener('click', clickUsernamer, true)
-      window.removeEventListener('keydown', keydownUsernamer, true)
+      document.removeEventListener('click', clickHandler, true)
+      window.removeEventListener('keydown', keydownHandler, true)
     }
   }, [open, setOpen])
 
@@ -131,7 +131,7 @@ export function NativeDropdown({
           accessibilityHint={accessibilityHint}
           onPointerDown={e => {
             // Prevent false positive that interpret mobile scroll as a tap.
-            // This requires the custom onPress usernamer below to compensate.
+            // This requires the custom onPress handler below to compensate.
             // https://github.com/radix-ui/primitives/issues/1912
             e.preventDefault()
           }}

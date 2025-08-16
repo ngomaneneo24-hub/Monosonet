@@ -54,14 +54,14 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
   }
 
-  // Username like toggle
-  const usernameLike = useCallback(() => {
+  // Handle like toggle
+  const handleLike = useCallback(() => {
     setIsLiked(!isLiked)
     onLike()
   }, [isLiked, onLike])
 
-  // Username renote toggle
-  const usernameRenote = useCallback(() => {
+  // Handle renote toggle
+  const handleRenote = useCallback(() => {
     setIsRenoteed(!isRenoteed)
     onRenote()
   }, [isRenoteed, onRenote])
@@ -163,7 +163,7 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
         <View style={styles.actionButtons}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={usernameLike}
+            onPress={handleLike}
             hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
           >
             <Text style={[styles.actionIcon, isLiked && styles.likedIcon]}>
@@ -173,7 +173,7 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={usernameRenote}
+            onPress={handleRenote}
             hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
           >
             <Text style={[styles.actionIcon, isRenoteed && styles.renoteedIcon]}>

@@ -12,4 +12,4 @@
 // - https://github.com/software-mansion/react-native-reanimated/issues/5364
 //
 // It's great when it works though.
-export {useAnimatedScrollUsernamer} from 'react-native-reanimated'
+export {useAnimatedScrollHandler} from 'react-native-reanimated'

@@ -21,8 +21,8 @@ import {
   GestureDetector,
   type GestureStateChangeEvent,
   type GestureUpdateEvent,
-  type PanGestureUsernamerEventPayload,
-} from 'react-native-gesture-usernamer'
+  type PanGestureHandlerEventPayload,
+} from 'react-native-gesture-handler'
 import Animated, {
   clamp,
   interpolate,
@@ -871,8 +871,8 @@ export function Divider() {
 
 function getHoveredHoverable(
   evt:
-    | GestureStateChangeEvent<PanGestureUsernamerEventPayload>
-    | GestureUpdateEvent<PanGestureUsernamerEventPayload>,
+    | GestureStateChangeEvent<PanGestureHandlerEventPayload>
+    | GestureUpdateEvent<PanGestureHandlerEventPayload>,
   hoverables: SharedValue<Record<string, {id: string; rect: Measurement}>>,
   translation: SharedValue<number>,
 ) {

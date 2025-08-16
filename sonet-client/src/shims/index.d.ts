@@ -1,7 +1,7 @@
-declare module 'react-native-gesture-usernamer' {
-	export {GestureHandlerRootView as GestureUsernamerRootView, GestureDetector, Gesture} from 'react-native-gesture-handler'
+declare module 'react-native-gesture-handler' {
+	export {GestureHandlerRootView as GestureHandlerRootView, GestureDetector, Gesture} from 'react-native-gesture-handler'
 	export type {
-		PanGestureHandlerEventPayload as PanGestureUsernamerEventPayload,
+		PanGestureHandlerEventPayload as PanGestureHandlerEventPayload,
 		GestureStateChangeEvent,
 		GestureUpdateEvent,
 		PanGesture,
@@ -9,5 +9,5 @@ declare module 'react-native-gesture-usernamer' {
 }
 
 declare module 'react-native-keyboard-controller' {
-	export {KeyboardAwareScrollView, useKeyboardHandler as useKeyboardUsernamer} from 'react-native-keyboard-controller'
+	export {KeyboardAwareScrollView, useKeyboardHandler as useKeyboardHandler} from 'react-native-keyboard-controller'
 }

@@ -102,15 +102,15 @@ export function SonetFileAttachment({
     }
   }, [attachment, onDownload])
 
-  // Username retry
-  const usernameRetry = useCallback(() => {
+  // Handle retry
+  const handleRetry = useCallback(() => {
     if (onRetry) {
       onRetry(attachment)
     }
   }, [attachment, onRetry])
 
-  // Username delete
-  const usernameDelete = useCallback(() => {
+  // Handle delete
+  const handleDelete = useCallback(() => {
     if (onDelete) {
       onDelete(attachment)
     }
@@ -289,7 +289,7 @@ export function SonetFileAttachment({
                 variant="ghost"
                 color="secondary"
                 size="small"
-                onPress={usernameRetry}
+                onPress={handleRetry}
                 style={[a.flex_1]}>
                 <ButtonIcon icon={SendIcon} />
                 <ButtonText>

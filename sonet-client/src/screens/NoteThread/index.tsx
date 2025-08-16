@@ -199,7 +199,7 @@ export function NoteThread({uri}: {uri: string}) {
        * change via `prepareForParamsUpdate`.
        *
        * The `isRoot` here is needed because if we're looking at the anchor
-       * note, this usernamer will not fire after `deferParents` is set to
+       * note, this handler will not fire after `deferParents` is set to
        * `false`, since there are no parents to render above it. In this case,
        * we want to make sure `shouldUsernameScroll` is set to `false` so that
        * subsequent size changes unrelated to a params change (like pagination)
@@ -223,9 +223,9 @@ export function NoteThread({uri}: {uri: string}) {
        * scroll to the top of the list. However, there is a split second
        * where the top of the list is wherever the parents _just were_. So if
        * there were parents, the anchor is not at the top of the list just
-       * prior to this usernamer being called.
+       * prior to this handler being called.
        *
-       * Once this usernamer is called, the anchor note is the first item in
+       * Once this handler is called, the anchor note is the first item in
        * the list (because of `deferParents` being `true`), and so we can
        * synchronously scroll the list back to the top of the list (which is
        * 0 on native, no need to username `headerHeight`).
@@ -239,7 +239,7 @@ export function NoteThread({uri}: {uri: string}) {
        * After this first pass, `deferParents` will be `false`, and those
        * will render in. However, the anchor note will retain its position
        * because of `maintainVisibleContentPosition` handling on native. So we
-       * don't need to let this usernamer run again, like we do on web.
+       * don't need to let this handler run again, like we do on web.
        */
       shouldUsernameScroll.current = false
     }

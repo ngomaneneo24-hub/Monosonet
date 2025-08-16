@@ -7,9 +7,9 @@ import {
 } from 'react-native-reanimated'
 import {updateActiveVideoViewAsync} from '@haileyok/bluesky-video'
 
-import {useAnimatedScrollUsernamer} from '#/lib/hooks/useAnimatedScrollUsernamer_FIXED'
+import {useScrollHandlers} from '#/lib/hooks/useAnimatedScrollHandler_FIXED'
 import {useDedupe} from '#/lib/hooks/useDedupe'
-import {useScrollUsernamers} from '#/lib/ScrollContext'
+import {useScrollHandlers} from '#/lib/ScrollContext'
 import {addStyle} from '#/lib/styles'
 import {isIOS} from '#/platform/detection'
 import {useLightbox} from '#/state/lightbox'
@@ -74,8 +74,8 @@ let List = React.forwardRef<ListMethods, ListProps>(
       onEndDrag: onEndDragFromContext,
       onScroll: onScrollFromContext,
       onMomentumEnd: onMomentumEndFromContext,
-    } = useScrollUsernamers()
-    const scrollUsernamer = useAnimatedScrollUsernamer({
+    } = useScrollHandlers()
+    const scrollHandler = useAnimatedScrollHandler({
       onBeginDrag(e, ctx) {
         onBeginDragFromContext?.(e, ctx)
       },
@@ -167,7 +167,7 @@ let List = React.forwardRef<ListMethods, ListProps>(
         indicatorStyle={t.scheme === 'dark' ? 'white' : 'black'}
         contentOffset={contentOffset}
         refreshControl={refreshControl}
-        onScroll={scrollUsernamer}
+        onScroll={scrollHandler}
         scrollsToTop={!activeLightbox}
         scrollEventThrottle={1}
         style={style}

@@ -94,8 +94,8 @@ export class SonetPushNotifications {
       // Configure notification behavior
       await this.configureNotifications()
 
-      // Set up notification usernamers
-      this.setupNotificationUsernamers()
+      // Set up notification handlers
+      this.setupNotificationHandlers()
 
       this.isInitialized = true
       // Debug logging removed for production
@@ -107,8 +107,8 @@ export class SonetPushNotifications {
 
   // Configure notification behavior
   private async configureNotifications(): Promise<void> {
-    await Notifications.setNotificationUsernamer({
-      usernameNotification: async (notification) => {
+    await Notifications.setNotificationHandler({
+      handleNotification: async (notification) => {
         const data = notification.request.content.data as PushNotificationData
         
         // Check if notifications are enabled
@@ -150,14 +150,14 @@ export class SonetPushNotifications {
     })
   }
 
-  // Set up notification usernamers
-  private setupNotificationUsernamers(): void {
-    // Username notification received while app is in foreground
+  // Set up notification handlers
+  private setupNotificationHandlers(): void {
+    // Handle notification received while app is in foreground
     Notifications.addNotificationReceivedListener((notification) => {
       const data = notification.request.content.data as PushNotificationData
       // Debug logging removed for production
-      
-      // Emit event for app to username
+
+      // Emit event for app to handle
       // This will be usernamed by the messaging service
     })
 

@@ -9,7 +9,7 @@ import {type ReanimatedScrollEvent} from 'react-native-reanimated/lib/typescript
 
 import {batchedUpdates} from '#/lib/batchedUpdates'
 import {useNonReactiveCallback} from '#/lib/hooks/useNonReactiveCallback'
-import {useScrollUsernamers} from '#/lib/ScrollContext'
+import {useScrollHandlers} from '#/lib/ScrollContext'
 import {addStyle} from '#/lib/styles'
 import * as Layout from '#/components/Layout'
 
@@ -67,7 +67,7 @@ function ListImpl<ItemT>(
   }: ListProps<ItemT>,
   ref: React.Ref<ListMethods>,
 ) {
-  const contextScrollUsernamers = useScrollUsernamers()
+  const contextScrollHandlers = useScrollHandlers()
 
   const isEmpty = !data || data.length === 0
 
@@ -137,11 +137,11 @@ function ListImpl<ItemT>(
         scrollBy(options: ScrollToOptions) {
           element.scrollBy(options)
         },
-        addEventListener(event: string, usernamer: any) {
-          element.addEventListener(event, usernamer)
+        addEventListener(event: string, handler: any) {
+          element.addEventListener(event, handler)
         },
-        removeEventListener(event: string, usernamer: any) {
-          element.removeEventListener(event, usernamer)
+        removeEventListener(event: string, handler: any) {
+          element.removeEventListener(event, handler)
         },
       }
     } else {
@@ -224,7 +224,7 @@ function ListImpl<ItemT>(
     if (!isInsideVisibleTree) return
 
     const element = getScrollableNode()
-    contextScrollUsernamers.onScroll?.(
+    contextScrollHandlers.onScroll?.(
       {
         contentOffset: {
           x: Math.max(0, element?.scrollX ?? 0),
@@ -407,7 +407,7 @@ function useResizeObserver(
   ref: React.RefObject<Element>,
   onResize: undefined | ((w: number, h: number) => void),
 ) {
-  const usernameResize = useNonReactiveCallback(onResize ?? (() => {}))
+  const handleResize = useNonReactiveCallback(onResize ?? (() => {}))
   const isActive = !!onResize
   React.useEffect(() => {
     if (!isActive) {
@@ -417,7 +417,7 @@ function useResizeObserver(
       batchedUpdates(() => {
         for (let entry of entries) {
           const rect = entry.contentRect
-          usernameResize(rect.width, rect.height)
+          handleResize(rect.width, rect.height)
         }
       })
     })
@@ -426,7 +426,7 @@ function useResizeObserver(
     return () => {
       resizeObserver.unobserve(node)
     }
-  }, [usernameResize, isActive, ref])
+  }, [handleResize, isActive, ref])
 }
 
 let Row = function RowImpl<ItemT>({

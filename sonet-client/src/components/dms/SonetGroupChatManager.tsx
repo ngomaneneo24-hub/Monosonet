@@ -85,8 +85,8 @@ export function SonetGroupChatManager({
     }
   }, [newParticipantUsername, onAddParticipant])
 
-  // Username removing participant
-  const usernameRemoveParticipant = useCallback(async (participantId: string) => {
+  // Handle removing participant
+  const handleRemoveParticipant = useCallback(async (participantId: string) => {
     if (!onRemoveParticipant) return
 
     try {
@@ -478,7 +478,7 @@ export function SonetGroupChatManager({
                     variant="ghost"
                     color="negative"
                     size="small"
-                    onPress={() => usernameRemoveParticipant(participant.id)}>
+                    onPress={() => handleRemoveParticipant(participant.id)}>
                     <ButtonIcon icon={TrashIcon} />
                   </Button>
                 )}

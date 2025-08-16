@@ -6,7 +6,7 @@ import {useNavigation} from '@react-navigation/native'
 import {RemoveScrollBar} from 'react-remove-scroll-bar'
 
 import {useColorSchemeStyle} from '#/lib/hooks/useColorSchemeStyle'
-import {useIntentUsernamer} from '#/lib/hooks/useIntentUsernamer'
+import {useIntentHandler} from '#/lib/hooks/useIntentHandler'
 import {useWebMediaQueries} from '#/lib/hooks/useWebMediaQueries'
 import {type NavigationProp} from '#/lib/routes/types'
 import {colors} from '#/lib/styles'
@@ -57,7 +57,7 @@ function ShellInner() {
   }, [showDrawer, showDrawerDelayedExit])
 
   useComposerKeyboardShortcut()
-  useIntentUsernamer()
+  useIntentHandler()
 
   useEffect(() => {
     const unsubscribe = navigator.addListener('state', () => {

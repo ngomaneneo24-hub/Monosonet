@@ -43,7 +43,7 @@ export function useAccountEmailState() {
 
   /*
    * This will emit `n` times for each instance of this hook. So the listeners
-   * all use `once` to prevent multiple usernamers firing.
+   * all use `once` to prevent multiple handlers firing.
    */
   useEffect(() => {
     if (state.isEmailVerified && !prevIsEmailVerified) {

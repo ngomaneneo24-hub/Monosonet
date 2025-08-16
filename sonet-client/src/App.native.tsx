@@ -3,7 +3,7 @@ import '#/logger/bitdrift/setup'
 import '#/view/icons'
 
 import React, {useEffect, useState} from 'react'
-import {GestureUsernamerRootView} from 'react-native-gesture-usernamer'
+import {GestureHandlerRootView} from 'react-native-gesture-handler'
 import {RootSiblingParent} from 'react-native-root-siblings'
 import {
   initialWindowMetrics,
@@ -157,7 +157,7 @@ function InnerApp() {
                                                 <ProgressGuideProvider>
                                                   <ServiceAccountManager>
                                                     <HideBottomBarBorderProvider>
-                                                      <GestureUsernamerRootView
+                                                      <GestureHandlerRootView
                                                         style={s.h100pct}>
                                                         <GlobalGestureEventsProvider>
                                                           <IntentDialogProvider>
@@ -166,7 +166,7 @@ function InnerApp() {
                                                             <NuxDialogs />
                                                           </IntentDialogProvider>
                                                         </GlobalGestureEventsProvider>
-                                                      </GestureUsernamerRootView>
+                                                      </GestureHandlerRootView>
                                                     </HideBottomBarBorderProvider>
                                                   </ServiceAccountManager>
                                                 </ProgressGuideProvider>

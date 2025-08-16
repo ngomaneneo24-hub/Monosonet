@@ -50,7 +50,7 @@ interface AppClipMessage {
 
 export function noteAppClipMessage(message: AppClipMessage) {
   // @ts-expect-error safari webview only
-  window.webkit.messageUsernamers.onMessage.noteMessage(JSON.stringify(message))
+  window.webkit.messageHandlers.onMessage.noteMessage(JSON.stringify(message))
 }
 
 export function LandingScreen({
