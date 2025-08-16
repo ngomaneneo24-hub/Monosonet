@@ -7,4 +7,4 @@ export type GeneratorView = any
 export type FilterablePreference = any
 
 // Export from the main sonet-api file instead
-export * from '../lib/api/sonet-api'
+// export * from '../lib/api/sonet-api'
