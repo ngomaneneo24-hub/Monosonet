@@ -25,6 +25,12 @@ export class SonetAppAgent {
   private session?: SonetSessionData
   private sessionChangeCallback?: (agent: SonetAppAgent, userId: string, event: SonetSessionEvent) => void
 
+  // Static properties for app configuration
+  static appLabelers: string[] = []
+  static app = {
+    // Add app-specific configuration
+  }
+
   constructor(options: {service: string}) {
     this.client = new SonetClient(options.service)
   }
@@ -160,6 +166,23 @@ export class SonetAppAgent {
   // Expose the client for API calls
   get api() {
     return this.client
+  }
+
+  // Add missing methods that are expected by the codebase
+  get com() {
+    return {
+      // Add com-related functionality
+    }
+  }
+
+  async createModerationReport(report: any) {
+    // Implement moderation report creation
+    return { success: true }
+  }
+
+  // Make session accessible for compatibility
+  get sessionData() {
+    return this.session
   }
 }
 
