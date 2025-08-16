@@ -8,3 +8,5 @@ export const Hasher = {
     })
   })
 }
+
+export const from = Hasher.from

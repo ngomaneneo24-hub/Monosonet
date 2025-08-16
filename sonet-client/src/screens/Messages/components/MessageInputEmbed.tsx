@@ -1,5 +1,5 @@
 import {View} from 'react-native'
-import {useCallback, useMemo} from 'react'
+import React, {useCallback, useMemo} from 'react'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
@@ -17,6 +17,19 @@ import {isBskyNoteUrl} from '#/lib/urls/isBskyNoteUrl'
 import {useRichText} from '#/lib/hooks/useRichText'
 import {useModerationCause} from '#/lib/moderation/useModerationCause'
 import {useModerationCauseLabel} from '#/lib/moderation/useModerationCauseLabel'
+
+export function useMessageEmbed() {
+  const [embedUri, setEmbedUri] = React.useState<string | null>(null)
+  
+  const setEmbed = React.useCallback((uri: string | null) => {
+    setEmbedUri(uri)
+  }, [])
+  
+  return {
+    embedUri,
+    setEmbed,
+  }
+}
 
 export function MessageInputEmbed({
   embed,

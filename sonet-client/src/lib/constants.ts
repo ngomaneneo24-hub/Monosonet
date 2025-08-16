@@ -259,3 +259,4 @@ export const webLinks = {
 export const PUBLIC_BSKY_SERVICE = 'https://bsky.social'
 export const BSKY_SERVICE = 'https://bsky.social'
 export const BSKY_LABELER_UserID = 'did:plc:z72i7hdynmk6r22z27h6tvur'
+export const PUBLIC_STAGING_APPVIEW_UserID = 'did:plc:z72i7hdynmk6r22z27h6tvur'

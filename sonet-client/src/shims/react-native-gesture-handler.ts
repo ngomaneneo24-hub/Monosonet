@@ -20,3 +20,20 @@ export const PanGestureHandler = ({children, onGestureEvent, ...props}: any) => 
   const React = require('react')
   return React.createElement('div', {onTouchStart: onGestureEvent, ...props}, children)
 }
+
+// Additional exports that might be needed
+export const Gesture = {
+  Pan: () => ({}),
+  Pinch: () => ({}),
+}
+
+export const GestureDetector = ({children, gesture, ...props}: any) => {
+  const React = require('react')
+  return React.createElement('div', props, children)
+}
+
+// Re-export from the actual package for components that exist
+export {KeyboardAwareScrollView, useKeyboardHandler} from 'react-native-keyboard-controller'
+
+// Make sure State and PanGestureHandler are properly exported
+export {State, PanGestureHandler}
