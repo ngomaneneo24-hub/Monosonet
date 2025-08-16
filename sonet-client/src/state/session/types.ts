@@ -43,9 +43,9 @@ export type SessionApiContext = {
   /**
    * Calls `getSession` and updates select fields on the current account and
    * `SonetAppAgent`. This is an alternative to `resumeSession`, which updates
-   * current account/agent using the `persistSessionUsernamer`, but is more load
+   * current account/agent using the `persistSessionHandler`, but is more load
    * bearing. This patches in updates without causing any side effects via
-   * `persistSessionUsernamer`.
+   * `persistSessionHandler`.
    */
   partialRefreshSession: () => Promise<void>
 }

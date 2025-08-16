@@ -11,7 +11,7 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react'
 import {LayoutAnimation, PixelRatio, StyleSheet, View} from 'react-native'
 import {SystemBars} from 'react-native-edge-to-edge'
-import {Gesture} from 'react-native-gesture-usernamer'
+import {Gesture} from 'react-native-gesture-handler'
 import PagerView from 'react-native-pager-view'
 import Animated, {
   type AnimatedRef,

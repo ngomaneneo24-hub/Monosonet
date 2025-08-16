@@ -12,7 +12,7 @@ import {
   Gesture,
   GestureDetector,
   PanGesture,
-} from 'react-native-gesture-usernamer'
+} from 'react-native-gesture-handler'
 import Animated, {
   runOnJS,
   SharedValue,
@@ -25,7 +25,7 @@ import Animated, {
 import {useSafeAreaFrame} from 'react-native-safe-area-context'
 import {Image} from 'expo-image'
 
-import {useAnimatedScrollUsernamer} from '#/lib/hooks/useAnimatedScrollUsernamer_FIXED'
+import {useAnimatedScrollHandler} from '#/lib/hooks/useAnimatedScrollHandler_FIXED'
 import {
   Dimensions as ImageDimensions,
   ImageSource,
@@ -87,7 +87,7 @@ const ImageItem = ({
       : 1,
   )
 
-  const scrollUsernamer = useAnimatedScrollUsernamer({
+  const scrollHandler = useAnimatedScrollHandler({
     onScroll(e) {
       'worklet'
       const nextIsScaled = e.zoomScale > 1
@@ -225,7 +225,7 @@ const ImageItem = ({
         showsHorizontalScrollIndicator={false}
         showsVerticalScrollIndicator={false}
         maximumZoomScale={maxZoomScale}
-        onScroll={scrollUsernamer}
+        onScroll={scrollHandler}
         style={containerStyle}
         animatedProps={scrollViewProps}
         centerContent>

@@ -108,17 +108,17 @@ const MentionList = forwardRef<MentionListRef, SuggestionProps>(
       }
     }
 
-    const upUsernamer = () => {
+    const upHandler = () => {
       setSelectedIndex(
         (selectedIndex + props.items.length - 1) % props.items.length,
       )
     }
 
-    const downUsernamer = () => {
+    const downHandler = () => {
       setSelectedIndex((selectedIndex + 1) % props.items.length)
     }
 
-    const enterUsernamer = () => {
+    const enterHandler = () => {
       selectItem(selectedIndex)
     }
 
@@ -127,17 +127,17 @@ const MentionList = forwardRef<MentionListRef, SuggestionProps>(
     useImperativeHandle(ref, () => ({
       onKeyDown: ({event}) => {
         if (event.key === 'ArrowUp') {
-          upUsernamer()
+          upHandler()
           return true
         }
 
         if (event.key === 'ArrowDown') {
-          downUsernamer()
+          downHandler()
           return true
         }
 
         if (event.key === 'Enter' || event.key === 'Tab') {
-          enterUsernamer()
+          enterHandler()
           return true
         }
 
@@ -228,7 +228,7 @@ function AutocompleteProfileCard({
             <View>
               <VerificationCheck
                 width={12}
-                verifier={state.role === 'verifier'}
+                founder={state.role === 'founder'}
               />
             </View>
           )}

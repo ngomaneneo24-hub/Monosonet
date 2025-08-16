@@ -1,21 +1,21 @@
 import React, {createContext, useContext, useMemo} from 'react'
-import {ScrollUsernamers} from 'react-native-reanimated'
+import {ScrollHandlers} from 'react-native-reanimated'
 
-const ScrollContext = createContext<ScrollUsernamers<any>>({
+const ScrollContext = createContext<ScrollHandlers<any>>({
   onBeginDrag: undefined,
   onEndDrag: undefined,
   onScroll: undefined,
   onMomentumEnd: undefined,
 })
 
-export function useScrollUsernamers(): ScrollUsernamers<any> {
+export function useScrollHandlers(): ScrollHandlers<any> {
   return useContext(ScrollContext)
 }
 
-type ProviderProps = {children: React.ReactNode} & ScrollUsernamers<any>
+type ProviderProps = {children: React.ReactNode} & ScrollHandlers<any>
 
-// Note: this completely *overrides* the parent usernamers.
-// It's up to you to compose them with the parent ones via useScrollUsernamers() if needed.
+// Note: this completely *overrides* the parent handlers.
+// It's up to you to compose them with the parent ones via useScrollHandlers() if needed.
 export function ScrollProvider({
   children,
   onBeginDrag,
@@ -23,7 +23,7 @@ export function ScrollProvider({
   onScroll,
   onMomentumEnd,
 }: ProviderProps) {
-  const usernamers = useMemo(
+  const handlers = useMemo(
     () => ({
       onBeginDrag,
       onEndDrag,
@@ -33,6 +33,6 @@ export function ScrollProvider({
     [onBeginDrag, onEndDrag, onScroll, onMomentumEnd],
   )
   return (
-    <ScrollContext.Provider value={usernamers}>{children}</ScrollContext.Provider>
+    <ScrollContext.Provider value={handlers}>{children}</ScrollContext.Provider>
   )
 }

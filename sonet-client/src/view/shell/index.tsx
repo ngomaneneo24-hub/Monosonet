@@ -2,13 +2,13 @@ import {useCallback, useEffect, useState} from 'react'
 import {BackHandler, useWindowDimensions, View} from 'react-native'
 import {Drawer} from 'react-native-drawer-layout'
 import {SystemBars} from 'react-native-edge-to-edge'
-import {Gesture} from 'react-native-gesture-usernamer'
+import {Gesture} from 'react-native-gesture-handler'
 import {useSafeAreaInsets} from 'react-native-safe-area-context'
 import {useNavigation, useNavigationState} from '@react-navigation/native'
 
 import {useDedupe} from '#/lib/hooks/useDedupe'
-import {useIntentUsernamer} from '#/lib/hooks/useIntentUsernamer'
-import {useNotificationsUsernamer} from '#/lib/hooks/useNotificationHandler'
+import {useIntentHandler} from '#/lib/hooks/useIntentHandler'
+import {useNotificationsHandler} from '#/lib/hooks/useNotificationHandler'
 import {useNotificationsRegistration} from '#/lib/notifications/notifications'
 import {isStateAtTabRoot} from '#/lib/routes/helpers'
 import {isAndroid, isIOS} from '#/platform/detection'
@@ -65,7 +65,7 @@ function ShellInner() {
   const closeAnyActiveElement = useCloseAnyActiveElement()
 
   useNotificationsRegistration()
-  useNotificationsUsernamer()
+  useNotificationsHandler()
 
   useEffect(() => {
     if (isAndroid) {
@@ -110,17 +110,17 @@ function ShellInner() {
           <Drawer
             renderDrawerContent={renderDrawerContent}
             drawerStyle={{width: Math.min(400, winDim.width * 0.8)}}
-            configureGesture={usernamer => {
-              usernamer = usernamer.requireExternalGestureToFail(
+            configureGesture={Handler => {
+              handler = handler.requireExternalGestureToFail(
                 trendingScrollGesture,
               )
 
               if (swipeEnabled) {
                 if (isDrawerOpen) {
-                  return usernamer.activeOffsetX([-1, 1])
+                  return handler.activeOffsetX([-1, 1])
                 } else {
                   return (
-                    usernamer
+                    handler
                       // Any movement to the left is a pager swipe
                       // so fail the drawer gesture immediately.
                       .failOffsetX(-1)
@@ -133,7 +133,7 @@ function ShellInner() {
                 // Fail the gesture immediately.
                 // This seems more reliable than the `swipeEnabled` prop.
                 // With `swipeEnabled` alone, the gesture may freeze after toggling off/on.
-                return usernamer.failOffsetX([0, 0]).failOffsetY([0, 0])
+                return handler.failOffsetX([0, 0]).failOffsetY([0, 0])
               }
             }}
             open={isDrawerOpen}
@@ -183,7 +183,7 @@ function ShellInner() {
 export const Shell: React.FC = function ShellImpl() {
   const {fullyExpandedCount} = useDialogStateControlContext()
   const t = useTheme()
-  useIntentUsernamer()
+  useIntentHandler()
 
   useEffect(() => {
     setSystemUITheme('theme', t)

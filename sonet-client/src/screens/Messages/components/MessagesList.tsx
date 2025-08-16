@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useRef, useState} from 'react'
 import {type LayoutChangeEvent, View} from 'react-native'
-import {useKeyboardUsernamer} from 'react-native-keyboard-controller'
+import {useKeyboardHandler} from 'react-native-keyboard-controller'
 import Animated, {
   runOnJS,
   scrollTo,
@@ -256,7 +256,7 @@ export function MessagesList({
   // We use this value to keep track of when we want to disable the animation.
   const layoutScrollWithoutAnimation = useSharedValue(false)
 
-  useKeyboardUsernamer(
+  useKeyboardHandler(
     {
       onStart: e => {
         'worklet'

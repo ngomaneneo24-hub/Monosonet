@@ -102,7 +102,7 @@ export class SonetWebSocket extends EventEmitter {
           this.emit('disconnected', event.code, event.reason)
 
           if (event.code !== 1000) {
-            this.usernameReconnect()
+            this.handleReconnect()
           }
         }
 
@@ -143,7 +143,7 @@ export class SonetWebSocket extends EventEmitter {
     }
   }
 
-  private usernameReconnect(): void {
+  private handleReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       this.emit('reconnect_failed')
       return

@@ -98,7 +98,7 @@ class SonetWebSocketManager {
   private heartbeatInterval: NodeJS.Timeout | null = null
   private messageQueue: SonetMessageEnvelope[] = []
   private connectionState: 'disconnected' | 'connecting' | 'connected' | 'reconnecting' = 'disconnected'
-  private eventUsernamers = new Map<string, Set<Function>>()
+  private eventHandlers = new Map<string, Set<Function>>()
   private messageSequence = 0
   private lastHeartbeat = 0
 
@@ -285,28 +285,28 @@ class SonetWebSocketManager {
     }
   }
 
-  on(event: string, usernamer: Function): void {
-    if (!this.eventUsernamers.has(event)) {
-      this.eventUsernamers.set(event, new Set())
+  on(event: string, handler: Function): void {
+    if (!this.eventHandlers.has(event)) {
+      this.eventHandlers.set(event, new Set())
     }
-    this.eventUsernamers.get(event)!.add(usernamer)
+    this.eventHandlers.get(event)!.add(handler)
   }
 
-  off(event: string, usernamer: Function): void {
-    const usernamers = this.eventUsernamers.get(event)
-    if (usernamers) {
-      usernamers.delete(usernamer)
+  off(event: string, handler: Function): void {
+    const handlers = this.eventHandlers.get(event)
+    if (handlers) {
+      handlers.delete(handler)
     }
   }
 
   private emit(event: string, data?: any): void {
-    const usernamers = this.eventUsernamers.get(event)
-    if (usernamers) {
-      usernamers.forEach(usernamer => {
+    const handlers = this.eventHandlers.get(event)
+    if (handlers) {
+      handlers.forEach(handler => {
         try {
-          usernamer(data)
+          handler(data)
         } catch (error) {
-          logger.error('Error in event usernamer', {event, error})
+          logger.error('Error in event handler', {event, error})
         }
       })
     }
@@ -480,7 +480,7 @@ export function useSonetMessaging(conversationId: string) {
           }
         )
 
-        // Set up event usernamers
+        // Set up event handlers
         ws.on('connected', () => {
           logger.info('WebSocket connected', {conversationId})
         })
@@ -497,15 +497,15 @@ export function useSonetMessaging(conversationId: string) {
         })
 
         ws.on('message:received', (message: SonetMessageEnvelope) => {
-          usernameIncomingMessage(message)
+          handleIncomingMessage(message)
         })
 
         ws.on('typing:update', (data: {userId: string; isTyping: boolean}) => {
-          usernameTypingUpdate(data)
+          handleTypingUpdate(data)
         })
 
         ws.on('read:receipt', (data: {messageId: string; userId: string; timestamp: number}) => {
-          usernameReadReceipt(data)
+          handleReadReceipt(data)
         })
 
         ws.on('error', (error) => {
@@ -586,8 +586,8 @@ export function useSonetMessaging(conversationId: string) {
     }
   }, [wsManager, encryption, conversationId])
 
-  // Username incoming messages
-  const usernameIncomingMessage = useCallback(async (message: SonetMessageEnvelope) => {
+  // Handle incoming messages
+  const handleIncomingMessage = useCallback(async (message: SonetMessageEnvelope) => {
     try {
       if (!encryption) return
 
@@ -631,16 +631,16 @@ export function useSonetMessaging(conversationId: string) {
     }
   }, [encryption, wsManager])
 
-  // Username typing updates
-  const usernameTypingUpdate = useCallback((data: {userId: string; isTyping: boolean}) => {
+  // Handle typing updates
+  const handleTypingUpdate = useCallback((data: {userId: string; isTyping: boolean}) => {
     setConversation(prev => prev ? {
       ...prev,
       isTyping: new Set(data.isTyping ? [data.userId] : []),
     } : null)
   }, [])
 
-  // Username read receipts
-  const usernameReadReceipt = useCallback((data: {messageId: string; userId: string; timestamp: number}) => {
+  // Handle read receipts
+  const handleReadReceipt = useCallback((data: {messageId: string; userId: string; timestamp: number}) => {
     // Update message status in conversation
     setConversation(prev => prev ? {
       ...prev,

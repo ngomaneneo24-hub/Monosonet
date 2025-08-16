@@ -52,16 +52,16 @@ export function PersonalizationSettings({onClose}: PersonalizationSettingsProps)
     }))
   }, [])
 
-  // Username feature toggle
-  const usernameFeatureToggle = useCallback((key: string, value: boolean) => {
+  // Handle feature toggle
+  const handleFeatureToggle = useCallback((key: string, value: boolean) => {
     setFeatures(prev => ({
       ...prev,
       [key]: value
     }))
   }, [])
 
-  // Username content type toggle
-  const usernameContentTypeToggle = useCallback((key: string, value: boolean) => {
+  // Handle content type toggle
+  const handleContentTypeToggle = useCallback((key: string, value: boolean) => {
     setContentTypes(prev => ({
       ...prev,
       [key]: value
@@ -69,7 +69,7 @@ export function PersonalizationSettings({onClose}: PersonalizationSettingsProps)
   }, [])
 
   // Save preferences
-  const usernameSave = useCallback(() => {
+  const handleSave = useCallback(() => {
     // TODO: Save preferences to server
     console.log('Saving personalization preferences:', {
       preferences,
@@ -80,7 +80,7 @@ export function PersonalizationSettings({onClose}: PersonalizationSettingsProps)
   }, [preferences, features, contentTypes, onClose])
 
   // Reset to defaults
-  const usernameReset = useCallback(() => {
+  const handleReset = useCallback(() => {
     setPreferences({
       contentDiversity: 0.7,
       noveltyPreference: 0.8,
@@ -221,7 +221,7 @@ export function PersonalizationSettings({onClose}: PersonalizationSettingsProps)
                 </Text>
                 <Switch
                   value={value}
-                  onValueChange={(newValue) => usernameFeatureToggle(key, newValue)}
+                  onValueChange={(newValue) => handleFeatureToggle(key, newValue)}
                   trackColor={{false: '#E5E5E7', true: '#007AFF'}}
                   thumbColor={value ? '#fff' : '#fff'}
                 />
@@ -245,7 +245,7 @@ export function PersonalizationSettings({onClose}: PersonalizationSettingsProps)
                 </Text>
                 <Switch
                   value={value}
-                  onValueChange={(newValue) => usernameContentTypeToggle(key, newValue)}
+                  onValueChange={(newValue) => handleContentTypeToggle(key, newValue)}
                   trackColor={{false: '#E5E5E7', true: '#007AFF'}}
                   thumbColor={value ? '#fff' : '#fff'}
                 />
@@ -257,7 +257,7 @@ export function PersonalizationSettings({onClose}: PersonalizationSettingsProps)
           <View style={styles.actions}>
             <TouchableOpacity
               style={styles.resetButton}
-              onPress={usernameReset}
+              onPress={handleReset}
             >
               <RefreshIcon size={16} color="#666" />
               <Text style={styles.resetButtonText}>
@@ -267,7 +267,7 @@ export function PersonalizationSettings({onClose}: PersonalizationSettingsProps)
 
             <TouchableOpacity
               style={styles.saveButton}
-              onPress={usernameSave}
+              onPress={handleSave}
             >
               <Text style={styles.saveButtonText}>
                 {_(msg`Save Preferences`)}

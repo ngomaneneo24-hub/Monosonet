@@ -194,7 +194,7 @@ function NotificationsTab({
   const isScreenFocused = useIsFocused()
   const isFocusedAndActive = isScreenFocused && isActive
 
-  // event usernamers
+  // event handlers
   // =
   const scrollToTop = useCallback(() => {
     scrollElRef.current?.scrollToOffset({animated: isNative, offset: 0})

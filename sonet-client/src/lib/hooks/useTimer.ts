@@ -3,7 +3,7 @@ import * as React from 'react'
 /**
  * Helper hook to run persistent timers on views
  */
-export function useTimer(time: number, usernamer: () => void) {
+export function useTimer(time: number, handler: () => void) {
   const timer = React.useRef<undefined | NodeJS.Timeout>(undefined)
 
   // function to restart the timer
@@ -11,8 +11,8 @@ export function useTimer(time: number, usernamer: () => void) {
     if (timer.current) {
       clearTimeout(timer.current)
     }
-    timer.current = setTimeout(usernamer, time)
-  }, [time, timer, usernamer])
+    timer.current = setTimeout(handler, time)
+  }, [time, timer, handler])
 
   // function to cancel the timer
   const cancel = React.useCallback(() => {

@@ -30,12 +30,12 @@ export function MessageInputEmbed({
   const {currentAccount} = useSession()
   const navigation = useNavigation()
 
-  const usernameRemove = useCallback(() => {
+  const handleRemove = useCallback(() => {
     onRemove()
   }, [onRemove])
 
-  const usernamePress = useCallback(() => {
-    // Username navigation to the embedded content
+  const handlePress = useCallback(() => {
+    // Handle navigation to the embedded content
     if (embed.type === 'note') {
       // Navigate to note
       navigation.navigate('NoteThread' as any, {uri: embed.uri})
@@ -136,7 +136,7 @@ export function MessageInputEmbed({
         size="small"
         color="secondary"
         variant="ghost"
-        onPress={usernameRemove}>
+        onPress={handleRemove}>
         <ButtonIcon icon={CloseIcon} />
       </Button>
     </View>

@@ -63,7 +63,7 @@ import {
   SUPPORTED_MIME_TYPES,
   type SupportedMimeTypes,
 } from '#/lib/constants'
-import {useAnimatedScrollUsernamer} from '#/lib/hooks/useAnimatedScrollUsernamer_FIXED'
+import {useAnimatedScrollHandler} from '#/lib/hooks/useAnimatedScrollHandler_FIXED'
 import {useAppState} from '#/lib/hooks/useAppState'
 import {useIsKeyboardVisible} from '#/lib/hooks/useIsKeyboardVisible'
 import {useNonReactiveCallback} from '#/lib/hooks/useNonReactiveCallback'
@@ -437,7 +437,7 @@ export const ComposeNote = ({
     if (!isAndroid) {
       return
     }
-    const backUsernamer = BackHandler.addEventListener(
+    const backHandler = BackHandler.addEventListener(
       'hardwareBackPress',
       () => {
         if (closeAllDialogs() || closeAllModals()) {
@@ -448,7 +448,7 @@ export const ComposeNote = ({
       },
     )
     return () => {
-      backUsernamer.remove()
+      backHandler.remove()
     }
   }, [onPressCancel, closeAllDialogs, closeAllModals])
 
@@ -726,7 +726,7 @@ export const ComposeNote = ({
 
   const isLastThreadedNote = thread.notes.length > 1 && nextNote === undefined
   const {
-    scrollUsernamer,
+    scrollHandler,
     onScrollViewContentSizeChange,
     onScrollViewLayout,
     topBarAnimatedStyle,
@@ -810,7 +810,7 @@ export const ComposeNote = ({
           <Animated.ScrollView
             ref={scrollViewRef}
             layout={native(LinearTransition)}
-            onScroll={scrollUsernamer}
+            onScroll={scrollHandler}
             contentContainerStyle={a.flex_grow}
             style={a.flex_1}
             keyboardShouldPersistTaps="always"
@@ -1555,7 +1555,7 @@ function useScrollTracker({
     [contentHeight, contentOffset, scrollViewHeight],
   )
 
-  const scrollUsernamer = useAnimatedScrollUsernamer({
+  const scrollHandler = useAnimatedScrollHandler({
     onScroll: event => {
       'worklet'
       showHideBottomBorder({
@@ -1631,7 +1631,7 @@ function useScrollTracker({
   })
 
   return {
-    scrollUsernamer,
+    scrollHandler,
     onScrollViewContentSizeChange,
     onScrollViewLayout,
     topBarAnimatedStyle,

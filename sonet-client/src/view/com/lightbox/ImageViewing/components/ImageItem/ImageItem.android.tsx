@@ -4,7 +4,7 @@ import {
   Gesture,
   GestureDetector,
   PanGesture,
-} from 'react-native-gesture-usernamer'
+} from 'react-native-gesture-handler'
 import Animated, {
   runOnJS,
   SharedValue,

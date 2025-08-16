@@ -1,7 +1,7 @@
 import {useEffect, useRef} from 'react'
-import {useAnimatedScrollUsernamer as useAnimatedScrollUsernamer_BUGGY} from 'react-native-reanimated'
+import {useAnimatedScrollHandler as useAnimatedScrollHandler_BUGGY} from 'react-native-reanimated'
 
-export const useAnimatedScrollUsernamer: typeof useAnimatedScrollUsernamer_BUGGY = (
+export const useAnimatedScrollHandleuseAnimatedScrollHandler_BUGGY = (
   config,
   deps,
 ) => {
@@ -9,7 +9,7 @@ export const useAnimatedScrollUsernamer: typeof useAnimatedScrollUsernamer_BUGGY
   useEffect(() => {
     ref.current = config
   })
-  return useAnimatedScrollUsernamer_BUGGY(
+  return useAnimatedScrollHandler_BUGGY(
     {
       onBeginDrag(e, ctx) {
         if (typeof ref.current !== 'function' && ref.current.onBeginDrag) {

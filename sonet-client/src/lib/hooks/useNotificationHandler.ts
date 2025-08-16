@@ -73,7 +73,7 @@ let storedAccountSwitchPayload: NotificationPayload
  */
 let lastUsernamedNotificationDateDedupe = 0
 
-export function useNotificationsUsernamer() {
+export function useNotificationsHandler() {
   const queryClient = useQueryClient()
   const {currentAccount, accounts} = useSession()
   const {onPressSwitchAccount} = useAccountSwitcher()
@@ -87,7 +87,7 @@ export function useNotificationsUsernamer() {
   // 28 or higher. Instead, we have to configure a notification channel ahead of time
   // which has the sounds we want in the configuration for that channel. These two
   // channels allow for the mute/unmute functionality we want for the background
-  // usernamer.
+  // handler.
   useEffect(() => {
     if (!isAndroid) return
     // assign both chat notifications to a group
@@ -189,7 +189,7 @@ export function useNotificationsUsernamer() {
       if (!payload) return
 
       if (payload.reason === 'chat-message') {
-        notyLogger.debug(`useNotificationsUsernamer: handling chat message`, {
+        notyLogger.debug(`useNotificationsHandler: handling chat message`, {
           payload,
         })
 
@@ -249,7 +249,7 @@ export function useNotificationsUsernamer() {
           const [screen, params] = router.matchPath(url)
           // @ts-expect-error router is not typed :/ -sfn
           navigation.navigate('HomeTab', {screen, params})
-          notyLogger.debug(`useNotificationsUsernamer: navigate`, {
+          notyLogger.debug(`useNotificationsHandler: navigate`, {
             screen,
             params,
           })
@@ -257,17 +257,17 @@ export function useNotificationsUsernamer() {
       }
     }
 
-    Notifications.setNotificationUsernamer({
-      usernameNotification: async e => {
+    Notifications.setNotificationHandler({
+      handleNotification: async e => {
         const payload = getNotificationPayload(e)
 
         if (!payload) return DEFAULT_HANDLER_OPTIONS
 
-        notyLogger.debug('useNotificationsUsernamer: incoming', {e, payload})
+        notyLogger.debug('useNotificationsHandler: incoming', {e, payload})
 
         if (
           payload.reason === 'chat-message' &&
-          payload.recipientDid === currentAccount?.userId
+          payload.recipientUsername === currentAccount?.userId
         ) {
           const shouldAlert = payload.convoId !== currentConvoId
           return {
@@ -289,7 +289,7 @@ export function useNotificationsUsernamer() {
         if (e.notification.date === lastUsernamedNotificationDateDedupe) return
         lastUsernamedNotificationDateDedupe = e.notification.date
 
-        notyLogger.debug('useNotificationsUsernamer: response received', {
+        notyLogger.debug('useNotificationsHandler: response received', {
           actionIdentifier: e.actionIdentifier,
         })
 
@@ -326,10 +326,10 @@ export function useNotificationsUsernamer() {
             payload: payload,
           })
 
-          usernameNotification(payload)
+          handleNotification(payload)
           Notifications.dismissAllNotificationsAsync()
         } else {
-          notyLogger.error('useNotificationsUsernamer: received no payload', {
+          notyLogger.error('useNotificationsHandler: received no payload', {
             identifier: e.notification.request.identifier,
           })
         }

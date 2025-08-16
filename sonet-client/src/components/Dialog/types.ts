@@ -15,7 +15,7 @@ type A11yProps = Required<AccessibilityProps>
 
 /**
  * Mutated by useImperativeHandle to provide a public API for controlling the
- * dialog. The methods here will actually become the usernamers defined within
+ * dialog. The methods here will actually become the handlers defined within
  * the `Dialog.Outer` component.
  *
  * `Partial<GestureResponderEvent>` here allows us to add this directly to the

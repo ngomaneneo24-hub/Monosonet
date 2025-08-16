@@ -76,7 +76,7 @@ export function SonetMessageItem({
     }
   }, [message.status, t, _])
 
-  const usernameRetry = useCallback(() => {
+  const handleRetry = useCallback(() => {
     if (onRetry) {
       onRetry()
     }
@@ -150,7 +150,7 @@ export function SonetMessageItem({
             size="small"
             variant="ghost"
             color="negative"
-            onPress={usernameRetry}
+            onPress={handleRetry}
             style={[a.mt_2]}>
             <ButtonText>
               <Trans>Retry</Trans>

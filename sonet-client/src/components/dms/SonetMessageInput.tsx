@@ -109,13 +109,13 @@ export function SonetMessageInput({
     }
   }, [isEncrypted, _])
 
-  // Username removing attachment
-  const usernameRemoveAttachment = useCallback((attachmentId: string) => {
+  // Handle removing attachment
+  const handleRemoveAttachment = useCallback((attachmentId: string) => {
     setAttachments(prev => prev.filter(att => att.id !== attachmentId))
   }, [])
 
-  // Username retry attachment upload
-  const usernameRetryAttachment = useCallback(async (attachment: SonetFileAttachment) => {
+  // Handle retry attachment upload
+  const handleRetryAttachment = useCallback(async (attachment: SonetFileAttachment) => {
     try {
       // TODO: Implement retry logic
       console.log('Retrying attachment:', attachment.id)
@@ -124,15 +124,15 @@ export function SonetMessageInput({
     }
   }, [])
 
-  // Username emoji selection
-  const usernameEmojiSelect = useCallback((emoji: string) => {
+  // Handle emoji selection
+  const handleEmojiSelect = useCallback((emoji: string) => {
     setMessageText(prev => prev + emoji)
     setShowEmojiPicker(false)
     textInputRef.current?.focus()
   }, [])
 
   // Toggle encryption
-  const usernameToggleEncryption = useCallback(() => {
+  const handleToggleEncryption = useCallback(() => {
     if (onToggleEncryption) {
       onToggleEncryption()
     }
@@ -154,8 +154,8 @@ export function SonetMessageInput({
               <SonetFileAttachment
                 key={attachment.id}
                 attachment={attachment}
-                onDelete={usernameRemoveAttachment}
-                onRetry={usernameRetryAttachment}
+                onDelete={handleRemoveAttachment}
+                onRetry={handleRetryAttachment}
                 isOwnMessage={true}
               />
             ))}

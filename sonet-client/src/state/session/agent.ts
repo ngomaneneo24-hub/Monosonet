@@ -237,7 +237,7 @@ export function sessionAccountToSession(
 // Not exported. Use factories above to create it.
 let realFetch = globalThis.fetch
 class BskyAppAgent extends SonetAppAgent {
-  persistSessionUsernamer: ((event: SonetSessionEvent) => void) | undefined =
+  persistSessionHandler: ((event: SonetSessionEvent) => void) | undefined =
     undefined
 
   constructor({service}: {service: string}) {
@@ -261,8 +261,8 @@ class BskyAppAgent extends SonetAppAgent {
         }
       },
       persistSession: (event: SonetSessionEvent) => {
-        if (this.persistSessionUsernamer) {
-          this.persistSessionUsernamer(event)
+        if (this.persistSessionHandler) {
+          this.persistSesscalHandler(event)
         }
       },
     })
@@ -284,7 +284,7 @@ class BskyAppAgent extends SonetAppAgent {
     // Now the agent is ready.
     const account = agentToSessionAccountOrThrow(this)
     let lastSession = this.sessionManager.session
-    this.persistSessionUsernamer = event => {
+    this.persistSessionHandler = event => {
       if (this.sessionManager.session) {
         lastSession = this.sessionManager.session
       } else if (event === 'network-error') {
@@ -302,7 +302,7 @@ class BskyAppAgent extends SonetAppAgent {
 
   dispose() {
     this.sessionManager.session = undefined
-    this.persistSessionUsernamer = undefined
+    this.persistSessionHandler = undefined
   }
 }
 

@@ -822,7 +822,7 @@ const LINKING = {
     const [name, params] = router.matchPath(path)
 
     // Any time we receive a url that starts with `intent/` we want to ignore it here. It will be usernamed in the
-    // intent usernamer hook. We should check for the trailing slash, because if there isn't one then it isn't a valid
+    // intent handler hook. We should check for the trailing slash, because if there isn't one then it isn't a valid
     // intent
     // On web, there is no route state that's created by default, so we should initialize it as the home route. On
     // native, since the home tab and the home screen are defined as initial routes, we don't need to return a state
@@ -884,7 +884,7 @@ function RoutesContainer({children}: React.PropsWithChildren<{}>) {
       // Debug logging removed for production
 
       if (payload.recipientDid !== currentAccount?.userId) {
-        // usernamed in useNotificationUsernamer after account switch finishes
+        // usernamed in useNotificatioaHandler after account switch finishes
         storePayloadForAccountSwitch(payload)
         closeAllActiveElements()
 
@@ -1020,11 +1020,11 @@ function navigate<K extends keyof AllNavigatorParams>(
   if (navigationRef.isReady()) {
     return Promise.race([
       new Promise<void>(resolve => {
-        const usernamer = () => {
+        const handler = () => {
           resolve()
-          navigationRef.removeListener('state', usernamer)
+          navigationRef.removeListener('state', handler)
         }
-        navigationRef.addListener('state', usernamer)
+        navigationRef.addListener('state', handler)
 
         // @ts-ignore I dont know what would make typescript happy but I have a life -prf
         navigationRef.navigate(name, params)
@@ -1058,11 +1058,11 @@ function reset(): Promise<void> {
     return Promise.race([
       timeout(1e3),
       new Promise<void>(resolve => {
-        const usernamer = () => {
+        const handler = () => {
           resolve()
-          navigationRef.removeListener('state', usernamer)
+          navigationRef.removeListener('state', handler)
         }
-        navigationRef.addListener('state', usernamer)
+        navigationRef.addListener('state', handler)
       }),
     ])
   } else {

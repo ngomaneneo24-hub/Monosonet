@@ -1,1 +1,1 @@
-export {KeyboardAwareScrollView, useKeyboardHandler as useKeyboardUsernamer} from 'react-native-keyboard-controller'
+export {KeyboardAwareScrollView, useKeyboardHandler as useKeyboardHandler} from 'react-native-keyboard-controller'

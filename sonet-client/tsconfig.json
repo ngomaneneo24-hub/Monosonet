@@ -8,7 +8,7 @@
 		"paths": {
 			"#/*": ["./src/*"],
 			"crypto": ["./src/platform/crypto.ts"],
-			"react-native-gesture-usernamer": ["./src/shims/react-native-gesture-usernamer"],
+			"react-native-gesture-handler": ["./src/shims/react-native-gesture-handler"],
 			"react-native-keyboard-controller": ["./src/shims/react-native-keyboard-controller"],
 			"react-native-draggable-flatlist": ["./src/shims/react-native-draggable-flatlist"],
 			"@sonet/api": ["./src/lib/api/sonet-api.ts"],

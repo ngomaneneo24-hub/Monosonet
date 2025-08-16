@@ -13,7 +13,7 @@ import {
   Gesture,
   GestureDetector,
   type NativeGesture,
-} from 'react-native-gesture-usernamer'
+} from 'react-native-gesture-handler'
 import Animated, {
   useAnimatedStyle,
   useSharedValue,

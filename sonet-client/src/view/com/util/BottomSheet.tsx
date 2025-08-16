@@ -4,12 +4,12 @@ import {
   View,
   StyleSheet,
   Animated,
-  PanGestureUsernamer,
+  PanGestureHandler,
   State,
   Dimensions,
   TouchableWithoutFeedback
 } from 'react-native'
-import {GestureUsernamerRootView} from 'react-native-gesture-usernamer'
+import {GestureHandlerRootView} from 'react-native-gesture-handler'
 
 const {height: SCREEN_HEIGHT} = Dimensions.get('window')
 const SNAP_POINTS = {
@@ -83,7 +83,7 @@ export function BottomSheet({
     [translateY]
   )
 
-  const onUsernamerStateChange = useCallback(
+  const onHandlerStateChange = useCallback(
     (event: any) => {
       if (event.nativeEvent.state === State.END) {
         const {translationY, velocityY} = event.nativeEvent
@@ -116,7 +116,7 @@ export function BottomSheet({
   if (!isVisible) return null
 
   return (
-    <GestureUsernamerRootView style={styles.container}>
+    <GestureHandlerRootView style={styles.container}>
       {/* Backdrop */}
       {showBackdrop && (
         <TouchableWithoutFeedback onPress={usernameBackdropPress}>
@@ -148,7 +148,7 @@ export function BottomSheet({
           {children}
         </View>
       </Animated.View>
-    </GestureUsernamerRootView>
+    </GestureHandlerRootView>
   )
 }
 

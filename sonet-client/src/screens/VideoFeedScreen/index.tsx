@@ -48,8 +48,8 @@ export const VideoFeedScreen: React.FC = () => {
     enabled: true
   })
 
-  // Username refresh
-  const usernameRefresh = useCallback(async () => {
+  // Handle refresh
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true)
     try {
       await refetch()
@@ -60,15 +60,15 @@ export const VideoFeedScreen: React.FC = () => {
     }
   }, [refetch])
 
-  // Username load more
-  const usernameLoadMore = useCallback(() => {
+  // Handle load more
+  const handleLoadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage()
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
-  // Username feed type change
-  const usernameFeedTypeChange = useCallback((newFeedType: typeof feedType) => {
+  // Handle feed type change
+  const handleFeedTypeChange = useCallback((newFeedType: typeof feedType) => {
     setFeedType(newFeedType)
     // TODO: Refetch with new feed type
     if (flatListRef.current) {
@@ -76,14 +76,14 @@ export const VideoFeedScreen: React.FC = () => {
     }
   }, [])
 
-  // Username video selection
-  const usernameVideoPress = useCallback((video: VideoItem) => {
+  // Handle video selection
+  const handleVideoPress = useCallback((video: VideoItem) => {
     setSelectedVideo(video)
     setIsVideoModalVisible(true)
   }, [])
 
-  // Username video modal close
-  const usernameVideoModalClose = useCallback(() => {
+  // Handler video modal close
+  const handleVideoModalClose = useCallback(() => {
     setIsVideoModalVisible(false)
     setSelectedVideo(null)
   }, [])
@@ -99,17 +99,17 @@ export const VideoFeedScreen: React.FC = () => {
           // TODO: Navigate to video detail
           console.log('Video pressed:', item.id)
         }}
-        onVideoPress={usernameVideoPress}
+        onVideoPress={handleVideoPress}
         onLike={() => {
-          // TODO: Username like
+          // TODO: Handle like
           console.log('Video liked:', item.id)
         }}
         onRenote={() => {
-          // TODO: Username renote
+          // TODO: Handle renote
           console.log('Video renoteed:', item.id)
         }}
         onShare={() => {
-          // TODO: Username share
+          // TODO: Handle share
           console.log('Video shared:', item.id)
         }}
       />
@@ -134,7 +134,7 @@ export const VideoFeedScreen: React.FC = () => {
       <View style={[styles.container, {paddingTop: insets.top}]}>
         <VideoFeedHeader
           feedType={feedType}
-          onFeedTypeChange={usernameFeedTypeChange}
+          onFeedTypeChange={handleFeedTypeChange}
         />
         <VideoFeedEmpty />
       </View>
@@ -147,7 +147,7 @@ export const VideoFeedScreen: React.FC = () => {
       <View style={[styles.container, {paddingTop: insets.top}]}>
         <VideoFeedHeader
           feedType={feedType}
-          onFeedTypeChange={usernameFeedTypeChange}
+          onFeedTypeChange={handleFeedTypeChange}
         />
         <VideoFeedError
           error={error}
@@ -164,7 +164,7 @@ export const VideoFeedScreen: React.FC = () => {
     <View style={[styles.container, {paddingTop: insets.top}]}>
       <VideoFeedHeader
         feedType={feedType}
-        onFeedTypeChange={usernameFeedTypeChange}
+        onFeedTypeChange={handleFeedTypeChange}
       />
       
       <FlatList
@@ -178,11 +178,11 @@ export const VideoFeedScreen: React.FC = () => {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={usernameRefresh}
+            onRefresh={handleRefresh}
             tintColor="#007AFF"
           />
         }
-        onEndReached={usernameLoadMore}
+        onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}
         showsVerticalScrollIndicator={false}
@@ -204,7 +204,7 @@ export const VideoFeedScreen: React.FC = () => {
       <VideoDetailModal
         video={selectedVideo}
         isVisible={isVideoModalVisible}
-        onClose={usernameVideoModalClose}
+        onClose={handleVideoModalClose}
       />
     </View>
   )

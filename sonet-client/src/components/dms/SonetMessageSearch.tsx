@@ -134,20 +134,20 @@ export function SonetMessageSearch({
     setActiveFilters(newFilters)
   }, [activeFilters])
 
-  // Username time range change
-  const usernameTimeRangeChange = useCallback((timeRange: string) => {
+  // Handle time range change
+  const handleTimeRangeChange = useCallback((timeRange: string) => {
     setSelectedTimeRange(timeRange)
   }, [])
 
-  // Username result press
-  const usernameResultPress = useCallback((result: SonetSearchResult) => {
+  // Handle result press
+  const handleResultPress = useCallback((result: SonetSearchResult) => {
     if (onResultPress) {
       onResultPress(result)
     }
   }, [onResultPress])
 
   // Clear search
-  const usernameClearSearch = useCallback(() => {
+  const handleClearSearch = useCallback(() => {
     setSearchQuery('')
     setSearchResults([])
     setActiveFilters(new Set())
@@ -332,7 +332,7 @@ export function SonetMessageSearch({
             {searchResults.map(result => (
               <TouchableOpacity
                 key={result.id}
-                onPress={() => usernameResultPress(result)}
+                onPress={() => handleResultPress(result)}
                 style={[
                   a.p_md,
                   a.rounded_2xl,
