@@ -50,14 +50,11 @@ import {
   Message_Stroke2_Corner0_Rounded as Message,
   Message_Stroke2_Corner0_Rounded_Filled as MessageFilled,
 } from '#/components/icons/Message'
-import {
-  Crown_Filled_Corner0_Rounded as CrownFilled,
-  Crown_Stroke2_Corner0_Rounded as Crown,
-} from '#/components/icons/Crown'
+
 import {useDemoMode} from '#/storage/hooks/demo-mode'
 import {styles} from './BottomBarStyles'
 
-type TabOptions = 'Home' | 'Search' | 'Messages' | 'Premium' | 'Notifications' | 'MyProfile'
+type TabOptions = 'Home' | 'Search' | 'Messages' | 'Notifications' | 'MyProfile'
 
 export function BottomBar({navigation}: BottomTabBarProps) {
   const {hasSession, currentAccount} = useSession()
@@ -65,7 +62,7 @@ export function BottomBar({navigation}: BottomTabBarProps) {
   const {_} = useLingui()
   const safeAreaInsets = useSafeAreaInsets()
   const {footerHeight} = useShellLayout()
-  const {isAtHome, isAtSearch, isAtNotifications, isAtMyProfile, isAtMessages, isAtPremium} =
+  const {isAtHome, isAtSearch, isAtNotifications, isAtMyProfile, isAtMessages} =
     useNavigationTabState()
   const numUnreadNotifications = useUnreadNotifications()
   const numUnreadMessages = useUnreadMessageCount()
@@ -134,9 +131,6 @@ export function BottomBar({navigation}: BottomTabBarProps) {
   }, [onPressTab])
   const onPressMessages = useCallback(() => {
     onPressTab('Messages')
-  }, [onPressTab])
-  const onPressPremium = useCallback(() => {
-    onPressTab('Premium')
   }, [onPressTab])
 
   const onLongPressProfile = useCallback(() => {
@@ -236,26 +230,6 @@ export function BottomBar({navigation}: BottomTabBarProps) {
                     )
                   : ''
               }
-            />
-            <Btn
-              testID="bottomBarPremiumBtn"
-              icon={
-                isAtPremium ? (
-                  <CrownFilled
-                    width={iconWidth}
-                    style={[styles.ctrlIcon, pal.text]}
-                  />
-                ) : (
-                  <Crown
-                    width={iconWidth}
-                    style={[styles.ctrlIcon, pal.text]}
-                  />
-                )
-              }
-              onPress={onPressPremium}
-              accessibilityRole="tab"
-              accessibilityLabel={_(msg`Premium`)}
-              accessibilityHint=""
             />
             <Btn
               testID="bottomBarNotificationsBtn"

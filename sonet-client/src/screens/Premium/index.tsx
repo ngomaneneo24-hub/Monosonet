@@ -5,6 +5,7 @@ import {useLingui} from '@lingui/react'
 import {type NativeStackScreenProps} from '@react-navigation/native-stack'
 
 import {useSubscription} from '#/state/subscription'
+import {useGate} from '#/lib/statsig/statsig'
 import {type CommonNavigatorParams} from '#/lib/routes/types'
 import {atoms as a, useTheme} from '#/alf'
 import {Text} from '#/components/Typography'
@@ -21,7 +22,37 @@ export function PremiumScreen({}: Props) {
   const t = useTheme()
   const {_} = useLingui()
   const {currentTier, upgradeSubscription, isLoading} = useSubscription()
+  const gate = useGate()
   const [selectedTier, setSelectedTier] = useState<SubscriptionTier | null>(null)
+
+  // Gate check - only show Premium screen when feature is enabled
+  if (!gate('premium_subscriptions')) {
+    return (
+      <Layout.Screen>
+        <Layout.Header.Outer>
+          <Layout.Header.BackButton />
+          <Layout.Header.Content>
+            <Layout.Header.TitleText>
+              <Trans>Premium</Trans>
+            </Layout.Header.TitleText>
+          </Layout.Header.Content>
+          <Layout.Header.Slot />
+        </Layout.Header.Outer>
+        <Layout.Content>
+          <View style={[a.p_lg, a.align_center, a.justify_center]}>
+            <Text
+              style={[
+                a.text_lg,
+                a.text_center,
+                t.atoms.text_contrast_medium,
+              ]}>
+              <Trans>Premium features are coming soon!</Trans>
+            </Text>
+          </View>
+        </Layout.Content>
+      </Layout.Screen>
+    )
+  }
 
   const handleUpgrade = async (tier: SubscriptionTier) => {
     if (tier === currentTier) {

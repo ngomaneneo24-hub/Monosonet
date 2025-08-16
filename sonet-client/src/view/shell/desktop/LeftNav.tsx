@@ -717,24 +717,26 @@ export function DesktopLeftNav() {
             }
             label={_(msg`Profile`)}
           />
-          <NavItem
-            href="/premium"
-            icon={
-              <Crown
-                aria-hidden={true}
-                width={NAV_ICON_WIDTH}
-                style={pal.text}
-              />
-            }
-            iconFilled={
-              <CrownFilled
-                aria-hidden={true}
-                width={NAV_ICON_WIDTH}
-                style={pal.text}
-              />
-            }
-            label={_(msg`Premium`)}
-          />
+          {gate('premium_subscriptions') && (
+            <NavItem
+              href="/premium"
+              icon={
+                <Crown
+                  aria-hidden={true}
+                  width={NAV_ICON_WIDTH}
+                  style={pal.text}
+                />
+              }
+              iconFilled={
+                <CrownFilled
+                  aria-hidden={true}
+                  width={NAV_ICON_WIDTH}
+                  style={pal.text}
+                />
+              }
+              label={_(msg`Premium`)}
+            />
+          )}
           <NavItem
             href="/settings"
             icon={
