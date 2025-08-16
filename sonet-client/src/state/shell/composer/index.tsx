@@ -10,7 +10,7 @@ import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
 
 import {useNonReactiveCallback} from '#/lib/hooks/useNonReactiveCallback'
-import {noteUriToRelativePath, toBskyAppUrl} from '#/lib/strings/url-helpers'
+import {noteUriToRelativePath, toSonetAppUrl} from '#/lib/strings/url-helpers'
 import {purgeTemporaryImageFiles} from '#/state/gallery'
 import {precacheResolveLinkQuery} from '#/state/queries/resolve-link'
 import {type EmojiPickerPosition} from '#/view/com/composer/text-input/web/EmojiPicker'
@@ -67,7 +67,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
     if (opts.quote) {
       const path = noteUriToRelativePath(opts.quote.uri)
       if (path) {
-        const appUrl = toBskyAppUrl(path)
+        const appUrl = toSonetAppUrl(path)
         precacheResolveLinkQuery(queryClient, appUrl, {
           type: 'record',
           kind: 'note',
