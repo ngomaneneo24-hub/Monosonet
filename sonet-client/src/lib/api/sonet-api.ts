@@ -35,10 +35,11 @@ export namespace SonetEmbedRecordWithMedia {
 }
 
 export namespace SonetEmbedImages {
-	export type View = any
-	export type Image = any
-	export type Main = any
-	export function isView(_: unknown): _ is View { return true }
+  export type View = any
+  export type Image = any
+  export type Main = any
+  export type ViewImage = any
+  export function isView(_: unknown): _ is View { return true }
 }
 
 export namespace SonetEmbedVideo {
@@ -48,8 +49,9 @@ export namespace SonetEmbedVideo {
 }
 
 export namespace SonetFeedDefs {
-	export type NoteView = any
-	export function isNoteView(_: unknown): _ is NoteView { return true }
+  export type NoteView = any
+  export type GeneratorView = any
+  export function isNoteView(_: unknown): _ is NoteView { return true }
 }
 
 export namespace SonetGraphDefs {
@@ -66,7 +68,11 @@ export namespace SonetGraphStarterpack {
 }
 
 export namespace SonetActorDefs {
-	export type ProfileViewBasic = any
+  export type ProfileViewBasic = any
+  export type ProfileView = any
+  export type ProfileViewDetailed = any
+  export type SavedFeed = any
+  export type KnownFollowers = any
 }
 
 export namespace SonetUnspeccedDefs {
@@ -90,8 +96,12 @@ export namespace SonetUnspeccedDefs {
 }
 
 export namespace SonetUnspeccedGetNoteThreadV2 {
-	export type ThreadItem = any
-	export type OutputSchema = any
+  export type ThreadItem = any
+  export type OutputSchema = any
+}
+
+export namespace SonetFeedGetNoteThread {
+  export type OutputSchema = any
 }
 
 export namespace SonetRepoUploadBlob {
@@ -160,23 +170,26 @@ export function hasMutedWord({
 }
 
 export class AtUri {
-	href: string
-	host: string
-	rkey: string
+  href: string
+  host: string
+  hostname: string
+  rkey: string
 
-	constructor(uri: string) {
-		this.href = uri || ''
-		try {
-			const u = new URL(uri.replace(/^at:\/\//, 'https://').replace(/^sonet:\/\//, 'https://'))
-			this.host = u.hostname || ''
-			const parts = u.pathname.split('/').filter(Boolean)
-			this.rkey = parts.at(-1) || ''
-		} catch {
-			const m = /^(?:[a-z]+:\/\/)?([^/]+).*\/([^/]+)$/.exec(uri || '')
-			this.host = m?.[1] || ''
-			this.rkey = m?.[2] || ''
-		}
-	}
+  constructor(uri: string) {
+    this.href = uri || ''
+    try {
+      const u = new URL(uri.replace(/^at:\/\//, 'https://').replace(/^sonet:\/\//, 'https://'))
+      this.host = u.hostname || ''
+      this.hostname = u.hostname || ''
+      const parts = u.pathname.split('/').filter(Boolean)
+      this.rkey = parts.at(-1) || ''
+    } catch {
+      const m = /^(?:[a-z]+:\/\/)?([^/]+).*\/([^/]+)$/.exec(uri || '')
+      this.host = m?.[1] || ''
+      this.hostname = m?.[1] || ''
+      this.rkey = m?.[2] || ''
+    }
+  }
 	static make(host: string, nsid: string, rkey?: string) {
 		const path = rkey ? `${nsid}/${rkey}` : nsid
 		return new AtUri(`sonet://${host}/${path}`)
@@ -222,6 +235,68 @@ export class TID {
 export { SonetClient, sonetClient } from '../../api/sonet-client'
 export * from '../../types/sonet'
 
+// parseEmbed function for parsing embed data
+export function parseEmbed(embed: any) {
+  // Basic embed parsing - expand as needed
+  if (embed && typeof embed === 'object') {
+    return {
+      type: embed.type || 'unknown',
+      data: embed,
+    }
+  }
+  return embed
+}
+
+// Mock utilities for testing and development
+export const mock = {
+  note: (data: any) => ({
+    text: data.text || '',
+    ...data,
+  }),
+  noteView: (data: any) => ({
+    record: data.record || {},
+    author: data.author || {},
+    labels: data.labels || [],
+    embed: data.embed || null,
+    ...data,
+  }),
+  profileViewBasic: (data: any) => ({
+    did: data.did || '',
+    handle: data.handle || '',
+    displayName: data.displayName || '',
+    avatar: data.avatar || '',
+    ...data,
+  }),
+  label: (data: any) => ({
+    src: data.src || '',
+    val: data.val || '',
+    uri: data.uri || '',
+    ...data,
+  }),
+  actorViewerState: (data: any) => ({
+    muted: data.muted || false,
+    blockedBy: data.blockedBy || false,
+    ...data,
+  }),
+  embedRecordView: (data: any) => ({
+    record: data.record || {},
+    author: data.author || {},
+    labels: data.labels || [],
+    ...data,
+  }),
+  replyNotification: (data: any) => ({
+    record: data.record || {},
+    author: data.author || {},
+    labels: data.labels || [],
+    ...data,
+  }),
+  followNotification: (data: any) => ({
+    author: data.author || {},
+    subjectDid: data.subjectDid || '',
+    ...data,
+  }),
+}
+
 export type $Typed<T> = T
 export type Un$Typed<T> = T
 
@@ -232,16 +307,103 @@ export namespace SonetRepoApplyWrites {
 }
 
 export namespace SonetActorStatus {
-	export type Record = {
-		createdAt: string
-		durationMinutes: number
-		status: string
-		embed?: any
-	}
-	export function isRecord(v: unknown): v is Record {
-		return !!v && typeof v === 'object' && 'status' in (v as any)
-	}
-	export function validateRecord(v: unknown): {success: boolean; value?: Record} {
-		return isRecord(v) ? {success: true, value: v} : {success: false}
-	}
+  export type Record = {
+    createdAt: string
+    durationMinutes: number
+    status: string
+    embed?: any
+  }
+  export function isRecord(v: unknown): v is Record {
+    return !!v && typeof v === 'object' && 'status' in (v as any)
+  }
+  export function validateRecord(v: unknown): {success: boolean; value?: Record} {
+    return isRecord(v) ? {success: true, value: v} : {success: false}
+  }
+}
+
+// Additional exports needed by DebugMod.tsx
+export namespace SonetLabelDefs {
+  export interface LabelValueDefinition {
+    identifier: string
+    blurs: string
+    severity: string
+    defaultSetting: string
+    locales: Array<{
+      lang: string
+      name: string
+      description: string
+    }>
+  }
+}
+
+export namespace SonetLabelerDefs {
+  export type ProfileView = any
+}
+
+export const LABELS: Record<string, any> = {
+  // Add label definitions as needed
+}
+
+export function interpretLabelValueDefinition(def: any): any {
+  return def
+}
+
+export type LabelPreference = 'ignore' | 'warn' | 'hide'
+
+export type ModerationBehavior = 'warn' | 'hide' | 'blur'
+
+export type ModerationDecision = {
+  ui: (context: string) => {
+    blur: boolean
+    filter: boolean
+    blurs: string[]
+    filters: string[]
+    alert?: boolean
+    inform?: boolean
+    noOverride?: boolean
+  }
+}
+
+export function moderateNote(note: any, moderationOpts: any): ModerationDecision {
+  return {
+    ui: (context: string) => ({
+      blur: false,
+      filter: false,
+      blurs: [],
+      filters: [],
+    }),
+  }
+}
+
+export function moderateProfile(profile: any, moderationOpts: any): ModerationDecision {
+  return {
+    ui: (context: string) => ({
+      blur: false,
+      filter: false,
+      blurs: [],
+      filters: [],
+    }),
+  }
+}
+
+export type ModerationUI = {
+  blur: boolean
+  filter: boolean
+  blurs: string[]
+  filters: string[]
+}
+
+export namespace SonetActorGetProfile {
+  export type OutputSchema = any
+}
+
+export function moderateUserList(list: any, moderationOpts: any): ModerationDecision {
+  return {
+    ui: (context: string) => ({
+      blur: false,
+      filter: false,
+      blurs: [],
+      filters: [],
+    }),
+  }
 }

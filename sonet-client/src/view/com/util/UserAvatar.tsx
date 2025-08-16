@@ -81,7 +81,16 @@ interface EditableUserAvatarProps extends BaseUserAvatarProps {
 
 interface PreviewableUserAvatarProps extends BaseUserAvatarProps {
   moderation?: ModerationUI
-  profile: bsky.profile.AnyProfileView
+  profile: {
+    id: string
+    username: string
+    displayName?: string
+    avatar?: string
+    associated?: {
+      labeler?: boolean
+    }
+    userId: string
+  }
   disableHoverCard?: boolean
   disableNavigation?: boolean
   onBeforePress?: () => void

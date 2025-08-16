@@ -53,6 +53,14 @@ module.exports = function (api) {
           },
         },
       ],
+      [
+        '@babel/plugin-transform-typescript',
+        {
+          allowNamespaces: true,
+          allowDeclareFields: true,
+          onlyRemoveTypeImports: true,
+        },
+      ],
       'react-native-reanimated/plugin', // NOTE: this plugin MUST be last
     ],
     // Only run React Compiler on our application source to avoid issues with some libraries
