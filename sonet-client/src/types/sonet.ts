@@ -32,6 +32,54 @@ export interface SonetNote {
   hashtags?: string[]
 }
 
+export interface SonetProfile extends SonetUser {
+  // Additional profile-specific fields
+}
+
+export interface SonetFeedGenerator {
+  uri: string
+  cid: string
+  did: string
+  creator: SonetUser
+  displayName: string
+  description?: string
+  descriptionFacets?: any[]
+  avatar?: string
+  likeCount: number
+  viewer?: any
+  indexedAt: string
+}
+
+export interface SonetNoteRecord {
+  uri: string
+  cid: string
+  value: SonetNote
+}
+
+export interface SonetFeedViewNote {
+  uri: string
+  cid: string
+  author: SonetUser
+  record: SonetNoteRecord
+  embed?: any
+  replyCount: number
+  renoteCount: number
+  likeCount: number
+  indexedAt: string
+}
+
+export interface SonetInteraction {
+  id: string
+  type: string
+  data: any
+}
+
+export interface SonetSavedFeed {
+  uri: string
+  cid: string
+  value: any
+}
+
 export interface SonetMedia {
   id: string
   type: 'image' | 'video' | 'audio'

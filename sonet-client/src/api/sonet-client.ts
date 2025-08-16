@@ -69,9 +69,7 @@ export interface SonetEmbedVideo {
   isView: (obj: any) => boolean
 }
 
-export interface SonetAppAgent {
-  assertDid: string
-}
+// SonetAppAgent is defined in sonet-agent.ts to avoid duplicate declarations
 
 export interface SonetLabelDefs {
   // Add label definitions as needed

@@ -255,7 +255,7 @@ export const DebugModScreen = ({}: NativeStackScreenProps<
       },
       labelDefs: {
         'userId:plc:fake-labeler': [
-          interpretLabelValueDefinition(customLabelDef, 'userId:plc:fake-labeler'),
+          interpretLabelValueDefinition(customLabelDef),
         ],
       },
     }
