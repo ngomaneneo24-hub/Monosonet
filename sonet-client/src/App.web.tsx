@@ -11,6 +11,7 @@ import * as Sentry from '@sentry/react-native'
 
 import {QueryProvider} from '#/lib/react-query'
 import {Provider as StatsigProvider} from '#/lib/statsig/statsig'
+import {SubscriptionProvider} from '#/state/subscription'
 import {ThemeProvider} from '#/lib/ThemeContext'
 import I18nProvider from '#/locale/i18nProvider'
 import {logger} from '#/logger'
@@ -120,8 +121,9 @@ function InnerApp() {
                   key={currentAccount?.userId}>
                   <QueryProvider currentDid={currentAccount?.userId}>
                     <PolicyUpdateOverlayProvider>
-                      <StatsigProvider>
-                        <AgeAssuranceProvider>
+                                        <StatsigProvider>
+                    <SubscriptionProvider>
+                      <AgeAssuranceProvider>
                           <ComposerProvider>
                             <MessagesProvider>
                               {/* LabelDefsProvider MUST come before ModerationOptsProvider */}
@@ -158,7 +160,8 @@ function InnerApp() {
                             </MessagesProvider>
                           </ComposerProvider>
                         </AgeAssuranceProvider>
-                      </StatsigProvider>
+                      </SubscriptionProvider>
+                    </StatsigProvider>
                     </PolicyUpdateOverlayProvider>
                   </QueryProvider>
                   <ToastContainer />

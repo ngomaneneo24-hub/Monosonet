@@ -70,6 +70,10 @@ import {
   UserCircle_Filled_Corner0_Rounded as UserCircleFilled,
   UserCircle_Stroke2_Corner0_Rounded as UserCircle,
 } from '#/components/icons/UserCircle'
+import {
+  Crown_Filled_Corner0_Rounded as CrownFilled,
+  Crown_Stroke2_Corner0_Rounded as Crown,
+} from '#/components/icons/Crown'
 import {CENTER_COLUMN_OFFSET} from '#/components/Layout'
 import * as Menu from '#/components/Menu'
 import * as Prompt from '#/components/Prompt'
@@ -712,6 +716,24 @@ export function DesktopLeftNav() {
               />
             }
             label={_(msg`Profile`)}
+          />
+          <NavItem
+            href="/premium"
+            icon={
+              <Crown
+                aria-hidden={true}
+                width={NAV_ICON_WIDTH}
+                style={pal.text}
+              />
+            }
+            iconFilled={
+              <CrownFilled
+                aria-hidden={true}
+                width={NAV_ICON_WIDTH}
+                style={pal.text}
+              />
+            }
+            label={_(msg`Premium`)}
           />
           <NavItem
             href="/settings"
