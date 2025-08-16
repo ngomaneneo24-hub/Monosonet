@@ -485,6 +485,49 @@ export const DEFAULT_LABEL_SETTINGS = {
   'impersonation': 'hide',
 }
 
+export class UnicodeString {
+  private _text: string
+  
+  constructor(text: string) {
+    this._text = text
+  }
+  
+  get utf16(): string {
+    return this._text
+  }
+  
+  slice(start: number, end: number): UnicodeString {
+    return new UnicodeString(this._text.slice(start, end))
+  }
+}
+
+export namespace SonetServerCreateSession {
+  export class AuthFactorTokenRequiredError extends Error {
+    constructor(message: string) {
+      super(message)
+      this.name = 'AuthFactorTokenRequiredError'
+    }
+  }
+}
+
+export function jsonStringToLex(jsonString: string): any {
+  try {
+    return JSON.parse(jsonString)
+  } catch {
+    return null
+  }
+}
+
+// Add missing SonetEmbedExternal namespace
+export namespace SonetEmbedExternal {
+  export function isView(embed: any): boolean {
+    return embed && embed.type === 'external'
+  }
+}
+
+// Re-export SonetAppAgent from sonet-agent
+export {SonetAppAgent} from '../state/session/sonet-agent'
+
 export function moderateUserList(list: any, moderationOpts: any): ModerationDecision {
   return {
     ui: (context: string) => ({
@@ -518,6 +561,5 @@ export function moderateNotification(notification: any, moderationOpts: any): Mo
   }
 }
 
-// Re-export SonetAppAgent from sonet-agent
-export {SonetAppAgent} from '../state/session/sonet-agent'
+
 

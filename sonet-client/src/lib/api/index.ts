@@ -20,7 +20,7 @@ import {t} from '@lingui/macro'
 import {type QueryClient} from '@tanstack/react-query'
 import {sha256} from 'js-sha256'
 import {CID} from '#/shims/multiformats-cid'
-import * as Hasher from '#/shims/multiformats-hasher'
+import {Hasher} from '#/shims/multiformats-hasher'
 
 import {isNetworkError} from '#/lib/strings/errors'
 import {shortenLinks, stripInvalidMentions} from '#/lib/strings/rich-text-manip'
