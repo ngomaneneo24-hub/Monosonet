@@ -254,3 +254,8 @@ export const webLinks = {
   privacy: `https://sonet.app/privacy`,
   community: `https://sonet.app/guidelines`,
 }
+
+// Legacy Bluesky constants for migration compatibility
+export const PUBLIC_BSKY_SERVICE = 'https://bsky.social'
+export const BSKY_SERVICE = 'https://bsky.social'
+export const BSKY_LABELER_UserID = 'did:plc:z72i7hdynmk6r22z27h6tvur'
