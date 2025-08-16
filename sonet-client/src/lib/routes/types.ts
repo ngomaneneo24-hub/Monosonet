@@ -67,6 +67,7 @@ export type CommonNavigatorParams = {
   InterestsSettings: undefined
   AboutSettings: undefined
   AppIconSettings: undefined
+  Premium: undefined
   Search: {q?: string}
   Hashtag: {tag: string; author?: string}
   Topic: {topic: string}
@@ -91,9 +92,10 @@ export type CommonNavigatorParams = {
 export type BottomTabNavigatorParams = CommonNavigatorParams & {
   HomeTab: undefined
   SearchTab: undefined
+  MessagesTab: undefined
+  PremiumTab: undefined
   NotificationsTab: undefined
   MyProfileTab: undefined
-  MessagesTab: undefined
 }
 
 export type HomeTabNavigatorParams = CommonNavigatorParams & {
@@ -116,12 +118,17 @@ export type MessagesTabNavigatorParams = CommonNavigatorParams & {
   Messages: {pushToConversation?: string; animation?: 'push' | 'pop'}
 }
 
+export type PremiumTabNavigatorParams = CommonNavigatorParams & {
+  Premium: undefined
+}
+
 export type FlatNavigatorParams = CommonNavigatorParams & {
   Home: undefined
   Search: {q?: string}
   Feeds: undefined
-  Notifications: undefined
   Messages: {pushToConversation?: string; animation?: 'push' | 'pop'}
+  Premium: undefined
+  Notifications: undefined
 }
 
 export type AllNavigatorParams = CommonNavigatorParams & {
@@ -130,11 +137,12 @@ export type AllNavigatorParams = CommonNavigatorParams & {
   SearchTab: undefined
   Search: {q?: string}
   Feeds: undefined
+  MessagesTab: undefined
+  Messages: {animation?: 'push' | 'pop'}
+  PremiumTab: undefined
   NotificationsTab: undefined
   Notifications: undefined
   MyProfileTab: undefined
-  MessagesTab: undefined
-  Messages: {animation?: 'push' | 'pop'}
 }
 
 // NOTE

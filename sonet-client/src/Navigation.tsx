@@ -36,6 +36,7 @@ import {
   type MessagesTabNavigatorParams,
   type MyProfileTabNavigatorParams,
   type NotificationsTabNavigatorParams,
+  type PremiumTabNavigatorParams,
   type SearchTabNavigatorParams,
 } from '#/lib/routes/types'
 import {type RouteParams, type State} from '#/lib/routes/types'
@@ -98,6 +99,7 @@ import {ProfileSearchScreen} from '#/screens/Profile/ProfileSearch'
 import {SearchScreen} from '#/screens/Search'
 import {AboutSettingsScreen} from '#/screens/Settings/AboutSettings'
 import {AccessibilitySettingsScreen} from '#/screens/Settings/AccessibilitySettings'
+import {PremiumScreen} from '#/screens/Premium'
 import {AccountSettingsScreen} from '#/screens/Settings/AccountSettings'
 import {ActivityPrivacySettingsScreen} from '#/screens/Settings/ActivityPrivacySettings'
 import {AppearanceSettingsScreen} from '#/screens/Settings/AppearanceSettings'
@@ -152,6 +154,8 @@ const MyProfileTab =
   createNativeStackNavigatorWithAuth<MyProfileTabNavigatorParams>()
 const MessagesTab =
   createNativeStackNavigatorWithAuth<MessagesTabNavigatorParams>()
+const PremiumTab =
+  createNativeStackNavigatorWithAuth<PremiumTabNavigatorParams>()
 const Flat = createNativeStackNavigatorWithAuth<FlatNavigatorParams>()
 const Tab = createBottomTabNavigator<BottomTabNavigatorParams>()
 
@@ -537,6 +541,14 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
         }}
       />
       <Stack.Screen
+        name="Premium"
+        getComponent={() => PremiumScreen}
+        options={{
+          title: title(msg`Premium`),
+          requireAuth: true,
+        }}
+      />
+      <Stack.Screen
         name="Hashtag"
         getComponent={() => HashtagScreen}
         options={{title: title(msg`Hashtag`)}}
@@ -653,6 +665,10 @@ function TabsNavigator() {
         getComponent={() => MessagesTabNavigator}
       />
       <Tab.Screen
+        name="PremiumTab"
+        getComponent={() => PremiumTabNavigator}
+      />
+      <Tab.Screen
         name="NotificationsTab"
         getComponent={() => NotificationsTabNavigator}
       />
@@ -749,6 +765,22 @@ function MessagesTabNavigator() {
   )
 }
 
+function PremiumTabNavigator() {
+  const t = useTheme()
+  return (
+    <PremiumTab.Navigator
+      screenOptions={screenOptions(t)}
+      initialRouteName="Premium">
+      <PremiumTab.Screen
+        name="Premium"
+        getComponent={() => PremiumScreen}
+        options={{requireAuth: true}}
+      />
+      {commonScreens(PremiumTab as typeof Flat)}
+    </PremiumTab.Navigator>
+  )
+}
+
 /**
  * The FlatNavigator is used by Web to represent the routes
  * in a single ("flat") stack.
@@ -782,6 +814,11 @@ const FlatNavigator = () => {
         name="Messages"
         getComponent={() => MessagesScreen}
         options={{title: title(msg`Messages`), requireAuth: true}}
+      />
+      <Flat.Screen
+        name="Premium"
+        getComponent={() => PremiumScreen}
+        options={{title: title(msg`Premium`), requireAuth: true}}
       />
       <Flat.Screen
         name="Start"

@@ -20,6 +20,7 @@ import {KeyboardControllerProvider} from '#/lib/hooks/useEnableKeyboardControlle
 import {Provider as HideBottomBarBorderProvider} from '#/lib/hooks/useHideBottomBarBorder'
 import {QueryProvider} from '#/lib/react-query'
 import {Provider as StatsigProvider, tryFetchGates} from '#/lib/statsig/statsig'
+import {SubscriptionProvider} from '#/state/subscription'
 import {s} from '#/lib/styles'
 import {ThemeProvider} from '#/lib/ThemeContext'
 import I18nProvider from '#/locale/i18nProvider'
@@ -141,7 +142,8 @@ function InnerApp() {
                   <QueryProvider currentDid={currentAccount?.userId}>
                     <PolicyUpdateOverlayProvider>
                       <StatsigProvider>
-                        <AgeAssuranceProvider>
+                        <SubscriptionProvider>
+                          <AgeAssuranceProvider>
                           <ComposerProvider>
                             <MessagesProvider>
                               {/* LabelDefsProvider MUST come before ModerationOptsProvider */}
@@ -181,7 +183,8 @@ function InnerApp() {
                               </LabelDefsProvider>
                             </MessagesProvider>
                           </ComposerProvider>
-                        </AgeAssuranceProvider>
+                                                  </AgeAssuranceProvider>
+                        </SubscriptionProvider>
                       </StatsigProvider>
                     </PolicyUpdateOverlayProvider>
                   </QueryProvider>
