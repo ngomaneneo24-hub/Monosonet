@@ -5,6 +5,7 @@ export type Gate =
   | 'debug_subscriptions'
   | 'disable_onboarding_policy_update_notice'
   | 'explore_show_suggested_feeds'
+  | 'premium_subscriptions'
   | 'username_suggestions'
   | 'old_noteonboarding'
   | 'onboarding_add_video_feed'
