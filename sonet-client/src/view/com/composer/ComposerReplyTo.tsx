@@ -19,7 +19,7 @@ import {QuoteEmbed} from '#/components/Note/Embed'
 import {Text} from '#/components/Typography'
 import {useSimpleVerificationState} from '#/components/verification'
 import {VerificationCheck} from '#/components/verification/VerificationCheck'
-import {parseEmbed} from '#/types/bsky/note'
+import {parseEmbed} from '#/types/sonet/note'
 
 export function ComposerReplyTo({replyTo}: {replyTo: ComposerOptsNoteRef}) {
   const t = useTheme()
