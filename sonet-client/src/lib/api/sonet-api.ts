@@ -364,16 +364,7 @@ export type ModerationDecision = {
   }
 }
 
-export function moderateNote(note: any, moderationOpts: any): ModerationDecision {
-  return {
-    ui: (context: string) => ({
-      blur: false,
-      filter: false,
-      blurs: [],
-      filters: [],
-    }),
-  }
-}
+
 
 export function moderateProfile(profile: any, moderationOpts: any): ModerationDecision {
   return {
