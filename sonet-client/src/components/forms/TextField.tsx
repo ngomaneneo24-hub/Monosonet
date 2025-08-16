@@ -112,6 +112,9 @@ export function Item({label, value, onChangeText, ...props}: any) {
     </View>
   )
 }
+
+export function useSharedInputStyles() {
+  const t = useTheme()
   return useMemo(() => {
     const hover: ViewStyle[] = [
       {

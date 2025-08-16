@@ -560,6 +560,3 @@ export function moderateNotification(notification: any, moderationOpts: any): Mo
     }),
   }
 }
-
-
-
