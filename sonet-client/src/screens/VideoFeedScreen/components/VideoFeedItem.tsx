@@ -104,7 +104,6 @@ export const VideoFeedItem: React.FC<VideoFeedItemProps> = ({
           colors={['transparent', 'rgba(0,0,0,0.7)']}
           style={styles.gradientOverlay}
         />
-      </View>
 
       {/* Video Info */}
       <View style={styles.infoContainer}>
