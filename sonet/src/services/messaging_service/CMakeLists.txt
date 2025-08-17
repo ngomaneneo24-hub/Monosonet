@@ -117,6 +117,9 @@ set(MESSAGING_SERVICE_SOURCES
     threading/message_processor.cpp
     threading/attachment_processor.cpp
     
+    # gRPC service implementation
+    grpc/messaging_grpc_service.cpp
+    
     # Main service
     messaging_service.cpp
     main.cpp
@@ -177,6 +180,7 @@ target_link_libraries(messaging_service
     ${ARGON2_LIBRARY}
     Threads::Threads
     asio::asio
+    sonet_proto
 )
 
 # Link libraries for tests

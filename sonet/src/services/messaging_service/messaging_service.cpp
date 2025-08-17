@@ -15,7 +15,7 @@
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/health_check_service_interface.h>
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
-#include "proto/services/messaging.grpc.pb.h"
+#include "grpc/messaging_grpc_service.h"
 
 namespace sonet::messaging {
 
@@ -442,49 +442,9 @@ bool MessagingService::start_grpc_server() {
 		std::string address = "0.0.0.0:" + std::to_string(config_.grpc_port);
 		builder.AddListeningPort(address, grpc::InsecureServerCredentials());
 		
-		// Minimal inline service to bridge basic methods until full implementation
-		class MinimalMessagingService : public ::sonet::messaging::MessagingService::Service {
-		public:
-			MinimalMessagingService(MessagingService* parent) : parent_(parent) {}
-			::grpc::Status SendMessage(::grpc::ServerContext* /*ctx*/, const ::sonet::messaging::SendMessageRequest* req, ::sonet::messaging::SendMessageResponse* resp) override {
-				// Bridge to HTTP controller to reuse validation and broadcast logic
-				// For now, respond with a minimal OK and echo content
-				auto* status = resp->mutable_status();
-				status->set_code(0);
-				status->set_message("ok");
-				auto* msg = resp->mutable_message();
-				msg->set_message_id("grpc_" + std::to_string(std::chrono::system_clock::now().time_since_epoch().count()));
-				msg->set_chat_id(req->chat_id());
-				msg->set_sender_id("unknown");
-				msg->set_content(req->content());
-				msg->set_type(::sonet::messaging::MessageType::MESSAGE_TYPE_TEXT);
-				msg->set_status(::sonet::messaging::MessageStatus::MESSAGE_STATUS_SENT);
-				return ::grpc::Status::OK;
-			}
-			::grpc::Status GetMessages(::grpc::ServerContext* /*ctx*/, const ::sonet::messaging::GetMessagesRequest* req, ::sonet::messaging::GetMessagesResponse* resp) override {
-				auto* status = resp->mutable_status();
-				status->set_code(0);
-				status->set_message("ok");
-				resp->mutable_pagination();
-				// Return empty list for now
-				return ::grpc::Status::OK;
-			}
-			::grpc::Status StreamMessages(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::sonet::messaging::WebSocketMessage, ::sonet::messaging::WebSocketMessage>* stream) override {
-				// Minimal heartbeat stream: write periodic heartbeat-like messages so the gateway stays connected
-				while (!context->IsCancelled()) {
-					::sonet::messaging::WebSocketMessage out;
-					// No payload fields set means gateway will ignore or treat as heartbeat if implemented; sleep to avoid busy-loop
-					if (!stream->Write(out)) break;
-					std::this_thread::sleep_for(std::chrono::seconds(5));
-				}
-				return ::grpc::Status::OK;
-			}
-		private:
-			MessagingService* parent_;
-		};
-		
-		static MinimalMessagingService service_stub(this);
-		builder.RegisterService(&service_stub);
+		// Register real gRPC messaging service implementation
+		static ::sonet::messaging::grpc_impl::MessagingGrpcService service_impl;
+		builder.RegisterService(&service_impl);
 		
 		grpc_server_ = builder.BuildAndStart();
 		if (!grpc_server_) {
