@@ -348,7 +348,13 @@
   "pnpm": {
     "overrides": {
       "webpack-manifest-plugin": "^5.0.1"
-    }
+    },
+    "ignoredBuiltDependencies": [
+      "@sentry/cli",
+      "core-js-pure",
+      "es5-ext",
+      "esbuild"
+    ]
   },
   "lockfile-lint": {
     "path": "yarn.lock",
