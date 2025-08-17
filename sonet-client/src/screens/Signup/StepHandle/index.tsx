@@ -19,7 +19,7 @@ import {logger} from '#/logger'
 import {
   checkUsernameAvailability,
   useUsernameAvailabilityQuery,
-} from '#/state/queries/username-availability'
+} from '#/state/queries/handle-availability'
 import {ScreenTransition} from '#/screens/Login/ScreenTransition'
 import {useSignupContext} from '#/screens/Signup/state'
 import {atoms as a, native, useTheme} from '#/alf'
@@ -30,7 +30,7 @@ import {Check_Stroke2_Corner0_Rounded as CheckIcon} from '#/components/icons/Che
 import {Text} from '#/components/Typography'
 import {IS_INTERNAL} from '#/env'
 import {BackNextButtons} from '../BackNextButtons'
-import {UsernameSuggestions} from './UsernameSuggestions'
+import {UsernameSuggestions} from './HandleSuggestions'
 
 export function StepUsername() {
   const {_} = useLingui()

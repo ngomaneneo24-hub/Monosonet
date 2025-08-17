@@ -526,7 +526,7 @@ export namespace SonetEmbedExternal {
 }
 
 // Re-export SonetAppAgent from sonet-agent
-export {SonetAppAgent} from '../state/session/sonet-agent'
+export {SonetAppAgent} from '../../state/session/sonet-agent'
 
 export function moderateUserList(list: any, moderationOpts: any): ModerationDecision {
   return {
