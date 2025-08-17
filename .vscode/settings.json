@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "/workspaces/Sonet/build/search/_deps/nlohmann_json-subbuild"
+    "cmake.sourceDirectory": "/workspaces/Sonet/build/search/_deps/nlohmann_json-subbuild",
+    "git.ignoreLimitWarning": true
 }
