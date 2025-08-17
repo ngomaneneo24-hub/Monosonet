@@ -170,6 +170,9 @@ public:
     void shutdown();
     bool is_running() const;
     
+    // HTTP endpoint handlers
+    boost::beast::http::response<boost::beast::http::string_body> handle_chats_endpoint(const boost::beast::http::request<boost::beast::http::string_body>& req);
+    
     // Message operations
     std::unique_ptr<Message> send_message(
         const std::string& chat_id,
