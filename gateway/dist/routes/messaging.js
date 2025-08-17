@@ -16,6 +16,7 @@ export function registerMessagingRoutes(router, clients) {
             return res.json({ ok: true, messages: resp?.messages, pagination: resp?.pagination });
         });
     });
+    // Use standard POST for sending messages
     router.post('/v1/messages', verifyJwt, (req, res) => {
         const body = req.body || {};
         const request = { recipient_id: body.recipient_id, sender_id: req.userId, content: body.content, media_ids: body.media_ids || [] };
@@ -29,10 +30,73 @@ export function registerMessagingRoutes(router, clients) {
         // Placeholder: back by a single-user chat or special label if supported
         return res.status(501).json({ ok: false, message: 'Note-to-self not implemented' });
     });
+    // Use POST instead of nonstandard method
     router.post('/v1/messages/note-to-self', verifyJwt, (_req, res) => {
         return res.status(501).json({ ok: false, message: 'Note-to-self not implemented' });
     });
-    router.post('/v1/messages/note-to-self/:id/post', verifyJwt, (_req, res) => {
+    router.post('/v1/messages/note-to-self/:id/note', verifyJwt, (_req, res) => {
         return res.status(501).json({ ok: false, message: 'Note-to-self not implemented' });
+    });
+    // Aliases to support client-friendly /messaging/* paths via HTTP proxy to messaging service
+    const MESSAGING_HTTP_BASE = process.env.MESSAGING_HTTP_BASE || 'http://messaging-service:8086';
+    router.get('/messaging/chats', verifyJwt, async (req, res) => {
+        try {
+            const url = `${MESSAGING_HTTP_BASE}/api/v1/chats?user_id=${encodeURIComponent(req.userId)}`;
+            const r = await fetch(url, { headers: { Authorization: req.headers.authorization || '' } });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok)
+                return res.status(r.status).json({ ok: false, message: j?.message || 'Upstream error' });
+            return res.json({ ok: true, data: j?.data || j?.chats || [] });
+        }
+        catch (e) {
+            return res.status(502).json({ ok: false, message: e?.message || 'Proxy error' });
+        }
+    });
+    router.get('/messaging/chats/:chatId', verifyJwt, async (req, res) => {
+        try {
+            // Fallback approach: fetch chats and filter client-side
+            const url = `${MESSAGING_HTTP_BASE}/api/v1/chats?user_id=${encodeURIComponent(req.userId)}`;
+            const r = await fetch(url, { headers: { Authorization: req.headers.authorization || '' } });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok)
+                return res.status(r.status).json({ ok: false, message: j?.message || 'Upstream error' });
+            const chats = j?.data || j?.chats || [];
+            const found = Array.isArray(chats) ? chats.find((c) => c.id === req.params.chatId || c.chat_id === req.params.chatId) : null;
+            if (!found)
+                return res.status(404).json({ ok: false, message: 'Chat not found' });
+            return res.json({ ok: true, data: found });
+        }
+        catch (e) {
+            return res.status(502).json({ ok: false, message: e?.message || 'Proxy error' });
+        }
+    });
+    router.get('/messaging/chats/:chatId/messages', verifyJwt, async (req, res) => {
+        try {
+            const url = `${MESSAGING_HTTP_BASE}/api/v1/messages?chat_id=${encodeURIComponent(req.params.chatId)}&limit=${encodeURIComponent(String(req.query.limit || 50))}&offset=${encodeURIComponent(String(req.query.offset || 0))}`;
+            const r = await fetch(url, { headers: { Authorization: req.headers.authorization || '' } });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok)
+                return res.status(r.status).json({ ok: false, message: j?.message || 'Upstream error' });
+            return res.json({ ok: true, data: j?.data?.messages || j?.messages || [] });
+        }
+        catch (e) {
+            return res.status(502).json({ ok: false, message: e?.message || 'Proxy error' });
+        }
+    });
+    router.post('/messaging/messages', verifyJwt, async (req, res) => {
+        try {
+            const r = await fetch(`${MESSAGING_HTTP_BASE}/api/v1/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: req.headers.authorization || '' },
+                body: JSON.stringify(req.body || {})
+            });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok)
+                return res.status(r.status).json({ ok: false, message: j?.message || 'Upstream error' });
+            return res.json({ ok: true, data: j?.data?.message || j?.message });
+        }
+        catch (e) {
+            return res.status(502).json({ ok: false, message: e?.message || 'Proxy error' });
+        }
     });
 }

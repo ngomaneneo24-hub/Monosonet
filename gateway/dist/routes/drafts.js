@@ -1,7 +1,7 @@
 import { verifyJwt } from '../middleware/auth.js';
 export function registerDraftRoutes(router, clients) {
     // Create a new draft
-    router.post('/v1/drafts', verifyJwt, (req, res) => {
+    router.note('/v1/drafts', verifyJwt, (req, res) => {
         const { content, reply_to_uri, quote_uri, mention_handle, images, video, labels, threadgate, interaction_settings, is_auto_saved } = req.body;
         if (!content) {
             return res.status(400).json({ ok: false, message: 'Content is required' });
@@ -110,7 +110,7 @@ export function registerDraftRoutes(router, clients) {
         });
     });
     // Auto-save a draft
-    router.post('/v1/drafts/auto-save', verifyJwt, (req, res) => {
+    router.note('/v1/drafts/auto-save', verifyJwt, (req, res) => {
         const { content, reply_to_uri, quote_uri, mention_handle, images, video, labels, threadgate, interaction_settings } = req.body;
         if (!content) {
             return res.status(400).json({ ok: false, message: 'Content is required' });

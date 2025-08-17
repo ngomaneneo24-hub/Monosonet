@@ -8,7 +8,7 @@ import {atoms as a, useTheme} from '#/alf'
 import {Text} from '#/components/Typography'
 import {Button} from '#/components/Button'
 import {CrownIcon} from '#/components/icons/Crown'
-import {StarIcon} from '#/components/icons/Star'
+import {StarIcon} from '#/components/icons/StarIcon'
 import {GemIcon} from '#/components/icons/Gem'
 
 interface PremiumTierCardProps {

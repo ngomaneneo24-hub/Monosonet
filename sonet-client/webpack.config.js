@@ -43,6 +43,12 @@ module.exports = async function (env, argv) {
     // Stubs for optional native/libs not needed on web
     'statsig-react': path.resolve(__dirname, 'src/shims/statsig-react.ts'),
     '@sentry/react-native': path.resolve(__dirname, 'src/shims/sentry-react-native.web.ts'),
+    'expo-blur': path.resolve(__dirname, 'src/shims/expo-blur.tsx'),
+    'expo-clipboard': path.resolve(__dirname, 'src/shims/expo-clipboard.ts'),
+    'expo-linear-gradient': path.resolve(
+      __dirname,
+      'src/shims/expo-linear-gradient.tsx',
+    ),
   }
   config.resolve.extensions = [
     '.web.tsx', '.web.ts', '.tsx', '.ts', '.web.js', '.js', '.json'

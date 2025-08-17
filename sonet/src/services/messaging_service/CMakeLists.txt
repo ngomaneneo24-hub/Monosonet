@@ -41,8 +41,9 @@ find_package(PkgConfig REQUIRED)
 # Core dependencies
 find_package(Boost REQUIRED COMPONENTS system filesystem thread random chrono)
 find_package(OpenSSL REQUIRED)
-find_package(protobuf REQUIRED)
-find_package(gRPC REQUIRED)
+# Rely on top-level Protobuf/gRPC configuration and sonet_proto target
+# find_package(protobuf REQUIRED)
+# find_package(gRPC REQUIRED)
 
 # JSON library
 find_package(jsoncpp REQUIRED)
@@ -53,18 +54,19 @@ if(NOT WEBSOCKETPP_INCLUDE_DIR)
     message(FATAL_ERROR "websocketpp not found. Install with: apt-get install libwebsocketpp-dev")
 endif()
 
-# Asio for WebSocket support
-find_package(asio REQUIRED)
+# Asio for WebSocket support (header-only)
+# find_package(asio REQUIRED)
+include_directories(/usr/include)
 
 # Database libraries
-find_package(postgresql REQUIRED)
+pkg_check_modules(LIBPQ REQUIRED libpq)
 pkg_check_modules(LIBPQXX REQUIRED libpqxx)
 
 # Redis client library
 pkg_check_modules(HIREDIS REQUIRED hiredis)
 
 # Cryptographic libraries
-find_package(libsodium REQUIRED)
+pkg_check_modules(LIBSODIUM REQUIRED libsodium)
 
 # Check for additional security libraries
 find_library(ARGON2_LIBRARY argon2)
@@ -83,8 +85,9 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/../../external
     ${WEBSOCKETPP_INCLUDE_DIR}
     ${Boost_INCLUDE_DIRS}
-    ${PostgreSQL_INCLUDE_DIRS}
+    ${LIBPQ_INCLUDE_DIRS}
     ${LIBPQXX_INCLUDE_DIRS}
+    ${HIREDIS_INCLUDE_DIRS}
 )
 
 # Source files
@@ -98,7 +101,6 @@ set(MESSAGING_SERVICE_SOURCES
     crypto/e2e_encryption.cpp
     crypto/e2e_encryption_advanced.cpp
     crypto/encryption_manager.cpp
-    crypto/key_management.cpp
     crypto/secure_random.cpp
     
     # API and controllers
@@ -106,8 +108,6 @@ set(MESSAGING_SERVICE_SOURCES
     
     # Real-time features
     realtime/websocket_manager.cpp
-    realtime/typing_manager.cpp
-    realtime/typing_indicator.cpp
     
     # Storage and database
     storage/mongodb_manager.cpp
@@ -116,6 +116,9 @@ set(MESSAGING_SERVICE_SOURCES
     # Threading and utilities
     threading/message_processor.cpp
     threading/attachment_processor.cpp
+    
+    # gRPC service implementation
+    grpc/messaging_grpc_service.cpp
     
     # Main service
     messaging_service.cpp
@@ -140,7 +143,6 @@ set(MESSAGING_SERVICE_HEADERS
     include/messaging_controller.hpp
     include/performance_optimizer.hpp
     include/websocket_manager.hpp
-    include/typing_manager.hpp
     include/attachment_storage.hpp
     include/mongodb_manager.hpp
     include/messaging_service.hpp
@@ -170,14 +172,20 @@ target_link_libraries(messaging_service
     ${JSONCPP_LIBRARIES}
     mls_protocol
     pqc_algorithms
-    ${PostgreSQL_LIBRARIES}
+    ${LIBPQ_LIBRARIES}
     ${LIBPQXX_LIBRARIES}
     ${HIREDIS_LIBRARIES}
     ${LIBSODIUM_LIBRARIES}
-    ${ARGON2_LIBRARY}
+    # ${ARGON2_LIBRARY} # optional
     Threads::Threads
-    asio::asio
+    # header-only asio
+    sonet_proto
 )
+
+# Optionally link Argon2 if found
+if(ARGON2_LIBRARY)
+    target_link_libraries(messaging_service ${ARGON2_LIBRARY})
+endif()
 
 # Link libraries for tests
 target_link_libraries(messaging_tests

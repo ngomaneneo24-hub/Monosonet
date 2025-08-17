@@ -689,18 +689,30 @@ void WebSocketManager::handle_typing_indicator(const std::string& connection_id,
 }
 
 void WebSocketManager::broadcast_to_chat(const std::string& chat_id, const RealtimeEvent& event) {
-    std::lock_guard<std::mutex> sub_lock(subscriptions_mutex_);
-    
-    auto chat_it = chat_subscribers_.find(chat_id);
-    if (chat_it == chat_subscribers_.end()) {
-        return;
-    }
-    
-    Json::Value event_json = event.to_json();
-    
-    for (const auto& connection_id : chat_it->second) {
-        send_to_connection(connection_id, event_json);
-    }
+	std::lock_guard<std::mutex> sub_lock(subscriptions_mutex_);
+	
+	auto chat_it = chat_subscribers_.find(chat_id);
+	if (chat_it == chat_subscribers_.end()) {
+		// Fallback: no explicit subscribers; broadcast to all authenticated connections
+		Json::Value event_json = event.to_json();
+		{
+			std::lock_guard<std::mutex> lock(connections_mutex_);
+			for (const auto& entry : connections_) {
+				const auto& connection_id = entry.first;
+				const auto& connection = entry.second;
+				if (connection && connection->is_authenticated()) {
+					send_to_connection(connection_id, event_json);
+				}
+			}
+		}
+		return;
+	}
+	
+	Json::Value event_json = event.to_json();
+	
+	for (const auto& connection_id : chat_it->second) {
+		send_to_connection(connection_id, event_json);
+	}
 }
 
 void WebSocketManager::send_to_connection(const std::string& connection_id, 
