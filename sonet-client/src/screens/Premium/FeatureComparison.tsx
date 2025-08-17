@@ -7,9 +7,9 @@ import {type SubscriptionTier} from '#/types/subscription'
 import {SUBSCRIPTION_TIERS} from '#/types/subscription'
 import {atoms as a, useTheme} from '#/alf'
 import {Text} from '#/components/Typography'
-import {CheckIcon} from '#/components/icons/Check'
+import {CheckIcon} from '#/components/icons/CheckIcon'
 import {XIcon} from '#/components/icons/X'
-import {StarIcon} from '#/components/icons/Star'
+import {StarIcon} from '#/components/icons/StarIcon'
 
 interface FeatureComparisonProps {
   currentTier: SubscriptionTier
