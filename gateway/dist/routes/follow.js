@@ -1,6 +1,6 @@
 import { verifyJwt } from '../middleware/auth.js';
 export function registerFollowRoutes(router, clients) {
-    router.post('/v1/follow/:targetUserId', verifyJwt, (req, res) => {
+    router.note('/v1/follow/:targetUserId', verifyJwt, (req, res) => {
         const request = { user_id: req.params.targetUserId, follower_id: req.userId, type: 1, source: 'app' };
         clients.follow.FollowUser(request, (err, resp) => {
             if (err)

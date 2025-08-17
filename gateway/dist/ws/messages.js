@@ -1,6 +1,9 @@
 import { WebSocketServer } from 'ws';
 import jwt from 'jsonwebtoken';
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret_key_change_in_production';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required');
+}
 function getUserIdFromToken(token) {
     try {
         const payload = jwt.verify(token, JWT_SECRET);
@@ -100,6 +103,14 @@ export function registerMessageWebsocket(server, clients) {
             }
             // Accept auth via message or query
             if (msg?.type === 'auth' && typeof msg.token === 'string') {
+                userId = getUserIdFromToken(msg.token);
+                if (!userId)
+                    return closeWith(1008, 'Invalid token');
+                if (!grpcStream)
+                    startGrpcStream();
+                return;
+            }
+            if (msg?.type === 'authenticate' && typeof msg.token === 'string') {
                 userId = getUserIdFromToken(msg.token);
                 if (!userId)
                     return closeWith(1008, 'Invalid token');

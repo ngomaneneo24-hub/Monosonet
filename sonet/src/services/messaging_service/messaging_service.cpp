@@ -12,6 +12,10 @@
 #include <chrono>
 #include <fstream>
 #include <sstream>
+#include <grpcpp/grpcpp.h>
+#include <grpcpp/health_check_service_interface.h>
+#include <grpcpp/ext/proto_server_reflection_plugin.h>
+#include "grpc/messaging_grpc_service.h"
 
 namespace sonet::messaging {
 
@@ -427,58 +431,53 @@ bool MessagingService::init_cache() {
 }
 
 bool MessagingService::start_grpc_server() {
-    try {
-        // Initialize gRPC server
-        log_info("Starting gRPC server on port " + std::to_string(config_.grpc_port));
-        
-        // Start gRPC server with full implementation
-        spdlog::info("Starting gRPC server on port {}", config_.grpc_port);
-        
-        grpc::EnableDefaultHealthCheckService(true);
-        grpc::reflection::InitProtoReflectionServerBuilderPlugin();
-        
-        grpc::ServerBuilder builder;
-        std::string address = "0.0.0.0:" + std::to_string(config_.grpc_port);
-        builder.AddListeningPort(address, grpc::InsecureServerCredentials());
-        
-        // Register the messaging service
-        // Note: In a real implementation, you'd register the actual gRPC service
-        // builder.RegisterService(&messaging_grpc_service_);
-        
-        grpc_server_ = builder.BuildAndStart();
-        if (!grpc_server_) {
-            spdlog::error("Failed to start gRPC server");
-            return;
-        }
-        
-        spdlog::info("gRPC server started successfully on {}", address);
-        
-        grpc_server_thread_ = std::thread([this]() {
-            run_grpc_server();
-        });
-        
-        return true;
-        
-    } catch (const std::exception& e) {
-        log_error("gRPC server startup failed: " + std::string(e.what()));
-        return false;
-    }
+	try {
+		// Initialize gRPC server
+		log_info("Starting gRPC server on port " + std::to_string(config_.grpc_port));
+		
+		grpc::EnableDefaultHealthCheckService(true);
+		grpc::reflection::InitProtoReflectionServerBuilderPlugin();
+		
+		grpc::ServerBuilder builder;
+		std::string address = "0.0.0.0:" + std::to_string(config_.grpc_port);
+		builder.AddListeningPort(address, grpc::InsecureServerCredentials());
+		
+		// Register real gRPC messaging service implementation
+		static ::sonet::messaging::grpc_impl::MessagingGrpcService service_impl;
+		builder.RegisterService(&service_impl);
+		
+		grpc_server_ = builder.BuildAndStart();
+		if (!grpc_server_) {
+			log_error("Failed to start gRPC server");
+			return false;
+		}
+		
+		grpc_server_thread_ = std::thread([this]() {
+			run_grpc_server();
+		});
+		
+		return true;
+		
+	} catch (const std::exception& e) {
+		log_error("gRPC server startup failed: " + std::string(e.what()));
+		return false;
+	}
 }
 
 void MessagingService::stop_grpc_server() {
-    if (grpc_server_thread_.joinable()) {
-        grpc_server_thread_.join();
-    }
-    
-    log_info("gRPC server stopped");
+	if (grpc_server_) {
+		grpc_server_->Shutdown();
+	}
+	if (grpc_server_thread_.joinable()) {
+		grpc_server_thread_.join();
+	}
+	log_info("gRPC server stopped");
 }
 
 void MessagingService::run_grpc_server() {
-    // Run gRPC server loop
-    while (running_.load()) {
-        // TODO: Implement gRPC server loop
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
+	if (grpc_server_) {
+		grpc_server_->Wait();
+	}
 }
 
 void MessagingService::start_monitoring() {

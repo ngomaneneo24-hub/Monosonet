@@ -1,6 +1,6 @@
 import { verifyJwt } from '../middleware/auth.js';
 export function registerNoteRoutes(router, clients) {
-    router.post('/v1/notes', verifyJwt, (req, res) => {
+    router.note('/v1/notes', verifyJwt, (req, res) => {
         const body = req.body || {};
         const request = {
             user_id: req.userId || '',
@@ -36,7 +36,7 @@ export function registerNoteRoutes(router, clients) {
             return res.json({ ok: resp?.success ?? true, message: resp?.message });
         });
     });
-    router.post('/v1/notes/:id/like', verifyJwt, (req, res) => {
+    router.note('/v1/notes/:id/like', verifyJwt, (req, res) => {
         const request = { note_id: req.params.id, user_id: req.userId || '', like: req.body?.like !== false };
         clients.note.LikeNote(request, (err, resp) => {
             if (err)
@@ -52,7 +52,7 @@ export function registerNoteRoutes(router, clients) {
             return res.json({ ok: resp?.success ?? true, like_count: resp?.like_count, user_has_liked: resp?.user_has_liked });
         });
     });
-    router.post('/v1/notes/:id/renote', verifyJwt, (req, res) => {
+    router.note('/v1/notes/:id/renote', verifyJwt, (req, res) => {
         const request = { note_id: req.params.id, user_id: req.userId || '', renote: req.body?.renote !== false };
         clients.note.RenoteNote(request, (err, resp) => {
             if (err)
@@ -60,7 +60,7 @@ export function registerNoteRoutes(router, clients) {
             return res.json({ ok: resp?.success ?? true, renote_count: resp?.renote_count, renote: resp?.renote });
         });
     });
-    router.post('/v1/notes/:id/share', verifyJwt, (req, res) => {
+    router.note('/v1/notes/:id/share', verifyJwt, (req, res) => {
         // Alias for renote
         const request = { note_id: req.params.id, user_id: req.userId || '', renote: req.body?.share !== false };
         clients.note.RenoteNote(request, (err, resp) => {
@@ -69,7 +69,7 @@ export function registerNoteRoutes(router, clients) {
             return res.json({ ok: resp?.success ?? true, renote_count: resp?.renote_count, renote: resp?.renote });
         });
     });
-    router.post('/v1/notes/:id/bookmark', verifyJwt, (req, res) => {
+    router.note('/v1/notes/:id/bookmark', verifyJwt, (req, res) => {
         const request = { note_id: req.params.id, user_id: req.userId || '', bookmark: req.body?.bookmark !== false };
         if (typeof clients.note.BookmarkNote !== 'function') {
             return res.status(501).json({ ok: false, message: 'Bookmark not supported' });

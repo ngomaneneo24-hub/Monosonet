@@ -146,7 +146,7 @@ export class SonetMessagingApi extends EventEmitter {
   async createChat(request: CreateChatRequest): Promise<SonetChat> {
     try {
       const response = await this.apiRequest('/messaging/chats', {
-        method: 'NOTE',
+        method: 'POST',
         body: JSON.stringify(request)
       })
 
@@ -253,7 +253,7 @@ export class SonetMessagingApi extends EventEmitter {
       }
 
       const response = await this.apiRequest('/messaging/messages', {
-        method: 'NOTE',
+        method: 'POST',
         body: JSON.stringify(messageData)
       })
 
@@ -282,6 +282,7 @@ export class SonetMessagingApi extends EventEmitter {
         ...(before && { before })
       })
 
+      // Use gateway alias path for consistency
       const response = await this.apiRequest(`/messaging/chats/${chatId}/messages?${params}`)
       const messages: SonetMessage[] = response.data
 
