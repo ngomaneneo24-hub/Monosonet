@@ -1,0 +1,1 @@
+export {Check_Stroke2_Corner0_Rounded as CheckIcon} from './Check'
