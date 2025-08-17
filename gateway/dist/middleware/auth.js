@@ -1,5 +1,8 @@
 import jwt from 'jsonwebtoken';
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret_key_change_in_production';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is required');
+}
 export function verifyJwt(req, res, next) {
     const auth = req.header('authorization') || req.header('Authorization');
     if (!auth)

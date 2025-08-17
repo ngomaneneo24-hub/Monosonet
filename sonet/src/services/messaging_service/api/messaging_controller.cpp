@@ -317,7 +317,7 @@ void MessagingController::handle_http_connection(boost::asio::ip::tcp::socket so
 boost::beast::http::response<boost::beast::http::string_body> 
 MessagingController::handle_messages_endpoint(const boost::beast::http::request<boost::beast::http::string_body>& req) {
     
-    if (req.method() == boost::beast::http::verb::note) {
+    if (req.method() == boost::beast::http::verb::note || req.method() == boost::beast::http::verb::post) {
         return handle_send_message(req);
     } else if (req.method() == boost::beast::http::verb::get) {
         return handle_get_messages(req);
@@ -329,6 +329,74 @@ MessagingController::handle_messages_endpoint(const boost::beast::http::request<
         return create_http_response(405, "Method Not Allowed",
             APIResponse::error("Method not allowed", "METHOD_NOT_ALLOWED"));
     }
+}
+
+boost::beast::http::response<boost::beast::http::string_body> 
+MessagingController::handle_chats_endpoint(const boost::beast::http::request<boost::beast::http::string_body>& req) {
+	// Validate authentication
+	std::string user_id = extract_user_id(req);
+	if (user_id.empty()) {
+		return create_http_response(401, "Unauthorized",
+			APIResponse::error("Authentication required", "UNAUTHORIZED"));
+	}
+
+	try {
+		if (req.method() == boost::beast::http::verb::get) {
+			// List chats for user
+			auto chats = chat_service_->get_chats_for_user(user_id);
+			Json::Value chats_json(Json::arrayValue);
+			for (const auto& chat : chats) {
+				chats_json.append(chat->to_json());
+			}
+			Json::Value response_data;
+			response_data["chats"] = chats_json;
+			return create_http_response(200, "OK",
+				APIResponse::success("Chats retrieved successfully", response_data));
+		}
+
+		if (req.method() == boost::beast::http::verb::post || req.method() == boost::beast::http::verb::note) {
+			Json::Value request_json;
+			Json::Reader reader;
+			if (!reader.parse(req.body(), request_json)) {
+				return create_http_response(400, "Bad Request",
+					APIResponse::error("Invalid JSON", "INVALID_JSON"));
+			}
+			if (!request_json.isMember("type") || !request_json.isMember("participantIds")) {
+				return create_http_response(400, "Bad Request",
+					APIResponse::error("type and participantIds are required", "MISSING_FIELDS"));
+			}
+			std::string type = request_json["type"].asString();
+			auto participants_json = request_json["participantIds"];
+			std::vector<std::string> participants;
+			for (const auto& p : participants_json) participants.push_back(p.asString());
+			// Ensure creator is part of chat
+			if (std::find(participants.begin(), participants.end(), user_id) == participants.end()) {
+				participants.push_back(user_id);
+			}
+			std::shared_ptr<core::Chat> chat;
+			if (type == "direct" && participants.size() == 2) {
+				chat = chat_service_->create_direct_chat(participants[0], participants[1]);
+			} else {
+				std::string name = request_json.get("name", "").asString();
+				chat = chat_service_->create_group_chat(name, user_id, participants);
+			}
+			if (!chat) {
+				return create_http_response(500, "Internal Server Error",
+					APIResponse::error("Failed to create chat", "CREATE_FAILED"));
+			}
+			Json::Value response_data;
+			response_data["chat"] = chat->to_json();
+			return create_http_response(201, "Created",
+				APIResponse::success("Chat created", response_data));
+		}
+
+		return create_http_response(405, "Method Not Allowed",
+			APIResponse::error("Method not allowed", "METHOD_NOT_ALLOWED"));
+
+	} catch (const std::exception& e) {
+		return create_http_response(500, "Internal Server Error",
+			APIResponse::error("Internal server error", "INTERNAL_ERROR"));
+	}
 }
 
 boost::beast::http::response<boost::beast::http::string_body> 
@@ -806,7 +874,7 @@ MessagingController::create_http_response(int status_code, const std::string& re
     response.set(http::field::server, "Sonet Messaging Service v1.0");
     response.set(http::field::content_type, "application/json");
     response.set(http::field::access_control_allow_origin, "*");
-    response.set(http::field::access_control_allow_methods, "GET, NOTE, PUT, DELETE, OPTIONS");
+    response.set(http::field::access_control_allow_methods, "GET, POST, PUT, DELETE, OPTIONS");
     response.set(http::field::access_control_allow_headers, "Content-Type, Authorization");
     
     Json::StreamWriterBuilder builder;
