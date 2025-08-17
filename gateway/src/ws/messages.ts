@@ -2,6 +2,7 @@ import type http from 'http'
 import { WebSocketServer } from 'ws'
 import jwt from 'jsonwebtoken'
 import { GrpcClients } from '../grpc/clients.js'
+import { messagingBus } from '../messaging/bus.js'
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -64,6 +65,15 @@ export function registerMessageWebsocket(server: http.Server, clients: GrpcClien
 			try { ws.send(JSON.stringify(frame)) } catch {}
 		}
 
+		// Subscribe to local bus as a fallback
+		const onBusMessage = (ev: any) => {
+			if (!isOpen) return
+			if (chatFilter && ev?.payload?.chatId && ev.payload.chatId !== chatFilter) return
+			sendFrame(ev)
+		}
+		messagingBus.on('message', onBusMessage)
+		messagingBus.on('typing', onBusMessage)
+
 		function startGrpcStream() {
 			if (!userId) return
 			grpcStream = clients.messaging.StreamMessages()
@@ -83,8 +93,8 @@ export function registerMessageWebsocket(server: http.Server, clients: GrpcClien
 					}
 				} catch {}
 			})
-			grpcStream.on('error', () => { if (isOpen) closeWith(1011, 'Upstream error') })
-			grpcStream.on('end', () => { if (isOpen) closeWith(1000, 'Upstream closed') })
+			grpcStream.on('error', () => { if (isOpen) {/* keep bus fallback */} })
+			grpcStream.on('end', () => { /* keep bus fallback */ })
 			// Optionally write subscribe message to upstream
 			// grpcStream.write({ subscribe: { user_id: userId, chat_id: chatFilter || '' }})
 		}
@@ -129,6 +139,8 @@ export function registerMessageWebsocket(server: http.Server, clients: GrpcClien
 			isOpen = false
 			try { grpcStream?.end?.() } catch {}
 			grpcStream = null
+			messagingBus.off('message', onBusMessage)
+			messagingBus.off('typing', onBusMessage)
 		})
 
 		if (userId) startGrpcStream()

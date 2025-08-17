@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { GrpcClients } from '../grpc/clients.js';
 import { verifyJwt, AuthenticatedRequest } from '../middleware/auth.js';
+import { messagingBus } from '../messaging/bus.js';
 
 export function registerMessagingRoutes(router: Router, clients: GrpcClients) {
 	router.get('/v1/messages/conversations', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
@@ -25,6 +26,19 @@ export function registerMessagingRoutes(router: Router, clients: GrpcClients) {
 		const request = { recipient_id: body.recipient_id, sender_id: req.userId, content: body.content, media_ids: body.media_ids || [] };
 		clients.messaging.SendMessage(request, (err: any, resp: any) => {
 			if (err) return res.status(400).json({ ok: false, message: err.message });
+			// Emit local bus event for WS fallback
+			try {
+				const payload = resp?.message || {};
+				messagingBus.emit('message', { type: 'message', payload: {
+					id: payload.message_id || payload.id,
+					chatId: payload.chat_id || body.chat_id || body.chatId,
+					senderId: req.userId,
+					content: payload.content || body.content,
+					status: 'sent',
+					type: 'text',
+					timestamp: new Date().toISOString()
+				}})
+			} catch {}
 			return res.json({ ok: true, message: resp?.message });
 		});
 	});
@@ -95,6 +109,19 @@ export function registerMessagingRoutes(router: Router, clients: GrpcClients) {
 			});
 			const j = await r.json().catch(() => ({}));
 			if (!r.ok) return res.status(r.status).json({ ok: false, message: j?.message || 'Upstream error' });
+			// Emit local bus event for WS fallback
+			try {
+				const chatId = req.body?.chatId || req.body?.chat_id;
+				messagingBus.emit('message', { type: 'message', payload: {
+					id: j?.data?.message?.message_id || j?.message?.message_id || `msg_${Date.now()}`,
+					chatId,
+					senderId: req.userId,
+					content: req.body?.content,
+					status: 'sent',
+					type: 'text',
+					timestamp: new Date().toISOString()
+				}})
+			} catch {}
 			return res.json({ ok: true, data: j?.data?.message || j?.message });
 		} catch (e: any) {
 			return res.status(502).json({ ok: false, message: e?.message || 'Proxy error' });
