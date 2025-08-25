@@ -62,7 +62,7 @@ export function registerMessagingRoutes(router: Router, clients: GrpcClients) {
 
 	router.get('/messaging/chats', verifyJwt, async (req: AuthenticatedRequest, res: Response) => {
 		try {
-			const url = `${MESSAGING_HTTP_BASE}/api/v1/chats?user_id=${encodeURIComponent(req.userId)}`;
+			const url = `${MESSAGING_HTTP_BASE}/api/v1/chats?user_id=${encodeURIComponent(String(req.userId || ''))}`;
 			const r = await fetch(url, { headers: { Authorization: req.headers.authorization || '' } });
 			const j = await r.json().catch(() => ({}));
 			if (!r.ok) return res.status(r.status).json({ ok: false, message: j?.message || 'Upstream error' });
@@ -75,7 +75,7 @@ export function registerMessagingRoutes(router: Router, clients: GrpcClients) {
 	router.get('/messaging/chats/:chatId', verifyJwt, async (req: AuthenticatedRequest, res: Response) => {
 		try {
 			// Fallback approach: fetch chats and filter client-side
-			const url = `${MESSAGING_HTTP_BASE}/api/v1/chats?user_id=${encodeURIComponent(req.userId)}`;
+			const url = `${MESSAGING_HTTP_BASE}/api/v1/chats?user_id=${encodeURIComponent(String(req.userId || ''))}`;
 			const r = await fetch(url, { headers: { Authorization: req.headers.authorization || '' } });
 			const j = await r.json().catch(() => ({}));
 			if (!r.ok) return res.status(r.status).json({ ok: false, message: j?.message || 'Upstream error' });
