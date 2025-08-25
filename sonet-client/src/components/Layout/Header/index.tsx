@@ -109,7 +109,7 @@ export function Right({children, ...props}: any) {
   )
 }
 
-export function Button({children, onPress, ...props}: any) {
+export function HeaderButton({children, onPress, ...props}: any) {
   return (
     <View style={[a.flex_row, a.align_center]} onTouchEnd={onPress} {...props}>
       {children}

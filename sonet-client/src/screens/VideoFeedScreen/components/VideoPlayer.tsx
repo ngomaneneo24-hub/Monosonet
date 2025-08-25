@@ -123,21 +123,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
   }
 
-  // Show/hide controls
-  const showControls = useCallback(() => {
+  // Show/hide controls (renamed to avoid colliding with state var)
+  const handleShowControls = useCallback(() => {
     setShowControls(true)
     Animated.timing(controlsOpacity, {
       toValue: 1,
       duration: 200,
-      useNativeDriver: true
+      useNativeDriver: true,
     }).start()
   }, [controlsOpacity])
 
-  const hideControls = useCallback(() => {
+  const handleHideControls = useCallback(() => {
     Animated.timing(controlsOpacity, {
       toValue: 0,
       duration: 200,
-      useNativeDriver: true
+      useNativeDriver: true,
     }).start(() => {
       setShowControls(false)
     })
@@ -146,11 +146,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Username video tap
   const usernameVideoTap = useCallback(() => {
     if (showControls) {
-      hideControls()
+      handleHideControls()
     } else {
-      showControls()
+      handleShowControls()
     }
-  }, [showControls, hideControls])
+  }, [showControls, handleHideControls, handleShowControls])
 
   // Handle like
   const handleLike = useCallback(() => {
@@ -243,7 +243,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         <View style={styles.progressContainer}>
           <TouchableOpacity
             style={styles.progressBar}
-            onPress={usernameProgressBarTap}
+            onPress={handleProgressBarTap}
             activeOpacity={0.8}
           >
             <View style={styles.progressBackground} />
