@@ -1,7 +1,7 @@
 import { verifyJwt } from '../middleware/auth.js';
 export function registerListRoutes(router, clients) {
     // Create a new list
-    router.note('/v1/lists', verifyJwt, (req, res) => {
+    router.post('/v1/lists', verifyJwt, (req, res) => {
         const { name, description, is_public, list_type } = req.body;
         if (!name) {
             return res.status(400).json({ ok: false, message: 'Name is required' });
@@ -99,7 +99,7 @@ export function registerListRoutes(router, clients) {
         });
     });
     // Add member to list
-    router.note('/v1/lists/:listId/members', verifyJwt, (req, res) => {
+    router.post('/v1/lists/:listId/members', verifyJwt, (req, res) => {
         const { listId } = req.params;
         const { user_id, notes } = req.body;
         if (!user_id) {

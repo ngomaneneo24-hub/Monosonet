@@ -155,7 +155,7 @@ export function registerFeedRoutes(router, clients) {
         });
     });
     // Feed Interaction Tracking - For ML training
-    router.note('/v1/feeds/interactions', (req, res) => {
+    router.post('/v1/feeds/interactions', (req, res) => {
         const userId = userIdFromAuth(req);
         const { interactions } = req.body;
         if (!userId) {

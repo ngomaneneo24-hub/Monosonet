@@ -1,4 +1,5 @@
 import { verifyJwt } from '../middleware/auth.js';
+import { messagingBus } from '../messaging/bus.js';
 export function registerMessagingRoutes(router, clients) {
     router.get('/v1/messages/conversations', verifyJwt, (req, res) => {
         clients.messaging.GetChats({ user_id: req.userId, limit: 20, cursor: '' }, (err, resp) => {
@@ -23,6 +24,20 @@ export function registerMessagingRoutes(router, clients) {
         clients.messaging.SendMessage(request, (err, resp) => {
             if (err)
                 return res.status(400).json({ ok: false, message: err.message });
+            // Emit local bus event for WS fallback
+            try {
+                const payload = resp?.message || {};
+                messagingBus.emit('message', { type: 'message', payload: {
+                        id: payload.message_id || payload.id,
+                        chatId: payload.chat_id || body.chat_id || body.chatId,
+                        senderId: req.userId,
+                        content: payload.content || body.content,
+                        status: 'sent',
+                        type: 'text',
+                        timestamp: new Date().toISOString()
+                    } });
+            }
+            catch { }
             return res.json({ ok: true, message: resp?.message });
         });
     });
@@ -93,6 +108,20 @@ export function registerMessagingRoutes(router, clients) {
             const j = await r.json().catch(() => ({}));
             if (!r.ok)
                 return res.status(r.status).json({ ok: false, message: j?.message || 'Upstream error' });
+            // Emit local bus event for WS fallback
+            try {
+                const chatId = req.body?.chatId || req.body?.chat_id;
+                messagingBus.emit('message', { type: 'message', payload: {
+                        id: j?.data?.message?.message_id || j?.message?.message_id || `msg_${Date.now()}`,
+                        chatId,
+                        senderId: req.userId,
+                        content: req.body?.content,
+                        status: 'sent',
+                        type: 'text',
+                        timestamp: new Date().toISOString()
+                    } });
+            }
+            catch { }
             return res.json({ ok: true, data: j?.data?.message || j?.message });
         }
         catch (e) {

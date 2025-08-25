@@ -1,7 +1,7 @@
 import { verifyJwt } from '../middleware/auth.js';
 export function registerStarterpackRoutes(router, clients) {
     // Create a new starterpack
-    router.note('/v1/starterpacks', verifyJwt, (req, res) => {
+    router.post('/v1/starterpacks', verifyJwt, (req, res) => {
         const { name, description, avatar_url, is_public } = req.body;
         if (!name) {
             return res.status(400).json({ ok: false, message: 'Name is required' });
@@ -99,7 +99,7 @@ export function registerStarterpackRoutes(router, clients) {
         });
     });
     // Add item to starterpack
-    router.note('/v1/starterpacks/:starterpackId/items', verifyJwt, (req, res) => {
+    router.post('/v1/starterpacks/:starterpackId/items', verifyJwt, (req, res) => {
         const { starterpackId } = req.params;
         const { item_type, item_uri, item_order } = req.body;
         if (!item_type || !item_uri) {

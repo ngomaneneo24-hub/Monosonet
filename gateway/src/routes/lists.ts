@@ -4,7 +4,7 @@ import { verifyJwt, AuthenticatedRequest } from '../middleware/auth.js';
 
 export function registerListRoutes(router: Router, clients: GrpcClients) {
   // Create a new list
-  router.note('/v1/lists', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
+  router.post('/v1/lists', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
     const { name, description, is_public, list_type } = req.body;
     
     if (!name) {
@@ -113,7 +113,7 @@ export function registerListRoutes(router: Router, clients: GrpcClients) {
   });
 
   // Add member to list
-  router.note('/v1/lists/:listId/members', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
+  router.post('/v1/lists/:listId/members', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
     const { listId } = req.params;
     const { user_id, notes } = req.body;
     

@@ -3,7 +3,7 @@ import { GrpcClients } from '../grpc/clients.js';
 import { verifyJwt, AuthenticatedRequest } from '../middleware/auth.js';
 
 export function registerNoteRoutes(router: Router, clients: GrpcClients) {
-  router.note('/v1/notes', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
+  router.post('/v1/notes', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
     const body = req.body || {};
     const request = {
       user_id: req.userId || '',
@@ -39,7 +39,7 @@ export function registerNoteRoutes(router: Router, clients: GrpcClients) {
     });
   });
 
-  router.note('/v1/notes/:id/like', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
+  router.post('/v1/notes/:id/like', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
     const request = { note_id: req.params.id, user_id: req.userId || '', like: req.body?.like !== false };
     clients.note.LikeNote(request, (err: any, resp: any) => {
       if (err) return res.status(400).json({ ok: false, message: err.message });
@@ -55,7 +55,7 @@ export function registerNoteRoutes(router: Router, clients: GrpcClients) {
     });
   });
 
-  router.note('/v1/notes/:id/renote', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
+  router.post('/v1/notes/:id/renote', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
     const request = { note_id: req.params.id, user_id: req.userId || '', renote: req.body?.renote !== false };
     clients.note.RenoteNote(request, (err: any, resp: any) => {
       if (err) return res.status(400).json({ ok: false, message: err.message });
@@ -63,7 +63,7 @@ export function registerNoteRoutes(router: Router, clients: GrpcClients) {
     });
   });
 
-  router.note('/v1/notes/:id/share', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
+  router.post('/v1/notes/:id/share', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
     // Alias for renote
     const request = { note_id: req.params.id, user_id: req.userId || '', renote: req.body?.share !== false };
     clients.note.RenoteNote(request, (err: any, resp: any) => {
@@ -72,7 +72,7 @@ export function registerNoteRoutes(router: Router, clients: GrpcClients) {
     });
   });
 
-  router.note('/v1/notes/:id/bookmark', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
+  router.post('/v1/notes/:id/bookmark', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
     const request = { note_id: req.params.id, user_id: req.userId || '', bookmark: req.body?.bookmark !== false };
     if (typeof (clients.note as any).BookmarkNote !== 'function') {
       return res.status(501).json({ ok: false, message: 'Bookmark not supported' });

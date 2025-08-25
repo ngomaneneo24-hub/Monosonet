@@ -175,7 +175,7 @@ export function registerFeedRoutes(router: Router, clients: GrpcClients) {
   });
 
   // Feed Interaction Tracking - For ML training
-  router.note('/v1/feeds/interactions', (req: Request, res: Response) => {
+  router.post('/v1/feeds/interactions', (req: Request, res: Response) => {
     const userId = userIdFromAuth(req);
     const { interactions } = req.body;
 

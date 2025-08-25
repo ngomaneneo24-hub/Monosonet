@@ -4,7 +4,7 @@ import { verifyJwt, AuthenticatedRequest } from '../middleware/auth.js';
 
 export function registerDraftRoutes(router: Router, clients: GrpcClients) {
   // Create a new draft
-  router.note('/v1/drafts', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
+  router.post('/v1/drafts', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
     const { content, reply_to_uri, quote_uri, mention_handle, images, video, labels, threadgate, interaction_settings, is_auto_saved } = req.body;
     
     if (!content) {
@@ -125,7 +125,7 @@ export function registerDraftRoutes(router: Router, clients: GrpcClients) {
   });
 
   // Auto-save a draft
-  router.note('/v1/drafts/auto-save', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
+  router.post('/v1/drafts/auto-save', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
     const { content, reply_to_uri, quote_uri, mention_handle, images, video, labels, threadgate, interaction_settings } = req.body;
     
     if (!content) {
