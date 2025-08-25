@@ -1,4 +1,5 @@
 import express from 'express';
+import dotenv from 'dotenv';
 import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -18,6 +19,9 @@ import { registerListRoutes } from './routes/lists.js';
 import { registerStarterpackRoutes } from './routes/starterpacks.js';
 import { registerDraftRoutes } from './routes/drafts.js';
 import { registerMessageWebsocket } from './ws/messages.js';
+
+// Load environment variables from .env (if present)
+dotenv.config();
 
 const app = express();
 app.use(helmet());

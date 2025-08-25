@@ -13,7 +13,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 
 export function registerMediaRoutes(router) {
     const target = process.env.MEDIA_GRPC_ADDR || 'media-service:9090';
     const mediaClient = new mediaPackage.MediaService(target, credentials.createInsecure());
-    router.note('/v1/media/upload', verifyJwt, upload.single('media') /* accept 'media' */, (req, res) => {
+    router.post('/v1/media/upload', verifyJwt, upload.single('media') /* accept 'media' */, (req, res) => {
         if (!req.file)
             return res.status(400).json({ ok: false, message: 'file required' });
         const call = mediaClient.Upload((err, resp) => {

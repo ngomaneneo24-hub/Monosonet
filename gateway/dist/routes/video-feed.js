@@ -7,7 +7,7 @@ function userIdFromAuth(req) {
 }
 export function registerVideoFeedRoutes(router, clients) {
     // Get video feed with ML ranking
-    router.note('/v1/video-feed', async (req, res) => {
+    router.post('/v1/video-feed', async (req, res) => {
         try {
             const userId = userIdFromAuth(req);
             const request = req.body;
@@ -38,7 +38,7 @@ export function registerVideoFeedRoutes(router, clients) {
         }
     });
     // Get personalized feed for specific user
-    router.note('/v1/video-feed/personalized', async (req, res) => {
+    router.post('/v1/video-feed/personalized', async (req, res) => {
         try {
             const userId = userIdFromAuth(req);
             if (!userId) {
@@ -61,7 +61,7 @@ export function registerVideoFeedRoutes(router, clients) {
         }
     });
     // Track user engagement events
-    router.note('/v1/video-feed/engagement', async (req, res) => {
+    router.post('/v1/video-feed/engagement', async (req, res) => {
         try {
             const userId = userIdFromAuth(req);
             if (!userId) {
@@ -94,7 +94,7 @@ export function registerVideoFeedRoutes(router, clients) {
         }
     });
     // Get feed insights and analytics
-    router.note('/v1/video-feed/insights', async (req, res) => {
+    router.post('/v1/video-feed/insights', async (req, res) => {
         try {
             const userId = userIdFromAuth(req);
             if (!userId) {
@@ -309,7 +309,7 @@ export function registerVideoFeedRoutes(router, clients) {
         }
     });
     // Batch engagement tracking
-    router.note('/v1/video-feed/engagement/batch', async (req, res) => {
+    router.post('/v1/video-feed/engagement/batch', async (req, res) => {
         try {
             const userId = userIdFromAuth(req);
             if (!userId) {

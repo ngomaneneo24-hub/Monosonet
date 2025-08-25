@@ -10,7 +10,7 @@ function userIdFromAuth(req: Request): string | undefined {
 
 export function registerVideoFeedRoutes(router: Router, clients: GrpcClients) {
   // Get video feed with ML ranking
-  router.note('/v1/video-feed', async (req: Request, res: Response) => {
+  router.post('/v1/video-feed', async (req: Request, res: Response) => {
     try {
       const userId = userIdFromAuth(req);
       const request = req.body;
@@ -45,7 +45,7 @@ export function registerVideoFeedRoutes(router: Router, clients: GrpcClients) {
   });
 
   // Get personalized feed for specific user
-  router.note('/v1/video-feed/personalized', async (req: Request, res: Response) => {
+  router.post('/v1/video-feed/personalized', async (req: Request, res: Response) => {
     try {
       const userId = userIdFromAuth(req);
       if (!userId) {
@@ -71,7 +71,7 @@ export function registerVideoFeedRoutes(router: Router, clients: GrpcClients) {
   });
 
   // Track user engagement events
-  router.note('/v1/video-feed/engagement', async (req: Request, res: Response) => {
+  router.post('/v1/video-feed/engagement', async (req: Request, res: Response) => {
     try {
       const userId = userIdFromAuth(req);
       if (!userId) {
@@ -108,7 +108,7 @@ export function registerVideoFeedRoutes(router: Router, clients: GrpcClients) {
   });
 
   // Get feed insights and analytics
-  router.note('/v1/video-feed/insights', async (req: Request, res: Response) => {
+  router.post('/v1/video-feed/insights', async (req: Request, res: Response) => {
     try {
       const userId = userIdFromAuth(req);
       if (!userId) {
@@ -348,7 +348,7 @@ export function registerVideoFeedRoutes(router: Router, clients: GrpcClients) {
   });
 
   // Batch engagement tracking
-  router.note('/v1/video-feed/engagement/batch', async (req: Request, res: Response) => {
+  router.post('/v1/video-feed/engagement/batch', async (req: Request, res: Response) => {
     try {
       const userId = userIdFromAuth(req);
       if (!userId) {

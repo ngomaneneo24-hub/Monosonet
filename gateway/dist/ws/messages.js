@@ -1,5 +1,6 @@
 import { WebSocketServer } from 'ws';
 import jwt from 'jsonwebtoken';
+import { messagingBus } from '../messaging/bus.js';
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
     throw new Error('JWT_SECRET environment variable is required');
@@ -60,6 +61,16 @@ export function registerMessageWebsocket(server, clients) {
             }
             catch { }
         }
+        // Subscribe to local bus as a fallback
+        const onBusMessage = (ev) => {
+            if (!isOpen)
+                return;
+            if (chatFilter && ev?.payload?.chatId && ev.payload.chatId !== chatFilter)
+                return;
+            sendFrame(ev);
+        };
+        messagingBus.on('message', onBusMessage);
+        messagingBus.on('typing', onBusMessage);
         function startGrpcStream() {
             if (!userId)
                 return;
@@ -86,10 +97,8 @@ export function registerMessageWebsocket(server, clients) {
                 }
                 catch { }
             });
-            grpcStream.on('error', () => { if (isOpen)
-                closeWith(1011, 'Upstream error'); });
-            grpcStream.on('end', () => { if (isOpen)
-                closeWith(1000, 'Upstream closed'); });
+            grpcStream.on('error', () => { if (isOpen) { /* keep bus fallback */ } });
+            grpcStream.on('end', () => { });
             // Optionally write subscribe message to upstream
             // grpcStream.write({ subscribe: { user_id: userId, chat_id: chatFilter || '' }})
         }
@@ -143,6 +152,8 @@ export function registerMessageWebsocket(server, clients) {
             }
             catch { }
             grpcStream = null;
+            messagingBus.off('message', onBusMessage);
+            messagingBus.off('typing', onBusMessage);
         });
         if (userId)
             startGrpcStream();
