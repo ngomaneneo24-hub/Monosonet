@@ -237,6 +237,54 @@ controllers/upload_controller.cpp.s:
 	cd /workspaces/Sonet/sonet/build-cpp && $(MAKE) $(MAKESILENT) -f src/services/media_service/CMakeFiles/media_service_core.dir/build.make src/services/media_service/CMakeFiles/media_service_core.dir/controllers/upload_controller.cpp.s
 .PHONY : controllers/upload_controller.cpp.s
 
+generated/services/media.grpc.pb.o: generated/services/media.grpc.pb.cc.o
+.PHONY : generated/services/media.grpc.pb.o
+
+# target to build an object file
+generated/services/media.grpc.pb.cc.o:
+	cd /workspaces/Sonet/sonet/build-cpp && $(MAKE) $(MAKESILENT) -f src/services/media_service/CMakeFiles/media_service_core.dir/build.make src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.grpc.pb.cc.o
+.PHONY : generated/services/media.grpc.pb.cc.o
+
+generated/services/media.grpc.pb.i: generated/services/media.grpc.pb.cc.i
+.PHONY : generated/services/media.grpc.pb.i
+
+# target to preprocess a source file
+generated/services/media.grpc.pb.cc.i:
+	cd /workspaces/Sonet/sonet/build-cpp && $(MAKE) $(MAKESILENT) -f src/services/media_service/CMakeFiles/media_service_core.dir/build.make src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.grpc.pb.cc.i
+.PHONY : generated/services/media.grpc.pb.cc.i
+
+generated/services/media.grpc.pb.s: generated/services/media.grpc.pb.cc.s
+.PHONY : generated/services/media.grpc.pb.s
+
+# target to generate assembly for a file
+generated/services/media.grpc.pb.cc.s:
+	cd /workspaces/Sonet/sonet/build-cpp && $(MAKE) $(MAKESILENT) -f src/services/media_service/CMakeFiles/media_service_core.dir/build.make src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.grpc.pb.cc.s
+.PHONY : generated/services/media.grpc.pb.cc.s
+
+generated/services/media.pb.o: generated/services/media.pb.cc.o
+.PHONY : generated/services/media.pb.o
+
+# target to build an object file
+generated/services/media.pb.cc.o:
+	cd /workspaces/Sonet/sonet/build-cpp && $(MAKE) $(MAKESILENT) -f src/services/media_service/CMakeFiles/media_service_core.dir/build.make src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.pb.cc.o
+.PHONY : generated/services/media.pb.cc.o
+
+generated/services/media.pb.i: generated/services/media.pb.cc.i
+.PHONY : generated/services/media.pb.i
+
+# target to preprocess a source file
+generated/services/media.pb.cc.i:
+	cd /workspaces/Sonet/sonet/build-cpp && $(MAKE) $(MAKESILENT) -f src/services/media_service/CMakeFiles/media_service_core.dir/build.make src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.pb.cc.i
+.PHONY : generated/services/media.pb.cc.i
+
+generated/services/media.pb.s: generated/services/media.pb.cc.s
+.PHONY : generated/services/media.pb.s
+
+# target to generate assembly for a file
+generated/services/media.pb.cc.s:
+	cd /workspaces/Sonet/sonet/build-cpp && $(MAKE) $(MAKESILENT) -f src/services/media_service/CMakeFiles/media_service_core.dir/build.make src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.pb.cc.s
+.PHONY : generated/services/media.pb.cc.s
+
 logger.o: logger.cpp.o
 .PHONY : logger.o
 
@@ -473,6 +521,12 @@ help:
 	@echo "... controllers/upload_controller.o"
 	@echo "... controllers/upload_controller.i"
 	@echo "... controllers/upload_controller.s"
+	@echo "... generated/services/media.grpc.pb.o"
+	@echo "... generated/services/media.grpc.pb.i"
+	@echo "... generated/services/media.grpc.pb.s"
+	@echo "... generated/services/media.pb.o"
+	@echo "... generated/services/media.pb.i"
+	@echo "... generated/services/media.pb.s"
 	@echo "... logger.o"
 	@echo "... logger.i"
 	@echo "... logger.s"

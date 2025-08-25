@@ -73,6 +73,18 @@ else()
       ${PROTO_OUT}/services/notification.grpc.pb.h
     )
     
+    # Determine grpc c++ plugin executable. Prefer exported target file when available,
+    # otherwise fall back to locating the plugin binary on the system.
+    if(TARGET gRPC::grpc_cpp_plugin)
+      set(GRPC_PLUGIN_EXECUTABLE "$<TARGET_FILE:gRPC::grpc_cpp_plugin>")
+    else()
+      find_program(GRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin HINTS /usr/local/bin /usr/bin)
+      if(NOT GRPC_CPP_PLUGIN_EXECUTABLE)
+        set(GRPC_CPP_PLUGIN_EXECUTABLE "/usr/local/bin/grpc_cpp_plugin")
+      endif()
+      set(GRPC_PLUGIN_EXECUTABLE ${GRPC_CPP_PLUGIN_EXECUTABLE})
+    endif()
+
     # Generation rules
     foreach(PF ${MINIMAL_PROTOS})
       get_filename_component(PN ${PF} NAME_WE)
@@ -85,7 +97,7 @@ else()
         ARGS --grpc_out ${PROTO_OUT}
              --cpp_out ${PROTO_OUT}
              -I ${PROTO_ROOT}
-             --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
+             --plugin=protoc-gen-grpc=${GRPC_PLUGIN_EXECUTABLE}
              ${PF}
         DEPENDS ${PF}
         COMMENT "Generating gRPC/proto for ${RELDIR}/${PN}"

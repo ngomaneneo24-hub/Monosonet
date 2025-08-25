@@ -71,7 +71,7 @@ include proto/CMakeFiles/note_proto.dir/flags.make
 
 proto/generated/note.pb.cc: /workspaces/Sonet/sonet/proto/services/note.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Running gRPC C++ protocol buffer compiler on services/note.proto"
-	cd /workspaces/Sonet/sonet/build-cpp/proto && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/proto/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/proto/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=\"/usr/local/bin/grpc_cpp_plugin\" /workspaces/Sonet/sonet/proto/services/note.proto
+	cd /workspaces/Sonet/sonet/build-cpp/proto && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/proto/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/proto/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=\"/usr/bin/grpc_cpp_plugin\" /workspaces/Sonet/sonet/proto/services/note.proto
 
 proto/generated/note.pb.h: proto/generated/note.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate proto/generated/note.pb.h

@@ -89,7 +89,7 @@ src/services/minimal/CMakeFiles/minimal_protos_gen: src/services/minimal/gen/ser
 
 src/services/minimal/gen/common/common.pb.cc: /workspaces/Sonet/sonet/proto/common/common.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating gRPC/proto for common/common"
-	cd /workspaces/Sonet/sonet/build-cpp/src/services/minimal && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen --cpp_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc= /workspaces/Sonet/sonet/proto/common/common.proto
+	cd /workspaces/Sonet/sonet/build-cpp/src/services/minimal && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen --cpp_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/common/common.proto
 
 src/services/minimal/gen/common/common.pb.h: src/services/minimal/gen/common/common.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate src/services/minimal/gen/common/common.pb.h
@@ -102,7 +102,7 @@ src/services/minimal/gen/common/common.grpc.pb.h: src/services/minimal/gen/commo
 
 src/services/minimal/gen/common/pagination.pb.cc: /workspaces/Sonet/sonet/proto/common/pagination.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Generating gRPC/proto for common/pagination"
-	cd /workspaces/Sonet/sonet/build-cpp/src/services/minimal && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen --cpp_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc= /workspaces/Sonet/sonet/proto/common/pagination.proto
+	cd /workspaces/Sonet/sonet/build-cpp/src/services/minimal && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen --cpp_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/common/pagination.proto
 
 src/services/minimal/gen/common/pagination.pb.h: src/services/minimal/gen/common/pagination.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate src/services/minimal/gen/common/pagination.pb.h
@@ -115,7 +115,7 @@ src/services/minimal/gen/common/pagination.grpc.pb.h: src/services/minimal/gen/c
 
 src/services/minimal/gen/common/timestamp.pb.cc: /workspaces/Sonet/sonet/proto/common/timestamp.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Generating gRPC/proto for common/timestamp"
-	cd /workspaces/Sonet/sonet/build-cpp/src/services/minimal && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen --cpp_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc= /workspaces/Sonet/sonet/proto/common/timestamp.proto
+	cd /workspaces/Sonet/sonet/build-cpp/src/services/minimal && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen --cpp_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/common/timestamp.proto
 
 src/services/minimal/gen/common/timestamp.pb.h: src/services/minimal/gen/common/timestamp.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate src/services/minimal/gen/common/timestamp.pb.h
@@ -128,7 +128,7 @@ src/services/minimal/gen/common/timestamp.grpc.pb.h: src/services/minimal/gen/co
 
 src/services/minimal/gen/services/notification.pb.cc: /workspaces/Sonet/sonet/proto/services/notification.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Generating gRPC/proto for services/notification"
-	cd /workspaces/Sonet/sonet/build-cpp/src/services/minimal && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen --cpp_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc= /workspaces/Sonet/sonet/proto/services/notification.proto
+	cd /workspaces/Sonet/sonet/build-cpp/src/services/minimal && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen --cpp_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/services/notification.proto
 
 src/services/minimal/gen/services/notification.pb.h: src/services/minimal/gen/services/notification.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate src/services/minimal/gen/services/notification.pb.h
@@ -141,7 +141,7 @@ src/services/minimal/gen/services/notification.grpc.pb.h: src/services/minimal/g
 
 src/services/minimal/gen/services/search.pb.cc: /workspaces/Sonet/sonet/proto/services/search.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Generating gRPC/proto for services/search"
-	cd /workspaces/Sonet/sonet/build-cpp/src/services/minimal && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen --cpp_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc= /workspaces/Sonet/sonet/proto/services/search.proto
+	cd /workspaces/Sonet/sonet/build-cpp/src/services/minimal && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen --cpp_out /workspaces/Sonet/sonet/build-cpp/src/services/minimal/gen -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/services/search.proto
 
 src/services/minimal/gen/services/search.pb.h: src/services/minimal/gen/services/search.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate src/services/minimal/gen/services/search.pb.h

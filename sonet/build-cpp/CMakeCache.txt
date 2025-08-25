@@ -277,7 +277,10 @@ GRPCPP_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libgrpc++.so
 GRPCPP_REFLECTION_LIBRARY:FILEPATH=/usr/lib/x86_64-linux-gnu/libgrpc++_reflection.so
 
 //Path to a program.
-GRPC_CPP_PLUGIN:FILEPATH=GRPC_CPP_PLUGIN-NOTFOUND
+GRPC_CPP_PLUGIN:FILEPATH=/usr/bin/grpc_cpp_plugin
+
+//Path to a program.
+GRPC_CPP_PLUGIN_EXECUTABLE:FILEPATH=/usr/bin/grpc_cpp_plugin
 
 //Path to a file.
 GRPC_INCLUDE_DIR:PATH=/usr/include
@@ -337,7 +340,7 @@ Sonet_IS_TOP_LEVEL:STATIC=ON
 Sonet_SOURCE_DIR:STATIC=/workspaces/Sonet/sonet
 
 //Path to a program.
-_GRPC_CPP_PLUGIN_EXECUTABLE:FILEPATH=_GRPC_CPP_PLUGIN_EXECUTABLE-NOTFOUND
+_GRPC_CPP_PLUGIN_EXECUTABLE:FILEPATH=/usr/bin/grpc_cpp_plugin
 
 //Path to a program.
 _PROTOBUF_PROTOC:FILEPATH=/usr/bin/protoc
