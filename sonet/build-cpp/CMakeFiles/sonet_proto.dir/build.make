@@ -71,7 +71,7 @@ include CMakeFiles/sonet_proto.dir/flags.make
 
 generated/common.pb.cc: /workspaces/Sonet/sonet/proto/common/common.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating protocol buffer files for /workspaces/Sonet/sonet/proto/common/common.proto"
-	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=GRPC_CPP_PLUGIN-NOTFOUND /workspaces/Sonet/sonet/proto/common/common.proto
+	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/common/common.proto
 
 generated/common.pb.h: generated/common.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate generated/common.pb.h
@@ -84,7 +84,7 @@ generated/common.grpc.pb.h: generated/common.pb.cc
 
 generated/pagination.pb.cc: /workspaces/Sonet/sonet/proto/common/pagination.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Generating protocol buffer files for /workspaces/Sonet/sonet/proto/common/pagination.proto"
-	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=GRPC_CPP_PLUGIN-NOTFOUND /workspaces/Sonet/sonet/proto/common/pagination.proto
+	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/common/pagination.proto
 
 generated/pagination.pb.h: generated/pagination.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate generated/pagination.pb.h
@@ -97,7 +97,7 @@ generated/pagination.grpc.pb.h: generated/pagination.pb.cc
 
 generated/timestamp.pb.cc: /workspaces/Sonet/sonet/proto/common/timestamp.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Generating protocol buffer files for /workspaces/Sonet/sonet/proto/common/timestamp.proto"
-	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=GRPC_CPP_PLUGIN-NOTFOUND /workspaces/Sonet/sonet/proto/common/timestamp.proto
+	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/common/timestamp.proto
 
 generated/timestamp.pb.h: generated/timestamp.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate generated/timestamp.pb.h
@@ -110,7 +110,7 @@ generated/timestamp.grpc.pb.h: generated/timestamp.pb.cc
 
 generated/video_types.pb.cc: /workspaces/Sonet/sonet/proto/common/video_types.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Generating protocol buffer files for /workspaces/Sonet/sonet/proto/common/video_types.proto"
-	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=GRPC_CPP_PLUGIN-NOTFOUND /workspaces/Sonet/sonet/proto/common/video_types.proto
+	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/common/video_types.proto
 
 generated/video_types.pb.h: generated/video_types.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate generated/video_types.pb.h
@@ -123,7 +123,7 @@ generated/video_types.grpc.pb.h: generated/video_types.pb.cc
 
 generated/analytics.pb.cc: /workspaces/Sonet/sonet/proto/services/analytics.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Generating protocol buffer files for /workspaces/Sonet/sonet/proto/services/analytics.proto"
-	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=GRPC_CPP_PLUGIN-NOTFOUND /workspaces/Sonet/sonet/proto/services/analytics.proto
+	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/services/analytics.proto
 
 generated/analytics.pb.h: generated/analytics.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate generated/analytics.pb.h
@@ -136,7 +136,7 @@ generated/analytics.grpc.pb.h: generated/analytics.pb.cc
 
 generated/fanout.pb.cc: /workspaces/Sonet/sonet/proto/services/fanout.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Generating protocol buffer files for /workspaces/Sonet/sonet/proto/services/fanout.proto"
-	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=GRPC_CPP_PLUGIN-NOTFOUND /workspaces/Sonet/sonet/proto/services/fanout.proto
+	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/services/fanout.proto
 
 generated/fanout.pb.h: generated/fanout.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate generated/fanout.pb.h
@@ -149,7 +149,7 @@ generated/fanout.grpc.pb.h: generated/fanout.pb.cc
 
 generated/follow.pb.cc: /workspaces/Sonet/sonet/proto/services/follow.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Generating protocol buffer files for /workspaces/Sonet/sonet/proto/services/follow.proto"
-	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=GRPC_CPP_PLUGIN-NOTFOUND /workspaces/Sonet/sonet/proto/services/follow.proto
+	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/services/follow.proto
 
 generated/follow.pb.h: generated/follow.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate generated/follow.pb.h
@@ -162,7 +162,7 @@ generated/follow.grpc.pb.h: generated/follow.pb.cc
 
 generated/media.pb.cc: /workspaces/Sonet/sonet/proto/services/media.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Generating protocol buffer files for /workspaces/Sonet/sonet/proto/services/media.proto"
-	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=GRPC_CPP_PLUGIN-NOTFOUND /workspaces/Sonet/sonet/proto/services/media.proto
+	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/services/media.proto
 
 generated/media.pb.h: generated/media.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate generated/media.pb.h
@@ -175,7 +175,7 @@ generated/media.grpc.pb.h: generated/media.pb.cc
 
 generated/messaging.pb.cc: /workspaces/Sonet/sonet/proto/services/messaging.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Generating protocol buffer files for /workspaces/Sonet/sonet/proto/services/messaging.proto"
-	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=GRPC_CPP_PLUGIN-NOTFOUND /workspaces/Sonet/sonet/proto/services/messaging.proto
+	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/services/messaging.proto
 
 generated/messaging.pb.h: generated/messaging.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate generated/messaging.pb.h
@@ -188,7 +188,7 @@ generated/messaging.grpc.pb.h: generated/messaging.pb.cc
 
 generated/note.pb.cc: /workspaces/Sonet/sonet/proto/services/note.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Generating protocol buffer files for /workspaces/Sonet/sonet/proto/services/note.proto"
-	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=GRPC_CPP_PLUGIN-NOTFOUND /workspaces/Sonet/sonet/proto/services/note.proto
+	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/services/note.proto
 
 generated/note.pb.h: generated/note.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate generated/note.pb.h
@@ -201,7 +201,7 @@ generated/note.grpc.pb.h: generated/note.pb.cc
 
 generated/note_service.pb.cc: /workspaces/Sonet/sonet/proto/services/note_service.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Generating protocol buffer files for /workspaces/Sonet/sonet/proto/services/note_service.proto"
-	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=GRPC_CPP_PLUGIN-NOTFOUND /workspaces/Sonet/sonet/proto/services/note_service.proto
+	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/services/note_service.proto
 
 generated/note_service.pb.h: generated/note_service.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate generated/note_service.pb.h
@@ -214,7 +214,7 @@ generated/note_service.grpc.pb.h: generated/note_service.pb.cc
 
 generated/notification.pb.cc: /workspaces/Sonet/sonet/proto/services/notification.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Generating protocol buffer files for /workspaces/Sonet/sonet/proto/services/notification.proto"
-	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=GRPC_CPP_PLUGIN-NOTFOUND /workspaces/Sonet/sonet/proto/services/notification.proto
+	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/services/notification.proto
 
 generated/notification.pb.h: generated/notification.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate generated/notification.pb.h
@@ -227,7 +227,7 @@ generated/notification.grpc.pb.h: generated/notification.pb.cc
 
 generated/search.pb.cc: /workspaces/Sonet/sonet/proto/services/search.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Generating protocol buffer files for /workspaces/Sonet/sonet/proto/services/search.proto"
-	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=GRPC_CPP_PLUGIN-NOTFOUND /workspaces/Sonet/sonet/proto/services/search.proto
+	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/services/search.proto
 
 generated/search.pb.h: generated/search.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate generated/search.pb.h
@@ -240,7 +240,7 @@ generated/search.grpc.pb.h: generated/search.pb.cc
 
 generated/timeline.pb.cc: /workspaces/Sonet/sonet/proto/services/timeline.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Generating protocol buffer files for /workspaces/Sonet/sonet/proto/services/timeline.proto"
-	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=GRPC_CPP_PLUGIN-NOTFOUND /workspaces/Sonet/sonet/proto/services/timeline.proto
+	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/services/timeline.proto
 
 generated/timeline.pb.h: generated/timeline.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate generated/timeline.pb.h
@@ -253,7 +253,7 @@ generated/timeline.grpc.pb.h: generated/timeline.pb.cc
 
 generated/user.pb.cc: /workspaces/Sonet/sonet/proto/services/user.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Generating protocol buffer files for /workspaces/Sonet/sonet/proto/services/user.proto"
-	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=GRPC_CPP_PLUGIN-NOTFOUND /workspaces/Sonet/sonet/proto/services/user.proto
+	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/services/user.proto
 
 generated/user.pb.h: generated/user.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate generated/user.pb.h
@@ -266,7 +266,7 @@ generated/user.grpc.pb.h: generated/user.pb.cc
 
 generated/video_feed.pb.cc: /workspaces/Sonet/sonet/proto/services/video_feed.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Generating protocol buffer files for /workspaces/Sonet/sonet/proto/services/video_feed.proto"
-	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=GRPC_CPP_PLUGIN-NOTFOUND /workspaces/Sonet/sonet/proto/services/video_feed.proto
+	/usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/services/video_feed.proto
 
 generated/video_feed.pb.h: generated/video_feed.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate generated/video_feed.pb.h

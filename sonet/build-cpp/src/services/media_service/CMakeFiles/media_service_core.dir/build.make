@@ -69,10 +69,23 @@ include src/services/media_service/CMakeFiles/media_service_core.dir/progress.ma
 # Include the compile flags for this target's objects.
 include src/services/media_service/CMakeFiles/media_service_core.dir/flags.make
 
+src/services/media_service/generated/services/media.pb.cc: /workspaces/Sonet/sonet/proto/services/media.proto
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Generating gRPC sources for media.proto"
+	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/src/services/media_service/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/src/services/media_service/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=/usr/bin/grpc_cpp_plugin /workspaces/Sonet/sonet/proto/services/media.proto
+
+src/services/media_service/generated/services/media.grpc.pb.cc: src/services/media_service/generated/services/media.pb.cc
+	@$(CMAKE_COMMAND) -E touch_nocreate src/services/media_service/generated/services/media.grpc.pb.cc
+
+src/services/media_service/generated/services/media.pb.h: src/services/media_service/generated/services/media.pb.cc
+	@$(CMAKE_COMMAND) -E touch_nocreate src/services/media_service/generated/services/media.pb.h
+
+src/services/media_service/generated/services/media.grpc.pb.h: src/services/media_service/generated/services/media.pb.cc
+	@$(CMAKE_COMMAND) -E touch_nocreate src/services/media_service/generated/services/media.grpc.pb.h
+
 src/services/media_service/CMakeFiles/media_service_core.dir/controllers/media_controller.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/flags.make
 src/services/media_service/CMakeFiles/media_service_core.dir/controllers/media_controller.cpp.o: /workspaces/Sonet/sonet/src/services/media_service/controllers/media_controller.cpp
 src/services/media_service/CMakeFiles/media_service_core.dir/controllers/media_controller.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/controllers/media_controller.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/controllers/media_controller.cpp.o"
 	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT src/services/media_service/CMakeFiles/media_service_core.dir/controllers/media_controller.cpp.o -MF CMakeFiles/media_service_core.dir/controllers/media_controller.cpp.o.d -o CMakeFiles/media_service_core.dir/controllers/media_controller.cpp.o -c /workspaces/Sonet/sonet/src/services/media_service/controllers/media_controller.cpp
 
 src/services/media_service/CMakeFiles/media_service_core.dir/controllers/media_controller.cpp.i: cmake_force
@@ -86,7 +99,7 @@ src/services/media_service/CMakeFiles/media_service_core.dir/controllers/media_c
 src/services/media_service/CMakeFiles/media_service_core.dir/controllers/upload_controller.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/flags.make
 src/services/media_service/CMakeFiles/media_service_core.dir/controllers/upload_controller.cpp.o: /workspaces/Sonet/sonet/src/services/media_service/controllers/upload_controller.cpp
 src/services/media_service/CMakeFiles/media_service_core.dir/controllers/upload_controller.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/controllers/upload_controller.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/controllers/upload_controller.cpp.o"
 	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT src/services/media_service/CMakeFiles/media_service_core.dir/controllers/upload_controller.cpp.o -MF CMakeFiles/media_service_core.dir/controllers/upload_controller.cpp.o.d -o CMakeFiles/media_service_core.dir/controllers/upload_controller.cpp.o -c /workspaces/Sonet/sonet/src/services/media_service/controllers/upload_controller.cpp
 
 src/services/media_service/CMakeFiles/media_service_core.dir/controllers/upload_controller.cpp.i: cmake_force
@@ -100,7 +113,7 @@ src/services/media_service/CMakeFiles/media_service_core.dir/controllers/upload_
 src/services/media_service/CMakeFiles/media_service_core.dir/logger.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/flags.make
 src/services/media_service/CMakeFiles/media_service_core.dir/logger.cpp.o: /workspaces/Sonet/sonet/src/services/media_service/logger.cpp
 src/services/media_service/CMakeFiles/media_service_core.dir/logger.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/logger.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/logger.cpp.o"
 	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT src/services/media_service/CMakeFiles/media_service_core.dir/logger.cpp.o -MF CMakeFiles/media_service_core.dir/logger.cpp.o.d -o CMakeFiles/media_service_core.dir/logger.cpp.o -c /workspaces/Sonet/sonet/src/services/media_service/logger.cpp
 
 src/services/media_service/CMakeFiles/media_service_core.dir/logger.cpp.i: cmake_force
@@ -114,7 +127,7 @@ src/services/media_service/CMakeFiles/media_service_core.dir/logger.cpp.s: cmake
 src/services/media_service/CMakeFiles/media_service_core.dir/processors/image_processor.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/flags.make
 src/services/media_service/CMakeFiles/media_service_core.dir/processors/image_processor.cpp.o: /workspaces/Sonet/sonet/src/services/media_service/processors/image_processor.cpp
 src/services/media_service/CMakeFiles/media_service_core.dir/processors/image_processor.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/processors/image_processor.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/processors/image_processor.cpp.o"
 	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT src/services/media_service/CMakeFiles/media_service_core.dir/processors/image_processor.cpp.o -MF CMakeFiles/media_service_core.dir/processors/image_processor.cpp.o.d -o CMakeFiles/media_service_core.dir/processors/image_processor.cpp.o -c /workspaces/Sonet/sonet/src/services/media_service/processors/image_processor.cpp
 
 src/services/media_service/CMakeFiles/media_service_core.dir/processors/image_processor.cpp.i: cmake_force
@@ -128,7 +141,7 @@ src/services/media_service/CMakeFiles/media_service_core.dir/processors/image_pr
 src/services/media_service/CMakeFiles/media_service_core.dir/processors/video_processor.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/flags.make
 src/services/media_service/CMakeFiles/media_service_core.dir/processors/video_processor.cpp.o: /workspaces/Sonet/sonet/src/services/media_service/processors/video_processor.cpp
 src/services/media_service/CMakeFiles/media_service_core.dir/processors/video_processor.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/processors/video_processor.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/processors/video_processor.cpp.o"
 	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT src/services/media_service/CMakeFiles/media_service_core.dir/processors/video_processor.cpp.o -MF CMakeFiles/media_service_core.dir/processors/video_processor.cpp.o.d -o CMakeFiles/media_service_core.dir/processors/video_processor.cpp.o -c /workspaces/Sonet/sonet/src/services/media_service/processors/video_processor.cpp
 
 src/services/media_service/CMakeFiles/media_service_core.dir/processors/video_processor.cpp.i: cmake_force
@@ -142,7 +155,7 @@ src/services/media_service/CMakeFiles/media_service_core.dir/processors/video_pr
 src/services/media_service/CMakeFiles/media_service_core.dir/repositories/notegres_repository_stub.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/flags.make
 src/services/media_service/CMakeFiles/media_service_core.dir/repositories/notegres_repository_stub.cpp.o: /workspaces/Sonet/sonet/src/services/media_service/repositories/notegres_repository_stub.cpp
 src/services/media_service/CMakeFiles/media_service_core.dir/repositories/notegres_repository_stub.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/repositories/notegres_repository_stub.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/repositories/notegres_repository_stub.cpp.o"
 	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT src/services/media_service/CMakeFiles/media_service_core.dir/repositories/notegres_repository_stub.cpp.o -MF CMakeFiles/media_service_core.dir/repositories/notegres_repository_stub.cpp.o.d -o CMakeFiles/media_service_core.dir/repositories/notegres_repository_stub.cpp.o -c /workspaces/Sonet/sonet/src/services/media_service/repositories/notegres_repository_stub.cpp
 
 src/services/media_service/CMakeFiles/media_service_core.dir/repositories/notegres_repository_stub.cpp.i: cmake_force
@@ -156,7 +169,7 @@ src/services/media_service/CMakeFiles/media_service_core.dir/repositories/notegr
 src/services/media_service/CMakeFiles/media_service_core.dir/repositories/postgres_repository.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/flags.make
 src/services/media_service/CMakeFiles/media_service_core.dir/repositories/postgres_repository.cpp.o: /workspaces/Sonet/sonet/src/services/media_service/repositories/postgres_repository.cpp
 src/services/media_service/CMakeFiles/media_service_core.dir/repositories/postgres_repository.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/repositories/postgres_repository.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/repositories/postgres_repository.cpp.o"
 	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT src/services/media_service/CMakeFiles/media_service_core.dir/repositories/postgres_repository.cpp.o -MF CMakeFiles/media_service_core.dir/repositories/postgres_repository.cpp.o.d -o CMakeFiles/media_service_core.dir/repositories/postgres_repository.cpp.o -c /workspaces/Sonet/sonet/src/services/media_service/repositories/postgres_repository.cpp
 
 src/services/media_service/CMakeFiles/media_service_core.dir/repositories/postgres_repository.cpp.i: cmake_force
@@ -170,7 +183,7 @@ src/services/media_service/CMakeFiles/media_service_core.dir/repositories/postgr
 src/services/media_service/CMakeFiles/media_service_core.dir/service.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/flags.make
 src/services/media_service/CMakeFiles/media_service_core.dir/service.cpp.o: /workspaces/Sonet/sonet/src/services/media_service/service.cpp
 src/services/media_service/CMakeFiles/media_service_core.dir/service.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/service.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/service.cpp.o"
 	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT src/services/media_service/CMakeFiles/media_service_core.dir/service.cpp.o -MF CMakeFiles/media_service_core.dir/service.cpp.o.d -o CMakeFiles/media_service_core.dir/service.cpp.o -c /workspaces/Sonet/sonet/src/services/media_service/service.cpp
 
 src/services/media_service/CMakeFiles/media_service_core.dir/service.cpp.i: cmake_force
@@ -184,7 +197,7 @@ src/services/media_service/CMakeFiles/media_service_core.dir/service.cpp.s: cmak
 src/services/media_service/CMakeFiles/media_service_core.dir/storage/local_storage.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/flags.make
 src/services/media_service/CMakeFiles/media_service_core.dir/storage/local_storage.cpp.o: /workspaces/Sonet/sonet/src/services/media_service/storage/local_storage.cpp
 src/services/media_service/CMakeFiles/media_service_core.dir/storage/local_storage.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/storage/local_storage.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/storage/local_storage.cpp.o"
 	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT src/services/media_service/CMakeFiles/media_service_core.dir/storage/local_storage.cpp.o -MF CMakeFiles/media_service_core.dir/storage/local_storage.cpp.o.d -o CMakeFiles/media_service_core.dir/storage/local_storage.cpp.o -c /workspaces/Sonet/sonet/src/services/media_service/storage/local_storage.cpp
 
 src/services/media_service/CMakeFiles/media_service_core.dir/storage/local_storage.cpp.i: cmake_force
@@ -198,7 +211,7 @@ src/services/media_service/CMakeFiles/media_service_core.dir/storage/local_stora
 src/services/media_service/CMakeFiles/media_service_core.dir/storage/s3_storage.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/flags.make
 src/services/media_service/CMakeFiles/media_service_core.dir/storage/s3_storage.cpp.o: /workspaces/Sonet/sonet/src/services/media_service/storage/s3_storage.cpp
 src/services/media_service/CMakeFiles/media_service_core.dir/storage/s3_storage.cpp.o: src/services/media_service/CMakeFiles/media_service_core.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/storage/s3_storage.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/storage/s3_storage.cpp.o"
 	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT src/services/media_service/CMakeFiles/media_service_core.dir/storage/s3_storage.cpp.o -MF CMakeFiles/media_service_core.dir/storage/s3_storage.cpp.o.d -o CMakeFiles/media_service_core.dir/storage/s3_storage.cpp.o -c /workspaces/Sonet/sonet/src/services/media_service/storage/s3_storage.cpp
 
 src/services/media_service/CMakeFiles/media_service_core.dir/storage/s3_storage.cpp.i: cmake_force
@@ -208,6 +221,34 @@ src/services/media_service/CMakeFiles/media_service_core.dir/storage/s3_storage.
 src/services/media_service/CMakeFiles/media_service_core.dir/storage/s3_storage.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/media_service_core.dir/storage/s3_storage.cpp.s"
 	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /workspaces/Sonet/sonet/src/services/media_service/storage/s3_storage.cpp -o CMakeFiles/media_service_core.dir/storage/s3_storage.cpp.s
+
+src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.pb.cc.o: src/services/media_service/CMakeFiles/media_service_core.dir/flags.make
+src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.pb.cc.o: src/services/media_service/generated/services/media.pb.cc
+src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.pb.cc.o: src/services/media_service/CMakeFiles/media_service_core.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.pb.cc.o"
+	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.pb.cc.o -MF CMakeFiles/media_service_core.dir/generated/services/media.pb.cc.o.d -o CMakeFiles/media_service_core.dir/generated/services/media.pb.cc.o -c /workspaces/Sonet/sonet/build-cpp/src/services/media_service/generated/services/media.pb.cc
+
+src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.pb.cc.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/media_service_core.dir/generated/services/media.pb.cc.i"
+	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /workspaces/Sonet/sonet/build-cpp/src/services/media_service/generated/services/media.pb.cc > CMakeFiles/media_service_core.dir/generated/services/media.pb.cc.i
+
+src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.pb.cc.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/media_service_core.dir/generated/services/media.pb.cc.s"
+	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /workspaces/Sonet/sonet/build-cpp/src/services/media_service/generated/services/media.pb.cc -o CMakeFiles/media_service_core.dir/generated/services/media.pb.cc.s
+
+src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.grpc.pb.cc.o: src/services/media_service/CMakeFiles/media_service_core.dir/flags.make
+src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.grpc.pb.cc.o: src/services/media_service/generated/services/media.grpc.pb.cc
+src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.grpc.pb.cc.o: src/services/media_service/CMakeFiles/media_service_core.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.grpc.pb.cc.o"
+	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.grpc.pb.cc.o -MF CMakeFiles/media_service_core.dir/generated/services/media.grpc.pb.cc.o.d -o CMakeFiles/media_service_core.dir/generated/services/media.grpc.pb.cc.o -c /workspaces/Sonet/sonet/build-cpp/src/services/media_service/generated/services/media.grpc.pb.cc
+
+src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.grpc.pb.cc.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/media_service_core.dir/generated/services/media.grpc.pb.cc.i"
+	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /workspaces/Sonet/sonet/build-cpp/src/services/media_service/generated/services/media.grpc.pb.cc > CMakeFiles/media_service_core.dir/generated/services/media.grpc.pb.cc.i
+
+src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.grpc.pb.cc.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/media_service_core.dir/generated/services/media.grpc.pb.cc.s"
+	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /workspaces/Sonet/sonet/build-cpp/src/services/media_service/generated/services/media.grpc.pb.cc -o CMakeFiles/media_service_core.dir/generated/services/media.grpc.pb.cc.s
 
 # Object files for target media_service_core
 media_service_core_OBJECTS = \
@@ -220,7 +261,9 @@ media_service_core_OBJECTS = \
 "CMakeFiles/media_service_core.dir/repositories/postgres_repository.cpp.o" \
 "CMakeFiles/media_service_core.dir/service.cpp.o" \
 "CMakeFiles/media_service_core.dir/storage/local_storage.cpp.o" \
-"CMakeFiles/media_service_core.dir/storage/s3_storage.cpp.o"
+"CMakeFiles/media_service_core.dir/storage/s3_storage.cpp.o" \
+"CMakeFiles/media_service_core.dir/generated/services/media.pb.cc.o" \
+"CMakeFiles/media_service_core.dir/generated/services/media.grpc.pb.cc.o"
 
 # External object files for target media_service_core
 media_service_core_EXTERNAL_OBJECTS =
@@ -235,9 +278,11 @@ src/services/media_service/libmedia_service_core.a: src/services/media_service/C
 src/services/media_service/libmedia_service_core.a: src/services/media_service/CMakeFiles/media_service_core.dir/service.cpp.o
 src/services/media_service/libmedia_service_core.a: src/services/media_service/CMakeFiles/media_service_core.dir/storage/local_storage.cpp.o
 src/services/media_service/libmedia_service_core.a: src/services/media_service/CMakeFiles/media_service_core.dir/storage/s3_storage.cpp.o
+src/services/media_service/libmedia_service_core.a: src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.pb.cc.o
+src/services/media_service/libmedia_service_core.a: src/services/media_service/CMakeFiles/media_service_core.dir/generated/services/media.grpc.pb.cc.o
 src/services/media_service/libmedia_service_core.a: src/services/media_service/CMakeFiles/media_service_core.dir/build.make
 src/services/media_service/libmedia_service_core.a: src/services/media_service/CMakeFiles/media_service_core.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Linking CXX static library libmedia_service_core.a"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Linking CXX static library libmedia_service_core.a"
 	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && $(CMAKE_COMMAND) -P CMakeFiles/media_service_core.dir/cmake_clean_target.cmake
 	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/media_service_core.dir/link.txt --verbose=$(VERBOSE)
 
@@ -249,7 +294,10 @@ src/services/media_service/CMakeFiles/media_service_core.dir/clean:
 	cd /workspaces/Sonet/sonet/build-cpp/src/services/media_service && $(CMAKE_COMMAND) -P CMakeFiles/media_service_core.dir/cmake_clean.cmake
 .PHONY : src/services/media_service/CMakeFiles/media_service_core.dir/clean
 
-src/services/media_service/CMakeFiles/media_service_core.dir/depend:
+src/services/media_service/CMakeFiles/media_service_core.dir/depend: src/services/media_service/generated/services/media.grpc.pb.cc
+src/services/media_service/CMakeFiles/media_service_core.dir/depend: src/services/media_service/generated/services/media.grpc.pb.h
+src/services/media_service/CMakeFiles/media_service_core.dir/depend: src/services/media_service/generated/services/media.pb.cc
+src/services/media_service/CMakeFiles/media_service_core.dir/depend: src/services/media_service/generated/services/media.pb.h
 	cd /workspaces/Sonet/sonet/build-cpp && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /workspaces/Sonet/sonet /workspaces/Sonet/sonet/src/services/media_service /workspaces/Sonet/sonet/build-cpp /workspaces/Sonet/sonet/build-cpp/src/services/media_service /workspaces/Sonet/sonet/build-cpp/src/services/media_service/CMakeFiles/media_service_core.dir/DependInfo.cmake "--color=$(COLOR)"
 .PHONY : src/services/media_service/CMakeFiles/media_service_core.dir/depend
 

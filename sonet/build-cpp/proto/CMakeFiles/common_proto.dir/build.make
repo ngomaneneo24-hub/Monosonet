@@ -71,7 +71,7 @@ include proto/CMakeFiles/common_proto.dir/flags.make
 
 proto/generated/timestamp.pb.cc: /workspaces/Sonet/sonet/proto/common/timestamp.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Running gRPC C++ protocol buffer compiler on common/timestamp.proto"
-	cd /workspaces/Sonet/sonet/build-cpp/proto && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/proto/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/proto/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=\"/usr/local/bin/grpc_cpp_plugin\" /workspaces/Sonet/sonet/proto/common/timestamp.proto
+	cd /workspaces/Sonet/sonet/build-cpp/proto && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/proto/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/proto/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=\"/usr/bin/grpc_cpp_plugin\" /workspaces/Sonet/sonet/proto/common/timestamp.proto
 
 proto/generated/timestamp.pb.h: proto/generated/timestamp.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate proto/generated/timestamp.pb.h
@@ -84,7 +84,7 @@ proto/generated/timestamp.grpc.pb.h: proto/generated/timestamp.pb.cc
 
 proto/generated/pagination.pb.cc: /workspaces/Sonet/sonet/proto/common/pagination.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Running gRPC C++ protocol buffer compiler on common/pagination.proto"
-	cd /workspaces/Sonet/sonet/build-cpp/proto && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/proto/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/proto/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=\"/usr/local/bin/grpc_cpp_plugin\" /workspaces/Sonet/sonet/proto/common/pagination.proto
+	cd /workspaces/Sonet/sonet/build-cpp/proto && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/proto/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/proto/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=\"/usr/bin/grpc_cpp_plugin\" /workspaces/Sonet/sonet/proto/common/pagination.proto
 
 proto/generated/pagination.pb.h: proto/generated/pagination.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate proto/generated/pagination.pb.h

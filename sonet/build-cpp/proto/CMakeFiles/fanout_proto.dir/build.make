@@ -71,7 +71,7 @@ include proto/CMakeFiles/fanout_proto.dir/flags.make
 
 proto/generated/fanout.pb.cc: /workspaces/Sonet/sonet/proto/services/fanout.proto
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir=/workspaces/Sonet/sonet/build-cpp/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Running gRPC C++ protocol buffer compiler on services/fanout.proto"
-	cd /workspaces/Sonet/sonet/build-cpp/proto && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/proto/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/proto/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=\"/usr/local/bin/grpc_cpp_plugin\" /workspaces/Sonet/sonet/proto/services/fanout.proto
+	cd /workspaces/Sonet/sonet/build-cpp/proto && /usr/bin/protoc --grpc_out /workspaces/Sonet/sonet/build-cpp/proto/generated --cpp_out /workspaces/Sonet/sonet/build-cpp/proto/generated -I /workspaces/Sonet/sonet/proto --plugin=protoc-gen-grpc=\"/usr/bin/grpc_cpp_plugin\" /workspaces/Sonet/sonet/proto/services/fanout.proto
 
 proto/generated/fanout.pb.h: proto/generated/fanout.pb.cc
 	@$(CMAKE_COMMAND) -E touch_nocreate proto/generated/fanout.pb.h
