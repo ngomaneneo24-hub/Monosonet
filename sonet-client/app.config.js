@@ -37,6 +37,7 @@ module.exports = function (_config) {
       slug: 'sonet',
       scheme: 'sonet',
       owner: 'entativa',
+  platforms: ['ios', 'android', 'web'],
       runtimeVersion: {
         policy: 'appVersion',
       },
@@ -171,6 +172,7 @@ module.exports = function (_config) {
       },
       web: {
         favicon: './assets/favicon.png',
+        bundler: 'metro',
       },
       updates: {
         url: 'https://updates.bsky.app/manifest',
