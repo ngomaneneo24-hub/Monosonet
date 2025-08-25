@@ -26,14 +26,14 @@ export function registerVideoFeedRoutes(router, clients) {
                 app_version: req.get('X-App-Version') || '1.0.0'
             };
             // Call gRPC service
-            const response = await clients.videoFeed.getVideoFeed(request);
+            const response = await clients.videoFeed?.getVideoFeed(request);
             res.json(response);
         }
         catch (error) {
             console.error('Video feed error:', error);
             res.status(500).json({
                 error: 'Failed to get video feed',
-                message: error.message
+                message: error?.message
             });
         }
     });
@@ -49,14 +49,14 @@ export function registerVideoFeedRoutes(router, clients) {
             const request = req.body;
             request.user_id = userId;
             // Call gRPC service
-            const response = await clients.videoFeed.getPersonalizedFeed(request);
+            const response = await clients.videoFeed?.getPersonalizedFeed(request);
             res.json(response);
         }
         catch (error) {
             console.error('Personalized feed error:', error);
             res.status(500).json({
                 error: 'Failed to get personalized feed',
-                message: error.message
+                message: error?.message
             });
         }
     });
@@ -82,14 +82,14 @@ export function registerVideoFeedRoutes(router, clients) {
                 app_version: req.get('X-App-Version') || '1.0.0'
             };
             // Call gRPC service
-            const response = await clients.videoFeed.trackEngagement(event);
+            const response = await clients.videoFeed?.trackEngagement(event);
             res.json(response);
         }
         catch (error) {
             console.error('Engagement tracking error:', error);
             res.status(500).json({
                 error: 'Failed to track engagement',
-                message: error.message
+                message: error?.message
             });
         }
     });
@@ -105,14 +105,14 @@ export function registerVideoFeedRoutes(router, clients) {
             const request = req.body;
             request.user_id = userId;
             // Call gRPC service
-            const response = await clients.videoFeed.getFeedInsights(request);
+            const response = await clients.videoFeed?.getFeedInsights(request);
             res.json(response);
         }
         catch (error) {
             console.error('Feed insights error:', error);
             res.status(500).json({
                 error: 'Failed to get feed insights',
-                message: error.message
+                message: error?.message
             });
         }
     });
@@ -130,14 +130,14 @@ export function registerVideoFeedRoutes(router, clients) {
                 creator_id: creatorId
             };
             // Call gRPC service
-            const response = await clients.videoFeed.getVideoFeed(request);
+            const response = await clients.videoFeed?.getVideoFeed(request);
             res.json(response);
         }
         catch (error) {
             console.error('Creator videos error:', error);
             res.status(500).json({
                 error: 'Failed to get creator videos',
-                message: error.message
+                message: error?.message
             });
         }
     });
@@ -160,14 +160,14 @@ export function registerVideoFeedRoutes(router, clients) {
                 search_query: query
             };
             // Call gRPC service
-            const response = await clients.videoFeed.getVideoFeed(request);
+            const response = await clients.videoFeed?.getVideoFeed(request);
             res.json(response);
         }
         catch (error) {
             console.error('Video search error:', error);
             res.status(500).json({
                 error: 'Failed to search videos',
-                message: error.message
+                message: error?.message
             });
         }
     });
@@ -184,14 +184,14 @@ export function registerVideoFeedRoutes(router, clients) {
                 reference_video_id: videoId
             };
             // Call gRPC service
-            const response = await clients.videoFeed.getVideoFeed(request);
+            const response = await clients.videoFeed?.getVideoFeed(request);
             res.json(response);
         }
         catch (error) {
             console.error('Similar videos error:', error);
             res.status(500).json({
                 error: 'Failed to get similar videos',
-                message: error.message
+                message: error?.message
             });
         }
     });
@@ -201,7 +201,7 @@ export function registerVideoFeedRoutes(router, clients) {
             const { videoId } = req.params;
             const timeWindow = req.query.time_window || '30d';
             // Call gRPC service for analytics
-            const response = await clients.videoFeed.getVideoAnalytics({
+            const response = await clients.videoFeed?.getVideoAnalytics({
                 video_id: videoId,
                 time_window: timeWindow
             });
@@ -211,7 +211,7 @@ export function registerVideoFeedRoutes(router, clients) {
             console.error('Video analytics error:', error);
             res.status(500).json({
                 error: 'Failed to get video analytics',
-                message: error.message
+                message: error?.message
             });
         }
     });
@@ -228,7 +228,7 @@ export function registerVideoFeedRoutes(router, clients) {
                 });
             }
             // Call gRPC service for recommendations
-            const response = await clients.videoFeed.getVideoRecommendations({
+            const response = await clients.videoFeed?.getVideoRecommendations({
                 user_id: userId,
                 limit
             });
@@ -238,7 +238,7 @@ export function registerVideoFeedRoutes(router, clients) {
             console.error('Video recommendations error:', error);
             res.status(500).json({
                 error: 'Failed to get video recommendations',
-                message: error.message
+                message: error?.message
             });
         }
     });
@@ -246,7 +246,7 @@ export function registerVideoFeedRoutes(router, clients) {
     router.get('/v1/video-feed/health', async (req, res) => {
         try {
             // Call gRPC service health check
-            const response = await clients.videoFeed.healthCheck({
+            const response = await clients.videoFeed?.healthCheck({
                 service: 'video_feed'
             });
             res.json(response);
@@ -255,7 +255,7 @@ export function registerVideoFeedRoutes(router, clients) {
             console.error('Video feed health check error:', error);
             res.status(500).json({
                 error: 'Video feed service unhealthy',
-                message: error.message
+                message: error?.message
             });
         }
     });
@@ -272,14 +272,14 @@ export function registerVideoFeedRoutes(router, clients) {
                 time_window: timeWindow
             };
             // Call gRPC service
-            const response = await clients.videoFeed.getVideoFeed(request);
+            const response = await clients.videoFeed?.getVideoFeed(request);
             res.json(response);
         }
         catch (error) {
             console.error('Trending videos error:', error);
             res.status(500).json({
                 error: 'Failed to get trending videos',
-                message: error.message
+                message: error?.message
             });
         }
     });
@@ -297,14 +297,14 @@ export function registerVideoFeedRoutes(router, clients) {
                 categories: [category]
             };
             // Call gRPC service
-            const response = await clients.videoFeed.getVideoFeed(request);
+            const response = await clients.videoFeed?.getVideoFeed(request);
             res.json(response);
         }
         catch (error) {
             console.error('Category videos error:', error);
             res.status(500).json({
                 error: 'Failed to get category videos',
-                message: error.message
+                message: error?.message
             });
         }
     });
@@ -339,11 +339,11 @@ export function registerVideoFeedRoutes(router, clients) {
                         app_version: req.get('X-App-Version') || '1.0.0'
                     };
                     // Call gRPC service
-                    const response = await clients.videoFeed.trackEngagement(event);
+                    const response = await clients.videoFeed?.trackEngagement(event);
                     results.push({ success: true, event_id: event.video_id, response });
                 }
                 catch (error) {
-                    results.push({ success: false, event_id: event.video_id, error: error.message });
+                    results.push({ success: false, event_id: event.video_id, error: error?.message });
                 }
             }
             res.json({
@@ -357,7 +357,7 @@ export function registerVideoFeedRoutes(router, clients) {
             console.error('Batch engagement error:', error);
             res.status(500).json({
                 error: 'Failed to process batch engagement',
-                message: error.message
+                message: error?.message
             });
         }
     });
@@ -367,7 +367,7 @@ export function registerVideoFeedRoutes(router, clients) {
             const userId = userIdFromAuth(req);
             const timeWindow = req.query.time_window || '24h';
             // Get performance metrics from the service
-            const metrics = await clients.videoFeed.getPerformanceMetrics({
+            const metrics = await clients.videoFeed?.getPerformanceMetrics({
                 user_id: userId,
                 time_window: timeWindow
             });
@@ -377,7 +377,7 @@ export function registerVideoFeedRoutes(router, clients) {
             console.error('Performance metrics error:', error);
             res.status(500).json({
                 error: 'Failed to get performance metrics',
-                message: error.message
+                message: error?.message
             });
         }
     });

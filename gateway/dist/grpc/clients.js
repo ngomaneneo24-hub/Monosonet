@@ -47,6 +47,10 @@ export function createGrpcClients() {
     const listPackage = listPkgDef['sonet.list.v1'];
     const starterpackPackage = starterpackPkgDef['sonet.starterpack.v1'];
     const draftsPackage = draftsPkgDef['sonet.drafts.v1'];
+    const videoFeedPkgDef = loadProto('services/video_feed.proto');
+    const analyticsPkgDef = loadProto('services/analytics.proto');
+    const videoFeedPackage = videoFeedPkgDef?.['sonet.services'] || videoFeedPkgDef?.['sonet.video'] || {};
+    const analyticsPackage = analyticsPkgDef?.['sonet.analytics'] || {};
     const user = new userPackage.UserService(userTarget, credentials.createInsecure());
     const note = new notePackage.NoteService(noteTarget, credentials.createInsecure());
     const timeline = new timelinePackage.TimelineService(timelineTarget, credentials.createInsecure());
@@ -58,5 +62,20 @@ export function createGrpcClients() {
     const list = new listPackage.ListService(listTarget, credentials.createInsecure());
     const starterpack = new starterpackPackage.StarterpackService(starterpackTarget, credentials.createInsecure());
     const drafts = new draftsPackage.DraftsService(draftsTarget, credentials.createInsecure());
-    return { user, note, timeline, media, follow, messaging, search, notification, list, starterpack, drafts };
+    // Optional services
+    let videoFeed = undefined;
+    try {
+        const VideoFeedCtor = videoFeedPackage?.VideoFeedService || videoFeedPackage?.VideoFeedService || null;
+        if (VideoFeedCtor)
+            videoFeed = new VideoFeedCtor(process.env.VIDEO_FEED_GRPC_ADDR || 'video-feed-service:9090', credentials.createInsecure());
+    }
+    catch { }
+    let analytics = undefined;
+    try {
+        const AnalyticsCtor = analyticsPackage?.AnalyticsService || null;
+        if (AnalyticsCtor)
+            analytics = new AnalyticsCtor(process.env.ANALYTICS_GRPC_ADDR || 'analytics-service:9097', credentials.createInsecure());
+    }
+    catch { }
+    return { user, note, timeline, media, follow, messaging, search, notification, list, starterpack, drafts, videoFeed, analytics };
 }

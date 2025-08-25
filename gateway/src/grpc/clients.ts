@@ -40,6 +40,8 @@ export type GrpcClients = {
   list: any;
   starterpack: any;
   drafts: any;
+  videoFeed?: any;
+  analytics?: any;
 };
 
 export function createGrpcClients(): GrpcClients {
@@ -82,15 +84,17 @@ export function createGrpcClients(): GrpcClients {
   const list: Client = new listPackage.ListService(listTarget, credentials.createInsecure());
   const starterpack: Client = new starterpackPackage.StarterpackService(starterpackTarget, credentials.createInsecure());
   const drafts: Client = new draftsPackage.DraftsService(draftsTarget, credentials.createInsecure());
-
-  return { user, note, timeline, media, follow, messaging, search, notification, list, starterpack, drafts };
   // Optional services
   let videoFeed: Client | undefined = undefined;
   try {
-    videoFeed = new (videoFeedPackage?.VideoFeedService || videoFeedPackage?.VideoFeedService || (() => {}))(process.env.VIDEO_FEED_GRPC_ADDR || 'video-feed-service:9090', credentials.createInsecure());
+    const VideoFeedCtor = videoFeedPackage?.VideoFeedService || videoFeedPackage?.VideoFeedService || null;
+    if (VideoFeedCtor) videoFeed = new VideoFeedCtor(process.env.VIDEO_FEED_GRPC_ADDR || 'video-feed-service:9090', credentials.createInsecure());
   } catch {}
   let analytics: Client | undefined = undefined;
   try {
-    analytics = new (analyticsPackage?.AnalyticsService || (() => {}))(process.env.ANALYTICS_GRPC_ADDR || 'analytics-service:9097', credentials.createInsecure());
+    const AnalyticsCtor = analyticsPackage?.AnalyticsService || null;
+    if (AnalyticsCtor) analytics = new AnalyticsCtor(process.env.ANALYTICS_GRPC_ADDR || 'analytics-service:9097', credentials.createInsecure());
   } catch {}
+
+  return { user, note, timeline, media, follow, messaging, search, notification, list, starterpack, drafts, videoFeed, analytics };
 }

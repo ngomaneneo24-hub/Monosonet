@@ -56,7 +56,7 @@ export function registerMessagingRoutes(router, clients) {
     const MESSAGING_HTTP_BASE = process.env.MESSAGING_HTTP_BASE || 'http://messaging-service:8086';
     router.get('/messaging/chats', verifyJwt, async (req, res) => {
         try {
-            const url = `${MESSAGING_HTTP_BASE}/api/v1/chats?user_id=${encodeURIComponent(req.userId)}`;
+            const url = `${MESSAGING_HTTP_BASE}/api/v1/chats?user_id=${encodeURIComponent(String(req.userId || ''))}`;
             const r = await fetch(url, { headers: { Authorization: req.headers.authorization || '' } });
             const j = await r.json().catch(() => ({}));
             if (!r.ok)
@@ -70,7 +70,7 @@ export function registerMessagingRoutes(router, clients) {
     router.get('/messaging/chats/:chatId', verifyJwt, async (req, res) => {
         try {
             // Fallback approach: fetch chats and filter client-side
-            const url = `${MESSAGING_HTTP_BASE}/api/v1/chats?user_id=${encodeURIComponent(req.userId)}`;
+            const url = `${MESSAGING_HTTP_BASE}/api/v1/chats?user_id=${encodeURIComponent(String(req.userId || ''))}`;
             const r = await fetch(url, { headers: { Authorization: req.headers.authorization || '' } });
             const j = await r.json().catch(() => ({}));
             if (!r.ok)
