@@ -15,7 +15,7 @@ export function verifyJwt(req: AuthenticatedRequest, res: Response, next: NextFu
   if (!m) return res.status(401).json({ ok: false, message: 'Invalid Authorization header' });
   const token = m[1];
   try {
-    const payload: any = jwt.verify(token, JWT_SECRET);
+  const payload: any = jwt.verify(token, JWT_SECRET as string);
     req.userId = payload.sub || payload.user_id || payload.uid;
     if (!req.userId) return res.status(401).json({ ok: false, message: 'Invalid token payload' });
     return next();

@@ -11,7 +11,7 @@ if (!JWT_SECRET) {
 
 function getUserIdFromToken(token: string): string | null {
 	try {
-		const payload: any = jwt.verify(token, JWT_SECRET)
+		const payload: any = jwt.verify(token, JWT_SECRET as string)
 		return payload.sub || payload.user_id || payload.uid || null
 	} catch {
 		return null

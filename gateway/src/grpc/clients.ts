@@ -66,6 +66,10 @@ export function createGrpcClients(): GrpcClients {
   const listPackage: any = listPkgDef['sonet.list.v1'];
   const starterpackPackage: any = starterpackPkgDef['sonet.starterpack.v1'];
   const draftsPackage: any = draftsPkgDef['sonet.drafts.v1'];
+  const videoFeedPkgDef = loadProto('services/video_feed.proto');
+  const analyticsPkgDef = loadProto('services/analytics.proto');
+  const videoFeedPackage: any = videoFeedPkgDef?.['sonet.services'] || videoFeedPkgDef?.['sonet.video'] || {};
+  const analyticsPackage: any = analyticsPkgDef?.['sonet.analytics'] || {};
 
   const user: Client = new userPackage.UserService(userTarget, credentials.createInsecure());
   const note: Client = new notePackage.NoteService(noteTarget, credentials.createInsecure());
@@ -80,4 +84,13 @@ export function createGrpcClients(): GrpcClients {
   const drafts: Client = new draftsPackage.DraftsService(draftsTarget, credentials.createInsecure());
 
   return { user, note, timeline, media, follow, messaging, search, notification, list, starterpack, drafts };
+  // Optional services
+  let videoFeed: Client | undefined = undefined;
+  try {
+    videoFeed = new (videoFeedPackage?.VideoFeedService || videoFeedPackage?.VideoFeedService || (() => {}))(process.env.VIDEO_FEED_GRPC_ADDR || 'video-feed-service:9090', credentials.createInsecure());
+  } catch {}
+  let analytics: Client | undefined = undefined;
+  try {
+    analytics = new (analyticsPackage?.AnalyticsService || (() => {}))(process.env.ANALYTICS_GRPC_ADDR || 'analytics-service:9097', credentials.createInsecure());
+  } catch {}
 }
