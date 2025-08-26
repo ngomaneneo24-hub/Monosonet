@@ -12,6 +12,7 @@ use tower::timeout::TimeoutLayer;
 use moderation::config::AppConfig;
 use moderation::storage::db::Datastores;
 use axum_prometheus::PrometheusMetricLayer;
+use moderation::api::middleware::RateLimitLayer;
 
 async fn shutdown_signal() {
 	let ctrl_c = async {
@@ -54,6 +55,7 @@ async fn main() {
 		.layer(ConcurrencyLimitLayer::new(8192))
 		.layer(TraceLayer::new_for_http())
 		.layer(prom_layer)
+		.layer(RateLimitLayer { redis: state.redis.clone(), window: Duration::from_secs(1), limit: 2000 })
 		.route("/metrics", axum::routing::get(move || async move { metric_handle.render() }))
 		.with_state(state);
 
