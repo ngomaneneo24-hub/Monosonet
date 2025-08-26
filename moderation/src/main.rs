@@ -6,6 +6,7 @@ use moderation::core::{
     signals::{SignalProcessor, SignalProcessorConfig},
     observability::{MetricsCollector, MetricsConfig},
     reports::ReportManager,
+    compliance::ComplianceManager,
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use std::net::SocketAddr;
@@ -139,6 +140,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ));
     tracing::info!("Production classifier initialized");
 
+    // Initialize compliance manager
+    let compliance_manager = Arc::new(ComplianceManager::new(crate::core::compliance::ComplianceConfig::default()));
+    tracing::info!("Compliance manager initialized");
+
     // Connect to datastores
     let datastores = Datastores::connect(&cfg.database_url, &cfg.redis_url).await.expect("datastores connect failed");
     let state = Arc::new(datastores);
@@ -151,6 +156,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         signal_processor,
         report_manager,
         metrics,
+        compliance_manager,
         config: cfg.clone(),
         datastores: state.clone(),
     });
@@ -164,7 +170,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create HTTP router with enhanced middleware
     let (prom_layer, metric_handle) = PrometheusMetricLayer::pair();
     let base: Router = create_router();
+    let compliance_router = moderation::api::compliance::create_compliance_router();
     let app = base
+        .merge(compliance_router)
         .layer(CompressionLayer::new())
         .layer(DecompressionLayer::new())
         .layer(TimeoutLayer::new(cfg.pipeline_timeout))
@@ -290,6 +298,7 @@ pub struct AppState {
     pub signal_processor: Arc<SignalProcessor>,
     pub report_manager: Arc<ReportManager>,
     pub metrics: Arc<MetricsCollector>,
+    pub compliance_manager: Arc<ComplianceManager>,
     pub config: AppConfig,
     pub datastores: Arc<Datastores>,
 }
