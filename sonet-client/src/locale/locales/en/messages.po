@@ -1868,6 +1868,81 @@ msgstr ""
 
 msgid "Passphrase Analysis:"
 msgstr ""
+
+msgid "Mobile Passphrase Field Demo"
+msgstr ""
+
+msgid "Test how passphrase fields handle long text on mobile devices. Try typing long passphrases to see how they expand vertically!"
+msgstr ""
+
+msgid "Short Passphrase (Single Line)"
+msgstr ""
+
+msgid "Short Passphrase"
+msgstr ""
+
+msgid "Try: \"correct horse battery staple\""
+msgstr ""
+
+msgid "Enter a short passphrase to test single line behavior"
+msgstr ""
+
+msgid "Medium Passphrase (2 Lines)"
+msgstr ""
+
+msgid "Medium Passphrase"
+msgstr ""
+
+msgid "Try: \"my favorite coffee shop downtown near the park\""
+msgstr ""
+
+msgid "Enter a medium passphrase to test two line behavior"
+msgstr ""
+
+msgid "Long Passphrase (3+ Lines)"
+msgstr ""
+
+msgid "Long Passphrase"
+msgstr ""
+
+msgid "Try: \"purple elephant dancing in moonlight while eating chocolate ice cream under the stars\""
+msgstr ""
+
+msgid "Enter a long passphrase to test multi-line expansion"
+msgstr ""
+
+msgid "Mobile Layout Features:"
+msgstr ""
+
+msgid "Fields expand vertically as you type"
+msgstr ""
+
+msgid "No text overlapping or cutoff"
+msgstr ""
+
+msgid "Proper text wrapping on small screens"
+msgstr ""
+
+msgid "Minimum height ensures consistent layout"
+msgstr ""
+
+msgid "Toggle button stays properly positioned"
+msgstr ""
+
+msgid "Test Instructions:"
+msgstr ""
+
+msgid "1. Type a short passphrase in the first field - it should stay single line"
+msgstr ""
+
+msgid "2. Type a medium passphrase in the second field - it should expand to 2 lines"
+msgstr ""
+
+msgid "3. Type a very long passphrase in the third field - it should expand to 3+ lines"
+msgstr ""
+
+msgid "4. Notice how the fields maintain proper spacing and don't overlap"
+msgstr ""
 msgstr ""
 
 #: src/screens/Signup/index.tsx:175

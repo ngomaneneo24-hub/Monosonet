@@ -20,8 +20,7 @@ import {Envelope_Stroke2_Corner0_Rounded as Envelope} from '#/components/icons/E
 import {Lock_Stroke2_Corner0_Rounded as Lock} from '#/components/icons/Lock'
 import {Ticket_Stroke2_Corner0_Rounded as Ticket} from '#/components/icons/Ticket'
 import {Loader} from '#/components/Loader'
-import {PassphraseStrengthMeter, calculatePassphraseStrength} from '#/components/forms/PassphraseStrengthMeter'
-import {PassphraseToggleButton} from '#/components/forms/PassphraseToggleButton'
+import {PassphraseInput} from '#/components/forms/PassphraseInput'
 import {BackNextButtons} from '../BackNextButtons'
 
 function sanitizeDate(date: Date): Date {
@@ -58,7 +57,6 @@ export function StepInfo({
   const birthdateInputRef = useRef<DateFieldRef>(null)
 
   const [hasWarnedEmail, setHasWarnedEmail] = React.useState<boolean>(false)
-  const [isPassphraseVisible, setIsPassphraseVisible] = React.useState<boolean>(true)
 
   const tldtsRef = React.useRef<typeof tldts>()
   React.useEffect(() => {
@@ -200,55 +198,27 @@ export function StepInfo({
                 />
               </TextField.Root>
             </View>
-            <View>
-              <TextField.LabelText>
-                <Trans>Passphrase</Trans>
-              </TextField.LabelText>
-              <TextField.Root isInvalid={state.errorField === 'password'}>
-                <TextField.Icon icon={Lock} />
-                <TextField.Input
-                  testID="passwordInput"
-                  inputRef={passwordInputRef}
-                  onChangeText={value => {
-                    passwordValueRef.current = value
-                    if (state.errorField === 'password' && value.length >= 20) {
-                      dispatch({type: 'clearError'})
-                    }
-                  }}
-                  label={_(msg`Choose your passphrase`)}
-                  defaultValue={state.password}
-                  secureTextEntry={!isPassphraseVisible}
-                  autoComplete="new-password"
-                  autoCapitalize="none"
-                  returnKeyType="next"
-                  submitBehavior={native('blurAndSubmit')}
-                  onSubmitEditing={native(() =>
-                    birthdateInputRef.current?.focus(),
-                  )}
-                  passwordRules="minlength: 20;"
-                />
-                <PassphraseToggleButton
-                  isVisible={isPassphraseVisible}
-                  onToggle={() => setIsPassphraseVisible(!isPassphraseVisible)}
-                  size="md"
-                />
-              </TextField.Root>
-              <Text style={[a.text_sm, t.atoms.text_contrast_medium, a.mt_sm, a.px_sm]}>
-                <Trans>
-                  A passphrase is 4 or more words that are easy to remember but hard to guess. 
-                  For example: "correct horse battery staple" or "my favorite coffee shop downtown"
-                </Trans>
-              </Text>
-              
-              {/* Passphrase Strength Meter */}
-              {state.password && (
-                <PassphraseStrengthMeter
-                  passphrase={state.password}
-                  strength={calculatePassphraseStrength(state.password)}
-                  showDetails={true}
-                />
-              )}
-            </View>
+            <PassphraseInput
+              label={_('Passphrase')}
+              value={state.password}
+              onChangeText={value => {
+                passwordValueRef.current = value
+                if (state.errorField === 'password' && value.length >= 20) {
+                  dispatch({type: 'clearError'})
+                }
+              }}
+              error={state.errorField === 'password' ? state.error : undefined}
+              showStrengthMeter={true}
+              showToggle={true}
+              multiline={true}
+              numberOfLines={3}
+              testID="passwordInput"
+              placeholder={_('Choose your passphrase')}
+              autoComplete="new-password"
+              returnKeyType="next"
+              onSubmitEditing={() => birthdateInputRef.current?.focus()}
+              accessibilityHint={_('Enter your passphrase for account creation')}
+            />
             <View>
               <DateField.LabelText>
                 <Trans>Your birth date</Trans>
