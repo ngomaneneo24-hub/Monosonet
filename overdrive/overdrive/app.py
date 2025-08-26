@@ -14,6 +14,7 @@ from .features.extractors import extract_user_features, extract_item_features
 from .services.user_interests import UserInterestsService
 from .services.enhanced_ranking_service import EnhancedOverdriveRankingService, UserSignal
 from .analytics.behavior_tracker import RealTimeBehaviorTracker
+from .psychology.dopamine_engine import DopamineEngine
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -40,6 +41,7 @@ enhanced_ranking_service = EnhancedOverdriveRankingService(
     redis_url=settings.redis_url
 )
 behavior_tracker = RealTimeBehaviorTracker(feature_store)
+dopamine_engine = DopamineEngine()
 
 start_time_monotonic = time.monotonic()
 
@@ -96,7 +98,10 @@ async def root():
             "Advanced collaborative filtering",
             "Real-time signal processing",
             "Deep learning embeddings",
-            "Adaptive recommendations"
+            "Adaptive recommendations",
+            "Multilingual NLP (100+ languages)",
+            "Video intelligence & action recognition",
+            "Psychological warfare & addiction engineering"
         ]
     }
 
@@ -112,7 +117,10 @@ async def health_check() -> HealthResponse:
         "Collaborative filtering (Matrix Factorization, LightFM, Implicit)",
         "Real-time signal processing",
         "Deep learning embeddings",
-        "Adaptive ranking"
+        "Adaptive ranking",
+        "Multilingual NLP (100+ languages)",
+        "Video intelligence & action recognition",
+        "Psychological warfare & addiction engineering"
     ]
     
     return HealthResponse(
@@ -275,7 +283,10 @@ async def rank_for_you_enhanced(request: RankingRequest, authorization: Optional
             "Real-time signal processing",
             "Deep learning embeddings",
             "Adaptive ranking",
-            "User behavior modeling"
+            "User behavior modeling",
+            "Multilingual NLP (100+ languages)",
+            "Video intelligence & action recognition",
+            "Psychological warfare & addiction engineering"
         ]
         
         return RankingResponse(
@@ -367,6 +378,130 @@ async def get_system_performance():
         raise HTTPException(status_code=500, detail="Internal server error")
 
 # Analytics Endpoints
+# Psychological Warfare Endpoints
+@app.post("/psychology/profile/create")
+async def create_psychological_profile(request: Dict[str, Any]):
+    """Create a psychological profile for a user."""
+    try:
+        user_id = request.get("user_id")
+        initial_data = request.get("initial_data", {})
+        
+        if not user_id:
+            raise HTTPException(status_code=400, detail="user_id is required")
+        
+        profile = await dopamine_engine.create_user_psychological_profile(user_id, initial_data)
+        
+        return {
+            "user_id": user_id,
+            "profile_created": True,
+            "dopamine_sensitivity": profile.dopamine_sensitivity,
+            "reward_threshold": profile.reward_threshold,
+            "addiction_potential": "high" if profile.dopamine_sensitivity > 0.7 else "medium" if profile.dopamine_sensitivity > 0.4 else "low"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error creating psychological profile: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.post("/psychology/dopamine/calculate")
+async def calculate_dopamine_potential(request: Dict[str, Any]):
+    """Calculate dopamine potential for content."""
+    try:
+        user_id = request.get("user_id")
+        content_id = request.get("content_id")
+        content_features = request.get("content_features", {})
+        
+        if not user_id or not content_id:
+            raise HTTPException(status_code=400, detail="user_id and content_id are required")
+        
+        potential = await dopamine_engine.calculate_dopamine_potential(user_id, content_id, content_features)
+        
+        return {
+            "user_id": user_id,
+            "content_id": content_id,
+            "dopamine_potential": potential,
+            "addiction_risk": "high" if potential > 0.8 else "medium" if potential > 0.6 else "low"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error calculating dopamine potential: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.post("/psychology/dopamine/hit")
+async def generate_dopamine_hit(request: Dict[str, Any]):
+    """Generate a dopamine hit for user interaction."""
+    try:
+        user_id = request.get("user_id")
+        content_id = request.get("content_id")
+        interaction_type = request.get("interaction_type")
+        
+        if not user_id or not content_id or not interaction_type:
+            raise HTTPException(status_code=400, detail="user_id, content_id, and interaction_type are required")
+        
+        hit = await dopamine_engine.generate_dopamine_hit(user_id, content_id, interaction_type)
+        
+        if hit:
+            return {
+                "hit_generated": True,
+                "hit_type": hit.hit_type,
+                "hit_strength": hit.hit_strength,
+                "engagement_level": hit.engagement_level,
+                "addiction_escalation": "active"
+            }
+        else:
+            return {
+                "hit_generated": False,
+                "reason": "User not eligible for dopamine hit",
+                "addiction_escalation": "stable"
+            }
+        
+    except Exception as e:
+        logger.error(f"Error generating dopamine hit: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/psychology/profile/{user_id}")
+async def get_psychological_profile(user_id: str):
+    """Get user's psychological profile."""
+    try:
+        if user_id not in dopamine_engine.user_profiles:
+            raise HTTPException(status_code=404, detail="Psychological profile not found")
+        
+        profile = dopamine_engine.user_profiles[user_id]
+        
+        return {
+            "user_id": user_id,
+            "dopamine_sensitivity": profile.dopamine_sensitivity,
+            "reward_threshold": profile.reward_threshold,
+            "attention_span": profile.attention_span,
+            "novelty_seeking": profile.novelty_seeking,
+            "social_validation_need": profile.social_validation_need,
+            "addiction_level": "high" if profile.dopamine_sensitivity > 0.7 else "medium" if profile.dopamine_sensitivity > 0.4 else "low"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting psychological profile: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/psychology/warfare/status")
+async def get_psychological_warfare_status():
+    """Get psychological warfare system status."""
+    try:
+        total_profiles = len(dopamine_engine.user_profiles)
+        total_hits = sum(len(hits) for hits in dopamine_engine.dopamine_history.values())
+        
+        return {
+            "system_status": "active",
+            "total_profiles": total_profiles,
+            "total_dopamine_hits": total_hits,
+            "addiction_optimization": "enabled",
+            "psychological_manipulation": "active",
+            "warning": "This system is designed to be psychologically addictive!"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting warfare status: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 @app.post("/analytics/session/start")
 async def start_session(request: Dict[str, Any]):
     """Start tracking a user session."""
@@ -489,6 +624,7 @@ async def metrics() -> str:
 async def shutdown_event():
     """Clean up resources on shutdown."""
     await enhanced_ranking_service.stop_services()
+    dopamine_engine.close()
 
 def run() -> None:
     """Run the FastAPI server."""
