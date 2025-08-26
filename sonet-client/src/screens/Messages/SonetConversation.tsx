@@ -21,6 +21,8 @@ import {SonetSystemMessage} from '#/components/dms/SonetSystemMessage'
 import {SonetTypingIndicator} from '#/components/dms/SonetTypingIndicator'
 import {SonetMessageSearch} from '#/components/dms/SonetMessageSearch'
 import {useSonetListConvos} from '#/state/queries/messages/sonet'
+import {sonetMessagingApi} from '#/services/sonetMessagingApi'
+import {sonetWebSocket} from '#/services/sonetWebSocket'
 
 type Props = NativeStackScreenProps<CommonNavigatorParams, 'SonetConversation'>
 
@@ -50,20 +52,41 @@ export function SonetConversationScreenInner({route}: Props) {
   // Get conversation data
   const {state: conversationsState, actions: conversationsActions} = useSonetListConvos()
   
+  // Typing indicators for current chat
+  const [typers, setTypers] = React.useState<string[]>([])
+  React.useEffect(() => {
+    const onTyping = (evt: any) => {
+      if (evt.chat_id !== conversationId) return
+      setTypers(prev => {
+        const name = evt.user_name || 'Someone'
+        if (evt.is_typing) {
+          if (prev.includes(name)) return prev
+          return [...prev, name]
+        } else {
+          return prev.filter(n => n !== name)
+        }
+      })
+    }
+    sonetWebSocket.on('typing', onTyping)
+    return () => {
+      sonetWebSocket.off('typing', onTyping)
+    }
+  }, [conversationId])
+  
   // Find current conversation
   const currentConversation = conversationsState.chats.find(chat => chat.id === conversationId)
   
   // Username sending message
-  const usernameSendMessage = useCallback(async (content: string, attachments?: any[]) => {
+  const usernameSendMessage = useCallback(async (content: string, attachments?: File[]) => {
     try {
-      // TODO: Implement actual message sending - placeholder for future implementation
-      console.log('Sending message:', {content, attachments, conversationId})
-      
-      // Simulate message sending
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Refresh conversations
-      conversationsActions.refreshChats()
+      await sonetMessagingApi.sendMessage({
+        chatId: conversationId,
+        content,
+        type: attachments && attachments.length > 0 ? 'file' : 'text',
+        encrypt: true,
+        attachments,
+      })
+      await conversationsActions.refreshChats()
     } catch (error) {
       console.error('Failed to send message:', error)
       Alert.alert(_('Error'), _('Failed to send message. Please try again.'))
@@ -77,10 +100,18 @@ export function SonetConversationScreenInner({route}: Props) {
   
   // Username search result press
   const usernameSearchResultPress = useCallback((result: any) => {
-    // TODO: Navigate to specific message - placeholder for future implementation
-    console.log('Search result pressed:', result)
+    // Expect result to contain messageId and maybe chatId
+    const messageId = result?.messageId || result?.id
+    if (messageId) {
+      // In a production implementation, we'd scroll a virtualized list and flash highlight.
+      // For now, navigate to same screen with param to hint focus; future: wire MessagesList ref.
+      navigation.navigate('SonetConversation' as any, {
+        conversation: conversationId,
+        highlight: messageId,
+      })
+    }
     setIsSearchOpen(false)
-  }, [])
+  }, [navigation, conversationId])
   
   // Refresh on focus
   useFocusEffect(
@@ -240,6 +271,11 @@ export function SonetConversationScreenInner({route}: Props) {
           <Layout.Header.TitleText>
             {currentConversation.title || _('Chat')}
           </Layout.Header.TitleText>
+          {typers.length > 0 && (
+            <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>
+              {typers.join(', ')} typing...
+            </Text>
+          )}
         </Layout.Header.Content>
         <Layout.Header.Right>
           <Layout.Header.Button

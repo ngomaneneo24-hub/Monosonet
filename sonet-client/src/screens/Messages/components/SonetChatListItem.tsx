@@ -12,6 +12,7 @@ import {Shield_Stroke2_Corner0_Rounded as ShieldIcon} from '#/components/icons/S
 import {Clock_Stroke2_Corner0_Rounded as ClockIcon} from '#/components/icons/Clock'
 import {Group3_Stroke2_Corner0_Rounded as GroupIcon} from '#/components/icons/Group'
 import type {SonetChat} from '#/services/sonetMessagingApi'
+import {sonetMessagingApi} from '#/services/sonetMessagingApi'
 
 interface SonetChatListItemProps {
   chat: SonetChat
@@ -95,9 +96,23 @@ export function SonetChatListItem({chat, onPress}: SonetChatListItemProps) {
 
   // Username long press for context menu
   const usernameLongPress = useCallback(() => {
-    // TODO: Implement context menu (archive, delete, etc.)
-    console.log('Long press on chat:', chat.id)
-  }, [chat.id])
+    // Minimal context actions: archive or delete
+    const confirmed = window.confirm(_('Archive this chat? Click Cancel to Delete.'))
+    if (confirmed) {
+      sonetMessagingApi.archiveChat(chat.id).then(() => {
+        // no-op; provider refresh loop will pick up changes
+      }).catch(err => {
+        console.error('Archive failed', err)
+      })
+    } else {
+      const del = window.confirm(_('Delete this chat permanently?'))
+      if (del) {
+        sonetMessagingApi.deleteChat(chat.id).catch(err => {
+          console.error('Delete failed', err)
+        })
+      }
+    }
+  }, [chat.id, _])
 
   return (
     <TouchableOpacity

@@ -30,6 +30,8 @@ import {Warning_Stroke2_Corner0_Rounded as WarningIcon} from '#/components/icons
 import {DateDivider} from './DateDivider'
 import {MessageItemEmbed} from './MessageItemEmbed'
 import {localDateString} from './util'
+import {ReactionPicker} from '#/components/dms/ReactionPicker'
+import {sonetMessagingApi} from '#/services/sonetMessagingApi'
 
 // Sonet message interface
 interface SonetMessage {
@@ -47,6 +49,11 @@ interface SonetMessage {
     url: string
     filename: string
   }>
+  reactions?: Array<{
+    emoji: string
+    userId: string
+  }>
+  status?: string
 }
 
 interface SonetMessageItemProps {
@@ -118,6 +125,22 @@ let MessageItem = ({
     [message, isOwnMessage],
   )
 
+  const [showPicker, setShowPicker] = React.useState(false)
+  const onBubbleLongPress = useCallback(() => {
+    setShowPicker(v => !v)
+  }, [])
+
+  const onPickReaction = useCallback(async (emoji: string) => {
+    setShowPicker(false)
+    try {
+      const already = message.reactions?.some(r => r.emoji === emoji)
+      if (already) await sonetMessagingApi.removeReaction(message.id, emoji)
+      else await sonetMessagingApi.addReaction(message.id, emoji)
+    } catch (e) {
+      console.error('reaction failed', e)
+    }
+  }, [message])
+
   const onPress = useCallback(() => {
     // Username message press
   }, [])
@@ -178,7 +201,7 @@ let MessageItem = ({
             ],
           ]}
           onPress={onPress}
-          onLongPress={onLongPress}>
+          onLongPress={onBubbleLongPress}>
           {/* Encryption Status */}
           {message.isEncrypted && (
             <View style={[a.flex_row, a.items_center, a.gap_xs, a.mb_xs]}>
@@ -229,14 +252,23 @@ let MessageItem = ({
           {message.attachments && message.attachments.length > 0 && (
             <View style={[a.mt_sm, a.gap_sm]}>
               {message.attachments.map(attachment => (
-                <MessageItemEmbed
-                  key={attachment.id}
-                  attachment={attachment}
-                />
+                attachment.type?.startsWith('audio/') ? (
+                  <VoiceNoteBubble key={attachment.id} url={attachment.url} isOwn={isFromSelf} />
+                ) : (
+                  <MessageItemEmbed
+                    key={attachment.id}
+                    attachment={attachment}
+                  />
+                )
               ))}
             </View>
           )}
         </Animated.View>
+        {showPicker && (
+          <View style={[a.mt_xs, isFromSelf ? a.self_end : a.self_start]}>
+            <ReactionPicker onPick={onPickReaction} />
+          </View>
+        )}
 
         {/* Message Metadata */}
         <MessageItemMetadata
@@ -244,6 +276,17 @@ let MessageItem = ({
           isFromSelf={isFromSelf}
           isLastInGroup={isLastInGroup}
         />
+
+        {/* Reactions */}
+        {message.reactions && message.reactions.length > 0 && (
+          <View style={[a.mt_xs, a.flex_row, a.gap_xs, isFromSelf && a.self_end]}>
+            {Object.entries(message.reactions.reduce((acc: Record<string, number>, r) => { acc[r.emoji] = (acc[r.emoji]||0)+1; return acc }, {}))
+              .sort((a,b)=>b[1]-a[1])
+              .map(([emoji,count]) => (
+                <ReactionPill key={emoji} emoji={emoji} count={count} />
+              ))}
+          </View>
+        )}
       </View>
 
       {/* Avatar for own messages */}
@@ -257,6 +300,71 @@ let MessageItem = ({
         </View>
       )}
     </Animated.View>
+  )
+}
+
+function VoiceNoteBubble({url, isOwn}: {url: string; isOwn: boolean}) {
+  const t = useTheme()
+  const [audio] = React.useState(() => new Audio(url))
+  const [playing, setPlaying] = React.useState(false)
+  const [progress, setProgress] = React.useState(0)
+  const rafRef = React.useRef<number | null>(null)
+
+  const tick = React.useCallback(() => {
+    if (!audio.duration) return
+    setProgress(audio.currentTime / audio.duration)
+    rafRef.current = requestAnimationFrame(tick)
+  }, [audio])
+
+  React.useEffect(() => {
+    const onPlay = () => {
+      setPlaying(true)
+      rafRef.current = requestAnimationFrame(tick)
+    }
+    const onPause = () => {
+      setPlaying(false)
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+    }
+    const onEnded = onPause
+    audio.addEventListener('play', onPlay)
+    audio.addEventListener('pause', onPause)
+    audio.addEventListener('ended', onEnded)
+    return () => {
+      audio.pause()
+      audio.removeEventListener('play', onPlay)
+      audio.removeEventListener('pause', onPause)
+      audio.removeEventListener('ended', onEnded)
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    }
+  }, [audio, tick])
+
+  const toggle = React.useCallback(() => {
+    if (playing) audio.pause()
+    else audio.play().catch(() => {})
+  }, [playing, audio])
+
+  return (
+    <View style={[a.flex_row, a.items_center, a.gap_sm, a.p_2, a.rounded_full, isOwn ? t.atoms.bg_primary_25 : t.atoms.bg_contrast_25]}>
+      <Text style={[a.text_sm, t.atoms.text]} onPress={toggle}>
+        {playing ? '⏸' : '▶'}
+      </Text>
+      <View style={[a.flex_1, a.h_2, t.atoms.bg_contrast_50, a.rounded_full]}>
+        <View style={[a.h_full, a.rounded_full, t.atoms.bg_primary, {width: `${Math.round(progress * 100)}%`}]} />
+      </View>
+    </View>
+  )
+}
+
+function ReactionPill({emoji, count}: {emoji: string; count: number}) {
+  const t = useTheme()
+  return (
+    <View style={[a.flex_row, a.items_center, a.gap_1, a.px_2, a.py_1, a.rounded_full, t.atoms.bg_contrast_25]}>
+      <Text style={[a.text_xs, t.atoms.text]}>{emoji}</Text>
+      {count > 1 && (
+        <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>{count}</Text>
+      )}
+    </View>
   )
 }
 
@@ -287,6 +395,13 @@ let MessageItemMetadata = ({
       ]}>
       {/* Timestamp */}
       <TimeElapsed timestamp={message.timestamp} />
+      
+      {/* Delivery state (simplified) */}
+      {message.status && (
+        <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>
+          {message.status}
+        </Text>
+      )}
       
       {/* Encryption Status */}
       {message.isEncrypted && (
