@@ -370,6 +370,13 @@ grpc::Status TimelineServiceImpl::GetForYouTimeline(
     auto cap_ls = GetMetadataValue(context, "x-cap-lists-for-you");
     if (!cap_ls.empty()) { try { config.cap_lists = std::stoi(cap_ls); } catch (...) {} }
     auto since = std::chrono::system_clock::now() - std::chrono::hours(config.max_age_hours);
+    // Overdrive integration toggle via metadata header (safe default: off)
+    bool use_overdrive = false;
+    try {
+        auto v = GetMetadataValue(context, "x-use-overdrive");
+        use_overdrive = (v == "1" || v == "true");
+    } catch (...) {}
+    // TODO: If use_overdrive is true, call Overdrive serving for ranking instead of GenerateTimeline
     auto items = GenerateTimeline(request->user_id(), config, since, config.max_items);
  
     int32_t offset = std::max(0, request->pagination().offset);
