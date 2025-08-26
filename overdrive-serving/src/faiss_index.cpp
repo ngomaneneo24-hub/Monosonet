@@ -2,6 +2,8 @@
 #include <random>
 #include <algorithm>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
 namespace overdrive {
 
@@ -19,14 +21,24 @@ public:
 		std::vector<std::pair<std::string, float>> results;
 		if (ids_.empty()) return results;
 		
-		// Return random results for now
-		std::random_device rd;
-		std::mt19937 gen(rd());
-		std::uniform_real_distribution<float> dis(0.5f, 1.0f);
+		// Simple similarity search using cosine distance
+		std::vector<std::pair<float, int>> similarities;
+		similarities.reserve(ids_.size());
 		
-		k = std::min(k, static_cast<int>(ids_.size()));
+		for (size_t i = 0; i < vectors_.size(); ++i) {
+			float similarity = ComputeCosineSimilarity(query_vector, vectors_[i]);
+			similarities.emplace_back(similarity, i);
+		}
+		
+		// Sort by similarity (descending)
+		std::sort(similarities.begin(), similarities.end(), 
+				 [](const auto& a, const auto& b) { return a.first > b.first; });
+		
+		// Return top-k results
+		k = std::min(k, static_cast<int>(similarities.size()));
 		for (int i = 0; i < k; ++i) {
-			results.emplace_back(ids_[i], dis(gen));
+			int idx = similarities[i].second;
+			results.emplace_back(ids_[idx], similarities[i].first);
 		}
 		
 		return results;
@@ -49,10 +61,32 @@ private:
 	std::vector<std::vector<float>> vectors_;
 	std::vector<std::string> ids_;
 	int dimension_ = 0;
+	
+	float ComputeCosineSimilarity(const std::vector<float>& a, const std::vector<float>& b) {
+		if (a.size() != b.size() || a.empty()) return 0.0f;
+		
+		float dot_product = 0.0f;
+		float norm_a = 0.0f;
+		float norm_b = 0.0f;
+		
+		for (size_t i = 0; i < a.size(); ++i) {
+			dot_product += a[i] * b[i];
+			norm_a += a[i] * a[i];
+			norm_b += b[i] * b[i];
+		}
+		
+		norm_a = std::sqrt(norm_a);
+		norm_b = std::sqrt(norm_b);
+		
+		if (norm_a == 0.0f || norm_b == 0.0f) return 0.0f;
+		
+		return dot_product / (norm_a * norm_b);
+	}
 };
 
 std::unique_ptr<FaissIndex> CreateFaissIndex(const std::string& type) {
 	// TODO: Return real FAISS implementation when linked
+	// For now, return stub with improved similarity search
 	return std::make_unique<StubFaissIndex>();
 }
 
