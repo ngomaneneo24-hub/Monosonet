@@ -12,6 +12,7 @@
 #include <spdlog/spdlog.h>
 #include <chrono>
 #include <algorithm>
+#include "../clients/moderation_client.h"
 
 namespace sonet::note::handlers {
 
@@ -45,6 +46,22 @@ json CreateNoteHandler::handle_create_note(const json& request_data, const std::
         note.extract_hashtags();
         note.extract_urls();
         note.detect_language();
+        
+        // Moderation check via gRPC
+        {
+            static const char* MOD_ADDR = std::getenv("MODERATION_GRPC_ADDR");
+            const std::string target = MOD_ADDR ? std::string(MOD_ADDR) : std::string("127.0.0.1:9090");
+            sonet::note::clients::ModerationClient mod_client(target);
+            std::string label; float confidence = 0.0f;
+            bool ok = mod_client.Classify(note.note_id, user_id, note.content, &label, &confidence, 150);
+            if (!ok) {
+                spdlog::warn("Moderation service timeout/failure for note {}", note.note_id);
+            } else {
+                if (label == "Spam" || label == "HateSpeech" || label == "Csam") {
+                    return create_error_response("CONTENT_BLOCKED", "Content failed moderation");
+                }
+            }
+        }
         
         // Process attachments if present
         if (request_data.contains("attachments")) {

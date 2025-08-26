@@ -124,6 +124,7 @@ set(PROTO_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/../../proto/services/note.proto"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../proto/services/timeline.proto"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../proto/services/analytics.proto"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../proto/services/moderation.proto"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../proto/common/common.proto"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../proto/common/pagination.proto"
     "${CMAKE_CURRENT_SOURCE_DIR}/../../proto/common/timestamp.proto"
@@ -194,6 +195,9 @@ set(CORE_SOURCES
     # gRPC Services
     grpc/note_grpc_service.cpp
     
+    # Clients
+    clients/moderation_client.cpp
+    
     # WebSocket Handlers
     websocket/note_websocket_handler.cpp
     
@@ -221,6 +225,7 @@ set(CORE_HEADERS
     validators/note_validator.h
     controllers/note_controller.h
     grpc/note_grpc_service.h
+    clients/moderation_client.h
     websocket/note_websocket_handler.h
     note_service_orchestrator.h
     ${PROTO_HDRS}
