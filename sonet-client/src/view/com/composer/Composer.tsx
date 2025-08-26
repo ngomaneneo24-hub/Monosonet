@@ -194,6 +194,59 @@ export const ComposeNote = ({
   const [showDraftsDialog, setShowDraftsDialog] = useState(false)
   const [showMediaManager, setShowMediaManager] = useState(false)
   const saveDraftControl = Prompt.usePromptControl()
+  const [isGhostMode, setIsGhostMode] = useState(false)
+  const [ghostAvatar, setGhostAvatar] = useState<string>('')
+  const [ghostId, setGhostId] = useState<string>('')
+  
+  // Ghost mode management
+  const GHOST_AVATARS = [
+    '/assets/ghosts/ghost-1.jpg',
+    '/assets/ghosts/ghost-2.jpg',
+    '/assets/ghosts/ghost-3.jpg',
+    '/assets/ghosts/ghost-4.jpg',
+    '/assets/ghosts/ghost-5.jpg',
+    '/assets/ghosts/ghost-6.jpg',
+    '/assets/ghosts/ghost-7.jpg',
+    '/assets/ghosts/ghost-8.jpg',
+    '/assets/ghosts/ghost-9.jpg',
+    '/assets/ghosts/ghost-10.jpg',
+    '/assets/ghosts/ghost-11.jpg',
+    '/assets/ghosts/ghost-12.jpg',
+  ]
+
+  const generateGhostId = useCallback(() => {
+    const chars = '0123456789ABCDEF'
+    return 'Ghost #' + Array.from({length: 4}, () => 
+      chars[Math.floor(Math.random() * chars.length)]
+    ).join('')
+  }, [])
+
+  const initializeGhostMode = useCallback(() => {
+    if (!isGhostMode) {
+      // Select random ghost avatar
+      const randomIndex = Math.floor(Math.random() * GHOST_AVATARS.length)
+      const selectedAvatar = GHOST_AVATARS[randomIndex]
+      setGhostAvatar(selectedAvatar)
+      setGhostId(generateGhostId())
+      setIsGhostMode(true)
+    } else {
+      // Deactivate ghost mode
+      setIsGhostMode(false)
+      setGhostAvatar('')
+      setGhostId('')
+    }
+  }, [isGhostMode, generateGhostId])
+
+  // Initialize ghost mode for new threads
+  useEffect(() => {
+    if (replyTo?.uri && !ghostAvatar) {
+      // New thread, initialize ghost mode if it was active before
+      // This ensures same ghost avatar within a thread
+      const randomIndex = Math.floor(Math.random() * GHOST_AVATARS.length)
+      setGhostAvatar(GHOST_AVATARS[randomIndex])
+      setGhostId(generateGhostId())
+    }
+  }, [replyTo?.uri, ghostAvatar, generateGhostId])
   
   // Draft hooks
   const createDraft = useCreateDraftMutation()
@@ -516,12 +569,27 @@ export const ComposeNote = ({
     let noteSuccessData: OnNoteSuccessData
     try {
       logger.info(`composer: noteing...`)
+      
+      // TODO: Implement ghost mode on server side
+      // When ghost mode is active, the note should be published anonymously
+      // with the ghost avatar and ephemeral ID
+      if (isGhostMode) {
+        logger.info(`composer: publishing in ghost mode as ${ghostId}`)
+        // The server will need to handle ghost mode and return appropriate ghost reply data
+      }
+      
       noteUri = (
         await apilib.note(agent, queryClient, {
           thread,
           replyTo: replyTo?.uri,
           onStateChange: setPublishingStage,
           langs: toNoteLanguages(langPrefs.noteLanguage),
+          // TODO: Add ghost mode data when server supports it
+          // ghostMode: isGhostMode ? {
+          //   avatar: ghostAvatar,
+          //   ephemeralId: ghostId,
+          //   threadId: replyTo?.uri || 'main'
+          // } : undefined
         })
       ).uris[0]
 
@@ -762,6 +830,8 @@ export const ComposeNote = ({
             type: 'add_note',
           })
         }}
+        isGhostMode={isGhostMode}
+        onToggleGhostMode={initializeGhostMode}
       />
     </>
   )
@@ -984,6 +1054,26 @@ let ComposerNote = React.memo(function ComposerNote({
           type={currentProfile?.associated?.labeler ? 'labeler' : 'user'}
           style={[a.mt_xs]}
         />
+        {/* Ghost Mode Indicator */}
+        {isGhostMode && (
+          <View style={[a.flex_row, a.align_center, a.gap_sm, a.p_sm, a.mb_xs, {backgroundColor: t.palette.primary_50, borderRadius: 8}]}>
+            <Ghost size="sm" style={{color: t.palette.primary_500}} />
+            <Text style={[a.text_sm, a.font_medium, {color: t.palette.primary_700}]}>
+              <Trans>👻 Ghost Mode Active - You'll reply as {ghostId}</Trans>
+            </Text>
+            <Button
+              onPress={() => setIsGhostMode(false)}
+              style={[a.p_xs]}
+              label={_(msg`Exit Ghost Mode`)}
+              variant="ghost"
+              shape="round"
+              color="primary"
+              size="small">
+              <Trans>Exit</Trans>
+            </Button>
+          </View>
+        )}
+        
         <TextInput
           ref={textInput}
           style={[a.pt_xs]}
@@ -1395,6 +1485,8 @@ function ComposerFooter({
   onError,
   onSelectVideo,
   onAddNote,
+  isGhostMode,
+  onToggleGhostMode,
 }: {
   note: NoteDraft
   dispatch: (action: NoteAction) => void
@@ -1403,6 +1495,8 @@ function ComposerFooter({
   onError: (error: string) => void
   onSelectVideo: (noteId: string, asset: ImagePickerAsset) => void
   onAddNote: () => void
+  isGhostMode: boolean
+  onToggleGhostMode: () => void
 }) {
   const t = useTheme()
   const {_} = useLingui()
@@ -1456,17 +1550,17 @@ function ComposerFooter({
                 onShowMediaManager={() => setShowMediaManager(true)}
               />
               <Button
-                onPress={() => {
-                  // TODO: Implement ghost button functionality
-                  console.log('Ghost button pressed - functionality to be implemented')
-                }}
+                onPress={onToggleGhostMode}
                 style={a.p_sm}
-                label={_(msg`Ghost Button`)}
-                accessibilityHint={_(msg`Ghost button - functionality coming soon`)}
+                label={isGhostMode ? _(msg`Deactivate Ghost Mode`) : _(msg`Activate Ghost Mode`)}
+                accessibilityHint={isGhostMode ? _(msg`Deactivates ghost mode`) : _(msg`Activates ghost mode for anonymous replies`)}
                 variant="ghost"
                 shape="round"
-                color="primary">
-                <Ghost size="lg" />
+                color={isGhostMode ? "primary" : "secondary"}>
+                <Ghost 
+                  size="lg" 
+                  style={isGhostMode ? {color: t.palette.primary_500} : {color: t.palette.text_contrast_low}}
+                />
               </Button>
               <OpenCameraBtn
                 disabled={media?.type === 'images' ? isMaxImages : !!media}
@@ -1481,8 +1575,8 @@ function ComposerFooter({
                   accessibilityHint={_(msg`Opens emoji picker`)}
                   variant="ghost"
                   shape="round"
-                  color="primary">
-                  <EmojiSmile size="lg" />
+                  color="secondary">
+                  <EmojiSmile size="lg" style={{color: t.palette.text_contrast_low}} />
                 </Button>
               ) : null}
             </ToolbarWrapper>
