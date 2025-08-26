@@ -20,6 +20,8 @@ import {Envelope_Stroke2_Corner0_Rounded as Envelope} from '#/components/icons/E
 import {Lock_Stroke2_Corner0_Rounded as Lock} from '#/components/icons/Lock'
 import {Ticket_Stroke2_Corner0_Rounded as Ticket} from '#/components/icons/Ticket'
 import {Loader} from '#/components/Loader'
+import {PassphraseStrengthMeter, calculatePassphraseStrength} from '#/components/forms/PassphraseStrengthMeter'
+import {PassphraseToggleButton} from '#/components/forms/PassphraseToggleButton'
 import {BackNextButtons} from '../BackNextButtons'
 
 function sanitizeDate(date: Date): Date {
@@ -56,6 +58,7 @@ export function StepInfo({
   const birthdateInputRef = useRef<DateFieldRef>(null)
 
   const [hasWarnedEmail, setHasWarnedEmail] = React.useState<boolean>(false)
+  const [isPassphraseVisible, setIsPassphraseVisible] = React.useState<boolean>(true)
 
   const tldtsRef = React.useRef<typeof tldts>()
   React.useEffect(() => {
@@ -214,7 +217,7 @@ export function StepInfo({
                   }}
                   label={_(msg`Choose your passphrase`)}
                   defaultValue={state.password}
-                  secureTextEntry
+                  secureTextEntry={!isPassphraseVisible}
                   autoComplete="new-password"
                   autoCapitalize="none"
                   returnKeyType="next"
@@ -224,6 +227,11 @@ export function StepInfo({
                   )}
                   passwordRules="minlength: 20;"
                 />
+                <PassphraseToggleButton
+                  isVisible={isPassphraseVisible}
+                  onToggle={() => setIsPassphraseVisible(!isPassphraseVisible)}
+                  size="md"
+                />
               </TextField.Root>
               <Text style={[a.text_sm, t.atoms.text_contrast_medium, a.mt_sm, a.px_sm]}>
                 <Trans>
@@ -231,6 +239,15 @@ export function StepInfo({
                   For example: "correct horse battery staple" or "my favorite coffee shop downtown"
                 </Trans>
               </Text>
+              
+              {/* Passphrase Strength Meter */}
+              {state.password && (
+                <PassphraseStrengthMeter
+                  passphrase={state.password}
+                  strength={calculatePassphraseStrength(state.password)}
+                  showDetails={true}
+                />
+              )}
             </View>
             <View>
               <DateField.LabelText>

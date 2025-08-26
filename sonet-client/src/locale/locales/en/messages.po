@@ -1793,6 +1793,81 @@ msgstr ""
 msgid "Your passphrase must contain at least 4 words."
 
 msgid "Your passphrase must contain at least 4 words."
+
+msgid "Weak"
+msgstr ""
+
+msgid "Fair"
+msgstr ""
+
+msgid "Good"
+msgstr ""
+
+msgid "Strong"
+msgstr ""
+
+msgid "Excellent"
+msgstr ""
+
+msgid "Too short or too common"
+msgstr ""
+
+msgid "Meets basic requirements"
+msgstr ""
+
+msgid "Good length and variety"
+msgstr ""
+
+msgid "Strong and memorable"
+msgstr ""
+
+msgid "Excellent security and memorability"
+msgstr ""
+
+msgid "Requirements:"
+msgstr ""
+
+msgid "At least 20 characters"
+msgstr ""
+
+msgid "At least 4 words"
+msgstr ""
+
+msgid "At least 8 unique characters"
+msgstr ""
+
+msgid "Not a common phrase"
+msgstr ""
+
+msgid "Hide passphrase"
+msgstr ""
+
+msgid "Show passphrase"
+msgstr ""
+
+msgid "Toggles passphrase visibility to hidden"
+msgstr ""
+
+msgid "Toggles passphrase visibility to visible"
+msgstr ""
+
+msgid "Passphrase Strength Demo"
+msgstr ""
+
+msgid "Type a passphrase below to see the strength meter in action. Try different lengths and word combinations!"
+msgstr ""
+
+msgid "Test Passphrase"
+msgstr ""
+
+msgid "Enter a passphrase to test"
+msgstr ""
+
+msgid "Try these examples:"
+msgstr ""
+
+msgid "Passphrase Analysis:"
+msgstr ""
 msgstr ""
 
 #: src/screens/Signup/index.tsx:175

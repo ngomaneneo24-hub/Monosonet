@@ -116,6 +116,58 @@ if (wordCount < 4) {
 }
 ```
 
+### Passphrase Strength Algorithm
+
+The strength meter uses a sophisticated scoring system:
+
+```typescript
+export function calculatePassphraseStrength(passphrase: string): PassphraseStrength {
+  if (!passphrase || passphrase.length < 20) return 'weak'
+  
+  const words = passphrase.trim().split(/\s+/).filter(word => word.length >= 2)
+  const uniqueChars = new Set(passphrase.toLowerCase().split('')).size
+  const isCommon = isCommonPhrase(passphrase)
+  
+  let score = 0
+  
+  // Length score (0-3 points)
+  if (passphrase.length >= 20) score += 1
+  if (passphrase.length >= 30) score += 1
+  if (passphrase.length >= 40) score += 1
+  
+  // Word count score (0-2 points)
+  if (words.length >= 4) score += 1
+  if (words.length >= 6) score += 1
+  
+  // Character variety score (0-2 points)
+  if (uniqueChars >= 8) score += 1
+  if (uniqueChars >= 12) score += 1
+  
+  // Bonus for mixed case and numbers (0-1 point)
+  if (/[A-Z]/.test(passphrase) && /[a-z]/.test(passphrase)) score += 1
+  
+  // Penalty for common phrases
+  if (isCommon) score = Math.max(0, score - 2)
+  
+  // Penalty for repeated patterns
+  if (/(.+)\1/.test(passphrase)) score = Math.max(0, score - 1)
+  
+  // Determine strength based on score
+  if (score >= 7) return 'excellent'
+  if (score >= 5) return 'strong'
+  if (score >= 3) return 'good'
+  if (score >= 1) return 'fair'
+  return 'weak'
+}
+```
+
+**Strength Levels:**
+- **Weak (0 points)**: Too short or too common
+- **Fair (1-2 points)**: Meets basic requirements
+- **Good (3-4 points)**: Good length and variety
+- **Strong (5-6 points)**: Strong and memorable
+- **Excellent (7+ points)**: Excellent security and memorability
+
 ### Backend Validation
 ```cpp
 bool PasswordManager::is_password_strong(const std::string& passphrase) const {
@@ -187,13 +239,34 @@ A comprehensive test suite has been created (`test_passphrase_manager.cpp`) that
 - Traditional password requirements no longer apply
 - Clear guidance is provided during signup
 
+## Implemented Features
+
+### 1. **Passphrase Strength Meter** ✅
+- **Visual Progress Bar**: Color-coded strength indicator (red to green)
+- **Strength Levels**: Weak, Fair, Good, Strong, Excellent
+- **Real-time Feedback**: Updates as user types
+- **Detailed Analysis**: Shows which requirements are met
+- **Requirement Checklist**: Visual indicators for each requirement
+
+### 2. **Passphrase Visibility Toggle** ✅
+- **Default Visible**: Passphrases are visible by default (no more dots)
+- **Toggle Button**: Eye icon to show/hide passphrase
+- **Accessibility**: Proper labels and hints for screen readers
+- **Multiple Sizes**: Small, medium, and large button variants
+
+### 3. **Enhanced User Experience** ✅
+- **Clear Guidance**: Helpful text explaining passphrases
+- **Example Passphrases**: "correct horse battery staple" style examples
+- **Real-time Validation**: Immediate feedback on strength
+- **Visual Requirements**: Checkmarks for met requirements
+
 ## Future Enhancements
 
-1. **Passphrase Strength Meter**: Visual indicator of passphrase strength
-2. **Passphrase Suggestions**: AI-powered suggestions for memorable but secure passphrases
-3. **Multi-language Support**: Passphrase generation in multiple languages
-4. **Security Education**: In-app tutorials about passphrase best practices
-5. **Breach Monitoring**: Integration with HaveIBeenPwned API for compromised passphrase detection
+1. **Passphrase Suggestions**: AI-powered suggestions for memorable but secure passphrases
+2. **Multi-language Support**: Passphrase generation in multiple languages
+3. **Security Education**: In-app tutorials about passphrase best practices
+4. **Breach Monitoring**: Integration with HaveIBeenPwned API for compromised passphrase detection
+5. **Strength Meter Animations**: Smooth transitions and micro-interactions
 
 ## Conclusion
 
