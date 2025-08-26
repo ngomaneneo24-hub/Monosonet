@@ -1,21 +1,41 @@
 #include "ranker_service.h"
+#include "faiss_index.h"
+#include "redis_client.h"
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/server_context.h>
 #include <grpcpp/support/status.h>
+#include <iostream>
 
 namespace overdrive {
 
 class OverdriveRankerServiceImpl final : public OverdriveRanker::Service {
 public:
+	OverdriveRankerServiceImpl() {
+		// Initialize Redis client
+		redis_client_ = CreateRedisClient();
+		redis_client_->Connect("redis://localhost:6379");
+		
+		// Initialize FAISS index
+		faiss_index_ = CreateFaissIndex("hnsw");
+		std::cout << "OverdriveRanker service initialized with Redis and FAISS" << std::endl;
+	}
+
 	grpc::Status RankForYou(
 		grpc::ServerContext* context,
 		const RankForYouRequest* request,
 		RankForYouResponse* response
 	) override {
-		// Call the ranker service
+		// Get user features from Redis
+		auto user_features = redis_client_->GetUserFeatures(request->user_id());
+		
+		// Get item features from Redis
+		std::vector<std::string> item_ids(request->candidate_note_ids().begin(), request->candidate_note_ids().end());
+		auto item_features = redis_client_->MGetItemFeatures(item_ids);
+		
+		// Call the ranker service with features
 		auto ranked = ranker_.RankForYou(
 			request->user_id(),
-			std::vector<std::string>(request->candidate_note_ids().begin(), request->candidate_note_ids().end()),
+			item_ids,
 			request->limit()
 		);
 
@@ -38,12 +58,16 @@ public:
 
 		response->set_algorithm_version("0.1.0");
 		response->mutable_personalization_summary()->insert({"overdrive_enabled", 1.0});
+		response->mutable_personalization_summary()->insert({"user_features_count", static_cast<double>(user_features.size())});
+		response->mutable_personalization_summary()->insert({"items_features_count", static_cast<double>(item_features.size())});
 
 		return grpc::Status::OK;
 	}
 
 private:
 	RankerServiceImpl ranker_;
+	std::unique_ptr<RedisClient> redis_client_;
+	std::unique_ptr<FaissIndex> faiss_index_;
 };
 
 } // namespace overdrive

@@ -19,6 +19,8 @@ add_executable(overdrive-serving
 	src/main.cpp
 	src/server.cpp
 	src/ranker_service.cpp
+	src/faiss_index.cpp
+	src/redis_client.cpp
 	${PROTO_SRCS}
 	${PROTO_HDRS}
 	${GRPC_SRCS}
