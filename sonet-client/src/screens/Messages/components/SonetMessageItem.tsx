@@ -1,5 +1,6 @@
 import React, {useCallback, useMemo} from 'react'
 import {View} from 'react-native'
+import { Audio } from 'expo-av'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -82,6 +83,49 @@ export function SonetMessageItem({
     }
   }, [onRetry])
 
+  const [sound, setSound] = React.useState<Audio.Sound | null>(null)
+  const [isPlaying, setIsPlaying] = React.useState(false)
+  const [positionMs, setPositionMs] = React.useState(0)
+  const [durationMs, setDurationMs] = React.useState(0)
+
+  const audioAttachment = React.useMemo(() => message.attachments?.find(a => a.mimeType?.startsWith('audio/')), [message.attachments])
+
+  React.useEffect(() => {
+    let isMounted = true
+    let subscription: any
+    ;(async () => {
+      if (audioAttachment) {
+        const { sound } = await Audio.Sound.createAsync({ uri: audioAttachment.url }, { shouldPlay: false })
+        if (!isMounted) return
+        setSound(sound)
+        subscription = sound.setOnPlaybackStatusUpdate((status: any) => {
+          if (!status.isLoaded) return
+          setIsPlaying(status.isPlaying)
+          setPositionMs(status.positionMillis || 0)
+          setDurationMs(status.durationMillis || 0)
+        })
+      }
+    })()
+    return () => {
+      isMounted = false
+      if (subscription && subscription.remove) subscription.remove()
+      if (sound) {
+        sound.unloadAsync().catch(() => {})
+      }
+    }
+  }, [audioAttachment])
+
+  const togglePlay = useCallback(async () => {
+    if (!sound) return
+    const status: any = await sound.getStatusAsync()
+    if (!status.isLoaded) return
+    if (status.isPlaying) {
+      await sound.pauseAsync()
+    } else {
+      await sound.playAsync()
+    }
+  }, [sound])
+ 
   return (
     <View
       style={[
@@ -121,10 +165,26 @@ export function SonetMessageItem({
           </View>
         )}
 
-        {/* Message Content */}
-        <Text style={[a.text_md, a.leading_normal]}>
-          {messageContent}
-        </Text>
+        {/* Message Content or Audio */}
+        {audioAttachment ? (
+          <View style={[a.gap_sm]}>
+            <View style={[a.flex_row, a.items_center, a.gap_sm]}>
+              <Button size="small" onPress={togglePlay} variant="solid" color="secondary">
+                <ButtonText>{isPlaying ? _(msg`Pause`) : _(msg`Play`)}</ButtonText>
+              </Button>
+              <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>
+                {Math.floor(positionMs / 1000)} / {Math.max(1, Math.floor((durationMs || 1) / 1000))}s
+              </Text>
+            </View>
+            <View style={[a.w_full, a.h_1, a.rounded_full, t.atoms.bg_contrast_200]}>
+              <View style={[{ width: `${durationMs ? Math.min(100, Math.round((positionMs / durationMs) * 100)) : 0}%`, height: 4 }, a.rounded_full, t.atoms.bg_primary]} />
+            </View>
+          </View>
+        ) : (
+          <Text style={[a.text_md, a.leading_normal]}>
+            {messageContent}
+          </Text>
+        )}
 
         {/* Message Metadata */}
         <View style={[a.flex_row, a.items_center, a.justify_between, a.mt_2, a.gap_sm]}>

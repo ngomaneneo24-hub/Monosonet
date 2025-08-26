@@ -495,15 +495,14 @@ export class SonetMessagingApi extends EventEmitter {
   }
 
   // File Attachments
-  async uploadAttachment(file: File, chatId: string, encrypt: boolean = true, onProgress?: (pct: number) => void): Promise<SonetAttachment> {
+  async uploadAttachment(file: File | { uri: string; name: string; type: string; size?: number }, chatId: string, encrypt: boolean = true, onProgress?: (pct: number) => void, cancelToken?: { cancelled: boolean }): Promise<SonetAttachment> {
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('chatId', chatId)
-      formData.append('encrypt', encrypt.toString())
-
-      // Use XHR to support upload progress on web
-      if (typeof XMLHttpRequest !== 'undefined' && onProgress) {
+      // Web path with XHR progress
+      if (typeof XMLHttpRequest !== 'undefined' && file instanceof File) {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('chatId', chatId)
+        formData.append('encrypt', encrypt.toString())
         const url = `${this.baseUrl}/messaging/attachments`
         const token = this.authToken
         const att: SonetAttachment = await new Promise((resolve, reject) => {
@@ -524,7 +523,7 @@ export class SonetMessagingApi extends EventEmitter {
           }
           xhr.onerror = () => reject(new Error('Network error'))
           xhr.upload.onprogress = evt => {
-            if (evt.lengthComputable) {
+            if (evt.lengthComputable && onProgress) {
               const pct = Math.round((evt.loaded / evt.total) * 100)
               onProgress(pct)
             }
@@ -534,12 +533,61 @@ export class SonetMessagingApi extends EventEmitter {
         return att
       }
 
-      const response = await this.apiRequest('/messaging/attachments', {
-        method: 'NOTE',
-        body: formData
-      })
+      // Native path with expo-file-system and multipart upload
+      // We send as multipart/form-data with name, type, and uri
+      const { uploadAsync, createUploadTask, FileSystemUploadType } = require('expo-file-system')
+      const url = `${this.baseUrl}/messaging/attachments`
+      const token = this.authToken
+      const uploadOptions = {
+        fieldName: 'file',
+        httpMethod: 'POST',
+        uploadType: FileSystemUploadType.MULTIPART,
+        parameters: {
+          chatId,
+          encrypt: encrypt.toString(),
+        },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        mimeType: (file as any).type || 'application/octet-stream',
+      }
 
-      return response.data
+      const localUri = (file as any).uri
+      if (!localUri) {
+        // Fallback: build FormData and fetch (no progress)
+        const fd = new FormData()
+        const anyFile: any = file
+        fd.append('file', anyFile)
+        fd.append('chatId', chatId)
+        fd.append('encrypt', encrypt.toString())
+        const resp = await this.apiRequest('/messaging/attachments', { method: 'NOTE', body: fd as any })
+        return resp.data
+      }
+
+      return await new Promise((resolve, reject) => {
+        const task = createUploadTask(url, localUri, uploadOptions, (data: { totalBytesSent: number; totalBytesExpectedToSend: number }) => {
+          if (onProgress && data.totalBytesExpectedToSend > 0) {
+            const pct = Math.round((data.totalBytesSent / data.totalBytesExpectedToSend) * 100)
+            onProgress(pct)
+          }
+          if (cancelToken?.cancelled) {
+            try {
+              task.cancelAsync?.()
+            } catch {}
+            reject(new Error('Upload cancelled'))
+          }
+        })
+        task.uploadAsync().then(res => {
+          if (res.status >= 200 && res.status < 300) {
+            try {
+              const json = JSON.parse(res.body)
+              resolve(json.data)
+            } catch (e) {
+              reject(e)
+            }
+          } else {
+            reject(new Error(`HTTP ${res.status}`))
+          }
+        }).catch(reject)
+      })
     } catch (error) {
       console.error('Failed to upload attachment:', error)
       throw error
