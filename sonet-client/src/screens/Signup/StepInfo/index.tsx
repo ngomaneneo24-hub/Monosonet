@@ -117,14 +117,23 @@ export function StepInfo({
     if (!password) {
       return dispatch({
         type: 'setError',
-        value: _(msg`Please choose your password.`),
+        value: _(msg`Please choose your passphrase.`),
         field: 'password',
       })
     }
-    if (password.length < 8) {
+    if (password.length < 20) {
       return dispatch({
         type: 'setError',
-        value: _(msg`Your password must be at least 8 characters long.`),
+        value: _(msg`Your passphrase must be at least 20 characters long.`),
+        field: 'password',
+      })
+    }
+    // Check if it has at least 4 words
+    const wordCount = password.trim().split(/\s+/).filter(word => word.length >= 2).length
+    if (wordCount < 4) {
+      return dispatch({
+        type: 'setError',
+        value: _(msg`Your passphrase must contain at least 4 words.`),
         field: 'password',
       })
     }
@@ -190,7 +199,7 @@ export function StepInfo({
             </View>
             <View>
               <TextField.LabelText>
-                <Trans>Password</Trans>
+                <Trans>Passphrase</Trans>
               </TextField.LabelText>
               <TextField.Root isInvalid={state.errorField === 'password'}>
                 <TextField.Icon icon={Lock} />
@@ -199,11 +208,11 @@ export function StepInfo({
                   inputRef={passwordInputRef}
                   onChangeText={value => {
                     passwordValueRef.current = value
-                    if (state.errorField === 'password' && value.length >= 8) {
+                    if (state.errorField === 'password' && value.length >= 20) {
                       dispatch({type: 'clearError'})
                     }
                   }}
-                  label={_(msg`Choose your password`)}
+                  label={_(msg`Choose your passphrase`)}
                   defaultValue={state.password}
                   secureTextEntry
                   autoComplete="new-password"
@@ -213,9 +222,15 @@ export function StepInfo({
                   onSubmitEditing={native(() =>
                     birthdateInputRef.current?.focus(),
                   )}
-                  passwordRules="minlength: 8;"
+                  passwordRules="minlength: 20;"
                 />
               </TextField.Root>
+              <Text style={[a.text_sm, t.atoms.text_contrast_medium, a.mt_sm, a.px_sm]}>
+                <Trans>
+                  A passphrase is 4 or more words that are easy to remember but hard to guess. 
+                  For example: "correct horse battery staple" or "my favorite coffee shop downtown"
+                </Trans>
+              </Text>
             </View>
             <View>
               <DateField.LabelText>

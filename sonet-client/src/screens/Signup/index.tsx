@@ -123,33 +123,6 @@ export function Signup({onPressBack}: {onPressBack: () => void}) {
         description={_(msg`We're so excited to have you join us!`)}
         scrollable>
         <View testID="createAccount" style={a.flex_1}>
-          {showStarterPackCard &&
-          bsky.dangerousIsType<SonetGraphStarterpack.Record>(
-            starterPack.record,
-            SonetGraphStarterpack.isRecord,
-          ) ? (
-            <Animated.View entering={!isFetchedAtMount ? FadeIn : undefined}>
-              <LinearGradientBackground
-                style={[a.mx_lg, a.p_lg, a.gap_sm, a.rounded_sm]}>
-                <Text style={[a.font_bold, a.text_xl, {color: 'white'}]}>
-                  {starterPack.record.name}
-                </Text>
-                <Text style={[{color: 'white'}]}>
-                  {starterPack.feeds?.length ? (
-                    <Trans>
-                      You'll follow the suggested users and feeds once you
-                      finish creating your account!
-                    </Trans>
-                  ) : (
-                    <Trans>
-                      You'll follow the suggested users once you finish creating
-                      your account!
-                    </Trans>
-                  )}
-                </Text>
-              </LinearGradientBackground>
-            </Animated.View>
-          ) : null}
           <View
             style={[
               a.flex_1,
