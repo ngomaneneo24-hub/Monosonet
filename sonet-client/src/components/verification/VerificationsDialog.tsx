@@ -85,7 +85,7 @@ function Inner({
         <Text style={[a.text_md, a.leading_snug]}>
           {state.profile.isVerified ? (
             <Trans>
-              This account has been verified as a trusted account by Sonet moderation.
+              This account has been verified as a trusted account by Entativa.
             </Trans>
           ) : (
             <Trans>
