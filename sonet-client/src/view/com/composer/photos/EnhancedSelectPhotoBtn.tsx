@@ -128,7 +128,7 @@ export function EnhancedSelectPhotoBtn({size, disabled, onAddImages, onAddVideo,
         <Image 
           size="lg" 
           style={[
-            disabled && t.atoms.text_contrast_low,
+            {color: t.palette.text_contrast_low},
             isSelecting && {opacity: 0.6}
           ]} 
         />
