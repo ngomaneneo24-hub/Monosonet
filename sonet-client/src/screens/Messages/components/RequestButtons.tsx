@@ -10,12 +10,14 @@ import {TimesLarge_Stroke2_Corner0_Rounded as XIcon} from '#/components/icons/Ti
 import {Text} from '#/components/Typography'
 import {useAcceptChatRequest} from '#/state/queries/messages/accept-chat-request'
 import {useDeclineChatRequest} from '#/state/queries/messages/decline-chat-request'
+import type {SonetChat, SonetUser} from '#/services/sonetMessagingApi'
+import {sonetMessagingApi} from '#/services/sonetMessagingApi'
 
 export function AcceptChatButton({
   convo,
   currentScreen,
 }: {
-  convo: any // TODO: Replace with proper Sonet chat type
+  convo: SonetChat
   currentScreen: 'list' | 'conversation'
 }) {
   const {_} = useLingui()
@@ -52,7 +54,7 @@ export function DeclineChatButton({
   convo,
   currentScreen,
 }: {
-  convo: any // TODO: Replace with proper Sonet chat type
+  convo: SonetChat
   currentScreen: 'list' | 'conversation'
 }) {
   const {_} = useLingui()
@@ -91,8 +93,8 @@ export function RejectMenu({
   showDeleteConvo,
   currentScreen,
 }: {
-  convo: any // TODO: Replace with proper Sonet chat type
-  profile: any // TODO: Replace with proper Sonet user type
+  convo: SonetChat
+  profile: SonetUser
   showDeleteConvo: boolean
   currentScreen: 'list' | 'conversation'
 }) {
