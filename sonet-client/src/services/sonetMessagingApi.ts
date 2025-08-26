@@ -412,6 +412,25 @@ export class SonetMessagingApi extends EventEmitter {
       this.emit('typing', typingData)
     })
 
+    sonetWebSocket.on('delivery_receipt', (receiptData) => {
+      try {
+        const { message_id } = receiptData as any
+        for (const [chatId, msgs] of this.messageCache.entries()) {
+          const idx = msgs.findIndex(m => m.id === message_id)
+          if (idx !== -1) {
+            const m = msgs[idx]
+            if (m.status !== 'read') {
+              m.status = 'delivered'
+              this.messageCache.set(chatId, [...msgs])
+              this.emit('message_updated', m)
+            }
+            break
+          }
+        }
+      } catch {}
+      this.emit('delivery_receipt', receiptData)
+    })
+
     sonetWebSocket.on('read_receipt', (receiptData) => {
       try {
         const { message_id, user_id, read_at } = receiptData as any
