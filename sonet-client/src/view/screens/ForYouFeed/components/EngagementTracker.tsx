@@ -27,7 +27,7 @@ export function EngagementTracker({
       // Send view interaction
       onInteraction({
         item: noteId,
-        event: 'sonet.feed.defs#interactionSeen',
+        event: 'seen_start',
         feedContext: 'for-you',
         reqId: `view_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         metadata: {
@@ -47,7 +47,7 @@ export function EngagementTracker({
       // Send view end interaction
       onInteraction({
         item: noteId,
-        event: 'sonet.feed.defs#interactionSeen',
+        event: 'seen_end',
         feedContext: 'for-you',
         reqId: `view_end_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         metadata: {
@@ -66,7 +66,7 @@ export function EngagementTracker({
     
     onInteraction({
       item: noteId,
-      event: `sonet.feed.defs#interaction${interactionType}`,
+      event: interactionType,
       feedContext: 'for-you',
       reqId: `interaction_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       metadata: {
@@ -82,7 +82,7 @@ export function EngagementTracker({
   const trackScroll = useCallback((direction: 'up' | 'down') => {
     onInteraction({
       item: noteId,
-      event: 'sonet.feed.defs#interactionSeen',
+      event: 'scroll',
       feedContext: 'for-you',
       reqId: `scroll_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       metadata: {
@@ -107,7 +107,7 @@ export function EngagementTracker({
         if (isVisible.current) {
           onInteraction({
             item: noteId,
-            event: 'sonet.feed.defs#interactionSeen',
+            event: 'dwell_threshold',
             feedContext: 'for-you',
             reqId: `time_${interval}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             metadata: {
