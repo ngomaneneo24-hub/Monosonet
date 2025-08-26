@@ -3,11 +3,32 @@ import { GrpcClients } from '../grpc/clients.js';
 import { verifyJwt, AuthenticatedRequest } from '../middleware/auth.js';
 
 export function registerNoteRoutes(router: Router, clients: GrpcClients) {
-  router.post('/v1/notes', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
+  router.post('/v1/notes', verifyJwt, async (req: AuthenticatedRequest, res: Response) => {
     const body = req.body || {};
+    const text: string = body.text || body.content || '';
+
+    // Call moderation first with strict timeout using grpc-js deadline
+    const moderationReq = { content_id: '', user_id: req.userId || '', text } as any;
+    try {
+      const moderationResp: any = await new Promise((resolve, reject) => {
+        const deadline = new Date(Date.now() + (parseInt(process.env.GATEWAY_MOD_TIMEOUT_MS || '80', 10)));
+        (clients.moderation as any).Classify(moderationReq, { deadline }, (err: any, resp: any) => {
+          if (err) return reject(err);
+          resolve(resp);
+        });
+      });
+      const label = moderationResp?.result?.label;
+      if (label === 'Spam' || label === 'HateSpeech' || label === 'Csam') {
+        return res.status(400).json({ ok: false, message: 'Content failed moderation' });
+      }
+    } catch (e) {
+      // Soft-fail on timeout/errors: proceed but log
+      console.warn('Moderation call failed/timed out, proceeding');
+    }
+
     const request = {
       user_id: req.userId || '',
-      content: body.text || body.content || '',
+      content: text,
       reply_to_id: body.reply_to_id || '',
       quote_note_id: body.quote_note_id || '',
       visibility: body.visibility ?? 0,
