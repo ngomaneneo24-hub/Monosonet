@@ -158,7 +158,7 @@ export function SonetChatsScreenInner({navigation}: Props) {
 
   // Username chat item press
   const usernameChatPress = useCallback((chatId: string) => {
-    navigation.navigate('MessagesConversation', {conversation: chatId})
+    navigation.navigate('SonetConversation', {conversation: chatId})
   }, [navigation])
 
   // Username new chat

@@ -53,8 +53,11 @@ export function MessageInputEmbed({
       // Navigate to note
       navigation.navigate('NoteThread' as any, {uri: embed.uri})
     } else if (embed.type === 'external') {
-      // Open external link
-      // TODO: Implement external link handling
+      // Open external link in system browser
+      const url = embed.external?.uri || embed.uri
+      if (url) {
+        Linking.openURL(url as string)
+      }
     }
   }, [embed, navigation])
 

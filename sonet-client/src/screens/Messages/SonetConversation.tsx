@@ -56,14 +56,13 @@ export function SonetConversationScreenInner({route}: Props) {
   // Username sending message
   const usernameSendMessage = useCallback(async (content: string, attachments?: any[]) => {
     try {
-      // TODO: Implement actual message sending - placeholder for future implementation
-      console.log('Sending message:', {content, attachments, conversationId})
-      
-      // Simulate message sending
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Refresh conversations
-      conversationsActions.refreshChats()
+      await sonetMessagingApi.sendMessage({
+        chatId: conversationId,
+        content,
+        type: 'text',
+        encrypt: true,
+      })
+      await conversationsActions.refreshChats()
     } catch (error) {
       console.error('Failed to send message:', error)
       Alert.alert(_('Error'), _('Failed to send message. Please try again.'))
