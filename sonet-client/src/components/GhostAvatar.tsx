@@ -1,5 +1,5 @@
 import React from 'react'
-import {View, StyleSheet} from 'react-native'
+import {View, StyleSheet, Image} from 'react-native'
 import {atoms as a, useTheme} from '#/alf'
 
 type Props = {
@@ -11,15 +11,17 @@ type Props = {
 export function GhostAvatar({avatarUrl, size, style}: Props) {
   const t = useTheme()
   
-  // For now, we'll use a placeholder since the images aren't uploaded yet
-  // This will be replaced with actual image loading when the assets are available
-  const isImageAvailable = false // TODO: Replace with actual image availability check
+  // Check if the ghost image is available
+  const isImageAvailable = avatarUrl && avatarUrl.startsWith('/assets/ghosts/')
   
   if (isImageAvailable) {
-    // TODO: Implement actual image loading when assets are available
     return (
       <View style={[styles.container, {width: size, height: size}, style]}>
-        {/* Image will go here */}
+        <Image
+          source={{uri: avatarUrl}}
+          style={[styles.ghostImage, {width: size, height: size}]}
+          resizeMode="cover"
+        />
       </View>
     )
   }
@@ -47,6 +49,9 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: 50,
     overflow: 'hidden',
+  },
+  ghostImage: {
+    borderRadius: 50,
   },
   ghostPlaceholder: {
     borderWidth: 2,

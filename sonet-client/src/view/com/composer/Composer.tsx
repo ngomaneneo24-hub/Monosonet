@@ -132,6 +132,7 @@ import {Text as NewText} from '#/components/Typography'
 import {DraftsButton} from '#/components/DraftsButton'
 import {DraftsDialog} from '#/components/DraftsDialog'
 import {useCreateDraftMutation, useUserDraftsQuery, useAutoSaveDraftMutation} from '#/state/queries/drafts'
+import {useCreateGhostReply} from '#/state/queries/ghost-replies'
 import {SaveDraftDialog} from '#/components/SaveDraftDialog'
 import {BottomSheetPortalProvider} from '../../../../modules/bottom-sheet'
 import {
@@ -252,6 +253,9 @@ export const ComposeNote = ({
   const createDraft = useCreateDraftMutation()
   const autoSaveDraft = useAutoSaveDraftMutation()
   const {data: userDrafts} = useUserDraftsQuery(20, undefined, false)
+  
+  // Ghost reply hooks
+  const createGhostReply = useCreateGhostReply()
   
   // Auto-save draft when content changes
   useEffect(() => {
@@ -570,26 +574,56 @@ export const ComposeNote = ({
     try {
       logger.info(`composer: noteing...`)
       
-      // TODO: Implement ghost mode on server side
-      // When ghost mode is active, the note should be published anonymously
-      // with the ghost avatar and ephemeral ID
+      // Handle ghost mode publishing
       if (isGhostMode) {
         logger.info(`composer: publishing in ghost mode as ${ghostId}`)
-        // The server will need to handle ghost mode and return appropriate ghost reply data
+        
+        try {
+          // Create ghost reply instead of regular note
+          const ghostReplyData = {
+            content: activeNote.richtext.text,
+            ghostAvatar,
+            ghostId,
+            threadId: replyTo?.uri || 'main',
+          }
+          
+          const ghostReplyResult = await createGhostReply.mutateAsync(ghostReplyData)
+          
+          if (ghostReplyResult.success) {
+            logger.info(`composer: ghost reply created successfully`)
+            
+            // For ghost replies, we don't need to wait for app view
+            // since they're handled separately
+            noteUri = `ghost-${ghostReplyResult.ghostReply.id}`
+            noteSuccessData = {
+              replyToUri: replyTo?.uri,
+              notes: [], // Ghost replies don't have regular note structure
+            }
+            
+            // Exit ghost mode after successful publish
+            setIsGhostMode(false)
+            setGhostAvatar('')
+            setGhostId('')
+            
+            // Close composer and show success
+            closeComposer()
+            return
+          }
+        } catch (ghostError) {
+          logger.error('Failed to create ghost reply:', ghostError)
+          setError(_(msg`Failed to create ghost reply. Please try again.`))
+          setIsPublishing(false)
+          return
+        }
       }
       
+      // Regular note publishing
       noteUri = (
         await apilib.note(agent, queryClient, {
           thread,
           replyTo: replyTo?.uri,
           onStateChange: setPublishingStage,
           langs: toNoteLanguages(langPrefs.noteLanguage),
-          // TODO: Add ghost mode data when server supports it
-          // ghostMode: isGhostMode ? {
-          //   avatar: ghostAvatar,
-          //   ephemeralId: ghostId,
-          //   threadId: replyTo?.uri || 'main'
-          // } : undefined
         })
       ).uris[0]
 
