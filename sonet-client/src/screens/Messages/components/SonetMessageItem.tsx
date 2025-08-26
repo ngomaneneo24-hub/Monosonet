@@ -1,5 +1,5 @@
 import React, {useCallback, useMemo} from 'react'
-import {View, TouchableOpacity} from 'react-native'
+import {View, TouchableOpacity, Animated} from 'react-native'
 import { Audio } from 'expo-av'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -78,6 +78,13 @@ export function SonetMessageItem({
     }
   }, [message.status, t])
   const [showMetaTime, setShowMetaTime] = React.useState(false)
+  const tickAnim = React.useRef(new Animated.Value(0)).current
+  React.useEffect(() => {
+    tickAnim.setValue(0)
+    Animated.parallel([
+      Animated.timing(tickAnim, { toValue: 1, duration: 180, useNativeDriver: true }),
+    ]).start()
+  }, [message.status])
 
   const handleRetry = useCallback(() => {
     if (onRetry) {
@@ -209,6 +216,19 @@ export function SonetMessageItem({
               }}
               containerStyle={[{paddingHorizontal: 4}]}
             />
+            {/* Bar waveform scrubber */}
+            <View style={[a.flex_row, a.gap_1, a.items_end]}>
+              {Array.from({ length: 32 }).map((_, i) => {
+                const frac = i / 32
+                const active = durationMs ? frac <= (positionMs / durationMs) : false
+                const h = 6 + Math.round((Math.sin(i * 0.7) * 0.5 + 0.5) * 18)
+                return (
+                  <TouchableOpacity key={i} onPress={() => onScrub(frac * 100)}>
+                    <View style={[{ width: 4, height: h }, a.rounded_full, active ? t.atoms.bg_primary : t.atoms.bg_contrast_200]} />
+                  </TouchableOpacity>
+                )
+              })}
+            </View>
           </View>
         ) : (
           <Text style={[a.text_md, a.leading_normal]}>
@@ -222,7 +242,9 @@ export function SonetMessageItem({
           
           {!!messageStatus.icon && (
             <TouchableOpacity onPress={() => setShowMetaTime(v => !v)}>
-              <Text style={[a.text_xs, {color: messageStatus.color.color}]}> {messageStatus.icon} </Text>
+              <Animated.Text style={[a.text_xs, {color: messageStatus.color.color, transform: [{ scale: tickAnim.interpolate({ inputRange: [0,1], outputRange: [0.8, 1] }) }], opacity: tickAnim }]}>
+                {` ${messageStatus.icon} `}
+              </Animated.Text>
             </TouchableOpacity>
           )}
 
