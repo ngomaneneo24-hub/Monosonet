@@ -268,6 +268,16 @@ export class SonetMessagingApi extends EventEmitter {
         }
       }
 
+      // Upload attachments (if any) before sending message and collect metadata
+      let uploadedAttachments: SonetAttachment[] | undefined
+      if (request.attachments && request.attachments.length > 0) {
+        uploadedAttachments = []
+        for (const file of request.attachments) {
+          const att = await this.uploadAttachment(file, request.chatId, request.encrypt !== false)
+          uploadedAttachments.push(att)
+        }
+      }
+
       const messageData: any = {
         chatId: request.chatId,
         content: encryptedContent,
@@ -275,6 +285,10 @@ export class SonetMessagingApi extends EventEmitter {
         replyTo: request.replyTo,
         encrypt: request.encrypt !== false,
         clientMessageId: clientMsgId,
+      }
+
+      if (uploadedAttachments && uploadedAttachments.length > 0) {
+        messageData.attachments = uploadedAttachments.map(a => ({id: a.id}))
       }
 
       if (encryptionData) {
