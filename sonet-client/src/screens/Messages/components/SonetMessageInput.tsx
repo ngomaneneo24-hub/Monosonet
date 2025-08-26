@@ -1,6 +1,7 @@
 import React, {useCallback, useState} from 'react'
 import {View, TextInput, TouchableOpacity, Platform, PanResponder, GestureResponderEvent, PanResponderGestureState} from 'react-native'
 import { Audio } from 'expo-av'
+import * as Haptics from 'expo-haptics'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -70,12 +71,21 @@ export function SonetMessageInput({
   const startWaveform = () => {
     if (waveformTimerRef.current) cancelAnimationFrame(waveformTimerRef.current)
     const tick = async () => {
-      // TODO: use real metering if available; fallback to pseudo amplitude
-      const amp = Math.min(1, Math.max(0.1, Math.random()))
+      // TODO: hook real metering when available; using pseudo amplitude now
+      const amp = Math.min(1, Math.max(0.05, Math.random()))
       setWaveform(prev => {
         const next = [...prev, amp]
         return next.slice(-24)
       })
+      // Basic VAD auto-stop: if low amplitude for ~2s, stop (only when not locked)
+      if (!isLocked && isRecording) {
+        const low = waveform.filter(v => v < 0.12).length
+        if (low > 20) {
+          try {
+            await toggleRecord()
+          } catch {}
+        }
+      }
       waveformTimerRef.current = requestAnimationFrame(tick)
     }
     waveformTimerRef.current = requestAnimationFrame(tick)
@@ -255,17 +265,22 @@ export function SonetMessageInput({
       setPanX(0); setPanY(0)
       setIsHoldRecording(true)
       setIsLocked(false)
+      if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(()=>{})
       if (!isRecording) await toggleRecord()
     },
     onPanResponderMove: (_evt: GestureResponderEvent, gesture: PanResponderGestureState) => {
       setPanX(gesture.dx)
       setPanY(gesture.dy)
-      if (gesture.dy < -60) setIsLocked(true)
+      if (gesture.dy < -60) {
+        if (!isLocked && Platform.OS !== 'web') Haptics.selectionAsync().catch(()=>{})
+        setIsLocked(true)
+      }
     },
     onPanResponderRelease: async () => {
       if (isLocked) {
         // keep recording until user taps stop
         setIsHoldRecording(false)
+        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(()=>{})
         return
       }
       // slide left cancel
@@ -285,9 +300,11 @@ export function SonetMessageInput({
         setRecordingStart(null)
         stopTimer()
         stopWaveform()
+        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(()=>{})
       } else {
         // finish and save
         await toggleRecord()
+        if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(()=>{})
       }
       setIsHoldRecording(false)
       setIsLocked(false)

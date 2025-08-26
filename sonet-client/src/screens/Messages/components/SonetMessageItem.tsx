@@ -14,6 +14,7 @@ import {Button, ButtonText} from '#/components/Button'
 import {Lock_Stroke2_Corner0_Rounded as LockIcon} from '#/components/icons/Lock'
 import {Shield_Stroke2_Corner0_Rounded as ShieldIcon} from '#/components/icons/Shield'
 import {Text} from '#/components/Typography'
+import Slider from '@miblanchard/react-native-slider'
 
 interface SonetMessageItemProps {
   message: SonetMessage
@@ -197,13 +198,17 @@ export function SonetMessageItem({
             <View style={[a.w_full, a.h_1, a.rounded_full, t.atoms.bg_contrast_200]}>
               <View style={[{ width: `${durationMs ? Math.min(100, Math.round((positionMs / durationMs) * 100)) : 0}%`, height: 4 }, a.rounded_full, t.atoms.bg_primary]} />
             </View>
-            <View style={[a.flex_row, a.gap_sm, a.items_center]}>
-              {[0, 25, 50, 75, 100].map(p => (
-                <Button key={p} size="small" variant="ghost" onPress={() => onScrub(p)}>
-                  <ButtonText>{p}%</ButtonText>
-                </Button>
-              ))}
-            </View>
+            <Slider
+              value={durationMs ? (positionMs / durationMs) * 100 : 0}
+              minimumValue={0}
+              maximumValue={100}
+              step={0.5}
+              onSlidingComplete={(vals: number | number[]) => {
+                const pct = Array.isArray(vals) ? vals[0] : vals
+                onScrub(pct)
+              }}
+              containerStyle={[{paddingHorizontal: 4}]}
+            />
           </View>
         ) : (
           <Text style={[a.text_md, a.leading_normal]}>

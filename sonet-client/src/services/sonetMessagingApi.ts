@@ -413,6 +413,22 @@ export class SonetMessagingApi extends EventEmitter {
     })
 
     sonetWebSocket.on('read_receipt', (receiptData) => {
+      try {
+        const { message_id, user_id, read_at } = receiptData as any
+        // Update message status if we have it cached
+        for (const [chatId, msgs] of this.messageCache.entries()) {
+          const idx = msgs.findIndex(m => m.id === message_id)
+          if (idx !== -1) {
+            const m = msgs[idx]
+            // naive: mark as delivered if not own read, mark as read if own recipient read
+            // enhance by checking participants
+            m.status = 'read'
+            this.messageCache.set(chatId, [...msgs])
+            this.emit('message_updated', m)
+            break
+          }
+        }
+      } catch {}
       this.emit('read_receipt', receiptData)
     })
 
