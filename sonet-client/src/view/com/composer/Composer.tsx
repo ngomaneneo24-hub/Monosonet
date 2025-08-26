@@ -113,7 +113,7 @@ import {
   type TextInputRef,
 } from '#/view/com/composer/text-input/TextInput'
 import {ThreadgateBtn} from '#/view/com/composer/threadgate/ThreadgateBtn'
-import {SelectVideoBtn} from '#/view/com/composer/videos/SelectVideoBtn'
+import {Ghost_Stroke2_Corner0_Rounded as Ghost} from '#/components/icons/Ghost'
 import {MediaManagerDialog} from '#/view/com/composer/photos/MediaManagerDialog'
 import {SubtitleDialogBtn} from '#/view/com/composer/videos/SubtitleDialog'
 import {VideoPreview} from '#/view/com/composer/videos/VideoPreview'
@@ -1451,14 +1451,23 @@ function ComposerFooter({
               <EnhancedSelectPhotoBtn
                 size={images.length}
                 disabled={media?.type === 'images' ? isMaxImages : !!media}
-                onAdd={onImageAdd}
+                onAddImages={onImageAdd}
+                onAddVideo={asset => onSelectVideo(note.id, asset)}
                 onShowMediaManager={() => setShowMediaManager(true)}
               />
-              <SelectVideoBtn
-                onSelectVideo={asset => onSelectVideo(note.id, asset)}
-                disabled={!!media}
-                setError={onError}
-              />
+              <Button
+                onPress={() => {
+                  // TODO: Implement ghost button functionality
+                  console.log('Ghost button pressed - functionality to be implemented')
+                }}
+                style={a.p_sm}
+                label={_(msg`Ghost Button`)}
+                accessibilityHint={_(msg`Ghost button - functionality coming soon`)}
+                variant="ghost"
+                shape="round"
+                color="primary">
+                <Ghost size="lg" />
+              </Button>
               <OpenCameraBtn
                 disabled={media?.type === 'images' ? isMaxImages : !!media}
                 onAdd={onImageAdd}
