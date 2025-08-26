@@ -27,6 +27,67 @@ export function SonetMessageInput({
   const [text, setText] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [attachments, setAttachments] = useState<File[]>([])
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingStart, setRecordingStart] = useState<number | null>(null)
+  const [recordingMs, setRecordingMs] = useState(0)
+  const recordingTimerRef = React.useRef<number | null>(null)
+  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null)
+  const recordedChunksRef = React.useRef<BlobPart[]>([])
+
+  const startTimer = useCallback(() => {
+    if (recordingTimerRef.current) cancelAnimationFrame(recordingTimerRef.current)
+    const tick = () => {
+      if (recordingStart) {
+        setRecordingMs(Date.now() - recordingStart)
+        recordingTimerRef.current = requestAnimationFrame(tick)
+      }
+    }
+    recordingTimerRef.current = requestAnimationFrame(tick)
+  }, [recordingStart])
+
+  const stopTimer = useCallback(() => {
+    if (recordingTimerRef.current) cancelAnimationFrame(recordingTimerRef.current)
+    recordingTimerRef.current = null
+  }, [])
+
+  const toggleRecord = useCallback(async () => {
+    if (isRecording) {
+      // Stop
+      try {
+        mediaRecorderRef.current?.stop()
+      } catch {}
+      setIsRecording(false)
+      setRecordingStart(null)
+      stopTimer()
+    } else {
+      // Start
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({audio: true})
+        recordedChunksRef.current = []
+        const mr = new MediaRecorder(stream)
+        mediaRecorderRef.current = mr
+        mr.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) recordedChunksRef.current.push(e.data)
+        }
+        mr.onstop = () => {
+          try {
+            const blob = new Blob(recordedChunksRef.current, {type: 'audio/webm'})
+            const file = new File([blob], `voice_${Date.now()}.webm`, {type: 'audio/webm'})
+            setAttachments(prev => [...prev, file])
+            stream.getTracks().forEach(t => t.stop())
+          } catch {}
+        }
+        mr.start()
+        setIsRecording(true)
+        const now = Date.now()
+        setRecordingStart(now)
+        setRecordingMs(0)
+        startTimer()
+      } catch (err) {
+        console.error('Failed to start recording:', err)
+      }
+    }
+  }, [isRecording, startTimer, stopTimer])
 
   const addAttachment = useCallback(async () => {
     // Basic web-only file input; native should use image picker bridging
@@ -125,6 +186,15 @@ export function SonetMessageInput({
         <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>＋</Text>
       </Button>
 
+      {/* Voice Recorder */}
+      <Button
+        onPress={toggleRecord}
+        style={[a.w_10, a.h_10, a.rounded_full, a.items_center, a.justify_center, isRecording ? t.atoms.bg_warning : t.atoms.bg_contrast_25]}>
+        <Text style={[a.text_sm, isRecording ? t.atoms.text : t.atoms.text_contrast_medium]}>
+          {isRecording ? '◼' : '🎤'}
+        </Text>
+      </Button>
+
       {/* Text Input */}
       <View style={[a.flex_1, a.relative]}>
         <TextInput
@@ -166,6 +236,15 @@ export function SonetMessageInput({
                 </TouchableOpacity>
               </View>
             ))}
+          </View>
+        )}
+
+        {/* Recording timer */}
+        {isRecording && (
+          <View style={[a.mt_2, a.flex_row, a.items_center, a.gap_2]}>
+            <Text style={[a.text_xs, t.atoms.text_warning]}>
+              {Math.floor(recordingMs / 1000)}s
+            </Text>
           </View>
         )}
         

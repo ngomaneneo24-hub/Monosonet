@@ -229,10 +229,14 @@ let MessageItem = ({
           {message.attachments && message.attachments.length > 0 && (
             <View style={[a.mt_sm, a.gap_sm]}>
               {message.attachments.map(attachment => (
-                <MessageItemEmbed
-                  key={attachment.id}
-                  attachment={attachment}
-                />
+                attachment.type?.startsWith('audio/') ? (
+                  <VoiceNoteBubble key={attachment.id} url={attachment.url} isOwn={isFromSelf} />
+                ) : (
+                  <MessageItemEmbed
+                    key={attachment.id}
+                    attachment={attachment}
+                  />
+                )
               ))}
             </View>
           )}
@@ -257,6 +261,59 @@ let MessageItem = ({
         </View>
       )}
     </Animated.View>
+  )
+}
+
+function VoiceNoteBubble({url, isOwn}: {url: string; isOwn: boolean}) {
+  const t = useTheme()
+  const [audio] = React.useState(() => new Audio(url))
+  const [playing, setPlaying] = React.useState(false)
+  const [progress, setProgress] = React.useState(0)
+  const rafRef = React.useRef<number | null>(null)
+
+  const tick = React.useCallback(() => {
+    if (!audio.duration) return
+    setProgress(audio.currentTime / audio.duration)
+    rafRef.current = requestAnimationFrame(tick)
+  }, [audio])
+
+  React.useEffect(() => {
+    const onPlay = () => {
+      setPlaying(true)
+      rafRef.current = requestAnimationFrame(tick)
+    }
+    const onPause = () => {
+      setPlaying(false)
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+    }
+    const onEnded = onPause
+    audio.addEventListener('play', onPlay)
+    audio.addEventListener('pause', onPause)
+    audio.addEventListener('ended', onEnded)
+    return () => {
+      audio.pause()
+      audio.removeEventListener('play', onPlay)
+      audio.removeEventListener('pause', onPause)
+      audio.removeEventListener('ended', onEnded)
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    }
+  }, [audio, tick])
+
+  const toggle = React.useCallback(() => {
+    if (playing) audio.pause()
+    else audio.play().catch(() => {})
+  }, [playing, audio])
+
+  return (
+    <View style={[a.flex_row, a.items_center, a.gap_sm, a.p_2, a.rounded_full, isOwn ? t.atoms.bg_primary_25 : t.atoms.bg_contrast_25]}>
+      <Text style={[a.text_sm, t.atoms.text]} onPress={toggle}>
+        {playing ? '⏸' : '▶'}
+      </Text>
+      <View style={[a.flex_1, a.h_2, t.atoms.bg_contrast_50, a.rounded_full]}>
+        <View style={[a.h_full, a.rounded_full, t.atoms.bg_primary, {width: `${Math.round(progress * 100)}%`}]} />
+      </View>
+    </View>
   )
 }
 
