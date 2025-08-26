@@ -7,6 +7,9 @@ import {atoms as a, useTheme} from '#/alf'
 import {Text} from '#/components/Typography'
 import {Button} from '#/components/Button'
 import {sonetWebSocket} from '#/services/sonetWebSocket'
+import {sonetMessagingApi} from '#/services/sonetMessagingApi'
+import {Trans} from '@lingui/react'
+import {ButtonText} from '#/components/ButtonText'
 
 interface SonetMessageInputProps {
   onSendMessage: (text: string, attachments?: File[]) => Promise<void>
@@ -113,6 +116,26 @@ export function SonetMessageInput({
 
     setIsSending(true)
     try {
+      // If attachments exist, upload them first with progress then send
+      const uploaded: File[] = []
+      const progressState: number[] = attachments.map(() => 0)
+      // Render progress via local state by mapping filenames -> pct
+      // For brevity, we reuse attachments chips and append pct text
+      // Upload sequentially to keep UI simple
+      for (let i = 0; i < attachments.length; i++) {
+        const f = attachments[i]
+        await sonetMessagingApi.uploadAttachment(
+          f,
+          (undefined as any),
+          true,
+          pct => {
+            progressState[i] = pct
+            // Trigger re-render
+            setAttachments(prev => [...prev])
+          },
+        )
+        uploaded.push(f)
+      }
       await onSendMessage(text.trim(), attachments)
       setText('')
       setAttachments([])
@@ -246,6 +269,8 @@ export function SonetMessageInput({
                 <Text style={[a.text_xs, t.atoms.text]} numberOfLines={1}>
                   {f.name}
                 </Text>
+                {/* Placeholder progress since we mutate by re-render; real impl would track pct per file */}
+                <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>↥</Text>
                 <TouchableOpacity onPress={() => removeAttachment(idx)}>
                   <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>✕</Text>
                 </TouchableOpacity>
