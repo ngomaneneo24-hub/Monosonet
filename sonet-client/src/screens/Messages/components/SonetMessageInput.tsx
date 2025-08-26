@@ -1,5 +1,5 @@
 import React, {useCallback, useState} from 'react'
-import {View, TextInput, TouchableOpacity, Platform} from 'react-native'
+import {View, TextInput, TouchableOpacity, Platform, PanResponder, GestureResponderEvent, PanResponderGestureState} from 'react-native'
 import { Audio } from 'expo-av'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -39,6 +39,12 @@ export function SonetMessageInput({
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null)
   const recordedChunksRef = React.useRef<BlobPart[]>([])
   const nativeRecordingRef = React.useRef<Audio.Recording | null>(null)
+  const [isHoldRecording, setIsHoldRecording] = useState(false)
+  const [isLocked, setIsLocked] = useState(false)
+  const [panX, setPanX] = useState(0)
+  const [panY, setPanY] = useState(0)
+  const [waveform, setWaveform] = useState<number[]>([])
+  const waveformTimerRef = React.useRef<number | null>(null)
 
   const startTimer = useCallback(() => {
     if (recordingTimerRef.current) cancelAnimationFrame(recordingTimerRef.current)
@@ -55,6 +61,25 @@ export function SonetMessageInput({
     if (recordingTimerRef.current) cancelAnimationFrame(recordingTimerRef.current)
     recordingTimerRef.current = null
   }, [])
+
+  const stopWaveform = () => {
+    if (waveformTimerRef.current) cancelAnimationFrame(waveformTimerRef.current)
+    waveformTimerRef.current = null
+    setWaveform([])
+  }
+  const startWaveform = () => {
+    if (waveformTimerRef.current) cancelAnimationFrame(waveformTimerRef.current)
+    const tick = async () => {
+      // TODO: use real metering if available; fallback to pseudo amplitude
+      const amp = Math.min(1, Math.max(0.1, Math.random()))
+      setWaveform(prev => {
+        const next = [...prev, amp]
+        return next.slice(-24)
+      })
+      waveformTimerRef.current = requestAnimationFrame(tick)
+    }
+    waveformTimerRef.current = requestAnimationFrame(tick)
+  }
 
   const toggleRecord = useCallback(async () => {
     if (isRecording) {
@@ -77,6 +102,7 @@ export function SonetMessageInput({
       setIsRecording(false)
       setRecordingStart(null)
       stopTimer()
+      stopWaveform()
     } else {
       // Start
       try {
@@ -112,6 +138,7 @@ export function SonetMessageInput({
         setRecordingStart(now)
         setRecordingMs(0)
         startTimer()
+        startWaveform()
       } catch (err) {
         console.error('Failed to start recording:', err)
       }
@@ -222,6 +249,52 @@ export function SonetMessageInput({
     }
   }
 
+  const panResponder = React.useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderGrant: async () => {
+      setPanX(0); setPanY(0)
+      setIsHoldRecording(true)
+      setIsLocked(false)
+      if (!isRecording) await toggleRecord()
+    },
+    onPanResponderMove: (_evt: GestureResponderEvent, gesture: PanResponderGestureState) => {
+      setPanX(gesture.dx)
+      setPanY(gesture.dy)
+      if (gesture.dy < -60) setIsLocked(true)
+    },
+    onPanResponderRelease: async () => {
+      if (isLocked) {
+        // keep recording until user taps stop
+        setIsHoldRecording(false)
+        return
+      }
+      // slide left cancel
+      if (panX < -60) {
+        // cancel and discard
+        try {
+          if (Platform.OS === 'web') {
+            mediaRecorderRef.current?.stop()
+          } else {
+            const rec = nativeRecordingRef.current
+            if (rec) {
+              await rec.stopAndUnloadAsync()
+            }
+          }
+        } catch {}
+        setIsRecording(false)
+        setRecordingStart(null)
+        stopTimer()
+        stopWaveform()
+      } else {
+        // finish and save
+        await toggleRecord()
+      }
+      setIsHoldRecording(false)
+      setIsLocked(false)
+      setPanX(0); setPanY(0)
+    },
+  }), [isRecording, panX, toggleRecord])
+
   return (
     <View style={[a.flex_row, a.items_end, a.gap_sm, a.px_md, a.py_sm]}>
       {/* Encryption Status */}
@@ -253,14 +326,14 @@ export function SonetMessageInput({
         <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>＋</Text>
       </Button>
 
-      {/* Voice Recorder */}
-      <Button
-        onPress={toggleRecord}
+      {/* Voice Recorder (hold to record) */}
+      <View
+        {...panResponder.panHandlers}
         style={[a.w_10, a.h_10, a.rounded_full, a.items_center, a.justify_center, isRecording ? t.atoms.bg_warning : t.atoms.bg_contrast_25]}>
         <Text style={[a.text_sm, isRecording ? t.atoms.text : t.atoms.text_contrast_medium]}>
-          {isRecording ? '◼' : '🎤'}
+          {isRecording ? (isLocked ? '🔒' : '◼') : '🎤'}
         </Text>
-      </Button>
+      </View>
 
       {/* Text Input */}
       <View style={[a.flex_1, a.relative]}>
@@ -343,6 +416,16 @@ export function SonetMessageInput({
             <Text style={[a.text_xs, t.atoms.text_warning]}>
               {Math.floor(recordingMs / 1000)}s
             </Text>
+            {/* Waveform */}
+            <View style={[a.flex_row, a.gap_1]}>
+              {waveform.map((amp, i) => (
+                <View key={i} style={[{ width: 3, height: Math.max(4, Math.round(amp * 24)) }, a.rounded_full, t.atoms.bg_warning]} />
+              ))}
+            </View>
+            {/* Hints */}
+            {!isLocked && isHoldRecording && (
+              <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>Slide left to cancel · Slide up to lock</Text>
+            )}
           </View>
         )}
         

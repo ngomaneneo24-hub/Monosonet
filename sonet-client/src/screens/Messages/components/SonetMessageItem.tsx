@@ -1,5 +1,5 @@
 import React, {useCallback, useMemo} from 'react'
-import {View} from 'react-native'
+import {View, TouchableOpacity} from 'react-native'
 import { Audio } from 'expo-av'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -65,17 +65,18 @@ export function SonetMessageItem({
   const messageStatus = useMemo(() => {
     switch (message.status) {
       case 'sent':
-        return {text: _(msg`Sent`), color: t.atoms.text_contrast_medium}
+        return {icon: '✓', color: t.atoms.text_contrast_medium}
       case 'delivered':
-        return {text: _(msg`Delivered`), color: t.atoms.text_contrast_medium}
+        return {icon: '✓✓', color: t.atoms.text_contrast_medium}
       case 'read':
-        return {text: _(msg`Read`), color: t.atoms.text_positive}
+        return {icon: '✓✓', color: t.atoms.text_positive}
       case 'failed':
-        return {text: _(msg`Failed`), color: t.atoms.text_negative}
+        return {icon: '⚠', color: t.atoms.text_negative}
       default:
-        return {text: '', color: t.atoms.text_contrast_medium}
+        return {icon: '', color: t.atoms.text_contrast_medium}
     }
-  }, [message.status, t, _])
+  }, [message.status, t])
+  const [showMetaTime, setShowMetaTime] = React.useState(false)
 
   const handleRetry = useCallback(() => {
     if (onRetry) {
@@ -125,6 +126,20 @@ export function SonetMessageItem({
       await sound.playAsync()
     }
   }, [sound])
+
+  const [rate, setRate] = React.useState(1)
+  const cycleRate = useCallback(async () => {
+    if (!sound) return
+    const next = rate === 1 ? 1.5 : rate === 1.5 ? 2 : 1
+    setRate(next)
+    await sound.setRateAsync(next, true)
+  }, [sound, rate])
+
+  const onScrub = useCallback(async (pct: number) => {
+    if (!sound || !durationMs) return
+    const pos = Math.max(0, Math.min(durationMs, Math.round((pct / 100) * durationMs)))
+    await sound.setPositionAsync(pos)
+  }, [sound, durationMs])
  
   return (
     <View
@@ -172,12 +187,22 @@ export function SonetMessageItem({
               <Button size="small" onPress={togglePlay} variant="solid" color="secondary">
                 <ButtonText>{isPlaying ? _(msg`Pause`) : _(msg`Play`)}</ButtonText>
               </Button>
+              <Button size="small" onPress={cycleRate} variant="outline" color="secondary">
+                <ButtonText>{rate}x</ButtonText>
+              </Button>
               <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>
                 {Math.floor(positionMs / 1000)} / {Math.max(1, Math.floor((durationMs || 1) / 1000))}s
               </Text>
             </View>
             <View style={[a.w_full, a.h_1, a.rounded_full, t.atoms.bg_contrast_200]}>
               <View style={[{ width: `${durationMs ? Math.min(100, Math.round((positionMs / durationMs) * 100)) : 0}%`, height: 4 }, a.rounded_full, t.atoms.bg_primary]} />
+            </View>
+            <View style={[a.flex_row, a.gap_sm, a.items_center]}>
+              {[0, 25, 50, 75, 100].map(p => (
+                <Button key={p} size="small" variant="ghost" onPress={() => onScrub(p)}>
+                  <ButtonText>{p}%</ButtonText>
+                </Button>
+              ))}
             </View>
           </View>
         ) : (
@@ -190,10 +215,10 @@ export function SonetMessageItem({
         <View style={[a.flex_row, a.items_center, a.justify_between, a.mt_2, a.gap_sm]}>
           <TimeElapsed timestamp={message.created_at} />
           
-          {messageStatus.text && (
-            <Text style={[a.text_xs, {color: messageStatus.color.color}]}>
-              {messageStatus.text}
-            </Text>
+          {!!messageStatus.icon && (
+            <TouchableOpacity onPress={() => setShowMetaTime(v => !v)}>
+              <Text style={[a.text_xs, {color: messageStatus.color.color}]}> {messageStatus.icon} </Text>
+            </TouchableOpacity>
           )}
 
           {/* Edited Indicator */}
@@ -216,6 +241,11 @@ export function SonetMessageItem({
               <Trans>Retry</Trans>
             </ButtonText>
           </Button>
+        )}
+        {showMetaTime && (
+          <View style={[a.mt_1]}>
+            <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>Sent: {new Date(message.timestamp).toLocaleString()}</Text>
+          </View>
         )}
       </View>
 

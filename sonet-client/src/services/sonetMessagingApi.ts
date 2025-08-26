@@ -505,7 +505,7 @@ export class SonetMessagingApi extends EventEmitter {
         formData.append('encrypt', encrypt.toString())
         const url = `${this.baseUrl}/messaging/attachments`
         const token = this.authToken
-        const att: SonetAttachment = await new Promise((resolve, reject) => {
+        const attemptUpload = (): Promise<SonetAttachment> => new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest()
           xhr.open('NOTE', url)
           if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
@@ -528,9 +528,21 @@ export class SonetMessagingApi extends EventEmitter {
               onProgress(pct)
             }
           }
+          xhr.onabort = () => reject(new Error('Upload cancelled'))
           xhr.send(formData)
         })
-        return att
+        // retry with backoff up to 3 attempts
+        let lastError: any
+        for (let attempt = 0; attempt < 3; attempt++) {
+          if (cancelToken?.cancelled) throw new Error('Upload cancelled')
+          try {
+            return await attemptUpload()
+          } catch (e) {
+            lastError = e
+            await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)))
+          }
+        }
+        throw lastError
       }
 
       // Native path with expo-file-system and multipart upload
@@ -562,7 +574,7 @@ export class SonetMessagingApi extends EventEmitter {
         return resp.data
       }
 
-      return await new Promise((resolve, reject) => {
+      const doNativeUpload = () => new Promise<SonetAttachment>((resolve, reject) => {
         const task = createUploadTask(url, localUri, uploadOptions, (data: { totalBytesSent: number; totalBytesExpectedToSend: number }) => {
           if (onProgress && data.totalBytesExpectedToSend > 0) {
             const pct = Math.round((data.totalBytesSent / data.totalBytesExpectedToSend) * 100)
@@ -588,6 +600,18 @@ export class SonetMessagingApi extends EventEmitter {
           }
         }).catch(reject)
       })
+      // retry with backoff
+      let lastError: any
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (cancelToken?.cancelled) throw new Error('Upload cancelled')
+        try {
+          return await doNativeUpload()
+        } catch (e) {
+          lastError = e
+          await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)))
+        }
+      }
+      throw lastError
     } catch (error) {
       console.error('Failed to upload attachment:', error)
       throw error
