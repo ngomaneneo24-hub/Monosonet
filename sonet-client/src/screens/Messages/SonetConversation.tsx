@@ -55,13 +55,14 @@ export function SonetConversationScreenInner({route}: Props) {
   const currentConversation = conversationsState.chats.find(chat => chat.id === conversationId)
   
   // Username sending message
-  const usernameSendMessage = useCallback(async (content: string, attachments?: any[]) => {
+  const usernameSendMessage = useCallback(async (content: string, attachments?: File[]) => {
     try {
       await sonetMessagingApi.sendMessage({
         chatId: conversationId,
         content,
-        type: 'text',
+        type: attachments && attachments.length > 0 ? 'file' : 'text',
         encrypt: true,
+        attachments,
       })
       await conversationsActions.refreshChats()
     } catch (error) {

@@ -8,7 +8,7 @@ import {Text} from '#/components/Typography'
 import {Button} from '#/components/Button'
 
 interface SonetMessageInputProps {
-  onSendMessage: (text: string) => Promise<void>
+  onSendMessage: (text: string, attachments?: File[]) => Promise<void>
   placeholder?: string
   disabled?: boolean
   isEncrypted?: boolean
@@ -26,20 +26,40 @@ export function SonetMessageInput({
   const {_} = useLingui()
   const [text, setText] = useState('')
   const [isSending, setIsSending] = useState(false)
+  const [attachments, setAttachments] = useState<File[]>([])
+
+  const addAttachment = useCallback(async () => {
+    // Basic web-only file input; native should use image picker bridging
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.multiple = true
+    input.onchange = () => {
+      const files = Array.from(input.files || []) as File[]
+      if (files.length) {
+        setAttachments(prev => [...prev, ...files])
+      }
+    }
+    input.click()
+  }, [])
+
+  const removeAttachment = useCallback((index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index))
+  }, [])
 
   const usernameSend = useCallback(async () => {
-    if (!text.trim() || isSending || disabled) return
+    if ((!text.trim() && attachments.length === 0) || isSending || disabled) return
 
     setIsSending(true)
     try {
-      await onSendMessage(text.trim())
+      await onSendMessage(text.trim(), attachments)
       setText('')
+      setAttachments([])
     } catch (error) {
       console.error('Failed to send message:', error)
     } finally {
       setIsSending(false)
     }
-  }, [text, isSending, disabled, onSendMessage])
+  }, [text, attachments, isSending, disabled, onSendMessage])
 
   const usernameKeyPress = useCallback((e: any) => {
     if (e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
@@ -98,6 +118,13 @@ export function SonetMessageInput({
         </Text>
       </TouchableOpacity>
 
+      {/* Media Picker */}
+      <Button
+        onPress={addAttachment}
+        style={[a.w_10, a.h_10, a.rounded_full, a.items_center, a.justify_center, t.atoms.bg_contrast_25]}>
+        <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>＋</Text>
+      </Button>
+
       {/* Text Input */}
       <View style={[a.flex_1, a.relative]}>
         <TextInput
@@ -126,6 +153,22 @@ export function SonetMessageInput({
           ]}
         />
         
+        {/* Attachments Preview (compact) */}
+        {attachments.length > 0 && (
+          <View style={[a.mt_2, a.flex_row, a.gap_2, a.flex_wrap]}>
+            {attachments.map((f, idx) => (
+              <View key={idx} style={[a.flex_row, a.items_center, a.gap_1, a.px_2, a.py_1, a.rounded_full, t.atoms.bg_contrast_25]}>
+                <Text style={[a.text_xs, t.atoms.text]} numberOfLines={1}>
+                  {f.name}
+                </Text>
+                <TouchableOpacity onPress={() => removeAttachment(idx)}>
+                  <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+        
         {/* Character count */}
         <View style={[a.absolute, a.bottom_1, a.right_2]}>
           <Text
@@ -141,21 +184,21 @@ export function SonetMessageInput({
       {/* Send Button */}
       <Button
         onPress={usernameSend}
-        disabled={!text.trim() || isSending || disabled}
+        disabled={(!text.trim() && attachments.length === 0) || isSending || disabled}
         style={[
           a.w_10,
           a.h_10,
           a.rounded_full,
           a.items_center,
           a.justify_center,
-          !text.trim() || isSending || disabled
+          (!text.trim() && attachments.length === 0) || isSending || disabled
             ? t.atoms.bg_contrast_25
             : t.atoms.bg_primary,
         ]}>
         <Text
           style={[
             a.text_sm,
-            !text.trim() || isSending || disabled
+            (!text.trim() && attachments.length === 0) || isSending || disabled
               ? t.atoms.text_contrast_medium
               : t.atoms.text_on_primary,
           ]}>
