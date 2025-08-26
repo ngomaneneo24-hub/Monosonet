@@ -560,7 +560,7 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
       />
       <Stack.Screen
         name="MessagesConversation"
-        getComponent={() => MessagesConversationScreen}
+        getComponent={() => SonetConversationScreen}
         options={{title: title(msg`Chat`), requireAuth: true}}
       />
       <Stack.Screen
@@ -757,7 +757,7 @@ function MessagesTabNavigator() {
       initialRouteName="Messages">
       <MessagesTab.Screen
         name="Messages"
-        getComponent={() => MessagesScreen}
+        getComponent={() => SonetChatsScreen}
         options={({route}) => ({
           requireAuth: true,
           animationTypeForReplace: route.params?.animation ?? 'push',
@@ -816,7 +816,7 @@ const FlatNavigator = () => {
       />
       <Flat.Screen
         name="Messages"
-        getComponent={() => MessagesScreen}
+        getComponent={() => SonetChatsScreen}
         options={{title: title(msg`Messages`), requireAuth: true}}
       />
       {gate('premium_subscriptions') && (

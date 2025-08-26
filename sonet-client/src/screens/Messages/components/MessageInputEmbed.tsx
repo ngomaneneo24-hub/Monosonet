@@ -3,6 +3,7 @@ import React, {useCallback, useMemo} from 'react'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
+import {Linking} from 'react-native'
 
 import {useSession} from '#/state/session'
 import {atoms as a, useTheme} from '#/alf'
@@ -31,11 +32,17 @@ export function useMessageEmbed() {
   }
 }
 
+export type MessageEmbed =
+  | {type: 'images'; images: {uri: string; alt?: string}[]}
+  | {type: 'external'; external?: {uri: string; title?: string}; uri?: string}
+  | {type: 'record'; record?: {type?: 'note'; author?: {displayName?: string; username?: string; avatar?: string}; record?: {text?: string}}}
+  | {type: 'video'; uri?: string}
+
 export function MessageInputEmbed({
   embed,
   onRemove,
 }: {
-  embed: any // TODO: Replace with proper Sonet embed type
+  embed: MessageEmbed
   onRemove: () => void
 }) {
   const {_} = useLingui()
@@ -51,10 +58,13 @@ export function MessageInputEmbed({
     // Handle navigation to the embedded content
     if (embed.type === 'note') {
       // Navigate to note
-      navigation.navigate('NoteThread' as any, {uri: embed.uri})
+      navigation.navigate('NoteThread' as any, {uri: (embed as any).uri})
     } else if (embed.type === 'external') {
-      // Open external link
-      // TODO: Implement external link handling
+      // Open external link in system browser
+      const url = embed.external?.uri || (embed as any).uri
+      if (url) {
+        Linking.openURL(url as string)
+      }
     }
   }, [embed, navigation])
 
