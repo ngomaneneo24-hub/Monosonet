@@ -325,6 +325,33 @@ export class SonetMessagingApi extends EventEmitter {
     }
   }
 
+  // Reactions
+  async addReaction(messageId: string, emoji: string): Promise<void> {
+    try {
+      await this.apiRequest(`/messaging/messages/${messageId}/reactions`, {
+        method: 'POST',
+        body: JSON.stringify({emoji}),
+      })
+      this.emit('reaction_added', {messageId, emoji})
+    } catch (error) {
+      console.error('Failed to add reaction:', error)
+      throw error
+    }
+  }
+
+  async removeReaction(messageId: string, emoji: string): Promise<void> {
+    try {
+      await this.apiRequest(`/messaging/messages/${messageId}/reactions`, {
+        method: 'DELETE',
+        body: JSON.stringify({emoji}),
+      })
+      this.emit('reaction_removed', {messageId, emoji})
+    } catch (error) {
+      console.error('Failed to remove reaction:', error)
+      throw error
+    }
+  }
+
   async getMessages(chatId: string, limit: number = 50, before?: string): Promise<SonetMessage[]> {
     try {
       const params = new URLSearchParams({
