@@ -495,12 +495,44 @@ export class SonetMessagingApi extends EventEmitter {
   }
 
   // File Attachments
-  async uploadAttachment(file: File, chatId: string, encrypt: boolean = true): Promise<SonetAttachment> {
+  async uploadAttachment(file: File, chatId: string, encrypt: boolean = true, onProgress?: (pct: number) => void): Promise<SonetAttachment> {
     try {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('chatId', chatId)
       formData.append('encrypt', encrypt.toString())
+
+      // Use XHR to support upload progress on web
+      if (typeof XMLHttpRequest !== 'undefined' && onProgress) {
+        const url = `${this.baseUrl}/messaging/attachments`
+        const token = this.authToken
+        const att: SonetAttachment = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest()
+          xhr.open('NOTE', url)
+          if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                const json = JSON.parse(xhr.responseText)
+                resolve(json.data)
+              } catch (e) {
+                reject(e)
+              }
+            } else {
+              reject(new Error(`HTTP ${xhr.status}`))
+            }
+          }
+          xhr.onerror = () => reject(new Error('Network error'))
+          xhr.upload.onprogress = evt => {
+            if (evt.lengthComputable) {
+              const pct = Math.round((evt.loaded / evt.total) * 100)
+              onProgress(pct)
+            }
+          }
+          xhr.send(formData)
+        })
+        return att
+      }
 
       const response = await this.apiRequest('/messaging/attachments', {
         method: 'NOTE',
