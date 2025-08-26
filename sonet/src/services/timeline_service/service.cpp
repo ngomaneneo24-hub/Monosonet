@@ -370,7 +370,39 @@ grpc::Status TimelineServiceImpl::GetForYouTimeline(
     auto cap_ls = GetMetadataValue(context, "x-cap-lists-for-you");
     if (!cap_ls.empty()) { try { config.cap_lists = std::stoi(cap_ls); } catch (...) {} }
     auto since = std::chrono::system_clock::now() - std::chrono::hours(config.max_age_hours);
+    // Overdrive integration toggle via metadata header (safe default: off)
+    bool use_overdrive = false;
+    try {
+        auto v = GetMetadataValue(context, "x-use-overdrive");
+        use_overdrive = (v == "1" || v == "true");
+    } catch (...) {}
+
     auto items = GenerateTimeline(request->user_id(), config, since, config.max_items);
+
+    if (use_overdrive && overdrive_client_ && !items.empty()) {
+        // Collect candidate ids
+        std::vector<std::string> candidate_ids;
+        candidate_ids.reserve(items.size());
+        for (const auto& it : items) {
+            candidate_ids.push_back(it.note.id());
+        }
+        // Call Overdrive for final ranking
+        auto ranked = overdrive_client_->RankForYou(request->user_id(), candidate_ids, config.max_items);
+        // Reorder items based on Overdrive scores
+        std::unordered_map<std::string, double> score_map;
+        score_map.reserve(ranked.size());
+        for (const auto& r : ranked) score_map[r.note_id] = r.score;
+        std::stable_sort(items.begin(), items.end(), [&](const RankedTimelineItem& a, const RankedTimelineItem& b){
+            double sa = a.final_score; auto ita = score_map.find(a.note.id()); if (ita != score_map.end()) sa = ita->second;
+            double sb = b.final_score; auto itb = score_map.find(b.note.id()); if (itb != score_map.end()) sb = itb->second;
+            return sa > sb;
+        });
+        // Inject Overdrive signal into final_score
+        for (auto& it : items) {
+            auto sit = score_map.find(it.note.id());
+            if (sit != score_map.end()) it.final_score = sit->second;
+        }
+    }
  
     int32_t offset = std::max(0, request->pagination().offset);
     int32_t limit = request->pagination().limit > 0 ? request->pagination().limit : 20;

@@ -1,6 +1,7 @@
 // For You Feed API Client - ML-powered personalized content
 import {SONET_API_BASE} from '#/lib/constants'
 import {type SonetFeedSlice, type SonetFeedViewNote} from '#/types/sonet'
+import {overdriveAPI} from './overdrive'
 
 export interface ForYouFeedParams {
   limit?: number
@@ -66,8 +67,14 @@ class ForYouFeedAPIImpl implements ForYouFeedAPI {
       headers['Authorization'] = `Bearer ${this.authToken}`
     }
 
+    // Add Overdrive header if enabled
+    const overdriveHeader = overdriveAPI.getOverdriveHeader()
+    if (overdriveHeader) {
+      headers['x-use-overdrive'] = overdriveHeader
+    }
+
     const response = await fetch(url, {
-      ...options,
+      ...options
       headers
     })
 
@@ -99,7 +106,7 @@ class ForYouFeedAPIImpl implements ForYouFeedAPI {
     const endpoint = '/v1/feeds/interactions'
     
     await this.makeRequest(endpoint, {
-      method: 'NOTE',
+      method: 'POST',
       body: JSON.stringify({ interactions: [interaction] })
     })
   }

@@ -148,6 +148,64 @@ std::vector<RankedTimelineItem> MLRankingEngine::ScoreNotes(
     // Apply diversity boosts to prevent too much similar content
     ApplyDiversityBoosts(ranked_items, config.diversity_weight);
 
+    // TikTok-style repetition control and novelty boosts
+    {
+        // Penalize author repetition beyond a window and boost novel creators/topics
+        std::unordered_map<std::string, int> authored_counts_in_slate;
+        std::unordered_map<std::string, int> hashtag_frequency_over_slate;
+
+        // Precompute hashtag frequencies across slate
+        for (const auto& item : ranked_items) {
+            auto hashtags = ExtractHashtags(item.note.content());
+            for (const auto& h : hashtags) {
+                hashtag_frequency_over_slate[h]++;
+            }
+        }
+
+        const int author_soft_cap = 2; // allow at most 2 per slate without penalty
+        const double author_penalty_step = 0.06; // increasing penalty per extra
+        const double back_to_back_penalty = 0.05; // avoid immediate repeats
+        const double novelty_boost = 0.04; // encourage unseen authors/rare topics
+
+        std::string last_author;
+        for (size_t i = 0; i < ranked_items.size(); ++i) {
+            auto& item = ranked_items[i];
+            const std::string author = item.note.author_id();
+            int& count = authored_counts_in_slate[author];
+            count++;
+
+            // Author repetition penalty beyond soft cap
+            if (count > author_soft_cap) {
+                item.final_score -= (count - author_soft_cap) * author_penalty_step;
+            }
+
+            // Back-to-back same-author penalty
+            if (!last_author.empty() && last_author == author) {
+                item.final_score -= back_to_back_penalty;
+            }
+            last_author = author;
+
+            // Novelty boost for authors with low presence in slate
+            if (count == 1) {
+                item.final_score += novelty_boost;
+            }
+
+            // Topic novelty: boost rare hashtags; penalize over-frequent ones
+            auto hashtags = ExtractHashtags(item.note.content());
+            for (const auto& h : hashtags) {
+                int freq = hashtag_frequency_over_slate[h];
+                if (freq == 1) {
+                    item.final_score += 0.02; // unique topic
+                } else if (freq > 4) {
+                    item.final_score -= 0.01; // topic saturation
+                }
+            }
+
+            // Ensure score stays non-negative
+            if (item.final_score < 0.0) item.final_score = 0.0;
+        }
+    }
+
     // Hybrid-specific tweaks: freshness micro-boost and source diversity
     if (config.algorithm == ::sonet::timeline::TIMELINE_ALGORITHM_HYBRID) {
         auto now = std::chrono::system_clock::now();
