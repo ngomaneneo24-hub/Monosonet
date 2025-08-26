@@ -21,6 +21,9 @@ import {BubbleQuestion_Stroke2_Corner0_Rounded as Translate} from '#/components/
 import {Clipboard_Stroke2_Corner2_Rounded as ClipboardIcon} from '#/components/icons/Clipboard'
 import {Trash_Stroke2_Corner0_Rounded as Trash} from '#/components/icons/Trash'
 import {Warning_Stroke2_Corner0_Rounded as Warning} from '#/components/icons/Warning'
+import {Reply_Stroke2_Corner0_Rounded as ReplyIcon} from '#/components/icons/Reply'
+import {Edit_Stroke2_Corner0_Rounded as EditIcon} from '#/components/icons/Edit'
+import {Pin_Stroke2_Corner0_Rounded as PinIcon} from '#/components/icons/Pin'
 import * as Prompt from '#/components/Prompt'
 import {usePromptControl} from '#/components/Prompt'
 import {EmojiReactionPicker} from './EmojiReactionPicker'
@@ -29,9 +32,17 @@ import {hasReachedReactionLimit} from './util'
 export let MessageContextMenu = ({
   message,
   children,
+  onReply,
+  onEdit,
+  onDelete,
+  onPin,
 }: {
   message: SonetConvoDefs.MessageView
   children: TriggerProps['children']
+  onReply?: () => void
+  onEdit?: () => void
+  onDelete?: () => void
+  onPin?: () => void
 }): React.ReactNode => {
   const {_} = useLingui()
   const {currentAccount} = useSession()
@@ -76,13 +87,17 @@ export let MessageContextMenu = ({
 
   const onDelete = useCallback(() => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
-    convo
-      .deleteMessage(message.id)
-      .then(() =>
-        Toast.show(_(msg({message: 'Message deleted', context: 'toast'}))),
-      )
-      .catch(() => Toast.show(_(msg`Failed to delete message`)))
-  }, [_, convo, message.id])
+    if (onDelete) {
+      onDelete()
+    } else {
+      convo
+        .deleteMessage(message.id)
+        .then(() =>
+          Toast.show(_(msg({message: 'Message deleted', context: 'toast'}))),
+        )
+        .catch(() => Toast.show(_(msg`Failed to delete message`)))
+    }
+  }, [_, convo, message.id, onDelete])
 
   const onEmojiSelect = useCallback(
     (emoji: string) => {
@@ -135,8 +150,42 @@ export let MessageContextMenu = ({
         </ContextMenu.Trigger>
 
         <ContextMenu.Outer align={isFromSelf ? 'right' : 'left'}>
+          {/* Reply Action */}
+          {onReply && (
+            <ContextMenu.Item
+              testID="messageDropdownReplyBtn"
+              label={_(msg`Reply`)}
+              onPress={onReply}>
+              <ContextMenu.ItemText>{_(msg`Reply`)}</ContextMenu.ItemText>
+              <ContextMenu.ItemIcon icon={ReplyIcon} position="right" />
+            </ContextMenu.Item>
+          )}
+
+          {/* Edit Action (only for own messages) */}
+          {isFromSelf && onEdit && (
+            <ContextMenu.Item
+              testID="messageDropdownEditBtn"
+              label={_(msg`Edit`)}
+              onPress={onEdit}>
+              <ContextMenu.ItemText>{_(msg`Edit`)}</ContextMenu.ItemText>
+              <ContextMenu.ItemIcon icon={EditIcon} position="right" />
+            </ContextMenu.Item>
+          )}
+
+          {/* Pin Action */}
+          {onPin && (
+            <ContextMenu.Item
+              testID="messageDropdownPinBtn"
+              label={_(msg`Pin message`)}
+              onPress={onPin}>
+              <ContextMenu.ItemText>{_(msg`Pin message`)}</ContextMenu.ItemText>
+              <ContextMenu.ItemIcon icon={PinIcon} position="right" />
+            </ContextMenu.Item>
+          )}
+
           {message.text.length > 0 && (
             <>
+              <ContextMenu.Divider />
               <ContextMenu.Item
                 testID="messageDropdownTranslateBtn"
                 label={_(msg`Translate`)}
@@ -153,9 +202,12 @@ export let MessageContextMenu = ({
                 </ContextMenu.ItemText>
                 <ContextMenu.ItemIcon icon={ClipboardIcon} position="right" />
               </ContextMenu.Item>
-              <ContextMenu.Divider />
             </>
           )}
+          
+          <ContextMenu.Divider />
+          
+          {/* Delete Action */}
           <ContextMenu.Item
             testID="messageDropdownDeleteBtn"
             label={_(msg`Delete message for me`)}
@@ -163,6 +215,8 @@ export let MessageContextMenu = ({
             <ContextMenu.ItemText>{_(msg`Delete for me`)}</ContextMenu.ItemText>
             <ContextMenu.ItemIcon icon={Trash} position="right" />
           </ContextMenu.Item>
+          
+          {/* Report Action (only for others' messages) */}
           {!isFromSelf && (
             <ContextMenu.Item
               testID="messageDropdownReportBtn"

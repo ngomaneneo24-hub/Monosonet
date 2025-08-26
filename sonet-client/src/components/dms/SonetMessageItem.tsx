@@ -1,11 +1,14 @@
-import React, {useCallback, useMemo} from 'react'
+import React, {useCallback, useMemo, useState} from 'react'
 import {
   type GestureResponderEvent,
   type StyleProp,
   type TextStyle,
   View,
+  Animated,
+  PanResponder,
+  PanResponderGestureState,
 } from 'react-native'
-import Animated, {
+import AnimatedView, {
   LayoutAnimationConfig,
   LinearTransition,
   ZoomIn,
@@ -27,11 +30,13 @@ import {RichText} from '#/components/RichText'
 import {Text} from '#/components/Typography'
 import {Shield_Stroke2_Corner0_Rounded as ShieldIcon} from '#/components/icons/Shield'
 import {Warning_Stroke2_Corner0_Rounded as WarningIcon} from '#/components/icons/Warning'
+import {Reply_Stroke2_Corner0_Rounded as ReplyIcon} from '#/components/icons/Reply'
 import {DateDivider} from './DateDivider'
 import {MessageItemEmbed} from './MessageItemEmbed'
 import {localDateString} from './util'
 import {ReactionPicker} from '#/components/dms/ReactionPicker'
 import {sonetMessagingApi} from '#/services/sonetMessagingApi'
+import {Trans} from '@lingui/react'
 
 // Sonet message interface
 interface SonetMessage {
@@ -54,6 +59,11 @@ interface SonetMessage {
     userId: string
   }>
   status?: string
+  replyTo?: {
+    id: string
+    content: string
+    senderName: string
+  }
 }
 
 interface SonetMessageItemProps {
@@ -61,6 +71,10 @@ interface SonetMessageItemProps {
   isOwnMessage: boolean
   nextMessage?: SonetMessage
   prevMessage?: SonetMessage
+  onReply?: (message: SonetMessage) => void
+  onEdit?: (message: SonetMessage) => void
+  onDelete?: (message: SonetMessage) => void
+  onPin?: (message: SonetMessage) => void
 }
 
 let MessageItem = ({
@@ -68,12 +82,18 @@ let MessageItem = ({
   isOwnMessage,
   nextMessage,
   prevMessage,
+  onReply,
+  onEdit,
+  onDelete,
+  onPin,
 }: SonetMessageItemProps): React.ReactNode => {
   const t = useTheme()
   const {currentAccount} = useSession()
   const {_} = useLingui()
 
   const isFromSelf = isOwnMessage
+  const [swipeOffset] = useState(new Animated.Value(0))
+  const [showReplyPreview, setShowReplyPreview] = useState(false)
 
   const isNextFromSelf = nextMessage ? nextMessage.senderId === currentAccount?.userId : false
   const isNextFromSameSender = isNextFromSelf === isFromSelf
@@ -110,6 +130,39 @@ let MessageItem = ({
     return diff > 5 * 60 * 1000
   }, [message, nextMessage])
 
+  // Swipe gesture handler for reply
+  const panResponder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: (_, gestureState) => {
+      return Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dy) < 50
+    },
+    onPanResponderGrant: () => {
+      swipeOffset.setValue(0)
+    },
+    onPanResponderMove: (_, gestureState) => {
+      if (gestureState.dx < 0) { // Only allow left swipe (for reply)
+        const offset = Math.max(gestureState.dx, -80)
+        swipeOffset.setValue(offset)
+      }
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      if (gestureState.dx < -50 && onReply) {
+        // Trigger reply
+        onReply(message)
+        Animated.spring(swipeOffset, {
+          toValue: 0,
+          useNativeDriver: false,
+        }).start()
+      } else {
+        // Reset position
+        Animated.spring(swipeOffset, {
+          toValue: 0,
+          useNativeDriver: false,
+        }).start()
+      }
+    },
+  }), [swipeOffset, onReply, message])
+
   const onLongPress = useCallback(
     (e: GestureResponderEvent) => {
       if (isNative) {
@@ -117,12 +170,16 @@ let MessageItem = ({
           message,
           isOwnMessage,
           onPress: () => {
-            // Username message actions
+            // Enhanced message actions
           },
+          onReply: () => onReply?.(message),
+          onEdit: () => onEdit?.(message),
+          onDelete: () => onDelete?.(message),
+          onPin: () => onPin?.(message),
         })
       }
     },
-    [message, isOwnMessage],
+    [message, isOwnMessage, onReply, onEdit, onDelete, onPin],
   )
 
   const [showPicker, setShowPicker] = React.useState(false)
@@ -150,7 +207,7 @@ let MessageItem = ({
   }
 
   return (
-    <Animated.View
+    <AnimatedView
       entering={ZoomIn.springify().mass(0.3)}
       exiting={ZoomOut.springify().mass(0.3)}
       layout={layoutAnimation}
@@ -183,87 +240,150 @@ let MessageItem = ({
           <DateDivider date={new Date(message.timestamp)} />
         )}
 
-        {/* Message Bubble */}
-        <Animated.View
-          style={[
-            a.rounded_2xl,
+        {/* Reply Preview */}
+        {message.replyTo && (
+          <View style={[
+            a.mb_xs,
             a.px_md,
             a.py_sm,
-            a.mb_xs,
-            isFromSelf
-              ? [t.atoms.bg_primary, a.self_end]
-              : [t.atoms.bg_contrast_25, a.self_start],
-            needsTail && [
-              isFromSelf ? a.rounded_br_sm : a.rounded_bl_sm,
-            ],
-            !needsTail && [
-              isFromSelf ? a.rounded_br_2xl : a.rounded_bl_2xl,
-            ],
-          ]}
-          onPress={onPress}
-          onLongPress={onBubbleLongPress}>
-          {/* Encryption Status */}
-          {message.isEncrypted && (
-            <View style={[a.flex_row, a.items_center, a.gap_xs, a.mb_xs]}>
-              {message.encryptionStatus === 'encrypted' ? (
-                <ShieldIcon
-                  size="xs"
-                  style={[t.atoms.text_positive]}
-                />
-              ) : (
-                <WarningIcon
-                  size="xs"
+            a.rounded_xl,
+            a.border_l_4,
+            t.atoms.bg_contrast_25,
+            t.atoms.border_primary,
+            a.max_w_60,
+            isFromSelf && a.self_end,
+          ]}>
+            <Text style={[a.text_xs, t.atoms.text_contrast_medium, a.font_bold]}>
+              {message.replyTo.senderName}
+            </Text>
+            <Text style={[a.text_xs, t.atoms.text_contrast_medium, a.mt_1]}>
+              {message.replyTo.content.length > 50 
+                ? message.replyTo.content.substring(0, 50) + '...'
+                : message.replyTo.content
+              }
+            </Text>
+          </View>
+        )}
+
+        {/* Message Bubble with Swipe */}
+        <Animated.View
+          {...panResponder.panHandlers}
+          style={[
+            a.relative,
+            {
+              transform: [{translateX: swipeOffset}],
+            },
+          ]}>
+          {/* Reply Indicator */}
+          <Animated.View
+            style={[
+              a.absolute,
+              a.left_0,
+              a.top_0,
+              a.bottom_0,
+              a.w_20,
+              a.items_center,
+              a.justify_center,
+              a.bg_primary_25,
+              a.rounded_l_2xl,
+              {
+                opacity: swipeOffset.interpolate({
+                  inputRange: [-80, 0],
+                  outputRange: [1, 0],
+                }),
+              },
+            ]}>
+            <ReplyIcon
+              size="sm"
+              style={[t.atoms.text_primary]}
+            />
+            <Text style={[a.text_xs, t.atoms.text_primary, a.mt_1]}>
+              <Trans>Reply</Trans>
+            </Text>
+          </Animated.View>
+
+          <Animated.View
+            style={[
+              a.rounded_2xl,
+              a.px_md,
+              a.py_sm,
+              a.mb_xs,
+              isFromSelf
+                ? [t.atoms.bg_primary, a.self_end]
+                : [t.atoms.bg_contrast_25, a.self_start],
+              needsTail && [
+                isFromSelf ? a.rounded_br_sm : a.rounded_bl_sm,
+              ],
+              !needsTail && [
+                isFromSelf ? a.rounded_br_2xl : a.rounded_bl_2xl,
+              ],
+            ]}
+            onPress={onPress}
+            onLongPress={onBubbleLongPress}>
+            {/* Encryption Status */}
+            {message.isEncrypted && (
+              <View style={[a.flex_row, a.items_center, a.gap_xs, a.mb_xs]}>
+                {message.encryptionStatus === 'encrypted' ? (
+                  <ShieldIcon
+                    size="xs"
+                    style={[t.atoms.text_positive]}
+                  />
+                ) : (
+                  <WarningIcon
+                    size="xs"
+                    style={[
+                      message.encryptionStatus === 'failed'
+                        ? t.atoms.text_negative
+                        : t.atoms.text_contrast_medium,
+                    ]}
+                  />
+                )}
+                <Text
                   style={[
-                    message.encryptionStatus === 'failed'
+                    a.text_xs,
+                    message.encryptionStatus === 'encrypted'
+                      ? t.atoms.text_positive
+                      : message.encryptionStatus === 'failed'
                       ? t.atoms.text_negative
                       : t.atoms.text_contrast_medium,
-                  ]}
-                />
-              )}
-              <Text
-                style={[
-                  a.text_xs,
-                  message.encryptionStatus === 'encrypted'
-                    ? t.atoms.text_positive
+                  ]}>
+                  {message.encryptionStatus === 'encrypted'
+                    ? 'Encrypted'
                     : message.encryptionStatus === 'failed'
-                    ? t.atoms.text_negative
-                    : t.atoms.text_contrast_medium,
-                ]}>
-                {message.encryptionStatus === 'encrypted'
-                  ? 'Encrypted'
-                  : message.encryptionStatus === 'failed'
-                  ? 'Decryption failed'
-                  : 'Decrypting...'}
-              </Text>
-            </View>
-          )}
+                    ? 'Decryption failed'
+                    : 'Decrypting...'}
+                </Text>
+              </View>
+            )}
 
-          {/* Message Text */}
-          <Text
-            style={[
-              a.text_sm,
-              isFromSelf ? t.atoms.text_on_primary : t.atoms.text,
-              isOnlyEmoji(message.content) && a.text_lg,
-            ]}>
-            {message.content}
-          </Text>
+            {/* Message Text */}
+            <Text
+              style={[
+                a.text_sm,
+                isFromSelf ? t.atoms.text_on_primary : t.atoms.text,
+                isOnlyEmoji(message.content) && a.text_lg,
+              ]}>
+              {message.content}
+            </Text>
 
-          {/* Attachments */}
-          {message.attachments && message.attachments.length > 0 && (
-            <View style={[a.mt_sm, a.gap_sm]}>
-              {message.attachments.map(attachment => (
-                attachment.type?.startsWith('audio/') ? (
-                  <VoiceNoteBubble key={attachment.id} url={attachment.url} isOwn={isFromSelf} />
-                ) : (
-                  <MessageItemEmbed
-                    key={attachment.id}
-                    attachment={attachment}
-                  />
-                )
-              ))}
-            </View>
-          )}
+            {/* Attachments */}
+            {message.attachments && message.attachments.length > 0 && (
+              <View style={[a.mt_sm, a.gap_sm]}>
+                {message.attachments.map(attachment => (
+                  attachment.type?.startsWith('audio/') ? (
+                    <VoiceNoteBubble key={attachment.id} url={attachment.url} isOwn={isFromSelf} />
+                  ) : (
+                    <MessageItemEmbed
+                      key={attachment.id}
+                      attachment={attachment}
+                    />
+                  )
+                ))}
+              </View>
+            )}
+          </Animated.View>
         </Animated.View>
+
         {showPicker && (
           <View style={[a.mt_xs, isFromSelf ? a.self_end : a.self_start]}>
             <ReactionPicker onPick={onPickReaction} />
@@ -299,7 +419,7 @@ let MessageItem = ({
           )}
         </View>
       )}
-    </Animated.View>
+    </AnimatedView>
   )
 }
 
