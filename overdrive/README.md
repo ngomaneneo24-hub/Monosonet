@@ -17,4 +17,20 @@ Dev quickstart:
 - Requirements in `requirements.txt`
 - C++ serving in `../overdrive-serving`
 
+Run locally:
+
+```bash
+pip install -r requirements.txt
+python -c "from overdrive.app import run; run()"
+```
+
+Kafka consumer (env overrides via OVERDRIVE_*):
+
+```python
+from overdrive.ingestion.consumer import InteractionsConsumer
+from overdrive.config import settings
+c = InteractionsConsumer(settings.kafka_brokers, settings.kafka_topic_interactions, 'overdrive-local')
+c.run()
+```
+
 This directory will evolve to include jobs (Airflow/Dagster), training code, and schemas.
