@@ -47,6 +47,11 @@ interface SonetMessage {
     url: string
     filename: string
   }>
+  reactions?: Array<{
+    emoji: string
+    userId: string
+  }>
+  status?: string
 }
 
 interface SonetMessageItemProps {
@@ -248,6 +253,15 @@ let MessageItem = ({
           isFromSelf={isFromSelf}
           isLastInGroup={isLastInGroup}
         />
+
+        {/* Reactions */}
+        {message.reactions && message.reactions.length > 0 && (
+          <View style={[a.mt_xs, a.flex_row, a.gap_xs, isFromSelf && a.self_end]}>
+            {message.reactions.map(r => (
+              <ReactionPill key={r.emoji + r.userId} emoji={r.emoji} count={1} />
+            ))}
+          </View>
+        )}
       </View>
 
       {/* Avatar for own messages */}
@@ -317,6 +331,18 @@ function VoiceNoteBubble({url, isOwn}: {url: string; isOwn: boolean}) {
   )
 }
 
+function ReactionPill({emoji, count}: {emoji: string; count: number}) {
+  const t = useTheme()
+  return (
+    <View style={[a.flex_row, a.items_center, a.gap_1, a.px_2, a.py_1, a.rounded_full, t.atoms.bg_contrast_25]}>
+      <Text style={[a.text_xs, t.atoms.text]}>{emoji}</Text>
+      {count > 1 && (
+        <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>{count}</Text>
+      )}
+    </View>
+  )
+}
+
 let MessageItemMetadata = ({
   message,
   isFromSelf,
@@ -344,6 +370,13 @@ let MessageItemMetadata = ({
       ]}>
       {/* Timestamp */}
       <TimeElapsed timestamp={message.timestamp} />
+      
+      {/* Delivery state (simplified) */}
+      {message.status && (
+        <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>
+          {message.status}
+        </Text>
+      )}
       
       {/* Encryption Status */}
       {message.isEncrypted && (

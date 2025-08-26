@@ -6,6 +6,7 @@ import {useLingui} from '@lingui/react'
 import {atoms as a, useTheme} from '#/alf'
 import {Text} from '#/components/Typography'
 import {Button} from '#/components/Button'
+import {sonetWebSocket} from '#/services/sonetWebSocket'
 
 interface SonetMessageInputProps {
   onSendMessage: (text: string, attachments?: File[]) => Promise<void>
@@ -129,6 +130,20 @@ export function SonetMessageInput({
     }
   }, [usernameSend])
 
+  // Typing indicator (web only)
+  const typingTimeoutRef = React.useRef<number | null>(null)
+  const sendTyping = useCallback(() => {
+    try {
+      // @ts-ignore navigator may not exist in native
+      sonetWebSocket.sendTyping?.(undefined as any, true)
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+      typingTimeoutRef.current = setTimeout(() => {
+        // @ts-ignore
+        sonetWebSocket.sendTyping?.(undefined as any, false)
+      }, 1500) as unknown as number
+    } catch {}
+  }, [])
+
   const getEncryptionIcon = () => {
     switch (encryptionStatus) {
       case 'enabled':
@@ -199,7 +214,7 @@ export function SonetMessageInput({
       <View style={[a.flex_1, a.relative]}>
         <TextInput
           value={text}
-          onChangeText={setText}
+          onChangeText={(v) => { setText(v); sendTyping() }}
           onKeyPress={usernameKeyPress}
           placeholder={placeholder || _('Type a message...')}
           placeholderTextColor={t.atoms.text_contrast_medium}
