@@ -21,6 +21,7 @@ import {SonetSystemMessage} from '#/components/dms/SonetSystemMessage'
 import {SonetTypingIndicator} from '#/components/dms/SonetTypingIndicator'
 import {SonetMessageSearch} from '#/components/dms/SonetMessageSearch'
 import {useSonetListConvos} from '#/state/queries/messages/sonet'
+import {sonetMessagingApi} from '#/services/sonetMessagingApi'
 
 type Props = NativeStackScreenProps<CommonNavigatorParams, 'SonetConversation'>
 
@@ -76,10 +77,18 @@ export function SonetConversationScreenInner({route}: Props) {
   
   // Username search result press
   const usernameSearchResultPress = useCallback((result: any) => {
-    // TODO: Navigate to specific message - placeholder for future implementation
-    console.log('Search result pressed:', result)
+    // Expect result to contain messageId and maybe chatId
+    const messageId = result?.messageId || result?.id
+    if (messageId) {
+      // In a production implementation, we'd scroll a virtualized list and flash highlight.
+      // For now, navigate to same screen with param to hint focus; future: wire MessagesList ref.
+      navigation.navigate('SonetConversation' as any, {
+        conversation: conversationId,
+        highlight: messageId,
+      })
+    }
     setIsSearchOpen(false)
-  }, [])
+  }, [navigation, conversationId])
   
   // Refresh on focus
   useFocusEffect(

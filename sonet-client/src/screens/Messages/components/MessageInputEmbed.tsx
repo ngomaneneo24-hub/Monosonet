@@ -3,6 +3,7 @@ import React, {useCallback, useMemo} from 'react'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
+import {Linking} from 'react-native'
 
 import {useSession} from '#/state/session'
 import {atoms as a, useTheme} from '#/alf'
