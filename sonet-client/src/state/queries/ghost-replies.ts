@@ -18,6 +18,10 @@ export interface CreateGhostReplyRequest {
   ghostAvatar: string
   ghostId: string
   threadId: string
+  // User tracking for moderation (hidden from public)
+  authorId: string
+  ipAddress?: string
+  userAgent?: string
 }
 
 export interface GhostReplyResponse {
@@ -37,6 +41,10 @@ export const ghostRepliesApi = {
         ghostAvatar: data.ghostAvatar,
         ghostId: data.ghostId,
         threadId: data.threadId,
+        // User tracking for moderation (hidden from public)
+        authorId: data.authorId,
+        ipAddress: data.ipAddress,
+        userAgent: data.userAgent,
       })
       
       return {

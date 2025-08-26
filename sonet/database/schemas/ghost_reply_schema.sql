@@ -14,7 +14,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 CREATE EXTENSION IF NOT EXISTS "btree_gin";
 
--- Ghost replies table - stores anonymous replies with no user association
+-- Ghost replies table - stores "anonymous" replies with user tracking for moderation
 CREATE TABLE ghost_replies (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     content TEXT NOT NULL,
@@ -22,6 +22,11 @@ CREATE TABLE ghost_replies (
     ghost_id VARCHAR(10) NOT NULL, -- e.g., "7A3F", "2B9E"
     thread_id UUID NOT NULL, -- References the thread/note being replied to
     parent_note_id UUID REFERENCES notes(note_id) ON DELETE CASCADE,
+    
+    -- User tracking (hidden from public but available to moderators)
+    author_id UUID NOT NULL, -- References users table for accountability
+    author_ip_address INET, -- IP address for abuse prevention
+    author_user_agent TEXT, -- User agent for pattern detection
     
     -- Content metadata
     language VARCHAR(10) DEFAULT 'en',
@@ -37,7 +42,12 @@ CREATE TABLE ghost_replies (
     moderation_status VARCHAR(20) DEFAULT 'pending' 
         CHECK (moderation_status IN ('pending', 'approved', 'rejected', 'flagged')),
     
-    -- Engagement tracking (anonymous)
+    -- Rate limiting and abuse prevention
+    rate_limit_key VARCHAR(255), -- For tracking user rate limits
+    abuse_score INTEGER DEFAULT 0, -- Cumulative abuse score
+    last_abuse_incident TIMESTAMP WITH TIME ZONE, -- Last abuse detection
+    
+    -- Engagement tracking (public metrics)
     like_count INTEGER DEFAULT 0,
     reply_count INTEGER DEFAULT 0,
     view_count INTEGER DEFAULT 0,
@@ -54,7 +64,8 @@ CREATE TABLE ghost_replies (
     CONSTRAINT ghost_reply_content_length CHECK (char_length(content) <= 300),
     CONSTRAINT ghost_reply_ghost_id_format CHECK (ghost_id ~ '^[0-9A-F]{4}$'),
     CONSTRAINT ghost_reply_spam_score_range CHECK (spam_score >= 0.0 AND spam_score <= 1.0),
-    CONSTRAINT ghost_reply_toxicity_score_range CHECK (toxicity_score >= 0.0 AND toxicity_score <= 1.0)
+    CONSTRAINT ghost_reply_toxicity_score_range CHECK (toxicity_score >= 0.0 AND toxicity_score <= 1.0),
+    CONSTRAINT ghost_reply_abuse_score_range CHECK (abuse_score >= 0 AND abuse_score <= 100)
 );
 
 -- Ghost reply media attachments table
@@ -123,6 +134,55 @@ CREATE TABLE ghost_reply_moderation_log (
     reason TEXT,
     metadata JSONB DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Ghost reply rate limiting table
+CREATE TABLE ghost_reply_rate_limits (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL, -- References users table
+    ip_address INET NOT NULL,
+    rate_limit_key VARCHAR(255) NOT NULL, -- Composite key for rate limiting
+    
+    -- Rate limiting counters
+    ghost_reply_count INTEGER DEFAULT 0, -- Ghost replies in current window
+    last_ghost_reply_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    -- Cooldown tracking
+    cooldown_until TIMESTAMP WITH TIME ZONE, -- When cooldown expires
+    cooldown_reason VARCHAR(100), -- Reason for cooldown
+    
+    -- Abuse tracking
+    warning_count INTEGER DEFAULT 0, -- Number of warnings
+    suspension_count INTEGER DEFAULT 0, -- Number of suspensions
+    is_suspended BOOLEAN DEFAULT FALSE, -- Current suspension status
+    suspended_until TIMESTAMP WITH TIME ZONE, -- When suspension expires
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    UNIQUE(user_id, ip_address, rate_limit_key)
+);
+
+-- Ghost reply abuse detection table
+CREATE TABLE ghost_reply_abuse_patterns (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    pattern_type VARCHAR(50) NOT NULL, -- 'spam', 'harassment', 'inappropriate', etc.
+    pattern_signature TEXT NOT NULL, -- Hash or signature of the pattern
+    severity INTEGER DEFAULT 1, -- 1-10 severity scale
+    detection_count INTEGER DEFAULT 0, -- How many times this pattern was detected
+    
+    -- Pattern metadata
+    description TEXT,
+    keywords TEXT[],
+    regex_pattern TEXT,
+    
+    -- Auto-moderation settings
+    auto_flag BOOLEAN DEFAULT FALSE, -- Automatically flag content with this pattern
+    auto_hide BOOLEAN DEFAULT FALSE, -- Automatically hide content with this pattern
+    auto_suspend BOOLEAN DEFAULT FALSE, -- Automatically suspend users with this pattern
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Ghost reply analytics table
@@ -199,6 +259,23 @@ CREATE INDEX idx_ghost_reply_analytics_date_hour ON ghost_reply_analytics(date, 
 
 CREATE INDEX idx_ghost_reply_threads_note_id ON ghost_reply_threads(note_id);
 
+-- Rate limiting and abuse prevention indexes
+CREATE INDEX idx_ghost_reply_rate_limits_user_id ON ghost_reply_rate_limits(user_id);
+CREATE INDEX idx_ghost_reply_rate_limits_ip_address ON ghost_reply_rate_limits(ip_address);
+CREATE INDEX idx_ghost_reply_rate_limits_rate_limit_key ON ghost_reply_rate_limits(rate_limit_key);
+CREATE INDEX idx_ghost_reply_rate_limits_suspended ON ghost_reply_rate_limits(is_suspended, suspended_until);
+CREATE INDEX idx_ghost_reply_rate_limits_cooldown ON ghost_reply_rate_limits(cooldown_until);
+
+CREATE INDEX idx_ghost_reply_abuse_patterns_type ON ghost_reply_abuse_patterns(pattern_type);
+CREATE INDEX idx_ghost_reply_abuse_patterns_severity ON ghost_reply_abuse_patterns(severity);
+CREATE INDEX idx_ghost_reply_abuse_patterns_signature ON ghost_reply_abuse_patterns(pattern_signature);
+
+-- User tracking indexes (for moderation)
+CREATE INDEX idx_ghost_replies_author_id ON ghost_replies(author_id);
+CREATE INDEX idx_ghost_replies_ip_address ON ghost_replies(author_ip_address);
+CREATE INDEX idx_ghost_replies_rate_limit_key ON ghost_replies(rate_limit_key);
+CREATE INDEX idx_ghost_replies_abuse_score ON ghost_replies(abuse_score);
+
 -- Full-text search index for ghost reply content
 CREATE INDEX idx_ghost_replies_search ON ghost_replies USING gin(search_vector);
 
@@ -267,6 +344,150 @@ BEGIN
             RAISE EXCEPTION 'Unable to generate unique ghost ID after % attempts', max_attempts;
         END IF;
     END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to check ghost reply rate limits
+CREATE OR REPLACE FUNCTION check_ghost_reply_rate_limit(
+    p_user_id UUID,
+    p_ip_address INET,
+    p_rate_limit_key VARCHAR(255),
+    p_max_replies_per_hour INTEGER DEFAULT 10,
+    p_max_replies_per_day INTEGER DEFAULT 50
+)
+RETURNS TABLE(
+    can_post BOOLEAN,
+    reason TEXT,
+    cooldown_remaining INTEGER,
+    next_allowed_at TIMESTAMP WITH TIME ZONE
+) AS $$
+DECLARE
+    v_rate_limit_record RECORD;
+    v_hourly_count INTEGER;
+    v_daily_count INTEGER;
+    v_cooldown_remaining INTEGER;
+BEGIN
+    -- Check if user is suspended
+    SELECT * INTO v_rate_limit_record 
+    FROM ghost_reply_rate_limits 
+    WHERE user_id = p_user_id AND ip_address = p_ip_address AND rate_limit_key = p_rate_limit_key;
+    
+    IF v_rate_limit_record.is_suspended AND v_rate_limit_record.suspended_until > NOW() THEN
+        RETURN QUERY SELECT 
+            FALSE as can_post,
+            'User suspended' as reason,
+            EXTRACT(EPOCH FROM (v_rate_limit_record.suspended_until - NOW()))::INTEGER as cooldown_remaining,
+            v_rate_limit_record.suspended_until as next_allowed_at;
+        RETURN;
+    END IF;
+    
+    -- Check cooldown
+    IF v_rate_limit_record.cooldown_until > NOW() THEN
+        v_cooldown_remaining := EXTRACT(EPOCH FROM (v_rate_limit_record.cooldown_until - NOW()))::INTEGER;
+        RETURN QUERY SELECT 
+            FALSE as can_post,
+            'Cooldown active' as reason,
+            v_cooldown_remaining as cooldown_remaining,
+            v_rate_limit_record.cooldown_until as next_allowed_at;
+        RETURN;
+    END IF;
+    
+    -- Count hourly and daily posts
+    SELECT COUNT(*) INTO v_hourly_count
+    FROM ghost_replies 
+    WHERE author_id = p_user_id 
+    AND created_at >= NOW() - INTERVAL '1 hour';
+    
+    SELECT COUNT(*) INTO v_daily_count
+    FROM ghost_replies 
+    WHERE author_id = p_user_id 
+    AND created_at >= NOW() - INTERVAL '1 day';
+    
+    -- Check hourly limit
+    IF v_hourly_count >= p_max_replies_per_hour THEN
+        RETURN QUERY SELECT 
+            FALSE as can_post,
+            'Hourly limit exceeded' as reason,
+            3600 as cooldown_remaining, -- 1 hour cooldown
+            NOW() + INTERVAL '1 hour' as next_allowed_at;
+        RETURN;
+    END IF;
+    
+    -- Check daily limit
+    IF v_daily_count >= p_max_replies_per_day THEN
+        RETURN QUERY SELECT 
+            FALSE as can_post,
+            'Daily limit exceeded' as reason,
+            86400 as cooldown_remaining, -- 24 hour cooldown
+            NOW() + INTERVAL '1 day' as next_allowed_at;
+        RETURN;
+    END IF;
+    
+    -- All checks passed
+    RETURN QUERY SELECT 
+        TRUE as can_post,
+        'OK' as reason,
+        0 as cooldown_remaining,
+        NOW() as next_allowed_at;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to apply rate limiting penalties
+CREATE OR REPLACE FUNCTION apply_ghost_reply_penalty(
+    p_user_id UUID,
+    p_ip_address INET,
+    p_rate_limit_key VARCHAR(255),
+    p_penalty_type VARCHAR(50), -- 'warning', 'cooldown', 'suspension'
+    p_duration_minutes INTEGER DEFAULT 0,
+    p_reason TEXT DEFAULT ''
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_rate_limit_record RECORD;
+    v_new_warning_count INTEGER;
+    v_new_suspension_count INTEGER;
+BEGIN
+    -- Get or create rate limit record
+    SELECT * INTO v_rate_limit_record 
+    FROM ghost_reply_rate_limits 
+    WHERE user_id = p_user_id AND ip_address = p_ip_address AND rate_limit_key = p_rate_limit_key;
+    
+    IF NOT FOUND THEN
+        INSERT INTO ghost_reply_rate_limits (user_id, ip_address, rate_limit_key)
+        VALUES (p_user_id, p_ip_address, p_rate_limit_key);
+        v_rate_limit_record.warning_count := 0;
+        v_rate_limit_record.suspension_count := 0;
+    END IF;
+    
+    CASE p_penalty_type
+        WHEN 'warning' THEN
+            v_new_warning_count := v_rate_limit_record.warning_count + 1;
+            UPDATE ghost_reply_rate_limits 
+            SET warning_count = v_new_warning_count,
+                updated_at = NOW()
+            WHERE user_id = p_user_id AND ip_address = p_ip_address AND rate_limit_key = p_rate_limit_key;
+            
+        WHEN 'cooldown' THEN
+            UPDATE ghost_reply_rate_limits 
+            SET cooldown_until = NOW() + (p_duration_minutes || ' minutes')::INTERVAL,
+                cooldown_reason = p_reason,
+                updated_at = NOW()
+            WHERE user_id = p_user_id AND ip_address = p_ip_address AND rate_limit_key = p_rate_limit_key;
+            
+        WHEN 'suspension' THEN
+            v_new_suspension_count := v_rate_limit_record.suspension_count + 1;
+            UPDATE ghost_reply_rate_limits 
+            SET is_suspended = TRUE,
+                suspended_until = NOW() + (p_duration_minutes || ' minutes')::INTERVAL,
+                suspension_count = v_new_suspension_count,
+                updated_at = NOW()
+            WHERE user_id = p_user_id AND ip_address = p_ip_address AND rate_limit_key = p_rate_limit_key;
+            
+        ELSE
+            RETURN FALSE;
+    END CASE;
+    
+    RETURN TRUE;
 END;
 $$ LANGUAGE plpgsql;
 
