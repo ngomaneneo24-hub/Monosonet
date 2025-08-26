@@ -28,6 +28,7 @@ import {FormError} from '#/components/forms/FormError'
 import {HostingProvider} from '#/components/forms/HostingProvider'
 import {SONET_API_BASE} from '#/env'
 import * as TextField from '#/components/forms/TextField'
+import {PassphraseToggleButton} from '#/components/forms/PassphraseToggleButton'
 import {At_Stroke2_Corner0_Rounded as At} from '#/components/icons/At'
 import {Lock_Stroke2_Corner0_Rounded as Lock} from '#/components/icons/Lock'
 import {Ticket_Stroke2_Corner0_Rounded as Ticket} from '#/components/icons/Ticket'
@@ -68,6 +69,7 @@ export const LoginForm = ({
     useState<boolean>(false)
   const [isAuthFactorTokenValueEmpty, setIsAuthFactorTokenValueEmpty] =
     useState<boolean>(true)
+  const [isPassphraseVisible, setIsPassphraseVisible] = useState<boolean>(true)
   const identifierValueRef = useRef<string>(initialUsername || '')
   const passwordValueRef = useRef<string>('')
   const authFactorTokenValueRef = useRef<string>('')
@@ -226,7 +228,7 @@ export const LoginForm = ({
               autoComplete="password"
               returnKeyType="done"
               enablesReturnKeyAutomatically={true}
-              secureTextEntry={true}
+              secureTextEntry={!isPassphraseVisible}
               textContentType="password"
               clearButtonMode="while-editing"
               onChangeText={v => {
@@ -237,6 +239,12 @@ export const LoginForm = ({
               editable={!isProcessing}
               accessibilityHint={_(msg`Enter your passphrase`)}
             />
+            <PassphraseToggleButton
+              isVisible={isPassphraseVisible}
+              onToggle={() => setIsPassphraseVisible(!isPassphraseVisible)}
+              size="md"
+            />
+          </TextField.Root>
             <Button
               testID="forgotPasswordButton"
               onPress={onPressForgotPassword}
