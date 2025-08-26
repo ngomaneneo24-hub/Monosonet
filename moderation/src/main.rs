@@ -13,6 +13,8 @@ use moderation::config::AppConfig;
 use moderation::storage::db::Datastores;
 use axum_prometheus::PrometheusMetricLayer;
 use moderation::api::middleware::RateLimitLayer;
+use tonic::transport::Server as TonicServer;
+use moderation::api::grpc::{ModerationGrpcService, moderation_v1::moderation_service_server::ModerationServiceServer};
 
 async fn shutdown_signal() {
 	let ctrl_c = async {
@@ -57,13 +59,19 @@ async fn main() {
 		.layer(prom_layer)
 		.layer(RateLimitLayer { redis: state.redis.clone(), window: Duration::from_secs(1), limit: 2000 })
 		.route("/metrics", axum::routing::get(move || async move { metric_handle.render() }))
-		.with_state(state);
+		.with_state(state.clone());
 
-	let addr = SocketAddr::from(([0, 0, 0, 0], cfg.server_port));
-	tracing::info!(%addr, "starting moderation service");
-	let listener = tokio::net::TcpListener::bind(addr).await.expect("bind failed");
-	axum::serve(listener, app)
-		.with_graceful_shutdown(shutdown_signal())
-		.await
-		.expect("server failed");
+	let http_addr = SocketAddr::from(([0, 0, 0, 0], cfg.server_port));
+	let grpc_addr = SocketAddr::from(([0, 0, 0, 0], cfg.grpc_port));
+	tracing::info!(%http_addr, %grpc_addr, "starting moderation service (http + grpc)");
+
+	let http_listener = tokio::net::TcpListener::bind(http_addr).await.expect("bind http failed");
+	let http_server = axum::serve(http_listener, app).with_graceful_shutdown(shutdown_signal());
+
+	let grpc_service = ModerationGrpcService::default().into_server();
+	let grpc_server = TonicServer::builder()
+		.add_service(grpc_service)
+		.serve_with_shutdown(grpc_addr, shutdown_signal());
+
+	tokio::join!(http_server, grpc_server);
 }

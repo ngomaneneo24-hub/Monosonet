@@ -1,0 +1,23 @@
+syntax = "proto3";
+package moderation.v1;
+
+message ClassifyRequest {
+	string content_id = 1;
+	string user_id = 2;
+	string text = 3;
+}
+
+message Classification {
+	string label = 1;
+	float confidence = 2;
+}
+
+message ClassifyResponse {
+	string content_id = 1;
+	Classification result = 2;
+}
+
+service ModerationService {
+	rpc Classify (ClassifyRequest) returns (ClassifyResponse);
+	rpc ClassifyStream (stream ClassifyRequest) returns (stream ClassifyResponse);
+}
