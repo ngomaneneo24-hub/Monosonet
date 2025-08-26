@@ -32,6 +32,8 @@ class TimelineCache;
 class RankingEngine;
 class ContentFilter;
 class RealtimeNotifier;
+class ContentSourceAdapter;
+class OverdriveClient; // Forward declaration for external ranker client
 
 // Content filter preferences
 struct ContentFilterPreferences {
@@ -236,6 +238,9 @@ public:
     );
     ~TimelineServiceImpl();
     
+    // Allow wiring an external Overdrive client at runtime
+    void SetOverdriveClient(std::shared_ptr<OverdriveClient> client) { overdrive_client_ = std::move(client); }
+    
     // gRPC service methods
     grpc::Status GetTimeline(
         grpc::ServerContext* context,
@@ -395,6 +400,9 @@ private:
     std::shared_ptr<RealtimeNotifier> realtime_notifier_;
     std::unordered_map<::sonet::timeline::ContentSource, std::shared_ptr<ContentSourceAdapter>> content_sources_;
     std::shared_ptr<::sonet::follow::FollowService::Stub> follow_service_;
+    
+    // Optional external ranker client (Overdrive)
+    std::shared_ptr<OverdriveClient> overdrive_client_;
     
     // Configuration
     TimelineConfig default_config_;

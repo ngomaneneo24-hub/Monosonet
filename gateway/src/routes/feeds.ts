@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { GrpcClients } from '../grpc/clients.js';
+import { Metadata } from '@grpc/grpc-js';
 
 function userIdFromAuth(req: Request): string | undefined {
   const auth = req.header('authorization') || req.header('Authorization');
@@ -35,39 +36,83 @@ export function registerFeedRoutes(router: Router, clients: GrpcClients) {
       }
     };
 
-    clients.timeline.GetForYouFeed(request, (err: any, resp: any) => {
-      if (err) {
-        console.error('For You feed error:', err);
-        return res.status(500).json({ 
-          ok: false, 
-          message: 'Failed to generate personalized feed',
-          error: err.message 
-        });
-      }
+    // Forward Overdrive toggle to timeline as gRPC metadata
+    const md = new Metadata();
+    const overdriveToggle = (req.header('x-use-overdrive') || '').toString();
+    if (overdriveToggle) {
+      md.add('x-use-overdrive', overdriveToggle);
+    }
 
-      // Transform response for client consumption
-      const feedItems = (resp?.items || []).map((item: any) => ({
-        note: item.note,
-        ranking: {
-          score: item.ml_score,
-          factors: item.ranking_factors,
-          personalization: item.personalization_reasons
-        },
-        feedContext: 'for-you',
-        cursor: item.cursor
-      }));
-
-      return res.json({
-        ok: resp?.success ?? true,
-        items: feedItems,
-        pagination: resp?.pagination,
-        personalization: {
-          algorithm: 'FOR_YOU_ML',
-          version: resp?.algorithm_version || '1.0',
-          factors: resp?.personalization_summary
+    // Prefer passing metadata if supported by the client stub (grpc-js)
+    try {
+      (clients.timeline as any).GetForYouFeed(request, md, (err: any, resp: any) => {
+        if (err) {
+          console.error('For You feed error:', err);
+          return res.status(500).json({ 
+            ok: false, 
+            message: 'Failed to generate personalized feed',
+            error: err.message 
+          });
         }
+
+        // Transform response for client consumption
+        const feedItems = (resp?.items || []).map((item: any) => ({
+          note: item.note,
+          ranking: {
+            score: item.ml_score,
+            factors: item.ranking_factors,
+            personalization: item.personalization_reasons
+          },
+          feedContext: 'for-you',
+          cursor: item.cursor
+        }));
+
+        return res.json({
+          ok: resp?.success ?? true,
+          items: feedItems,
+          pagination: resp?.pagination,
+          personalization: {
+            algorithm: 'FOR_YOU_ML',
+            version: resp?.algorithm_version || '1.0',
+            factors: resp?.personalization_summary
+          }
+        });
       });
-    });
+    } catch (e) {
+      // Fallback without metadata if stub signature differs
+      (clients.timeline as any).GetForYouFeed(request, (err: any, resp: any) => {
+        if (err) {
+          console.error('For You feed error:', err);
+          return res.status(500).json({ 
+            ok: false, 
+            message: 'Failed to generate personalized feed',
+            error: err.message 
+          });
+        }
+
+        const feedItems = (resp?.items || []).map((item: any) => ({
+          note: item.note,
+          ranking: {
+            score: item.ml_score,
+            factors: item.ranking_factors,
+            personalization: item.personalization_reasons
+          },
+          feedContext: 'for-you',
+          cursor: item.cursor
+        }));
+
+        return res.json({
+          ok: resp?.success ?? true,
+          items: feedItems,
+          pagination: resp?.pagination,
+          personalization: {
+            algorithm: 'FOR_YOU_ML',
+            version: resp?.algorithm_version || '1.0',
+            factors: resp?.personalization_summary
+          }
+        });
+      });
+    }
   });
 
   // Video Feed - Enhanced with ML ranking
