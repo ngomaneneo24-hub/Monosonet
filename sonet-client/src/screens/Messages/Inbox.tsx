@@ -116,10 +116,10 @@ function RequestList({
   hasUnreadConvos,
 }: {
   listConvosQuery: UseInfiniteQueryResult<
-    InfiniteData<any>, // TODO: Replace with proper Sonet type
+    InfiniteData<any>,
     Error
   >
-  conversations: any[] // TODO: Replace with proper Sonet type
+  conversations: SonetChat[]
   hasUnreadConvos: boolean
 }) {
   const {_} = useLingui()
@@ -292,11 +292,11 @@ function RequestList({
   )
 }
 
-function keyExtractor(item: any) {
+function keyExtractor(item: SonetChat) {
   return item.id
 }
 
-function renderItem({item}: {item: any}) {
+function renderItem({item}: {item: SonetChat}) {
   return <RequestListItem convo={item} />
 }
 
