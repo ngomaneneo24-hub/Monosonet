@@ -22,6 +22,7 @@ import {SonetTypingIndicator} from '#/components/dms/SonetTypingIndicator'
 import {SonetMessageSearch} from '#/components/dms/SonetMessageSearch'
 import {useSonetListConvos} from '#/state/queries/messages/sonet'
 import {sonetMessagingApi} from '#/services/sonetMessagingApi'
+import {sonetWebSocket} from '#/services/sonetWebSocket'
 
 type Props = NativeStackScreenProps<CommonNavigatorParams, 'SonetConversation'>
 
@@ -50,6 +51,27 @@ export function SonetConversationScreenInner({route}: Props) {
   
   // Get conversation data
   const {state: conversationsState, actions: conversationsActions} = useSonetListConvos()
+  
+  // Typing indicators for current chat
+  const [typers, setTypers] = React.useState<string[]>([])
+  React.useEffect(() => {
+    const onTyping = (evt: any) => {
+      if (evt.chat_id !== conversationId) return
+      setTypers(prev => {
+        const name = evt.user_name || 'Someone'
+        if (evt.is_typing) {
+          if (prev.includes(name)) return prev
+          return [...prev, name]
+        } else {
+          return prev.filter(n => n !== name)
+        }
+      })
+    }
+    sonetWebSocket.on('typing', onTyping)
+    return () => {
+      sonetWebSocket.off('typing', onTyping)
+    }
+  }, [conversationId])
   
   // Find current conversation
   const currentConversation = conversationsState.chats.find(chat => chat.id === conversationId)
@@ -249,6 +271,11 @@ export function SonetConversationScreenInner({route}: Props) {
           <Layout.Header.TitleText>
             {currentConversation.title || _('Chat')}
           </Layout.Header.TitleText>
+          {typers.length > 0 && (
+            <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>
+              {typers.join(', ')} typing...
+            </Text>
+          )}
         </Layout.Header.Content>
         <Layout.Header.Right>
           <Layout.Header.Button
