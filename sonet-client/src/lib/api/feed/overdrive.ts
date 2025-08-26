@@ -46,47 +46,18 @@ export class OverdriveAPI {
 	}
 
 	/**
-	 * Enable Overdrive for the current user by setting the header
-	 */
-	enableOverdrive(): void {
-		try {
-			// Store preference in localStorage
-			localStorage.setItem('overdrive_enabled', 'true')
-			logger.info('Overdrive enabled for current user')
-		} catch (e) {
-			logger.error('Failed to enable Overdrive:', e)
-		}
-	}
-
-	/**
-	 * Disable Overdrive for the current user
-	 */
-	disableOverdrive(): void {
-		try {
-			localStorage.removeItem('overdrive_enabled')
-			logger.info('Overdrive disabled for current user')
-		} catch (e) {
-			logger.error('Failed to disable Overdrive:', e)
-		}
-	}
-
-	/**
-	 * Check if Overdrive is enabled for the current user
+	 * Overdrive is always enabled - no user toggle needed
+	 * This matches TikTok's approach where ML is always active
 	 */
 	isOverdriveEnabled(): boolean {
-		try {
-			return localStorage.getItem('overdrive_enabled') === 'true'
-		} catch (e) {
-			logger.error('Failed to check Overdrive status:', e)
-			return false
-		}
+		return true // Always enabled
 	}
 
 	/**
 	 * Get the Overdrive header value for API requests
 	 */
 	getOverdriveHeader(): string | null {
-		return this.isOverdriveEnabled() ? '1' : null
+		return '1' // Always return '1' - Overdrive is always on
 	}
 
 	/**

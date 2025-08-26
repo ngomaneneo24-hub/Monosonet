@@ -85,16 +85,13 @@ This starts:
 - ⚡ C++ gRPC Serving (port 50051)
 - 🤖 ML Model Training
 
-### 3. **Enable in Client**
+### 3. **Automatic Integration**
 ```typescript
-// Import the API
-import {overdriveAPI} from '#/lib/api/feed/overdrive'
+// Overdrive is automatically enabled for all users
+// No user toggle needed - matches TikTok's approach
 
-// Enable Overdrive
-overdriveAPI.enableOverdrive()
-
-// Or use the toggle component
-<OverdriveToggle onToggle={(enabled) => console.log('Overdrive:', enabled)} />
+// The x-use-overdrive header is automatically sent
+// when making requests to the feed API
 ```
 
 ### 4. **Test the System**
@@ -128,10 +125,11 @@ export OVERDRIVE_FEATURE_TTL_SECONDS=3600
 
 ### Client Integration
 ```typescript
-// The client automatically sends the x-use-overdrive header
-// when Overdrive is enabled via localStorage
+// Overdrive is automatically enabled for all users
+// The x-use-overdrive header is automatically sent
+// No user configuration needed
 
-// Manual header setting
+// Manual header setting (if needed)
 fetch('/v1/feeds/for-you', {
   headers: {
     'x-use-overdrive': '1'
