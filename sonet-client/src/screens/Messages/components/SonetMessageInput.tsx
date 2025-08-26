@@ -71,8 +71,18 @@ export function SonetMessageInput({
   const startWaveform = () => {
     if (waveformTimerRef.current) cancelAnimationFrame(waveformTimerRef.current)
     const tick = async () => {
-      // TODO: hook real metering when available; using pseudo amplitude now
-      const amp = Math.min(1, Math.max(0.05, Math.random()))
+      let amp = Math.min(1, Math.max(0.05, Math.random()))
+      try {
+        if (Platform.OS !== 'web' && nativeRecordingRef.current) {
+          const status: any = await nativeRecordingRef.current.getStatusAsync()
+          // Some platforms expose metering; map [-160..0] dBFS -> [0..1]
+          const db = status.metering || status.averagePower || undefined
+          if (typeof db === 'number') {
+            const norm = Math.max(0, Math.min(1, 1 + db / 60))
+            amp = norm
+          }
+        }
+      } catch {}
       setWaveform(prev => {
         const next = [...prev, amp]
         return next.slice(-24)
