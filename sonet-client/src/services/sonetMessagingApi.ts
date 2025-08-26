@@ -198,6 +198,42 @@ export class SonetMessagingApi extends EventEmitter {
     }
   }
 
+  // Archive a chat
+  async archiveChat(chatId: string): Promise<void> {
+    try {
+      await this.apiRequest(`/messaging/chats/${chatId}/archive`, {
+        method: 'POST',
+      })
+      // Update cache
+      const existing = this.chatCache.get(chatId)
+      if (existing) {
+        // @ts-expect-error allow soft property for UI state
+        existing.isArchived = true
+        this.chatCache.set(chatId, existing)
+      }
+      this.emit('chat_archived', {chatId})
+    } catch (error) {
+      console.error('Failed to archive chat:', error)
+      throw error
+    }
+  }
+
+  // Delete a chat
+  async deleteChat(chatId: string): Promise<void> {
+    try {
+      await this.apiRequest(`/messaging/chats/${chatId}`, {
+        method: 'DELETE',
+      })
+      // Update caches
+      this.chatCache.delete(chatId)
+      this.messageCache.delete(chatId)
+      this.emit('chat_deleted', {chatId})
+    } catch (error) {
+      console.error('Failed to delete chat:', error)
+      throw error
+    }
+  }
+
   // Message Management
   async sendMessage(request: SendMessageRequest): Promise<SonetMessage> {
     try {

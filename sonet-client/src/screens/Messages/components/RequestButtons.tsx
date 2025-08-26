@@ -135,7 +135,9 @@ export function RejectMenu({
           color="negative"
           variant="ghost"
           onPress={() => {
-            // TODO: Implement delete conversation
+            if (confirm(_('Delete this conversation?'))) {
+              sonetMessagingApi.deleteChat(convo.id).catch(err => console.error(err))
+            }
           }}>
           <ButtonText>
             <Trans>Delete</Trans>
