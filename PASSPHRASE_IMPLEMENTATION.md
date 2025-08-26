@@ -227,6 +227,43 @@ A comprehensive test suite has been created (`test_passphrase_manager.cpp`) that
 - Secure passphrase generation
 - Hashing and verification functionality
 
+## Mobile Layout Optimization
+
+### **Problem Solved**
+Traditional password fields treated long text like single-line inputs, causing:
+- Text overlapping to the right
+- Content getting cut off on mobile devices
+- Poor user experience with long passphrases
+
+### **Solution Implemented**
+- **Multiline Support**: Passphrase fields now support multiple lines
+- **Vertical Expansion**: Fields grow downward as content increases
+- **Responsive Height**: Minimum height ensures consistent layout
+- **Text Wrapping**: Long passphrases wrap to new lines properly
+- **Toggle Button**: Eye icon maintains proper positioning
+
+### **Technical Implementation**
+```typescript
+// PassphraseInput component with mobile-optimized properties
+<TextField.Input
+  multiline={true}
+  numberOfLines={3}
+  textAlignVertical="top"
+  style={[
+    multiline ? [a.min_h_20, a.py_sm] : [a.min_h_12],
+    {textAlignVertical: 'top'},
+  ]}
+/>
+```
+
+### **Mobile Demo Component**
+Created `PassphraseMobileDemo.tsx` to showcase:
+- Single-line behavior for short passphrases
+- Two-line expansion for medium passphrases
+- Three+ line expansion for long passphrases
+- Proper spacing and no overlap
+- Responsive layout on all screen sizes
+
 ## Migration Notes
 
 ### For Existing Users
@@ -259,6 +296,13 @@ A comprehensive test suite has been created (`test_passphrase_manager.cpp`) that
 - **Example Passphrases**: "correct horse battery staple" style examples
 - **Real-time Validation**: Immediate feedback on strength
 - **Visual Requirements**: Checkmarks for met requirements
+
+### 4. **Mobile-Optimized Layout** ✅
+- **Vertical Expansion**: Fields expand downward as text grows
+- **No Text Overlap**: Long passphrases wrap properly without cutoff
+- **Responsive Design**: Adapts to different screen sizes
+- **Proper Spacing**: Maintains consistent layout on mobile devices
+- **Toggle Button Positioning**: Eye icon stays properly positioned
 
 ## Future Enhancements
 

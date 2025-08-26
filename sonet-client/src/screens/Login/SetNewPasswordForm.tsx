@@ -15,7 +15,7 @@ import {FormError} from '#/components/forms/FormError'
 import * as TextField from '#/components/forms/TextField'
 import {Lock_Stroke2_Corner0_Rounded as Lock} from '#/components/icons/Lock'
 import {Ticket_Stroke2_Corner0_Rounded as Ticket} from '#/components/icons/Ticket'
-import {PassphraseToggleButton} from '#/components/forms/PassphraseToggleButton'
+import {PassphraseInput} from '#/components/forms/PassphraseInput'
 import {Text} from '#/components/Typography'
 import {FormContainer} from './FormContainer'
 
@@ -38,7 +38,6 @@ export const SetNewPasswordForm = ({
   const [isProcessing, setIsProcessing] = useState<boolean>(false)
   const [resetCode, setResetCode] = useState<string>('')
   const [password, setPassword] = useState<string>('')
-  const [isPassphraseVisible, setIsPassphraseVisible] = useState<boolean>(true)
 
   const onPressNext = async () => {
     // Check that the code is correct. We do this again just incase the user enters the code after their pw and we
@@ -148,35 +147,22 @@ export const SetNewPasswordForm = ({
         </TextField.Root>
       </View>
 
-      <View>
-        <TextField.LabelText>
-          <Trans>New passphrase</Trans>
-        </TextField.LabelText>
-        <TextField.Root>
-          <TextField.Icon icon={Lock} />
-                      <TextField.Input
-              testID="newPasswordInput"
-              label={_(msg`Enter a passphrase`)}
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="password"
-              returnKeyType="done"
-              secureTextEntry={!isPassphraseVisible}
-              textContentType="password"
-              clearButtonMode="while-editing"
-              value={password}
-              onChangeText={setPassword}
-              onSubmitEditing={onPressNext}
-              editable={!isProcessing}
-              accessibilityHint={_(msg`Input new passphrase`)}
-            />
-            <PassphraseToggleButton
-              isVisible={isPassphraseVisible}
-              onToggle={() => setIsPassphraseVisible(!isPassphraseVisible)}
-              size="md"
-            />
-        </TextField.Root>
-      </View>
+              <PassphraseInput
+          label={_('New passphrase')}
+          value={password}
+          onChangeText={setPassword}
+          showStrengthMeter={true}
+          showToggle={true}
+          multiline={true}
+          numberOfLines={3}
+          testID="newPasswordInput"
+          placeholder={_('Enter a passphrase')}
+          autoComplete="password"
+          returnKeyType="done"
+          onSubmitEditing={onPressNext}
+          editable={!isProcessing}
+          accessibilityHint={_('Input new passphrase')}
+        />
 
       <FormError error={error} />
 
