@@ -412,7 +412,42 @@ export class SonetMessagingApi extends EventEmitter {
       this.emit('typing', typingData)
     })
 
+    sonetWebSocket.on('delivery_receipt', (receiptData) => {
+      try {
+        const { message_id } = receiptData as any
+        for (const [chatId, msgs] of this.messageCache.entries()) {
+          const idx = msgs.findIndex(m => m.id === message_id)
+          if (idx !== -1) {
+            const m = msgs[idx]
+            if (m.status !== 'read') {
+              m.status = 'delivered'
+              this.messageCache.set(chatId, [...msgs])
+              this.emit('message_updated', m)
+            }
+            break
+          }
+        }
+      } catch {}
+      this.emit('delivery_receipt', receiptData)
+    })
+
     sonetWebSocket.on('read_receipt', (receiptData) => {
+      try {
+        const { message_id, user_id, read_at } = receiptData as any
+        // Update message status if we have it cached
+        for (const [chatId, msgs] of this.messageCache.entries()) {
+          const idx = msgs.findIndex(m => m.id === message_id)
+          if (idx !== -1) {
+            const m = msgs[idx]
+            // naive: mark as delivered if not own read, mark as read if own recipient read
+            // enhance by checking participants
+            m.status = 'read'
+            this.messageCache.set(chatId, [...msgs])
+            this.emit('message_updated', m)
+            break
+          }
+        }
+      } catch {}
       this.emit('read_receipt', receiptData)
     })
 
@@ -495,18 +530,17 @@ export class SonetMessagingApi extends EventEmitter {
   }
 
   // File Attachments
-  async uploadAttachment(file: File, chatId: string, encrypt: boolean = true, onProgress?: (pct: number) => void): Promise<SonetAttachment> {
+  async uploadAttachment(file: File | { uri: string; name: string; type: string; size?: number }, chatId: string, encrypt: boolean = true, onProgress?: (pct: number) => void, cancelToken?: { cancelled: boolean }): Promise<SonetAttachment> {
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('chatId', chatId)
-      formData.append('encrypt', encrypt.toString())
-
-      // Use XHR to support upload progress on web
-      if (typeof XMLHttpRequest !== 'undefined' && onProgress) {
+      // Web path with XHR progress
+      if (typeof XMLHttpRequest !== 'undefined' && file instanceof File) {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('chatId', chatId)
+        formData.append('encrypt', encrypt.toString())
         const url = `${this.baseUrl}/messaging/attachments`
         const token = this.authToken
-        const att: SonetAttachment = await new Promise((resolve, reject) => {
+        const attemptUpload = (): Promise<SonetAttachment> => new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest()
           xhr.open('NOTE', url)
           if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
@@ -524,22 +558,95 @@ export class SonetMessagingApi extends EventEmitter {
           }
           xhr.onerror = () => reject(new Error('Network error'))
           xhr.upload.onprogress = evt => {
-            if (evt.lengthComputable) {
+            if (evt.lengthComputable && onProgress) {
               const pct = Math.round((evt.loaded / evt.total) * 100)
               onProgress(pct)
             }
           }
+          xhr.onabort = () => reject(new Error('Upload cancelled'))
           xhr.send(formData)
         })
-        return att
+        // retry with backoff up to 3 attempts
+        let lastError: any
+        for (let attempt = 0; attempt < 3; attempt++) {
+          if (cancelToken?.cancelled) throw new Error('Upload cancelled')
+          try {
+            return await attemptUpload()
+          } catch (e) {
+            lastError = e
+            await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)))
+          }
+        }
+        throw lastError
       }
 
-      const response = await this.apiRequest('/messaging/attachments', {
-        method: 'NOTE',
-        body: formData
-      })
+      // Native path with expo-file-system and multipart upload
+      // We send as multipart/form-data with name, type, and uri
+      const { uploadAsync, createUploadTask, FileSystemUploadType } = require('expo-file-system')
+      const url = `${this.baseUrl}/messaging/attachments`
+      const token = this.authToken
+      const uploadOptions = {
+        fieldName: 'file',
+        httpMethod: 'POST',
+        uploadType: FileSystemUploadType.MULTIPART,
+        parameters: {
+          chatId,
+          encrypt: encrypt.toString(),
+        },
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        mimeType: (file as any).type || 'application/octet-stream',
+      }
 
-      return response.data
+      const localUri = (file as any).uri
+      if (!localUri) {
+        // Fallback: build FormData and fetch (no progress)
+        const fd = new FormData()
+        const anyFile: any = file
+        fd.append('file', anyFile)
+        fd.append('chatId', chatId)
+        fd.append('encrypt', encrypt.toString())
+        const resp = await this.apiRequest('/messaging/attachments', { method: 'NOTE', body: fd as any })
+        return resp.data
+      }
+
+      const doNativeUpload = () => new Promise<SonetAttachment>((resolve, reject) => {
+        const task = createUploadTask(url, localUri, uploadOptions, (data: { totalBytesSent: number; totalBytesExpectedToSend: number }) => {
+          if (onProgress && data.totalBytesExpectedToSend > 0) {
+            const pct = Math.round((data.totalBytesSent / data.totalBytesExpectedToSend) * 100)
+            onProgress(pct)
+          }
+          if (cancelToken?.cancelled) {
+            try {
+              task.cancelAsync?.()
+            } catch {}
+            reject(new Error('Upload cancelled'))
+          }
+        })
+        task.uploadAsync().then(res => {
+          if (res.status >= 200 && res.status < 300) {
+            try {
+              const json = JSON.parse(res.body)
+              resolve(json.data)
+            } catch (e) {
+              reject(e)
+            }
+          } else {
+            reject(new Error(`HTTP ${res.status}`))
+          }
+        }).catch(reject)
+      })
+      // retry with backoff
+      let lastError: any
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (cancelToken?.cancelled) throw new Error('Upload cancelled')
+        try {
+          return await doNativeUpload()
+        } catch (e) {
+          lastError = e
+          await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)))
+        }
+      }
+      throw lastError
     } catch (error) {
       console.error('Failed to upload attachment:', error)
       throw error

@@ -169,6 +169,9 @@ module.exports = function (_config) {
             category: ['BROWSABLE', 'DEFAULT'],
           },
         ],
+        permissions: [
+          'android.permission.RECORD_AUDIO',
+        ],
       },
       web: {
         favicon: './assets/favicon.png',
@@ -355,6 +358,7 @@ module.exports = function (_config) {
           },
         ],
         ['expo-screen-orientation', {initialOrientation: 'PORTRAIT_UP'}],
+        'expo-av',
       ].filter(Boolean),
       extra: {
         eas: {

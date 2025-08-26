@@ -1,5 +1,7 @@
 import React, {useCallback, useState} from 'react'
-import {View, TextInput, TouchableOpacity} from 'react-native'
+import {View, TextInput, TouchableOpacity, Platform, PanResponder, GestureResponderEvent, PanResponderGestureState} from 'react-native'
+import { Audio } from 'expo-av'
+import * as Haptics from 'expo-haptics'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -30,13 +32,20 @@ export function SonetMessageInput({
   const {_} = useLingui()
   const [text, setText] = useState('')
   const [isSending, setIsSending] = useState(false)
-  const [attachments, setAttachments] = useState<File[]>([])
+  const [attachments, setAttachments] = useState<Array<{file: File | { uri: string; name: string; type: string }, progress: number, status: 'queued' | 'uploading' | 'uploaded' | 'failed', cancel?: { cancelled: boolean }}>>([])
   const [isRecording, setIsRecording] = useState(false)
   const [recordingStart, setRecordingStart] = useState<number | null>(null)
   const [recordingMs, setRecordingMs] = useState(0)
   const recordingTimerRef = React.useRef<number | null>(null)
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null)
   const recordedChunksRef = React.useRef<BlobPart[]>([])
+  const nativeRecordingRef = React.useRef<Audio.Recording | null>(null)
+  const [isHoldRecording, setIsHoldRecording] = useState(false)
+  const [isLocked, setIsLocked] = useState(false)
+  const [panX, setPanX] = useState(0)
+  const [panY, setPanY] = useState(0)
+  const [waveform, setWaveform] = useState<number[]>([])
+  const waveformTimerRef = React.useRef<number | null>(null)
 
   const startTimer = useCallback(() => {
     if (recordingTimerRef.current) cancelAnimationFrame(recordingTimerRef.current)
@@ -54,39 +63,102 @@ export function SonetMessageInput({
     recordingTimerRef.current = null
   }, [])
 
+  const stopWaveform = () => {
+    if (waveformTimerRef.current) cancelAnimationFrame(waveformTimerRef.current)
+    waveformTimerRef.current = null
+    setWaveform([])
+  }
+  const startWaveform = () => {
+    if (waveformTimerRef.current) cancelAnimationFrame(waveformTimerRef.current)
+    const tick = async () => {
+      let amp = Math.min(1, Math.max(0.05, Math.random()))
+      try {
+        if (Platform.OS !== 'web' && nativeRecordingRef.current) {
+          const status: any = await nativeRecordingRef.current.getStatusAsync()
+          // Some platforms expose metering; map [-160..0] dBFS -> [0..1]
+          const db = status.metering || status.averagePower || undefined
+          if (typeof db === 'number') {
+            const norm = Math.max(0, Math.min(1, 1 + db / 60))
+            amp = norm
+          }
+        }
+      } catch {}
+      setWaveform(prev => {
+        const next = [...prev, amp]
+        return next.slice(-24)
+      })
+      // Basic VAD auto-stop: if low amplitude for ~2s, stop (only when not locked)
+      if (!isLocked && isRecording) {
+        const low = waveform.filter(v => v < 0.12).length
+        if (low > 20) {
+          try {
+            await toggleRecord()
+          } catch {}
+        }
+      }
+      waveformTimerRef.current = requestAnimationFrame(tick)
+    }
+    waveformTimerRef.current = requestAnimationFrame(tick)
+  }
+
   const toggleRecord = useCallback(async () => {
     if (isRecording) {
       // Stop
       try {
-        mediaRecorderRef.current?.stop()
+        if (Platform.OS === 'web') {
+          mediaRecorderRef.current?.stop()
+        } else {
+          const rec = nativeRecordingRef.current
+          if (rec) {
+            await rec.stopAndUnloadAsync()
+            const uri = rec.getURI()
+            if (uri) {
+              const fileLike = { uri, name: `voice_${Date.now()}.m4a`, type: 'audio/m4a' }
+              setAttachments(prev => [...prev, { file: fileLike, progress: 0, status: 'queued' }])
+            }
+          }
+        }
       } catch {}
       setIsRecording(false)
       setRecordingStart(null)
       stopTimer()
+      stopWaveform()
     } else {
       // Start
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({audio: true})
-        recordedChunksRef.current = []
-        const mr = new MediaRecorder(stream)
-        mediaRecorderRef.current = mr
-        mr.ondataavailable = (e) => {
-          if (e.data && e.data.size > 0) recordedChunksRef.current.push(e.data)
+        if (Platform.OS === 'web') {
+          // Web
+          const stream = await navigator.mediaDevices.getUserMedia({audio: true})
+          recordedChunksRef.current = []
+          const mr = new MediaRecorder(stream)
+          mediaRecorderRef.current = mr
+          mr.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) recordedChunksRef.current.push(e.data)
+          }
+          mr.onstop = () => {
+            try {
+              const blob = new Blob(recordedChunksRef.current, {type: 'audio/webm'})
+              const file = new File([blob], `voice_${Date.now()}.webm`, {type: 'audio/webm'})
+              setAttachments(prev => [...prev, { file, progress: 0, status: 'queued' }])
+              stream.getTracks().forEach(t => t.stop())
+            } catch {}
+          }
+          mr.start()
+        } else {
+          // Native
+          await Audio.requestPermissionsAsync()
+          await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true })
+          const recording = new Audio.Recording()
+          await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY)
+          nativeRecordingRef.current = recording
+          await recording.startAsync()
         }
-        mr.onstop = () => {
-          try {
-            const blob = new Blob(recordedChunksRef.current, {type: 'audio/webm'})
-            const file = new File([blob], `voice_${Date.now()}.webm`, {type: 'audio/webm'})
-            setAttachments(prev => [...prev, file])
-            stream.getTracks().forEach(t => t.stop())
-          } catch {}
-        }
-        mr.start()
         setIsRecording(true)
         const now = Date.now()
         setRecordingStart(now)
         setRecordingMs(0)
         startTimer()
+        startWaveform()
       } catch (err) {
         console.error('Failed to start recording:', err)
       }
@@ -101,7 +173,7 @@ export function SonetMessageInput({
     input.onchange = () => {
       const files = Array.from(input.files || []) as File[]
       if (files.length) {
-        setAttachments(prev => [...prev, ...files])
+        setAttachments(prev => [...prev, ...files.map(f => ({ file: f, progress: 0, status: 'queued' }))])
       }
     }
     input.click()
@@ -116,27 +188,31 @@ export function SonetMessageInput({
 
     setIsSending(true)
     try {
-      // If attachments exist, upload them first with progress then send
-      const uploaded: File[] = []
-      const progressState: number[] = attachments.map(() => 0)
-      // Render progress via local state by mapping filenames -> pct
-      // For brevity, we reuse attachments chips and append pct text
-      // Upload sequentially to keep UI simple
+      // Upload attachments with per-file progress and cancellation
+      const uploadedFiles: File[] = []
       for (let i = 0; i < attachments.length; i++) {
-        const f = attachments[i]
-        await sonetMessagingApi.uploadAttachment(
-          f,
-          (undefined as any),
-          true,
-          pct => {
-            progressState[i] = pct
-            // Trigger re-render
-            setAttachments(prev => [...prev])
-          },
-        )
-        uploaded.push(f)
+        const att = attachments[i]
+        const cancelRef = { cancelled: false }
+        setAttachments(prev => prev.map((it, idx) => idx === i ? { ...it, status: 'uploading', cancel: cancelRef } : it))
+        try {
+          await sonetMessagingApi.uploadAttachment(
+            att.file as any,
+            (undefined as any),
+            true,
+            pct => {
+              setAttachments(prev => prev.map((it, idx) => idx === i ? { ...it, progress: pct } : it))
+            },
+            cancelRef,
+          )
+          setAttachments(prev => prev.map((it, idx) => idx === i ? { ...it, status: 'uploaded', progress: 100 } : it))
+          // For onSendMessage signature, we pass original File objects when available
+          if (att.file instanceof File) uploadedFiles.push(att.file)
+        } catch (e) {
+          setAttachments(prev => prev.map((it, idx) => idx === i ? { ...it, status: 'failed' } : it))
+          throw e
+        }
       }
-      await onSendMessage(text.trim(), attachments)
+      await onSendMessage(text.trim(), uploadedFiles)
       setText('')
       setAttachments([])
     } catch (error) {
@@ -193,6 +269,59 @@ export function SonetMessageInput({
     }
   }
 
+  const panResponder = React.useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderGrant: async () => {
+      setPanX(0); setPanY(0)
+      setIsHoldRecording(true)
+      setIsLocked(false)
+      if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(()=>{})
+      if (!isRecording) await toggleRecord()
+    },
+    onPanResponderMove: (_evt: GestureResponderEvent, gesture: PanResponderGestureState) => {
+      setPanX(gesture.dx)
+      setPanY(gesture.dy)
+      if (gesture.dy < -60) {
+        if (!isLocked && Platform.OS !== 'web') Haptics.selectionAsync().catch(()=>{})
+        setIsLocked(true)
+      }
+    },
+    onPanResponderRelease: async () => {
+      if (isLocked) {
+        // keep recording until user taps stop
+        setIsHoldRecording(false)
+        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(()=>{})
+        return
+      }
+      // slide left cancel
+      if (panX < -60) {
+        // cancel and discard
+        try {
+          if (Platform.OS === 'web') {
+            mediaRecorderRef.current?.stop()
+          } else {
+            const rec = nativeRecordingRef.current
+            if (rec) {
+              await rec.stopAndUnloadAsync()
+            }
+          }
+        } catch {}
+        setIsRecording(false)
+        setRecordingStart(null)
+        stopTimer()
+        stopWaveform()
+        if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(()=>{})
+      } else {
+        // finish and save
+        await toggleRecord()
+        if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(()=>{})
+      }
+      setIsHoldRecording(false)
+      setIsLocked(false)
+      setPanX(0); setPanY(0)
+    },
+  }), [isRecording, panX, toggleRecord])
+
   return (
     <View style={[a.flex_row, a.items_end, a.gap_sm, a.px_md, a.py_sm]}>
       {/* Encryption Status */}
@@ -224,14 +353,14 @@ export function SonetMessageInput({
         <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>＋</Text>
       </Button>
 
-      {/* Voice Recorder */}
-      <Button
-        onPress={toggleRecord}
+      {/* Voice Recorder (hold to record) */}
+      <View
+        {...panResponder.panHandlers}
         style={[a.w_10, a.h_10, a.rounded_full, a.items_center, a.justify_center, isRecording ? t.atoms.bg_warning : t.atoms.bg_contrast_25]}>
         <Text style={[a.text_sm, isRecording ? t.atoms.text : t.atoms.text_contrast_medium]}>
-          {isRecording ? '◼' : '🎤'}
+          {isRecording ? (isLocked ? '🔒' : '◼') : '🎤'}
         </Text>
-      </Button>
+      </View>
 
       {/* Text Input */}
       <View style={[a.flex_1, a.relative]}>
@@ -264,13 +393,42 @@ export function SonetMessageInput({
         {/* Attachments Preview (compact) */}
         {attachments.length > 0 && (
           <View style={[a.mt_2, a.flex_row, a.gap_2, a.flex_wrap]}>
-            {attachments.map((f, idx) => (
-              <View key={idx} style={[a.flex_row, a.items_center, a.gap_1, a.px_2, a.py_1, a.rounded_full, t.atoms.bg_contrast_25]}>
+            {attachments.map((att, idx) => (
+              <View key={idx} style={[a.flex_row, a.items_center, a.gap_2, a.px_2, a.py_1, a.rounded_full, t.atoms.bg_contrast_25]}>
                 <Text style={[a.text_xs, t.atoms.text]} numberOfLines={1}>
-                  {f.name}
+                  {(att.file as any).name || 'file'}
                 </Text>
-                {/* Placeholder progress since we mutate by re-render; real impl would track pct per file */}
-                <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>↥</Text>
+                <View style={[{ width: 64, height: 4 }, a.rounded_full, t.atoms.bg_contrast_200]}>
+                  <View style={[{ width: `${att.progress}%`, height: 4 }, a.rounded_full, t.atoms.bg_primary]} />
+                </View>
+                {att.status === 'uploading' && (
+                  <TouchableOpacity onPress={() => {
+                    if (att.cancel) att.cancel.cancelled = true
+                  }}>
+                    <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>Cancel</Text>
+                  </TouchableOpacity>
+                )}
+                {att.status === 'failed' && (
+                  <TouchableOpacity onPress={async () => {
+                    // retry single upload
+                    const cancelRef = { cancelled: false }
+                    setAttachments(prev => prev.map((it, i2) => i2 === idx ? { ...it, status: 'uploading', cancel: cancelRef, progress: 0 } : it))
+                    try {
+                      await sonetMessagingApi.uploadAttachment(
+                        att.file as any,
+                        (undefined as any),
+                        true,
+                        pct => setAttachments(prev => prev.map((it, i2) => i2 === idx ? { ...it, progress: pct } : it)),
+                        cancelRef,
+                      )
+                      setAttachments(prev => prev.map((it, i2) => i2 === idx ? { ...it, status: 'uploaded', progress: 100 } : it))
+                    } catch (e) {
+                      setAttachments(prev => prev.map((it, i2) => i2 === idx ? { ...it, status: 'failed' } : it))
+                    }
+                  }}>
+                    <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>Retry</Text>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity onPress={() => removeAttachment(idx)}>
                   <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>✕</Text>
                 </TouchableOpacity>
@@ -285,6 +443,16 @@ export function SonetMessageInput({
             <Text style={[a.text_xs, t.atoms.text_warning]}>
               {Math.floor(recordingMs / 1000)}s
             </Text>
+            {/* Waveform */}
+            <View style={[a.flex_row, a.gap_1]}>
+              {waveform.map((amp, i) => (
+                <View key={i} style={[{ width: 3, height: Math.max(4, Math.round(amp * 24)) }, a.rounded_full, t.atoms.bg_warning]} />
+              ))}
+            </View>
+            {/* Hints */}
+            {!isLocked && isHoldRecording && (
+              <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>Slide left to cancel · Slide up to lock</Text>
+            )}
           </View>
         )}
         

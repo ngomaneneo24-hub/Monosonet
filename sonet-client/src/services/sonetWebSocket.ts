@@ -2,7 +2,7 @@ import {SONET_WS_BASE} from '#/env'
 import {EventEmitter} from 'events'
 
 export interface SonetWebSocketMessage {
-  type: 'message' | 'typing' | 'read_receipt' | 'user_online' | 'user_offline' | 'chat_update'
+  type: 'message' | 'typing' | 'delivery_receipt' | 'read_receipt' | 'user_online' | 'user_offline' | 'chat_update'
   payload: any
   timestamp: string
   message_id?: string
@@ -19,6 +19,12 @@ export interface SonetReadReceipt {
   message_id: string
   user_id: string
   read_at: string
+}
+
+export interface SonetDeliveryReceipt {
+  message_id: string
+  user_id?: string
+  delivered_at: string
 }
 
 export interface SonetUserStatus {
@@ -212,6 +218,9 @@ export class SonetWebSocket extends EventEmitter {
         break
       case 'typing':
         this.emit('typing', data.payload as SonetTypingEvent)
+        break
+      case 'delivery_receipt':
+        this.emit('delivery_receipt', data.payload as SonetDeliveryReceipt)
         break
       case 'read_receipt':
         this.emit('read_receipt', data.payload as SonetReadReceipt)
