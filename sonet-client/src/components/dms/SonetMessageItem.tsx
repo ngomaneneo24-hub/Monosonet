@@ -30,6 +30,8 @@ import {Warning_Stroke2_Corner0_Rounded as WarningIcon} from '#/components/icons
 import {DateDivider} from './DateDivider'
 import {MessageItemEmbed} from './MessageItemEmbed'
 import {localDateString} from './util'
+import {ReactionPicker} from '#/components/dms/ReactionPicker'
+import {sonetMessagingApi} from '#/services/sonetMessagingApi'
 
 // Sonet message interface
 interface SonetMessage {
@@ -123,6 +125,22 @@ let MessageItem = ({
     [message, isOwnMessage],
   )
 
+  const [showPicker, setShowPicker] = React.useState(false)
+  const onBubbleLongPress = useCallback(() => {
+    setShowPicker(v => !v)
+  }, [])
+
+  const onPickReaction = useCallback(async (emoji: string) => {
+    setShowPicker(false)
+    try {
+      const already = message.reactions?.some(r => r.emoji === emoji)
+      if (already) await sonetMessagingApi.removeReaction(message.id, emoji)
+      else await sonetMessagingApi.addReaction(message.id, emoji)
+    } catch (e) {
+      console.error('reaction failed', e)
+    }
+  }, [message])
+
   const onPress = useCallback(() => {
     // Username message press
   }, [])
@@ -183,7 +201,7 @@ let MessageItem = ({
             ],
           ]}
           onPress={onPress}
-          onLongPress={onLongPress}>
+          onLongPress={onBubbleLongPress}>
           {/* Encryption Status */}
           {message.isEncrypted && (
             <View style={[a.flex_row, a.items_center, a.gap_xs, a.mb_xs]}>
@@ -246,6 +264,11 @@ let MessageItem = ({
             </View>
           )}
         </Animated.View>
+        {showPicker && (
+          <View style={[a.mt_xs, isFromSelf ? a.self_end : a.self_start]}>
+            <ReactionPicker onPick={onPickReaction} />
+          </View>
+        )}
 
         {/* Message Metadata */}
         <MessageItemMetadata
@@ -257,9 +280,11 @@ let MessageItem = ({
         {/* Reactions */}
         {message.reactions && message.reactions.length > 0 && (
           <View style={[a.mt_xs, a.flex_row, a.gap_xs, isFromSelf && a.self_end]}>
-            {message.reactions.map(r => (
-              <ReactionPill key={r.emoji + r.userId} emoji={r.emoji} count={1} />
-            ))}
+            {Object.entries(message.reactions.reduce((acc: Record<string, number>, r) => { acc[r.emoji] = (acc[r.emoji]||0)+1; return acc }, {}))
+              .sort((a,b)=>b[1]-a[1])
+              .map(([emoji,count]) => (
+                <ReactionPill key={emoji} emoji={emoji} count={count} />
+              ))}
           </View>
         )}
       </View>
