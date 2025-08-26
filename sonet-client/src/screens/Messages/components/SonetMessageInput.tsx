@@ -1,5 +1,6 @@
 import React, {useCallback, useState} from 'react'
-import {View, TextInput, TouchableOpacity} from 'react-native'
+import {View, TextInput, TouchableOpacity, Platform} from 'react-native'
+import { Audio } from 'expo-av'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -30,13 +31,14 @@ export function SonetMessageInput({
   const {_} = useLingui()
   const [text, setText] = useState('')
   const [isSending, setIsSending] = useState(false)
-  const [attachments, setAttachments] = useState<File[]>([])
+  const [attachments, setAttachments] = useState<Array<{file: File | { uri: string; name: string; type: string }, progress: number, status: 'queued' | 'uploading' | 'uploaded' | 'failed', cancel?: { cancelled: boolean }}>>([])
   const [isRecording, setIsRecording] = useState(false)
   const [recordingStart, setRecordingStart] = useState<number | null>(null)
   const [recordingMs, setRecordingMs] = useState(0)
   const recordingTimerRef = React.useRef<number | null>(null)
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null)
   const recordedChunksRef = React.useRef<BlobPart[]>([])
+  const nativeRecordingRef = React.useRef<Audio.Recording | null>(null)
 
   const startTimer = useCallback(() => {
     if (recordingTimerRef.current) cancelAnimationFrame(recordingTimerRef.current)
@@ -58,7 +60,19 @@ export function SonetMessageInput({
     if (isRecording) {
       // Stop
       try {
-        mediaRecorderRef.current?.stop()
+        if (Platform.OS === 'web') {
+          mediaRecorderRef.current?.stop()
+        } else {
+          const rec = nativeRecordingRef.current
+          if (rec) {
+            await rec.stopAndUnloadAsync()
+            const uri = rec.getURI()
+            if (uri) {
+              const fileLike = { uri, name: `voice_${Date.now()}.m4a`, type: 'audio/m4a' }
+              setAttachments(prev => [...prev, { file: fileLike, progress: 0, status: 'queued' }])
+            }
+          }
+        }
       } catch {}
       setIsRecording(false)
       setRecordingStart(null)
@@ -66,22 +80,33 @@ export function SonetMessageInput({
     } else {
       // Start
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({audio: true})
-        recordedChunksRef.current = []
-        const mr = new MediaRecorder(stream)
-        mediaRecorderRef.current = mr
-        mr.ondataavailable = (e) => {
-          if (e.data && e.data.size > 0) recordedChunksRef.current.push(e.data)
+        if (Platform.OS === 'web') {
+          // Web
+          const stream = await navigator.mediaDevices.getUserMedia({audio: true})
+          recordedChunksRef.current = []
+          const mr = new MediaRecorder(stream)
+          mediaRecorderRef.current = mr
+          mr.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) recordedChunksRef.current.push(e.data)
+          }
+          mr.onstop = () => {
+            try {
+              const blob = new Blob(recordedChunksRef.current, {type: 'audio/webm'})
+              const file = new File([blob], `voice_${Date.now()}.webm`, {type: 'audio/webm'})
+              setAttachments(prev => [...prev, { file, progress: 0, status: 'queued' }])
+              stream.getTracks().forEach(t => t.stop())
+            } catch {}
+          }
+          mr.start()
+        } else {
+          // Native
+          await Audio.requestPermissionsAsync()
+          await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true })
+          const recording = new Audio.Recording()
+          await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY)
+          nativeRecordingRef.current = recording
+          await recording.startAsync()
         }
-        mr.onstop = () => {
-          try {
-            const blob = new Blob(recordedChunksRef.current, {type: 'audio/webm'})
-            const file = new File([blob], `voice_${Date.now()}.webm`, {type: 'audio/webm'})
-            setAttachments(prev => [...prev, file])
-            stream.getTracks().forEach(t => t.stop())
-          } catch {}
-        }
-        mr.start()
         setIsRecording(true)
         const now = Date.now()
         setRecordingStart(now)
@@ -101,7 +126,7 @@ export function SonetMessageInput({
     input.onchange = () => {
       const files = Array.from(input.files || []) as File[]
       if (files.length) {
-        setAttachments(prev => [...prev, ...files])
+        setAttachments(prev => [...prev, ...files.map(f => ({ file: f, progress: 0, status: 'queued' }))])
       }
     }
     input.click()
@@ -116,27 +141,31 @@ export function SonetMessageInput({
 
     setIsSending(true)
     try {
-      // If attachments exist, upload them first with progress then send
-      const uploaded: File[] = []
-      const progressState: number[] = attachments.map(() => 0)
-      // Render progress via local state by mapping filenames -> pct
-      // For brevity, we reuse attachments chips and append pct text
-      // Upload sequentially to keep UI simple
+      // Upload attachments with per-file progress and cancellation
+      const uploadedFiles: File[] = []
       for (let i = 0; i < attachments.length; i++) {
-        const f = attachments[i]
-        await sonetMessagingApi.uploadAttachment(
-          f,
-          (undefined as any),
-          true,
-          pct => {
-            progressState[i] = pct
-            // Trigger re-render
-            setAttachments(prev => [...prev])
-          },
-        )
-        uploaded.push(f)
+        const att = attachments[i]
+        const cancelRef = { cancelled: false }
+        setAttachments(prev => prev.map((it, idx) => idx === i ? { ...it, status: 'uploading', cancel: cancelRef } : it))
+        try {
+          await sonetMessagingApi.uploadAttachment(
+            att.file as any,
+            (undefined as any),
+            true,
+            pct => {
+              setAttachments(prev => prev.map((it, idx) => idx === i ? { ...it, progress: pct } : it))
+            },
+            cancelRef,
+          )
+          setAttachments(prev => prev.map((it, idx) => idx === i ? { ...it, status: 'uploaded', progress: 100 } : it))
+          // For onSendMessage signature, we pass original File objects when available
+          if (att.file instanceof File) uploadedFiles.push(att.file)
+        } catch (e) {
+          setAttachments(prev => prev.map((it, idx) => idx === i ? { ...it, status: 'failed' } : it))
+          throw e
+        }
       }
-      await onSendMessage(text.trim(), attachments)
+      await onSendMessage(text.trim(), uploadedFiles)
       setText('')
       setAttachments([])
     } catch (error) {
@@ -264,13 +293,42 @@ export function SonetMessageInput({
         {/* Attachments Preview (compact) */}
         {attachments.length > 0 && (
           <View style={[a.mt_2, a.flex_row, a.gap_2, a.flex_wrap]}>
-            {attachments.map((f, idx) => (
-              <View key={idx} style={[a.flex_row, a.items_center, a.gap_1, a.px_2, a.py_1, a.rounded_full, t.atoms.bg_contrast_25]}>
+            {attachments.map((att, idx) => (
+              <View key={idx} style={[a.flex_row, a.items_center, a.gap_2, a.px_2, a.py_1, a.rounded_full, t.atoms.bg_contrast_25]}>
                 <Text style={[a.text_xs, t.atoms.text]} numberOfLines={1}>
-                  {f.name}
+                  {(att.file as any).name || 'file'}
                 </Text>
-                {/* Placeholder progress since we mutate by re-render; real impl would track pct per file */}
-                <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>↥</Text>
+                <View style={[{ width: 64, height: 4 }, a.rounded_full, t.atoms.bg_contrast_200]}>
+                  <View style={[{ width: `${att.progress}%`, height: 4 }, a.rounded_full, t.atoms.bg_primary]} />
+                </View>
+                {att.status === 'uploading' && (
+                  <TouchableOpacity onPress={() => {
+                    if (att.cancel) att.cancel.cancelled = true
+                  }}>
+                    <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>Cancel</Text>
+                  </TouchableOpacity>
+                )}
+                {att.status === 'failed' && (
+                  <TouchableOpacity onPress={async () => {
+                    // retry single upload
+                    const cancelRef = { cancelled: false }
+                    setAttachments(prev => prev.map((it, i2) => i2 === idx ? { ...it, status: 'uploading', cancel: cancelRef, progress: 0 } : it))
+                    try {
+                      await sonetMessagingApi.uploadAttachment(
+                        att.file as any,
+                        (undefined as any),
+                        true,
+                        pct => setAttachments(prev => prev.map((it, i2) => i2 === idx ? { ...it, progress: pct } : it)),
+                        cancelRef,
+                      )
+                      setAttachments(prev => prev.map((it, i2) => i2 === idx ? { ...it, status: 'uploaded', progress: 100 } : it))
+                    } catch (e) {
+                      setAttachments(prev => prev.map((it, i2) => i2 === idx ? { ...it, status: 'failed' } : it))
+                    }
+                  }}>
+                    <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>Retry</Text>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity onPress={() => removeAttachment(idx)}>
                   <Text style={[a.text_xs, t.atoms.text_contrast_medium]}>✕</Text>
                 </TouchableOpacity>
