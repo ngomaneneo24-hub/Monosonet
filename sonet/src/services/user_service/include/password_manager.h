@@ -15,34 +15,35 @@
 namespace sonet::user {
 
 /**
- * Password Manager - Because security isn't optional
+ * Passphrase Manager - Modern security through memorable strength
  * 
- * I've seen too many breaches from weak password handling.
- * This implementation uses Argon2id with proper salt and timing.
- * No shortcuts, no compromises.
+ * Traditional passwords are weak and hard to remember. Passphrases provide
+ * better security through length and memorability. This implementation
+ * uses Argon2id with proper salt and timing for maximum security.
  */
 class PasswordManager {
 public:
     PasswordManager();
     ~PasswordManager() = default;
 
-    // Core password operations
-    std::string hash_password(const std::string& password);
-    bool verify_password(const std::string& password, const std::string& hash);
+    // Core passphrase operations
+    std::string hash_password(const std::string& passphrase);
+    bool verify_password(const std::string& passphrase, const std::string& hash);
     
-    // Password strength validation - I'm picky about this
-    bool is_password_strong(const std::string& password) const;
+    // Passphrase strength validation - focused on length and memorability
+    bool is_password_strong(const std::string& passphrase) const;
     std::vector<std::string> get_password_requirements() const;
     
     // Security checks
-    bool is_password_compromised(const std::string& password) const;
-    bool is_password_reused(const std::string& user_id, const std::string& password) const;
+    bool is_password_compromised(const std::string& passphrase) const;
+    bool is_password_reused(const std::string& user_id, const std::string& passphrase) const;
     
     // Password history for preventing reuse
-    void store_password_history(const std::string& user_id, const std::string& password_hash);
+    void store_password_history(const std::string& user_id, const std::string& passphrase_hash);
     
-    // Generate secure passwords for users who need help
+    // Generate secure passphrases for users who need help
     std::string generate_secure_password(size_t length = 16) const;
+    std::string generate_secure_passphrase(size_t word_count = 4) const;
     
     // Password reset tokens
     std::string generate_reset_token(const std::string& user_id);
@@ -59,17 +60,21 @@ private:
         uint32_t salt_length = 16;   // Salt length
     } argon2_config_;
     
-    // Password validation helpers
-    bool has_uppercase(const std::string& password) const;
-    bool has_lowercase(const std::string& password) const;
-    bool has_digit(const std::string& password) const;
-    bool has_special_char(const std::string& password) const;
-    bool has_sufficient_entropy(const std::string& password) const;
+    // Passphrase validation helpers
+    bool has_uppercase(const std::string& passphrase) const;
+    bool has_lowercase(const std::string& passphrase) const;
+    bool has_digit(const std::string& passphrase) const;
+    bool has_special_char(const std::string& passphrase) const;
+    bool has_sufficient_entropy(const std::string& passphrase) const;
     
     // Common password checking
-    bool is_in_common_passwords(const std::string& password) const;
-    bool is_keyboard_pattern(const std::string& password) const;
-    bool is_repeated_pattern(const std::string& password) const;
+    bool is_in_common_passwords(const std::string& passphrase) const;
+    bool is_keyboard_pattern(const std::string& passphrase) const;
+    bool is_repeated_pattern(const std::string& passphrase) const;
+    
+    // Passphrase-specific validation
+    bool is_common_phrase(const std::string& passphrase) const;
+    bool has_minimum_word_count(const std::string& passphrase) const;
     
     // Secure random generation
     std::string generate_salt() const;

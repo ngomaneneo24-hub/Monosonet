@@ -1765,6 +1765,36 @@ msgstr ""
 msgid "Choose your password"
 msgstr ""
 
+#: src/screens/Signup/StepInfo/index.tsx:241
+msgid "Choose your passphrase"
+msgstr ""
+
+#: src/screens/Signup/StepInfo/index.tsx:241
+msgid "Passphrase"
+msgstr ""
+
+#: src/screens/Signup/StepInfo/index.tsx:241
+msgid "Choose your passphrase"
+msgstr ""
+
+#: src/screens/Signup/StepInfo/index.tsx:241
+msgid "A passphrase is 4 or more words that are easy to remember but hard to guess. For example: \"correct horse battery staple\" or \"my favorite coffee shop downtown\""
+msgstr ""
+
+#: src/screens/Signup/StepInfo/index.tsx:241
+msgid "Please choose your passphrase."
+msgstr ""
+
+#: src/screens/Signup/StepInfo/index.tsx:241
+msgid "Your passphrase must be at least 20 characters long."
+msgstr ""
+
+#: src/screens/Signup/StepInfo/index.tsx:241
+msgid "Your passphrase must contain at least 4 words."
+
+msgid "Your passphrase must contain at least 4 words."
+msgstr ""
+
 #: src/screens/Signup/index.tsx:175
 msgid "Choose your username"
 msgstr ""
@@ -1912,6 +1942,8 @@ msgstr ""
 
 #: src/screens/Login/PasswordUpdatedForm.tsx:32
 msgid "Closes password update alert"
+
+msgid "Closes passphrase update alert"
 msgstr ""
 
 #: src/view/com/composer/Composer.tsx:973
@@ -3075,6 +3107,8 @@ msgstr ""
 
 #: src/screens/Login/SetNewPasswordForm.tsx:147
 msgid "Enter a password"
+
+msgid "Enter a passphrase"
 msgstr ""
 
 #: src/components/dialogs/MutedWords.tsx:127
@@ -3101,6 +3135,8 @@ msgstr ""
 
 #: src/screens/Login/ForgotPasswordForm.tsx:113
 msgid "Enter the email you used to create your account. We'll send you a \"reset code\" so you can set a new password."
+
+msgid "Enter the email you used to create your account. We'll send you a \"reset code\" so you can set a new passphrase."
 msgstr ""
 
 #: src/screens/Login/LoginForm.tsx:218
@@ -3118,6 +3154,22 @@ msgstr ""
 
 #: src/screens/Login/LoginForm.tsx:243
 msgid "Enter your password"
+msgstr ""
+
+#: src/screens/Login/LoginForm.tsx:243
+msgid "Enter your passphrase"
+msgstr ""
+
+#: src/screens/Login/LoginForm.tsx:243
+msgid "Passphrase"
+msgstr ""
+
+#: src/screens/Login/LoginForm.tsx:243
+msgid "Please enter your passphrase"
+msgstr ""
+
+#: src/screens/Login/LoginForm.tsx:243
+msgid "Incorrect username or passphrase"
 msgstr ""
 
 #: src/screens/Login/index.tsx:123
@@ -4381,6 +4433,8 @@ msgstr ""
 
 #: src/screens/Login/SetNewPasswordForm.tsx:159
 msgid "Input new password"
+
+msgid "Input new passphrase"
 msgstr ""
 
 #: src/view/com/modals/DeleteAccount.tsx:247
@@ -5383,6 +5437,8 @@ msgstr ""
 #: src/screens/Login/SetNewPasswordForm.tsx:141
 #: src/view/com/modals/ChangePassword.tsx:224
 msgid "New password"
+
+msgid "New passphrase"
 msgstr ""
 
 #: src/view/com/modals/ChangePassword.tsx:229
@@ -6045,6 +6101,8 @@ msgstr ""
 
 #: src/screens/Login/PasswordUpdatedForm.tsx:23
 msgid "Password updated!"
+
+msgid "Passphrase updated!"
 msgstr ""
 
 #: src/components/Post/Embed/ExternalEmbed/Gif.tsx:43
@@ -6203,6 +6261,8 @@ msgstr ""
 
 #: src/screens/Login/SetNewPasswordForm.tsx:58
 msgid "Please enter a password."
+
+msgid "Please enter a passphrase."
 msgstr ""
 
 #: src/view/com/modals/ChangePassword.tsx:94
@@ -7184,6 +7244,10 @@ msgstr ""
 msgid "Reset password"
 msgstr ""
 
+#: src/screens/Login/ForgotPasswordForm.tsx:80
+msgid "Reset passphrase"
+msgstr ""
+
 #: src/screens/Login/LoginForm.tsx:324
 msgid "Retries signing in"
 msgstr ""
@@ -7672,12 +7736,20 @@ msgstr ""
 msgid "Set new password"
 msgstr ""
 
+#: src/screens/Login/SetNewPasswordForm.tsx:106
+msgid "Set new passphrase"
+msgstr ""
+
 #: src/screens/Onboarding/Layout.tsx:47
 msgid "Set up your account"
 msgstr ""
 
 #: src/screens/Login/ForgotPasswordForm.tsx:107
 msgid "Sets email for password reset"
+msgstr ""
+
+#: src/screens/Login/ForgotPasswordForm.tsx:107
+msgid "Sets email for passphrase reset"
 msgstr ""
 
 #: src/Navigation.tsx:212
@@ -10179,6 +10251,8 @@ msgstr ""
 #: src/screens/Login/index.tsx:182
 #: src/screens/Login/PasswordUpdatedForm.tsx:26
 msgid "You can now sign in with your new password."
+
+msgid "You can now sign in with your new passphrase."
 msgstr ""
 
 #: src/screens/Deactivated.tsx:133
@@ -10399,6 +10473,8 @@ msgstr ""
 
 #: src/screens/Login/SetNewPasswordForm.tsx:108
 msgid "You will receive an email with a \"reset code.\" Enter that code here, then enter your new password."
+
+msgid "You will receive an email with a \"reset code.\" Enter that code here, then enter your new passphrase."
 msgstr ""
 
 #: src/screens/Messages/components/ChatListItem.tsx:154
@@ -10595,6 +10671,8 @@ msgstr ""
 
 #: src/screens/Signup/StepInfo/index.tsx:127
 msgid "Your password must be at least 8 characters long."
+
+msgid "Your passphrase must be at least 20 characters long."
 msgstr ""
 
 #: src/view/com/composer/Composer.tsx:522

@@ -99,7 +99,7 @@ export const LoginForm = ({
     }
 
     if (!password) {
-      setError(_(msg`Please enter your password`))
+      setError(_(msg`Please enter your passphrase`))
       return
     }
 
@@ -160,7 +160,7 @@ export const LoginForm = ({
           logger.debug('Failed to login due to invalid credentials', {
             error: errMsg,
           })
-          setError(_(msg`Incorrect username or password`))
+          setError(_(msg`Incorrect username or passphrase`))
         } else if (isNetworkError(e)) {
           logger.warn('Failed to login due to network error', {error: errMsg})
           setError(
@@ -220,7 +220,7 @@ export const LoginForm = ({
             <TextField.Input
               testID="loginPasswordInput"
               inputRef={passwordRef}
-              label={_(msg`Password`)}
+              label={_(msg`Passphrase`)}
               autoCapitalize="none"
               autoCorrect={false}
               autoComplete="password"
@@ -235,7 +235,7 @@ export const LoginForm = ({
               onSubmitEditing={onPressNext}
               blurOnSubmit={false} // HACK: https://github.com/facebook/react-native/issues/21911#issuecomment-558343069 Keyboard blur behavior is now usernamed in onSubmitEditing
               editable={!isProcessing}
-              accessibilityHint={_(msg`Enter your password`)}
+              accessibilityHint={_(msg`Enter your passphrase`)}
             />
             <Button
               testID="forgotPasswordButton"
