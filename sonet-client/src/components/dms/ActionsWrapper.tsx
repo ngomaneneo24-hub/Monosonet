@@ -10,15 +10,29 @@ export function ActionsWrapper({
   message,
   isFromSelf,
   children,
+  onReply,
+  onEdit,
+  onDelete,
+  onPin,
 }: {
   message: SonetConvoDefs.MessageView
   isFromSelf: boolean
   children: React.ReactNode
+  onReply?: () => void
+  onEdit?: () => void
+  onDelete?: () => void
+  onPin?: () => void
 }) {
   const {_} = useLingui()
 
   return (
-    <MessageContextMenu message={message}>
+    <MessageContextMenu 
+      message={message}
+      onReply={onReply}
+      onEdit={onEdit}
+      onDelete={onDelete}
+      onPin={onPin}
+    >
       {trigger =>
         // will always be true, since this file is platform split
         trigger.isNative && (

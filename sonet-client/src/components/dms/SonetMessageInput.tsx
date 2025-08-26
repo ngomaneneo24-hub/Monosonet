@@ -1,4 +1,4 @@
-import React, {useCallback, useState, useRef} from 'react'
+import React, {useCallback, useState, useRef, useEffect} from 'react'
 import {View, TextInput, TouchableOpacity, ScrollView, Alert} from 'react-native'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -13,6 +13,8 @@ import {Camera_Stroke2_Corner0_Rounded as CameraIcon} from '#/components/icons/C
 import {Paperclip_Stroke2_Corner0_Rounded as PaperclipIcon} from '#/components/icons/Times'
 import {Shield_Stroke2_Corner0_Rounded as ShieldIcon} from '#/components/icons/Shield'
 import {ShieldCheck_Stroke2_Corner0_Rounded as ShieldCheckIcon} from '#/components/icons/Shield'
+import {Reply_Stroke2_Corner0_Rounded as ReplyIcon} from '#/components/icons/Reply'
+import {X_Stroke2_Corner0_Rounded as CloseIcon} from '#/components/icons/Times'
 import {SonetFileAttachment} from './SonetFileAttachment'
 
 interface SonetFileAttachment {
@@ -27,14 +29,23 @@ interface SonetFileAttachment {
   error?: string
 }
 
+interface ReplyToMessage {
+  id: string
+  content: string
+  senderName: string
+}
+
 interface SonetMessageInputProps {
   chatId: string
-  onSendMessage: (content: string, attachments?: SonetFileAttachment[]) => Promise<void>
+  onSendMessage: (content: string, attachments?: SonetFileAttachment[], replyTo?: ReplyToMessage) => Promise<void>
   isEncrypted?: boolean
   encryptionEnabled?: boolean
   onToggleEncryption?: () => void
   disabled?: boolean
   placeholder?: string
+  draftKey?: string
+  onDraftSave?: (draft: string) => void
+  onDraftLoad?: () => string
 }
 
 export function SonetMessageInput({
@@ -45,6 +56,9 @@ export function SonetMessageInput({
   onToggleEncryption,
   disabled = false,
   placeholder,
+  draftKey,
+  onDraftSave,
+  onDraftLoad,
 }: SonetMessageInputProps) {
   const t = useTheme()
   const {_} = useLingui()
@@ -53,7 +67,29 @@ export function SonetMessageInput({
   const [isSending, setIsSending] = useState(false)
   const [showAttachments, setShowAttachments] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [replyTo, setReplyTo] = useState<ReplyToMessage | null>(null)
   const textInputRef = useRef<TextInput>(null)
+
+  // Load draft on mount
+  useEffect(() => {
+    if (onDraftLoad) {
+      const savedDraft = onDraftLoad()
+      if (savedDraft) {
+        setMessageText(savedDraft)
+      }
+    }
+  }, [onDraftLoad])
+
+  // Save draft when text changes
+  useEffect(() => {
+    if (onDraftSave && messageText.trim()) {
+      const timeoutId = setTimeout(() => {
+        onDraftSave(messageText)
+      }, 1000) // Save draft after 1 second of no typing
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [messageText, onDraftSave])
 
   // Username sending message
   const usernameSendMessage = useCallback(async () => {
@@ -62,10 +98,12 @@ export function SonetMessageInput({
 
     setIsSending(true)
     try {
-      await onSendMessage(messageText.trim(), attachments.length > 0 ? attachments : undefined)
+      await onSendMessage(messageText.trim(), attachments.length > 0 ? attachments : undefined, replyTo || undefined)
       setMessageText('')
       setAttachments([])
       setShowAttachments(false)
+      setReplyTo(null) // Clear reply after sending
+      if (onDraftSave) onDraftSave('') // Clear draft
       textInputRef.current?.focus()
     } catch (error) {
       console.error('Failed to send message:', error)
@@ -73,7 +111,7 @@ export function SonetMessageInput({
     } finally {
       setIsSending(false)
     }
-  }, [messageText, attachments, isSending, disabled, onSendMessage, _])
+  }, [messageText, attachments, isSending, disabled, onSendMessage, replyTo, onDraftSave, _])
 
   // Username adding attachment
   const usernameAddAttachment = useCallback(async (type: 'camera' | 'file' | 'gallery') => {
@@ -138,11 +176,52 @@ export function SonetMessageInput({
     }
   }, [onToggleEncryption])
 
+  // Handle reply
+  const handleReply = useCallback((message: ReplyToMessage) => {
+    setReplyTo(message)
+    textInputRef.current?.focus()
+  }, [])
+
+  // Clear reply
+  const handleClearReply = useCallback(() => {
+    setReplyTo(null)
+  }, [])
+
   // Check if can send
   const canSend = messageText.trim().length > 0 || attachments.length > 0
 
   return (
     <View style={[t.atoms.bg, a.border_t, t.atoms.border_contrast_25]}>
+      {/* Reply Preview */}
+      {replyTo && (
+        <View style={[
+          a.px_md,
+          a.pt_sm,
+          a.pb_xs,
+          a.border_b,
+          t.atoms.border_contrast_25,
+          a.bg_contrast_25,
+        ]}>
+          <View style={[a.flex_row, a.items_center, a.justify_between]}>
+            <View style={[a.flex_row, a.items_center, a.gap_sm]}>
+              <ReplyIcon size="sm" style={[t.atoms.text_contrast_medium]} />
+              <Text style={[a.text_xs, t.atoms.text_contrast_medium, a.font_bold]}>
+                Replying to {replyTo.senderName}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={handleClearReply}>
+              <CloseIcon size="sm" style={[t.atoms.text_contrast_medium]} />
+            </TouchableOpacity>
+          </View>
+          <Text style={[a.text_xs, t.atoms.text_contrast_medium, a.mt_xs]}>
+            {replyTo.content.length > 100 
+              ? replyTo.content.substring(0, 100) + '...'
+              : replyTo.content
+            }
+          </Text>
+        </View>
+      )}
+
       {/* Attachments Preview */}
       {attachments.length > 0 && (
         <View style={[a.px_md, a.pt_sm]}>
@@ -190,7 +269,7 @@ export function SonetMessageInput({
             ref={textInputRef}
             value={messageText}
             onChangeText={setMessageText}
-            placeholder={placeholder || _('Type a message...')}
+            placeholder={replyTo ? `Reply to ${replyTo.senderName}...` : (placeholder || _('Type a message...'))}
             placeholderTextColor={t.atoms.text_contrast_medium.color}
             multiline
             maxLength={1000}
@@ -226,7 +305,7 @@ export function SonetMessageInput({
         {/* Encryption Toggle */}
         {encryptionEnabled && onToggleEncryption && (
           <TouchableOpacity
-            onPress={usernameToggleEncryption}
+            onPress={handleToggleEncryption}
             disabled={disabled}
             style={[
               a.p_2,
@@ -405,7 +484,7 @@ export function SonetMessageInput({
             {['😀', '😂', '😍', '🥰', '😎', '🤔', '👍', '❤️', '🔥', '✨', '🎉', '🚀'].map(emoji => (
               <TouchableOpacity
                 key={emoji}
-                onPress={() => usernameEmojiSelect(emoji)}
+                onPress={() => handleEmojiSelect(emoji)}
                 style={[
                   a.p_2,
                   a.rounded_sm,
@@ -420,3 +499,6 @@ export function SonetMessageInput({
     </View>
   )
 }
+
+// Export the reply handler for use in parent components
+export {type ReplyToMessage}
