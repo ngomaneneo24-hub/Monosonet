@@ -11,6 +11,7 @@ from .feature_store import FeatureStore
 from .features.extractors import extract_user_features, extract_item_features
 from .services.user_interests import UserInterestsService
 from .services.ranking_service import OverdriveRankingService
+from .analytics.behavior_tracker import RealTimeBehaviorTracker
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -31,6 +32,7 @@ app.add_middleware(
 feature_store = FeatureStore()
 user_interests_service = UserInterestsService(base_url=settings.client_base_url)
 ranking_service = OverdriveRankingService(feature_store, user_interests_service, settings.client_base_url)
+behavior_tracker = RealTimeBehaviorTracker(feature_store)
 
 start_time_monotonic = time.monotonic()
 
@@ -164,6 +166,120 @@ async def get_user_interests(user_id: str, authorization: Optional[str] = Header
         
     except Exception as e:
         logger.error(f"Error getting interests for user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+# Analytics Endpoints
+@app.post("/analytics/session/start")
+async def start_session(request: Dict[str, Any]):
+    """Start tracking a user session."""
+    try:
+        user_id = request.get("user_id")
+        platform = request.get("platform", "unknown")
+        device_info = request.get("device_info", {})
+        
+        if not user_id:
+            raise HTTPException(status_code=400, detail="user_id is required")
+        
+        session_id = await behavior_tracker.track_session_start(user_id, platform, device_info)
+        return {"session_id": session_id, "status": "started"}
+        
+    except Exception as e:
+        logger.error(f"Error starting session: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.post("/analytics/session/end")
+async def end_session(request: Dict[str, Any]):
+    """End tracking a user session."""
+    try:
+        session_id = request.get("session_id")
+        exit_reason = request.get("exit_reason", "user_exit")
+        
+        if not session_id:
+            raise HTTPException(status_code=400, detail="session_id is required")
+        
+        await behavior_tracker.track_session_end(session_id, exit_reason)
+        return {"status": "ended"}
+        
+    except Exception as e:
+        logger.error(f"Error ending session: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.post("/analytics/content/view")
+async def track_content_view(request: Dict[str, Any]):
+    """Track content view."""
+    try:
+        user_id = request.get("user_id")
+        content_id = request.get("content_id")
+        session_id = request.get("session_id")
+        duration_seconds = request.get("duration_seconds", 0.0)
+        scroll_position = request.get("scroll_position")
+        device_info = request.get("device_info", {})
+        
+        if not user_id or not content_id:
+            raise HTTPException(status_code=400, detail="user_id and content_id are required")
+        
+        await behavior_tracker.track_content_view(
+            user_id, content_id, session_id, duration_seconds, scroll_position, device_info
+        )
+        return {"status": "tracked"}
+        
+    except Exception as e:
+        logger.error(f"Error tracking content view: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.post("/analytics/engagement")
+async def track_engagement(request: Dict[str, Any]):
+    """Track user engagement."""
+    try:
+        user_id = request.get("user_id")
+        content_id = request.get("content_id")
+        interaction_type = request.get("interaction_type")
+        session_id = request.get("session_id")
+        device_info = request.get("device_info", {})
+        
+        if not user_id or not content_id or not interaction_type:
+            raise HTTPException(status_code=400, detail="user_id, content_id, and interaction_type are required")
+        
+        await behavior_tracker.track_engagement(
+            user_id, content_id, interaction_type, session_id, device_info
+        )
+        return {"status": "tracked"}
+        
+    except Exception as e:
+        logger.error(f"Error tracking engagement: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/analytics/user/{user_id}")
+async def get_user_analytics(user_id: str, time_window: str = "24h"):
+    """Get user analytics."""
+    try:
+        analytics = await behavior_tracker.get_user_analytics(user_id, time_window)
+        return {"user_id": user_id, "analytics": analytics}
+        
+    except Exception as e:
+        logger.error(f"Error getting analytics for user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/analytics/user/{user_id}/realtime")
+async def get_real_time_insights(user_id: str):
+    """Get real-time insights for a user."""
+    try:
+        insights = await behavior_tracker.get_real_time_insights(user_id)
+        return {"user_id": user_id, "insights": insights}
+        
+    except Exception as e:
+        logger.error(f"Error getting real-time insights for user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/analytics/system")
+async def get_system_analytics():
+    """Get system-wide analytics."""
+    try:
+        analytics = await behavior_tracker.get_system_analytics()
+        return analytics
+        
+    except Exception as e:
+        logger.error(f"Error getting system analytics: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/metrics")

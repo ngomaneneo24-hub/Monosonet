@@ -150,9 +150,10 @@ def main():
         print(f"   Health Check: http://localhost:8088/health")
         print(f"   Metrics: http://localhost:8088/metrics")
         print(f"   C++ Serving: gRPC on port 50051")
-        print("\n🔧 To enable Overdrive in the client:")
-        print("   1. Set the 'x-use-overdrive' header to '1'")
-        print("   2. Or use the OverdriveToggle component")
+        print("\n🔧 Overdrive is automatically enabled:")
+        print("   • No user configuration needed")
+        print("   • x-use-overdrive header automatically sent")
+        print("   • Matches TikTok's seamless ML approach")
         print("\n⏹️  Press Ctrl+C to stop all services")
         
         # Keep running until interrupted
