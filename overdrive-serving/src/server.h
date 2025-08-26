@@ -20,6 +20,7 @@ public:
 private:
 	ServerConfig config_;
 	bool running_ = false;
+	std::unique_ptr<grpc::Server> server_;
 };
 
 } // namespace overdrive
