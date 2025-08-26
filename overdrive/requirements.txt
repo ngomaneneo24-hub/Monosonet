@@ -41,3 +41,31 @@ category-encoders>=2.6.0
 # Time series and sequence modeling
 prophet>=1.1.4
 statsmodels>=0.14.0
+# Multilingual NLP dependencies
+polyglot>=16.7.4
+langdetect>=1.0.9
+googletrans==4.0.0rc1
+spacy>=3.7.0
+# Video and audio analysis
+opencv-python>=4.8.0
+moviepy>=1.0.3
+librosa>=0.10.0
+ultralytics>=8.0.0
+mediapipe>=0.10.0
+whisper-openai>=20231117
+# Additional ML models
+xlm-roberta-base
+mbart-large-50-many-to-many-mmt
+videomae-base
+# Language-specific models
+bert-base-spanish-wwm-cased
+camembert-base
+bert-base-german-cased
+bert-base-chinese
+bert-base-japanese-whole-word-masking
+klue-bert-base
+arabert-v2
+# Multilingual pipelines
+nlptown-bert-base-multilingual-uncased-sentiment
+davlan-bert-base-multilingual-cased-ner-hrl
+papluca-xlm-roberta-base-language-detection
