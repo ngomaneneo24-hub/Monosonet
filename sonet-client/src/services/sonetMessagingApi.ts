@@ -198,6 +198,42 @@ export class SonetMessagingApi extends EventEmitter {
     }
   }
 
+  // Archive a chat
+  async archiveChat(chatId: string): Promise<void> {
+    try {
+      await this.apiRequest(`/messaging/chats/${chatId}/archive`, {
+        method: 'POST',
+      })
+      // Update cache
+      const existing = this.chatCache.get(chatId)
+      if (existing) {
+        // @ts-expect-error allow soft property for UI state
+        existing.isArchived = true
+        this.chatCache.set(chatId, existing)
+      }
+      this.emit('chat_archived', {chatId})
+    } catch (error) {
+      console.error('Failed to archive chat:', error)
+      throw error
+    }
+  }
+
+  // Delete a chat
+  async deleteChat(chatId: string): Promise<void> {
+    try {
+      await this.apiRequest(`/messaging/chats/${chatId}`, {
+        method: 'DELETE',
+      })
+      // Update caches
+      this.chatCache.delete(chatId)
+      this.messageCache.delete(chatId)
+      this.emit('chat_deleted', {chatId})
+    } catch (error) {
+      console.error('Failed to delete chat:', error)
+      throw error
+    }
+  }
+
   // Message Management
   async sendMessage(request: SendMessageRequest): Promise<SonetMessage> {
     try {
@@ -232,6 +268,16 @@ export class SonetMessagingApi extends EventEmitter {
         }
       }
 
+      // Upload attachments (if any) before sending message and collect metadata
+      let uploadedAttachments: SonetAttachment[] | undefined
+      if (request.attachments && request.attachments.length > 0) {
+        uploadedAttachments = []
+        for (const file of request.attachments) {
+          const att = await this.uploadAttachment(file, request.chatId, request.encrypt !== false)
+          uploadedAttachments.push(att)
+        }
+      }
+
       const messageData: any = {
         chatId: request.chatId,
         content: encryptedContent,
@@ -239,6 +285,10 @@ export class SonetMessagingApi extends EventEmitter {
         replyTo: request.replyTo,
         encrypt: request.encrypt !== false,
         clientMessageId: clientMsgId,
+      }
+
+      if (uploadedAttachments && uploadedAttachments.length > 0) {
+        messageData.attachments = uploadedAttachments.map(a => ({id: a.id}))
       }
 
       if (encryptionData) {
@@ -271,6 +321,33 @@ export class SonetMessagingApi extends EventEmitter {
       return message
     } catch (error) {
       console.error('Failed to send message:', error)
+      throw error
+    }
+  }
+
+  // Reactions
+  async addReaction(messageId: string, emoji: string): Promise<void> {
+    try {
+      await this.apiRequest(`/messaging/messages/${messageId}/reactions`, {
+        method: 'POST',
+        body: JSON.stringify({emoji}),
+      })
+      this.emit('reaction_added', {messageId, emoji})
+    } catch (error) {
+      console.error('Failed to add reaction:', error)
+      throw error
+    }
+  }
+
+  async removeReaction(messageId: string, emoji: string): Promise<void> {
+    try {
+      await this.apiRequest(`/messaging/messages/${messageId}/reactions`, {
+        method: 'DELETE',
+        body: JSON.stringify({emoji}),
+      })
+      this.emit('reaction_removed', {messageId, emoji})
+    } catch (error) {
+      console.error('Failed to remove reaction:', error)
       throw error
     }
   }
@@ -418,12 +495,44 @@ export class SonetMessagingApi extends EventEmitter {
   }
 
   // File Attachments
-  async uploadAttachment(file: File, chatId: string, encrypt: boolean = true): Promise<SonetAttachment> {
+  async uploadAttachment(file: File, chatId: string, encrypt: boolean = true, onProgress?: (pct: number) => void): Promise<SonetAttachment> {
     try {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('chatId', chatId)
       formData.append('encrypt', encrypt.toString())
+
+      // Use XHR to support upload progress on web
+      if (typeof XMLHttpRequest !== 'undefined' && onProgress) {
+        const url = `${this.baseUrl}/messaging/attachments`
+        const token = this.authToken
+        const att: SonetAttachment = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest()
+          xhr.open('NOTE', url)
+          if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                const json = JSON.parse(xhr.responseText)
+                resolve(json.data)
+              } catch (e) {
+                reject(e)
+              }
+            } else {
+              reject(new Error(`HTTP ${xhr.status}`))
+            }
+          }
+          xhr.onerror = () => reject(new Error('Network error'))
+          xhr.upload.onprogress = evt => {
+            if (evt.lengthComputable) {
+              const pct = Math.round((evt.loaded / evt.total) * 100)
+              onProgress(pct)
+            }
+          }
+          xhr.send(formData)
+        })
+        return att
+      }
 
       const response = await this.apiRequest('/messaging/attachments', {
         method: 'NOTE',
