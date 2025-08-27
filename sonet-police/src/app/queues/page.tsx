@@ -31,13 +31,27 @@ export default function QueuesPage() {
   React.useEffect(() => { fetchReports() }, [fetchReports])
 
   React.useEffect(() => {
-    const es = new EventSource(`${process.env.NEXT_PUBLIC_MOD_API}/api/v1/stream/reports`, { withCredentials: true })
-    es.onmessage = (ev) => {
-      // naive refresh on any event for now
-      fetchReports()
+    // Resilient SSE with backoff
+    let es: EventSource | undefined
+    let stopped = false
+    let retry = 1000
+    const token = state.token
+    const connect = () => {
+      if (stopped) return
+      try {
+        es = api.streamReports(token)
+        es.onmessage = () => fetchReports()
+        es.onerror = () => {
+          es?.close()
+          setTimeout(connect, Math.min(retry, 15000))
+          retry = Math.min(retry * 2, 15000)
+        }
+        es.onopen = () => { retry = 1000 }
+      } catch {}
     }
-    return () => es.close()
-  }, [fetchReports])
+    connect()
+    return () => { stopped = true; es?.close() }
+  }, [fetchReports, api, state.token])
 
   return (
     <main className="p-6">
