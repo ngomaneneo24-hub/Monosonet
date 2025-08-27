@@ -201,9 +201,11 @@ describe('SonetMessagingApi', () => {
 
 describe('SonetConvoProvider', () => {
   const wrapper = ({children}: {children: React.ReactNode}) => (
-    <SonetConvoProvider chatId="test-chat" initialChat={null}>
-      {children}
-    </SonetConvoProvider>
+    React.createElement(
+      SonetConvoProvider,
+      {chatId: 'test-chat', initialChat: null},
+      children,
+    )
   )
 
   beforeEach(() => {

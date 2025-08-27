@@ -45,6 +45,7 @@
     "lint-native": "swiftlint ./modules && ktlint ./modules",
     "lint-native:fix": "swiftlint --fix ./modules && ktlint --format ./modules",
     "typecheck": "tsc --project ./tsconfig.check.json",
+    "typecheck:strict": "tsc --noEmit --pretty",
     "e2e:mock-server": "NODE_ENV=development ./jest/dev-infra/with-test-redis-and-db.sh ts-node --project tsconfig.e2e.json __e2e__/mock-server.ts",
     "e2e:metro": "EXPO_PUBLIC_ENV=e2e NODE_ENV=test RN_SRC_EXT=e2e.ts,e2e.tsx expo run:ios",
     "e2e:metro-android": "EXPO_PUBLIC_ENV=e2e NODE_ENV=test RN_SRC_EXT=e2e.ts,e2e.tsx expo run:android",
