@@ -35,11 +35,11 @@ export interface PagerRef {
 export interface RenderTabBarFnProps {
   selectedPage: number
   onSelect?: (index: number) => void
-  tabBarAnchor?: JSX.Element | null | undefined // Ignored on native.
+  tabBarAnchor?: React.ReactNode | null | undefined // Ignored on native.
   dragProgress: SharedValue<number> // Ignored on web.
   dragState: SharedValue<'idle' | 'dragging' | 'settling'> // Ignored on web.
 }
-export type RenderTabBarFn = (props: RenderTabBarFnProps) => JSX.Element
+export type RenderTabBarFn = (props: RenderTabBarFnProps) => React.ReactNode
 
 interface Props {
   ref?: React.Ref<PagerRef>
