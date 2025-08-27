@@ -1,6 +1,7 @@
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query'
 import {atoms as a, useTheme} from '#/alf'
 import {useAgent} from '#/state/session'
+import {useCallback} from 'react'
 
 // Types for ghost replies
 export interface GhostReply {
@@ -151,4 +152,30 @@ export function useDeleteGhostReply() {
       })
     },
   })
+}
+
+// Hook to filter out ghost replies from user profile queries
+export function useFilterGhostRepliesFromProfile() {
+  return useCallback((replies: any[]) => {
+    // Filter out any ghost replies to maintain anonymity in user profiles
+    return replies.filter(reply => {
+      // Check if it's a ghost reply by looking for ghost-specific identifiers
+      const isGhostReply = reply.uri?.startsWith('ghost-') || 
+                          reply.cid?.startsWith('ghost-') ||
+                          reply.author?.did?.startsWith('ghost-') ||
+                          reply.isGhostReply === true
+      
+      return !isGhostReply
+    })
+  }, [])
+}
+
+// Hook to check if a reply is a ghost reply
+export function useIsGhostReply() {
+  return useCallback((reply: any) => {
+    return reply.uri?.startsWith('ghost-') || 
+           reply.cid?.startsWith('ghost-') ||
+           reply.author?.did?.startsWith('ghost-') ||
+           reply.isGhostReply === true
+  }, [])
 }

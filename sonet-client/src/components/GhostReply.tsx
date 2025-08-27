@@ -5,16 +5,21 @@ import {useLingui} from '@lingui/react'
 import {atoms as a, useTheme} from '#/alf'
 import {Text} from '#/view/com/util/text/Text'
 import {GhostAvatar} from './GhostAvatar'
+import {NoteMenuButton} from '#/components/NoteControls/NoteMenu'
+import {type Shadow} from '#/state/cache/note-shadow'
+import {type SonetFeedDefs} from '@sonet/api'
 
 type Props = {
   content: string
   ghostAvatar: string
   ghostId: string
   timestamp: Date
+  ghostReplyId: string // For menu actions
+  threadId: string // For context
   style?: any
 }
 
-export function GhostReply({content, ghostAvatar, ghostId, timestamp, style}: Props) {
+export function GhostReply({content, ghostAvatar, ghostId, timestamp, ghostReplyId, threadId, style}: Props) {
   const {_} = useLingui()
   const t = useTheme()
   
@@ -32,6 +37,45 @@ export function GhostReply({content, ghostAvatar, ghostId, timestamp, style}: Pr
     if (diffInDays < 7) return _(msg`${diffInDays}d`)
     
     return date.toLocaleDateString()
+  }
+  
+  // Create a mock note structure for the menu system
+  // This allows ghost replies to use the same menu as normal notes
+  const mockNote: Shadow<SonetFeedDefs.NoteView> = {
+    uri: `ghost-${ghostReplyId}`,
+    cid: `ghost-${ghostReplyId}`,
+    author: {
+      did: `ghost-${ghostReplyId}`,
+      handle: ghostId,
+      displayName: ghostId,
+      avatar: ghostAvatar,
+      viewer: {
+        blocked: false,
+        muted: false,
+        following: false,
+        followedBy: false,
+      },
+      labels: [],
+      indexedAt: timestamp.toISOString(),
+    },
+    record: {
+      text: content,
+      createdAt: timestamp.toISOString(),
+      langs: ['en'],
+    },
+    embed: undefined,
+    replyCount: 0,
+    repostCount: 0,
+    likeCount: 0,
+    indexedAt: timestamp.toISOString(),
+    labels: [],
+    threadgate: undefined,
+    viewer: {
+      like: undefined,
+      repost: undefined,
+      reply: undefined,
+      quote: undefined,
+    },
   }
   
   return (
@@ -65,6 +109,19 @@ export function GhostReply({content, ghostAvatar, ghostId, timestamp, style}: Pr
           </Text>
         </View>
       </View>
+      
+      {/* Note Menu Button - Same functionality as normal replies */}
+      <View style={styles.menuContainer}>
+        <NoteMenuButton
+          testID={`ghostReplyMenu-${ghostReplyId}`}
+          note={mockNote}
+          noteFeedContext={threadId}
+          noteReqId={ghostReplyId}
+          record={mockNote.record}
+          richText={{text: content, facets: []}}
+          timestamp={timestamp.toISOString()}
+        />
+      </View>
     </View>
   )
 }
@@ -93,5 +150,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+  },
+  menuContainer: {
+    alignSelf: 'flex-end',
+    marginTop: 8,
   },
 })
