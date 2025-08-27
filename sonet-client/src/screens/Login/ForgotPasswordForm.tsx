@@ -77,7 +77,7 @@ export const ForgotPasswordForm = ({
   return (
     <FormContainer
       testID="forgotPasswordForm"
-      titleText={<Trans>Reset password</Trans>}>
+      titleText={<Trans>Reset passphrase</Trans>}>
       <View>
         <TextField.LabelText>
           <Trans>Hosting provider</Trans>
@@ -108,7 +108,7 @@ export const ForgotPasswordForm = ({
       <Text style={[t.atoms.text_contrast_high, a.leading_snug]}>
         <Trans>
           Enter the email you used to create your account. We'll send you a
-          "reset code" so you can set a new password.
+          "reset code" so you can set a new passphrase.
         </Trans>
       </Text>
 

@@ -16,6 +16,7 @@
 #include <set>
 #include <random>
 #include <spdlog/spdlog.h>
+#include <sstream>
 
 namespace sonet::user {
 
@@ -26,11 +27,22 @@ const std::vector<std::string> PasswordPolicy::FORBIDDEN_PASSWORDS = {
     "pass", "test", "guest", "user", "letmein", "monkey", "dragon"
 };
 
+// Common phrases that are too predictable for passphrases
+const std::vector<std::string> PasswordPolicy::FORBIDDEN_PHRASES = {
+    "correct horse battery staple", "the quick brown fox", "lorem ipsum dolor sit",
+    "twinkle twinkle little star", "mary had a little lamb", "happy birthday to you",
+    "row row row your boat", "old macdonald had a farm", "itsy bitsy spider",
+    "the wheels on the bus", "if you're happy and you know it", "head shoulders knees and toes",
+    "baa baa black sheep", "humpty dumpty sat on a wall", "jack and jill went up the hill",
+    "little miss muffet sat on a tuffet", "peter piper picked a peck", "sally sells seashells",
+    "how much wood could a woodchuck", "she sells seashells by the seashore"
+};
+
 PasswordManager::PasswordManager() {
-    spdlog::info("Password manager initialized with Argon2id - because I don't mess around with security");
+    spdlog::info("Passphrase manager initialized with Argon2id - modern security through memorable strength");
 }
 
-std::string PasswordManager::hash_password(const std::string& password) {
+std::string PasswordManager::hash_password(const std::string& passphrase) {
     // Generate a random salt - this is crucial for security
     std::string salt = generate_salt();
     
@@ -42,8 +54,8 @@ std::string PasswordManager::hash_password(const std::string& password) {
         argon2_config_.time_cost,
         argon2_config_.memory_cost,
         argon2_config_.parallelism,
-        password.c_str(),
-        password.length(),
+        passphrase.c_str(),
+        passphrase.length(),
         salt.c_str(),
         salt.length(),
         hash.data(),
@@ -52,7 +64,7 @@ std::string PasswordManager::hash_password(const std::string& password) {
     
     if (result != ARGON2_OK) {
         spdlog::error("Argon2 hashing failed: {}", argon2_error_message(result));
-        throw std::runtime_error("Password hashing failed");
+        throw std::runtime_error("Passphrase hashing failed");
     }
     
     // Format: salt + hash (both base64 encoded)
@@ -62,7 +74,7 @@ std::string PasswordManager::hash_password(const std::string& password) {
     return encoded_salt + "$" + encoded_hash;
 }
 
-bool PasswordManager::verify_password(const std::string& password, const std::string& stored_hash) {
+bool PasswordManager::verify_password(const std::string& passphrase, const std::string& stored_hash) {
     // Parse stored hash: salt$hash
     size_t delimiter = stored_hash.find('$');
     if (delimiter == std::string::npos) {
@@ -77,15 +89,15 @@ bool PasswordManager::verify_password(const std::string& password, const std::st
     std::string salt = SecurityUtils::base64_decode(encoded_salt);
     std::string expected_hash = SecurityUtils::base64_decode(encoded_hash);
     
-    // Hash the provided password with the same salt
+    // Hash the provided passphrase with the same salt
     std::vector<uint8_t> computed_hash(argon2_config_.hash_length);
     
     int result = argon2id_hash_raw(
         argon2_config_.time_cost,
         argon2_config_.memory_cost,
         argon2_config_.parallelism,
-        password.c_str(),
-        password.length(),
+        passphrase.c_str(),
+        passphrase.length(),
         salt.c_str(),
         salt.length(),
         computed_hash.data(),
@@ -93,7 +105,7 @@ bool PasswordManager::verify_password(const std::string& password, const std::st
     );
     
     if (result != ARGON2_OK) {
-        spdlog::error("Password verification failed: {}", argon2_error_message(result));
+        spdlog::error("Passphrase verification failed: {}", argon2_error_message(result));
         return false;
     }
     
@@ -102,50 +114,50 @@ bool PasswordManager::verify_password(const std::string& password, const std::st
     return SecurityUtils::secure_compare(computed_hash_str, expected_hash);
 }
 
-bool PasswordManager::is_password_strong(const std::string& password) const {
-    // Length check - no negotiation here
-    if (password.length() < PasswordPolicy::MIN_LENGTH || 
-        password.length() > PasswordPolicy::MAX_LENGTH) {
+bool PasswordManager::is_password_strong(const std::string& passphrase) const {
+    // Length check - passphrases should be longer than traditional passwords
+    if (passphrase.length() < PasswordPolicy::MIN_LENGTH || 
+        passphrase.length() > PasswordPolicy::MAX_LENGTH) {
         return false;
     }
     
-    // Character type requirements
-    if (PasswordPolicy::REQUIRE_UPPERCASE && !has_uppercase(password)) return false;
-    if (PasswordPolicy::REQUIRE_LOWERCASE && !has_lowercase(password)) return false;
-    if (PasswordPolicy::REQUIRE_DIGITS && !has_digit(password)) return false;
-    if (PasswordPolicy::REQUIRE_SPECIAL && !has_special_char(password)) return false;
+    // Word count check - passphrases should have multiple words
+    if (!has_minimum_word_count(passphrase)) {
+        return false;
+    }
     
-    // Entropy check - I want passwords that are actually random
-    if (!has_sufficient_entropy(password)) return false;
+    // Entropy check - I want passphrases that are actually memorable but secure
+    if (!has_sufficient_entropy(passphrase)) {
+        return false;
+    }
     
-    // Common password checks
-    if (is_in_common_passwords(password)) return false;
-    if (is_keyboard_pattern(password)) return false;
-    if (is_repeated_pattern(password)) return false;
+    // Common passphrase checks
+    if (is_in_common_passwords(passphrase)) return false;
+    if (is_common_phrase(passphrase)) return false;
+    if (is_keyboard_pattern(passphrase)) return false;
+    if (is_repeated_pattern(passphrase)) return false;
     
     return true;
 }
 
 std::vector<std::string> PasswordManager::get_password_requirements() const {
     return {
-        "At least 8 characters long",
-        "Contains uppercase letters",
-        "Contains lowercase letters", 
-        "Contains numbers",
-        "Contains special characters",
+        "At least 20 characters long",
+        "Contains at least 4 words",
+        "Not a common phrase or song lyric",
         "Not a common password",
-        "No obvious patterns"
+        "No obvious patterns or repetition"
     };
 }
 
-bool PasswordManager::is_password_compromised(const std::string& password) const {
+bool PasswordManager::is_password_compromised(const std::string& passphrase) const {
     // In production, this would check against HaveIBeenPwned API
-    // For now, just check against our known bad passwords
-    std::string lower_password = password;
-    std::transform(lower_password.begin(), lower_password.end(), 
-                   lower_password.begin(), ::tolower);
+    // For now, just check against our known bad passwords and phrases
+    std::string lower_passphrase = passphrase;
+    std::transform(lower_passphrase.begin(), lower_passphrase.end(), 
+                   lower_passphrase.begin(), ::tolower);
     
-    return is_in_common_passwords(lower_password);
+    return is_in_common_passwords(lower_passphrase) || is_common_phrase(lower_passphrase);
 }
 
 std::string PasswordManager::generate_secure_password(size_t length) const {
@@ -178,6 +190,31 @@ std::string PasswordManager::generate_secure_password(size_t length) const {
     }
     
     return password;
+}
+
+std::string PasswordManager::generate_secure_passphrase(size_t word_count) const {
+    // Common English words that are easy to remember but not predictable
+    const std::vector<std::string> word_list = {
+        "apple", "beach", "castle", "dragon", "eagle", "forest", "garden", "house",
+        "island", "jungle", "kitchen", "lighthouse", "mountain", "ocean", "palace",
+        "queen", "river", "sunset", "tiger", "umbrella", "village", "waterfall",
+        "xylophone", "yellow", "zebra", "butterfly", "chocolate", "diamond",
+        "elephant", "fireworks", "giraffe", "hamburger", "icecream", "jellyfish",
+        "kangaroo", "lemonade", "marshmallow", "notebook", "octopus", "penguin",
+        "rainbow", "strawberry", "turtle", "unicorn", "volcano", "watermelon"
+    };
+    
+    std::string passphrase;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, word_list.size() - 1);
+    
+    for (size_t i = 0; i < word_count; ++i) {
+        if (i > 0) passphrase += " ";
+        passphrase += word_list[dis(gen)];
+    }
+    
+    return passphrase;
 }
 
 std::string PasswordManager::generate_reset_token(const std::string& user_id) {
@@ -215,54 +252,64 @@ void PasswordManager::invalidate_reset_token(const std::string& token) {
 
 // Private helper methods
 
-bool PasswordManager::has_uppercase(const std::string& password) const {
-    return std::any_of(password.begin(), password.end(), ::isupper);
+bool PasswordManager::has_uppercase(const std::string& passphrase) const {
+    return std::any_of(passphrase.begin(), passphrase.end(), ::isupper);
 }
 
-bool PasswordManager::has_lowercase(const std::string& password) const {
-    return std::any_of(password.begin(), password.end(), ::islower);
+bool PasswordManager::has_lowercase(const std::string& passphrase) const {
+    return std::any_of(passphrase.begin(), passphrase.end(), ::islower);
 }
 
-bool PasswordManager::has_digit(const std::string& password) const {
-    return std::any_of(password.begin(), password.end(), ::isdigit);
+bool PasswordManager::has_digit(const std::string& passphrase) const {
+    return std::any_of(passphrase.begin(), passphrase.end(), ::isdigit);
 }
 
-bool PasswordManager::has_special_char(const std::string& password) const {
+bool PasswordManager::has_special_char(const std::string& passphrase) const {
     const std::string special_chars = "!@#$%^&*()_+-=[]{}|;:,.<>?";
-    return std::any_of(password.begin(), password.end(), 
+    return std::any_of(passphrase.begin(), passphrase.end(), 
                        [&special_chars](char c) {
                            return special_chars.find(c) != std::string::npos;
                        });
 }
 
-bool PasswordManager::has_sufficient_entropy(const std::string& password) const {
+bool PasswordManager::has_sufficient_entropy(const std::string& passphrase) const {
     // Count unique characters - I want diversity
-    std::set<char> unique_chars(password.begin(), password.end());
+    std::set<char> unique_chars(passphrase.begin(), passphrase.end());
     return unique_chars.size() >= PasswordPolicy::MIN_UNIQUE_CHARS;
 }
 
-bool PasswordManager::is_in_common_passwords(const std::string& password) const {
-    std::string lower_password = password;
-    std::transform(lower_password.begin(), lower_password.end(), 
-                   lower_password.begin(), ::tolower);
+bool PasswordManager::is_in_common_passwords(const std::string& passphrase) const {
+    std::string lower_passphrase = passphrase;
+    std::transform(lower_passphrase.begin(), lower_passphrase.end(), 
+                   lower_passphrase.begin(), ::tolower);
     
     return std::find(PasswordPolicy::FORBIDDEN_PASSWORDS.begin(),
                      PasswordPolicy::FORBIDDEN_PASSWORDS.end(),
-                     lower_password) != PasswordPolicy::FORBIDDEN_PASSWORDS.end();
+                     lower_passphrase) != PasswordPolicy::FORBIDDEN_PASSWORDS.end();
 }
 
-bool PasswordManager::is_keyboard_pattern(const std::string& password) const {
+bool PasswordManager::is_common_phrase(const std::string& passphrase) const {
+    std::string lower_passphrase = passphrase;
+    std::transform(lower_passphrase.begin(), lower_passphrase.end(), 
+                   lower_passphrase.begin(), ::tolower);
+    
+    return std::find(PasswordPolicy::FORBIDDEN_PHRASES.begin(),
+                     PasswordPolicy::FORBIDDEN_PHRASES.end(),
+                     lower_passphrase) != PasswordPolicy::FORBIDDEN_PHRASES.end();
+}
+
+bool PasswordManager::is_keyboard_pattern(const std::string& passphrase) const {
     // Check for obvious keyboard patterns like "qwerty", "asdf", "123456"
     const std::vector<std::string> patterns = {
         "qwerty", "asdf", "zxcv", "123456", "abcdef", "qwertyuiop"
     };
     
-    std::string lower_password = password;
-    std::transform(lower_password.begin(), lower_password.end(), 
-                   lower_password.begin(), ::tolower);
+    std::string lower_passphrase = passphrase;
+    std::transform(lower_passphrase.begin(), lower_passphrase.end(), 
+                   lower_passphrase.begin(), ::tolower);
     
     for (const auto& pattern : patterns) {
-        if (lower_password.find(pattern) != std::string::npos) {
+        if (lower_passphrase.find(pattern) != std::string::npos) {
             return true;
         }
     }
@@ -270,21 +317,36 @@ bool PasswordManager::is_keyboard_pattern(const std::string& password) const {
     return false;
 }
 
-bool PasswordManager::is_repeated_pattern(const std::string& password) const {
+bool PasswordManager::is_repeated_pattern(const std::string& passphrase) const {
     // Check for repeated characters or simple patterns
-    if (password.length() < 3) return false;
+    if (passphrase.length() < 3) return false;
     
     // Check for repeated sequences
-    for (size_t len = 1; len <= password.length() / 2; ++len) {
-        std::string pattern = password.substr(0, len);
+    for (size_t len = 1; len <= passphrase.length() / 2; ++len) {
+        std::string pattern = passphrase.substr(0, len);
         std::string repeated = pattern + pattern;
         
-        if (password.find(repeated) != std::string::npos) {
+        if (passphrase.find(repeated) != std::string::npos) {
             return true;
         }
     }
     
     return false;
+}
+
+bool PasswordManager::has_minimum_word_count(const std::string& passphrase) const {
+    std::istringstream iss(passphrase);
+    std::string word;
+    size_t word_count = 0;
+    
+    while (iss >> word) {
+        // Only count words that are at least 2 characters long
+        if (word.length() >= 2) {
+            word_count++;
+        }
+    }
+    
+    return word_count >= PasswordPolicy::MIN_WORD_COUNT;
 }
 
 std::string PasswordManager::generate_salt() const {

@@ -20,6 +20,7 @@ import {Envelope_Stroke2_Corner0_Rounded as Envelope} from '#/components/icons/E
 import {Lock_Stroke2_Corner0_Rounded as Lock} from '#/components/icons/Lock'
 import {Ticket_Stroke2_Corner0_Rounded as Ticket} from '#/components/icons/Ticket'
 import {Loader} from '#/components/Loader'
+import {PassphraseInput} from '#/components/forms/PassphraseInput'
 import {BackNextButtons} from '../BackNextButtons'
 
 function sanitizeDate(date: Date): Date {
@@ -117,14 +118,23 @@ export function StepInfo({
     if (!password) {
       return dispatch({
         type: 'setError',
-        value: _(msg`Please choose your password.`),
+        value: _(msg`Please choose your passphrase.`),
         field: 'password',
       })
     }
-    if (password.length < 8) {
+    if (password.length < 20) {
       return dispatch({
         type: 'setError',
-        value: _(msg`Your password must be at least 8 characters long.`),
+        value: _(msg`Your passphrase must be at least 20 characters long.`),
+        field: 'password',
+      })
+    }
+    // Check if it has at least 4 words
+    const wordCount = password.trim().split(/\s+/).filter(word => word.length >= 2).length
+    if (wordCount < 4) {
+      return dispatch({
+        type: 'setError',
+        value: _(msg`Your passphrase must contain at least 4 words.`),
         field: 'password',
       })
     }
@@ -188,35 +198,27 @@ export function StepInfo({
                 />
               </TextField.Root>
             </View>
-            <View>
-              <TextField.LabelText>
-                <Trans>Password</Trans>
-              </TextField.LabelText>
-              <TextField.Root isInvalid={state.errorField === 'password'}>
-                <TextField.Icon icon={Lock} />
-                <TextField.Input
-                  testID="passwordInput"
-                  inputRef={passwordInputRef}
-                  onChangeText={value => {
-                    passwordValueRef.current = value
-                    if (state.errorField === 'password' && value.length >= 8) {
-                      dispatch({type: 'clearError'})
-                    }
-                  }}
-                  label={_(msg`Choose your password`)}
-                  defaultValue={state.password}
-                  secureTextEntry
-                  autoComplete="new-password"
-                  autoCapitalize="none"
-                  returnKeyType="next"
-                  submitBehavior={native('blurAndSubmit')}
-                  onSubmitEditing={native(() =>
-                    birthdateInputRef.current?.focus(),
-                  )}
-                  passwordRules="minlength: 8;"
-                />
-              </TextField.Root>
-            </View>
+            <PassphraseInput
+              label={_('Passphrase')}
+              value={state.password}
+              onChangeText={value => {
+                passwordValueRef.current = value
+                if (state.errorField === 'password' && value.length >= 20) {
+                  dispatch({type: 'clearError'})
+                }
+              }}
+              error={state.errorField === 'password' ? state.error : undefined}
+              showStrengthMeter={true}
+              showToggle={true}
+              multiline={true}
+              numberOfLines={3}
+              testID="passwordInput"
+              placeholder={_('Choose your passphrase')}
+              autoComplete="new-password"
+              returnKeyType="next"
+              onSubmitEditing={() => birthdateInputRef.current?.focus()}
+              accessibilityHint={_('Enter your passphrase for account creation')}
+            />
             <View>
               <DateField.LabelText>
                 <Trans>Your birth date</Trans>

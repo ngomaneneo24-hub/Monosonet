@@ -116,18 +116,20 @@ struct JWTClaims {
     bool requires_2fa;
 };
 
-// Password requirements - I'm not messing around with weak passwords
+// Passphrase requirements - Modern security through memorable strength
 struct PasswordPolicy {
-    static constexpr size_t MIN_LENGTH = 8;
-    static constexpr size_t MAX_LENGTH = 128;
-    static constexpr bool REQUIRE_UPPERCASE = true;
-    static constexpr bool REQUIRE_LOWERCASE = true;
-    static constexpr bool REQUIRE_DIGITS = true;
-    static constexpr bool REQUIRE_SPECIAL = true;
-    static constexpr size_t MIN_UNIQUE_CHARS = 6;
+    static constexpr size_t MIN_LENGTH = 20;        // Minimum 20 characters for passphrases
+    static constexpr size_t MAX_LENGTH = 200;       // Maximum 200 characters
+    static constexpr size_t MIN_WORD_COUNT = 4;     // Minimum 4 words
+    static constexpr size_t MAX_WORD_COUNT = 12;    // Maximum 12 words
+    static constexpr bool REQUIRE_MIXED_CASE = false; // Not required for passphrases
+    static constexpr bool REQUIRE_DIGITS = false;    // Not required for passphrases
+    static constexpr bool REQUIRE_SPECIAL = false;   // Not required for passphrases
+    static constexpr size_t MIN_UNIQUE_CHARS = 8;   // Minimum unique characters
     
-    // These are the common passwords I absolutely won't allow
+    // These are the common phrases and passwords I absolutely won't allow
     static const std::vector<std::string> FORBIDDEN_PASSWORDS;
+    static const std::vector<std::string> FORBIDDEN_PHRASES;
 };
 
 // Rate limiting configuration - because attackers gonna attack
