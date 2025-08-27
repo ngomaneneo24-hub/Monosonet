@@ -71,7 +71,7 @@ function ListImpl<ItemT>(
 
   const isEmpty = !data || data.length === 0
 
-  let headerComponent: JSX.Element | null = null
+  let headerComponent: React.ReactNode | null = null
   if (ListHeaderComponent != null) {
     if (isValidElement(ListHeaderComponent)) {
       headerComponent = ListHeaderComponent
@@ -81,7 +81,7 @@ function ListImpl<ItemT>(
     }
   }
 
-  let footerComponent: JSX.Element | null = null
+  let footerComponent: React.ReactNode | null = null
   if (ListFooterComponent != null) {
     if (isValidElement(ListFooterComponent)) {
       footerComponent = ListFooterComponent
@@ -91,7 +91,7 @@ function ListImpl<ItemT>(
     }
   }
 
-  let emptyComponent: JSX.Element | null = null
+  let emptyComponent: React.ReactNode | null = null
   if (ListEmptyComponent != null) {
     if (isValidElement(ListEmptyComponent)) {
       emptyComponent = ListEmptyComponent

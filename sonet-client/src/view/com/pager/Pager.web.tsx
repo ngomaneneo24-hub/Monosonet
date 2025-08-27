@@ -18,9 +18,9 @@ export interface PagerRef {
 export interface RenderTabBarFnProps {
   selectedPage: number
   onSelect?: (index: number) => void
-  tabBarAnchor?: JSX.Element
+  tabBarAnchor?: React.ReactNode
 }
-export type RenderTabBarFn = (props: RenderTabBarFnProps) => JSX.Element
+export type RenderTabBarFn = (props: RenderTabBarFnProps) => React.ReactNode
 
 interface Props {
   ref?: React.Ref<PagerRef>

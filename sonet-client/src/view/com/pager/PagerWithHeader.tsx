@@ -39,15 +39,15 @@ export interface PagerWithHeaderProps {
   ref?: React.Ref<PagerRef>
   testID?: string
   children:
-    | (((props: PagerWithHeaderChildParams) => JSX.Element) | null)[]
-    | ((props: PagerWithHeaderChildParams) => JSX.Element)
+    | (((props: PagerWithHeaderChildParams) => React.ReactNode) | null)[]
+    | ((props: PagerWithHeaderChildParams) => React.ReactNode)
   items: string[]
   isHeaderReady: boolean
   renderHeader?: ({
     setMinimumHeight,
   }: {
     setMinimumHeight: (height: number) => void
-  }) => JSX.Element
+  }) => React.ReactNode
   initialPage?: number
   onPageSelected?: (index: number) => void
   onCurrentPageSelected?: (index: number) => void
@@ -243,7 +243,7 @@ let PagerTabBar = ({
     setMinimumHeight,
   }: {
     setMinimumHeight: (height: number) => void
-  }) => JSX.Element
+  }) => React.ReactNode
   onHeaderOnlyLayout: (height: number) => void
   onTabBarLayout: (e: LayoutChangeEvent) => void
   onCurrentPageSelected?: (index: number) => void
@@ -339,7 +339,7 @@ function PagerItem({
   isReady: boolean
   registerRef: (scrollRef: AnimatedRef<any> | null, atIndex: number) => void
   onScrollWorklet: (e: NativeScrollEvent) => void
-  renderTab: ((props: PagerWithHeaderChildParams) => JSX.Element) | null
+  renderTab: ((props: PagerWithHeaderChildParams) => React.ReactNode) | null
 }) {
   const scrollElRef = useAnimatedRef()
 

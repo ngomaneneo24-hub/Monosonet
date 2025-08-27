@@ -95,7 +95,7 @@ export function ForYouFeedHeader({
                   <View 
                     style={[
                       styles.factorBarFill, 
-                      {width: `${Math.min(100, Math.max(0, (value as number) * 100)}%`}
+                      {width: `${Math.min(100, Math.max(0, (value as number) * 100))}%`}
                     ]} 
                   />
                 </View>

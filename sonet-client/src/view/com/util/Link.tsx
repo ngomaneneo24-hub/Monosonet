@@ -183,7 +183,7 @@ export const TextLink = memo(function TextLink({
   type?: TypographyVariant
   style?: StyleProp<TextStyle>
   href: string
-  text: string | JSX.Element | React.ReactNode
+  text: string | React.ReactNode
   numberOfLines?: number
   lineHeight?: number
   dataSet?: any
@@ -294,7 +294,7 @@ interface TextLinkOnWebOnlyProps extends TextProps {
   type?: TypographyVariant
   style?: StyleProp<TextStyle>
   href: string
-  text: string | JSX.Element
+  text: string | React.ReactNode
   numberOfLines?: number
   lineHeight?: number
   accessible?: boolean

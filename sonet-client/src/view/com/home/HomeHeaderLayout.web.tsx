@@ -16,7 +16,7 @@ import {Link} from '#/components/Link'
 
 export function HomeHeaderLayout(props: {
   children: React.ReactNode
-  tabBarAnchor: JSX.Element | null | undefined
+  tabBarAnchor: React.ReactNode | null | undefined
 }) {
   const {gtMobile} = useBreakpoints()
   if (!gtMobile) {
@@ -31,7 +31,7 @@ function HomeHeaderLayoutDesktopAndTablet({
   tabBarAnchor,
 }: {
   children: React.ReactNode
-  tabBarAnchor: JSX.Element | null | undefined
+  tabBarAnchor: React.ReactNode | null | undefined
 }) {
   const t = useTheme()
   const {headerHeight} = useShellLayout()

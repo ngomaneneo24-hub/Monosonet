@@ -173,7 +173,9 @@ export function useToggleQuoteDetachmentMutation() {
   const agent = useAgent()
   const queryClient = useQueryClient()
   const getNotes = useGetNotes()
-  const prevEmbed = React.useRef<SonetFeedDefs.NoteView['embed']>()
+  const prevEmbed = React.useRef<SonetFeedDefs.NoteView['embed'] | undefined>(
+    undefined,
+  )
 
   return useMutation({
     mutationFn: async ({

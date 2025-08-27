@@ -48,8 +48,8 @@ export function FeedPage({
   feedParams?: FeedParams
   isPageFocused: boolean
   isPageAdjacent: boolean
-  renderEmptyState: () => JSX.Element
-  renderEndOfFeed?: () => JSX.Element
+  renderEmptyState: () => React.ReactNode
+  renderEndOfFeed?: () => React.ReactNode
   savedFeedConfig?: any // TODO: Replace with SonetSavedFeed type when created
   feedInfo: SavedFeedSourceInfo
 }) {

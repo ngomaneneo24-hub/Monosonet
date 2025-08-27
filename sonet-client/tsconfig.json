@@ -3,7 +3,15 @@
 	"compilerOptions": {
 		"jsx": "react-jsx",
 		"module": "esnext",
-		"types": ["node", "jest"],
+		"types": ["node", "jest", "react", "react-dom"],
+		"strict": true,
+		"noImplicitAny": true,
+		"noUncheckedIndexedAccess": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitOverride": true,
+		"useUnknownInCatchVariables": true,
+		"exactOptionalPropertyTypes": true,
+		"lib": ["ES2022", "DOM"],
 		"baseUrl": ".",
 		"paths": {
 			"#/*": ["./src/*"],

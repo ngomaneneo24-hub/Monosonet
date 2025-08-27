@@ -1,6 +1,7 @@
 // Sonet Client Environment Configuration
 // Unified with monorepo environment management
 
+// @ts-ignore - package.json import for version at build time
 import packageJson from '#/../package.json'
 
 /**
@@ -24,7 +25,8 @@ export const IS_TESTFLIGHT = ENV === 'testflight'
 /**
  * Indicates whether the app is __DEV__
  */
-export const IS_DEV = __DEV__
+// __DEV__ is provided by Metro/Expo; default to true for typecheck context
+export const IS_DEV = (globalThis as any).__DEV__ ?? true
 
 /**
  * Indicates whether the app is __DEV__ or TestFlight

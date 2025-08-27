@@ -17,15 +17,15 @@ export interface PagerWithHeaderChildParams {
 export interface PagerWithHeaderProps {
   testID?: string
   children:
-    | (((props: PagerWithHeaderChildParams) => JSX.Element) | null)[]
-    | ((props: PagerWithHeaderChildParams) => JSX.Element)
+    | (((props: PagerWithHeaderChildParams) => React.ReactNode) | null)[]
+    | ((props: PagerWithHeaderChildParams) => React.ReactNode)
   items: string[]
   isHeaderReady: boolean
   renderHeader?: ({
     setMinimumHeight,
   }: {
     setMinimumHeight: () => void
-  }) => JSX.Element
+  }) => React.ReactNode
   initialPage?: number
   onPageSelected?: (index: number) => void
   onCurrentPageSelected?: (index: number) => void
@@ -123,11 +123,11 @@ let PagerTabBar = ({
     setMinimumHeight,
   }: {
     setMinimumHeight: () => void
-  }) => JSX.Element
+  }) => React.ReactNode
   isHeaderReady: boolean
   onCurrentPageSelected?: (index: number) => void
   onSelect?: (index: number) => void
-  tabBarAnchor?: JSX.Element | null | undefined
+  tabBarAnchor?: React.ReactNode | null | undefined
 }): React.ReactNode => {
   return (
     <>
@@ -164,7 +164,7 @@ function PagerItem({
   renderTab,
 }: {
   isFocused: boolean
-  renderTab: ((props: PagerWithHeaderChildParams) => JSX.Element) | null
+  renderTab: ((props: PagerWithHeaderChildParams) => React.ReactNode) | null
 }) {
   const scrollElRef = useAnimatedRef()
   if (renderTab == null) {

@@ -13,7 +13,7 @@ export function ViewHeader({
   subtitle?: string
   showOnDesktop?: boolean
   showBorder?: boolean
-  renderButton?: () => JSX.Element
+  renderButton?: () => React.ReactNode
 }) {
   return (
     <Header.Outer>
