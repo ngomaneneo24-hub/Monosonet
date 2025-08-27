@@ -32,8 +32,8 @@ export const ViewSelector = React.forwardRef<
     items: any[]
     refreshing?: boolean
     swipeEnabled?: boolean
-    renderHeader?: () => JSX.Element
-    renderItem: (item: any) => JSX.Element
+    renderHeader?: () => React.ReactNode
+    renderItem: (item: any) => React.ReactNode
     ListFooterComponent?:
       | React.ComponentType<any>
       | React.ReactElement
