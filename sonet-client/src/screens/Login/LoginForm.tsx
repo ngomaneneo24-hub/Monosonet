@@ -28,6 +28,7 @@ import {FormError} from '#/components/forms/FormError'
 import {HostingProvider} from '#/components/forms/HostingProvider'
 import {SONET_API_BASE} from '#/env'
 import * as TextField from '#/components/forms/TextField'
+import {PassphraseInput} from '#/components/forms/PassphraseInput'
 import {At_Stroke2_Corner0_Rounded as At} from '#/components/icons/At'
 import {Lock_Stroke2_Corner0_Rounded as Lock} from '#/components/icons/Lock'
 import {Ticket_Stroke2_Corner0_Rounded as Ticket} from '#/components/icons/Ticket'
@@ -68,6 +69,7 @@ export const LoginForm = ({
     useState<boolean>(false)
   const [isAuthFactorTokenValueEmpty, setIsAuthFactorTokenValueEmpty] =
     useState<boolean>(true)
+  const [isPassphraseVisible, setIsPassphraseVisible] = useState<boolean>(true)
   const identifierValueRef = useRef<string>(initialUsername || '')
   const passwordValueRef = useRef<string>('')
   const authFactorTokenValueRef = useRef<string>('')
@@ -99,7 +101,7 @@ export const LoginForm = ({
     }
 
     if (!password) {
-      setError(_(msg`Please enter your password`))
+      setError(_(msg`Please enter your passphrase`))
       return
     }
 
@@ -160,7 +162,7 @@ export const LoginForm = ({
           logger.debug('Failed to login due to invalid credentials', {
             error: errMsg,
           })
-          setError(_(msg`Incorrect username or password`))
+          setError(_(msg`Incorrect username or passphrase`))
         } else if (isNetworkError(e)) {
           logger.warn('Failed to login due to network error', {error: errMsg})
           setError(
@@ -220,13 +222,13 @@ export const LoginForm = ({
             <TextField.Input
               testID="loginPasswordInput"
               inputRef={passwordRef}
-              label={_(msg`Password`)}
+              label={_(msg`Passphrase`)}
               autoCapitalize="none"
               autoCorrect={false}
               autoComplete="password"
               returnKeyType="done"
               enablesReturnKeyAutomatically={true}
-              secureTextEntry={true}
+              secureTextEntry={!isPassphraseVisible}
               textContentType="password"
               clearButtonMode="while-editing"
               onChangeText={v => {
@@ -235,8 +237,14 @@ export const LoginForm = ({
               onSubmitEditing={onPressNext}
               blurOnSubmit={false} // HACK: https://github.com/facebook/react-native/issues/21911#issuecomment-558343069 Keyboard blur behavior is now usernamed in onSubmitEditing
               editable={!isProcessing}
-              accessibilityHint={_(msg`Enter your password`)}
+              accessibilityHint={_(msg`Enter your passphrase`)}
             />
+            <PassphraseToggleButton
+              isVisible={isPassphraseVisible}
+              onToggle={() => setIsPassphraseVisible(!isPassphraseVisible)}
+              size="md"
+            />
+          </TextField.Root>
             <Button
               testID="forgotPasswordButton"
               onPress={onPressForgotPassword}

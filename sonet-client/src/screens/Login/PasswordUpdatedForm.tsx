@@ -20,16 +20,16 @@ export const PasswordUpdatedForm = ({
       testID="passwordUpdatedForm"
       style={[a.gap_2xl, !gtMobile && a.mt_5xl]}>
       <Text style={[a.text_3xl, a.font_bold, a.text_center]}>
-        <Trans>Password updated!</Trans>
+        <Trans>Passphrase updated!</Trans>
       </Text>
       <Text style={[a.text_center, a.mx_auto, {maxWidth: '80%'}]}>
-        <Trans>You can now sign in with your new password.</Trans>
+        <Trans>You can now sign in with your new passphrase.</Trans>
       </Text>
       <View style={[a.flex_row, a.justify_center]}>
         <Button
           onPress={onPressNext}
           label={_(msg`Close alert`)}
-          accessibilityHint={_(msg`Closes password update alert`)}
+          accessibilityHint={_(msg`Closes passphrase update alert`)}
           variant="solid"
           color="primary"
           size="large">

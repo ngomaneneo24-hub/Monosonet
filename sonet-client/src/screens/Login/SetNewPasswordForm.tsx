@@ -15,6 +15,7 @@ import {FormError} from '#/components/forms/FormError'
 import * as TextField from '#/components/forms/TextField'
 import {Lock_Stroke2_Corner0_Rounded as Lock} from '#/components/icons/Lock'
 import {Ticket_Stroke2_Corner0_Rounded as Ticket} from '#/components/icons/Ticket'
+import {PassphraseInput} from '#/components/forms/PassphraseInput'
 import {Text} from '#/components/Typography'
 import {FormContainer} from './FormContainer'
 
@@ -53,9 +54,19 @@ export const SetNewPasswordForm = ({
       return
     }
 
-    // TODO Better password strength check
+    // TODO Better passphrase strength check
     if (!password) {
-      setError(_(msg`Please enter a password.`))
+      setError(_(msg`Please enter a passphrase.`))
+      return
+    }
+    if (password.length < 20) {
+      setError(_(msg`Your passphrase must be at least 20 characters long.`))
+      return
+    }
+    // Check if it has at least 4 words
+    const wordCount = password.trim().split(/\s+/).filter(word => word.length >= 2).length
+    if (wordCount < 4) {
+      setError(_(msg`Your passphrase must contain at least 4 words.`))
       return
     }
 
@@ -103,11 +114,11 @@ export const SetNewPasswordForm = ({
   return (
     <FormContainer
       testID="setNewPasswordForm"
-      titleText={<Trans>Set new password</Trans>}>
+      titleText={<Trans>Set new passphrase</Trans>}>
       <Text style={[a.leading_snug, a.mb_sm]}>
         <Trans>
           You will receive an email with a "reset code." Enter that code here,
-          then enter your new password.
+          then enter your new passphrase.
         </Trans>
       </Text>
 
@@ -136,30 +147,22 @@ export const SetNewPasswordForm = ({
         </TextField.Root>
       </View>
 
-      <View>
-        <TextField.LabelText>
-          <Trans>New password</Trans>
-        </TextField.LabelText>
-        <TextField.Root>
-          <TextField.Icon icon={Lock} />
-          <TextField.Input
-            testID="newPasswordInput"
-            label={_(msg`Enter a password`)}
-            autoCapitalize="none"
-            autoCorrect={false}
-            autoComplete="password"
-            returnKeyType="done"
-            secureTextEntry={true}
-            textContentType="password"
-            clearButtonMode="while-editing"
-            value={password}
-            onChangeText={setPassword}
-            onSubmitEditing={onPressNext}
-            editable={!isProcessing}
-            accessibilityHint={_(msg`Input new password`)}
-          />
-        </TextField.Root>
-      </View>
+              <PassphraseInput
+          label={_('New passphrase')}
+          value={password}
+          onChangeText={setPassword}
+          showStrengthMeter={true}
+          showToggle={true}
+          multiline={true}
+          numberOfLines={3}
+          testID="newPasswordInput"
+          placeholder={_('Enter a passphrase')}
+          autoComplete="password"
+          returnKeyType="done"
+          onSubmitEditing={onPressNext}
+          editable={!isProcessing}
+          accessibilityHint={_('Input new passphrase')}
+        />
 
       <FormError error={error} />
 
