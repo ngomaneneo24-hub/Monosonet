@@ -189,6 +189,7 @@ pub struct ReportManager {
     signal_processor: Arc<SignalProcessor>,
     metrics: Arc<MetricsCollector>,
     config: ReportManagerConfig,
+    datastores: Option<Arc<crate::storage::db::Datastores>>,
 }
 
 #[derive(Debug, Clone)]
@@ -219,6 +220,7 @@ impl ReportManager {
         signal_processor: Arc<SignalProcessor>,
         metrics: Arc<MetricsCollector>,
         config: ReportManagerConfig,
+        
     ) -> Self {
         Self {
             reports: Arc::new(RwLock::new(HashMap::new())),
@@ -226,7 +228,13 @@ impl ReportManager {
             signal_processor,
             metrics,
             config,
+            datastores: None,
         }
+    }
+
+    pub fn with_datastores(mut self, datastores: Arc<crate::storage::db::Datastores>) -> Self {
+        self.datastores = Some(datastores);
+        self
     }
 
     pub async fn create_report(&self, report: CreateReportRequest) -> Result<UserReport> {
@@ -255,8 +263,12 @@ impl ReportManager {
             metadata: report.metadata,
         };
         
-        // Store report
+        // Store report (in memory)
         self.reports.write().await.insert(user_report.id, user_report.clone());
+        // Persist to database if configured
+        if let Some(ds) = &self.datastores {
+            ds.insert_user_report(&user_report).await.ok();
+        }
         
         // Generate signals
         self.generate_report_signals(&user_report).await?;
@@ -273,7 +285,11 @@ impl ReportManager {
     }
 
     pub async fn get_report(&self, report_id: Uuid) -> Option<UserReport> {
-        self.reports.read().await.get(&report_id).cloned()
+        if let Some(r) = self.reports.read().await.get(&report_id).cloned() { return Some(r); }
+        if let Some(ds) = &self.datastores {
+            if let Ok(opt) = ds.fetch_user_report(report_id).await { return opt; }
+        }
+        None
     }
 
     pub async fn get_reports_by_user(&self, user_id: Uuid) -> Vec<UserReport> {
@@ -285,11 +301,15 @@ impl ReportManager {
     }
 
     pub async fn get_reports_by_status(&self, status: ReportStatus) -> Vec<UserReport> {
-        self.reports.read().await
-            .values()
-            .filter(|report| report.status == status)
-            .cloned()
-            .collect()
+        // Prefer in-memory for speed; fall back to DB
+        let mut v: Vec<UserReport> = self.reports.read().await.values().filter(|r| r.status == status).cloned().collect();
+        if v.is_empty() {
+            if let Some(ds) = &self.datastores {
+                let key = format!("{:?}", status);
+                if let Ok(rows) = ds.list_user_reports(Some(key), None, 100, 0, None).await { v = rows; }
+            }
+        }
+        v
     }
 
     pub async fn get_all_reports(&self) -> Vec<UserReport> {
@@ -309,6 +329,10 @@ impl ReportManager {
             if matches!(status, ReportStatus::Resolved | ReportStatus::Dismissed) {
                 report.resolved_at = Some(Utc::now());
             }
+        }
+        if let Some(ds) = &self.datastores {
+            let key = format!("{:?}", status);
+            ds.update_user_report_status(report_id, key).await.ok();
         }
         
         Ok(())

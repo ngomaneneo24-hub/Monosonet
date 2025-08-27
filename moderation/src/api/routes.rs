@@ -569,22 +569,13 @@ async fn list_reports(
     }).flatten();
 
     // Fetch
-    let mut reports = if let Some(s) = status {
-        state.report_manager.get_reports_by_status(s).await
-    } else {
-        state.report_manager.get_all_reports().await
-    };
-
-    if let Some(p) = priority {
-        reports.retain(|r| r.priority == p);
-    }
-
-    // Apply pagination
-    let offset = params.offset.unwrap_or(0);
-    let limit = params.limit.unwrap_or(50);
-    let slice = reports.into_iter().skip(offset).take(limit);
-
-    let data: Vec<serde_json::Value> = slice.map(|report| serde_json::json!({
+    // Prefer DB-backed listing for production scale
+    let offset = params.offset.unwrap_or(0) as i64;
+    let limit = params.limit.unwrap_or(50) as i64;
+    let status_key = status.as_ref().map(|s| format!("{:?}", s));
+    let priority_key = priority.as_ref().map(|p| format!("{:?}", p));
+    let rows = state.datastores.list_user_reports(status_key, priority_key, limit, offset, None).await.unwrap_or_default();
+    let data: Vec<serde_json::Value> = rows.into_iter().map(|report| serde_json::json!({
         "id": report.id.to_string(),
         "reporter_id": report.reporter_id.to_string(),
         "target_id": report.target_id.to_string(),
