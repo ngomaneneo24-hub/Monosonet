@@ -262,7 +262,6 @@ export const LoginForm = ({
                 <Trans>Forgot?</Trans>
               </ButtonText>
             </Button>
-          </TextField.Root>
         </View>
       </View>
       {isAuthFactorTokenNeeded && (

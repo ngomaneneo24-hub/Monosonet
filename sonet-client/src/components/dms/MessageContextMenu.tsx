@@ -85,7 +85,7 @@ export let MessageContextMenu = ({
     )
   }, [langPrefs.primaryLanguage, message.text, openLink])
 
-  const onDelete = useCallback(() => {
+  const handleDelete = useCallback(() => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
     if (onDelete) {
       onDelete()
@@ -243,7 +243,7 @@ export let MessageContextMenu = ({
         )}
         confirmButtonCta={_(msg`Delete`)}
         confirmButtonColor="negative"
-        onConfirm={onDelete}
+        onConfirm={handleDelete}
       />
     </>
   )
