@@ -39,11 +39,28 @@
         "autoIncrement": true
       },
       "android": {
-        "autoIncrement": true
+        "autoIncrement": true,
+        "gradleCommand": ":app:bundleRelease"
       },
       "channel": "production",
       "env": {
         "EXPO_PUBLIC_ENV": "production"
+      }
+    },
+    "store-ios": {
+      "extends": "production",
+      "distribution": "store",
+      "ios": {
+        "resourceClass": "large",
+        "autoIncrement": true
+      }
+    },
+    "store-android": {
+      "extends": "production",
+      "distribution": "store",
+      "android": {
+        "autoIncrement": true,
+        "gradleCommand": ":app:bundleRelease"
       }
     },
     "production-apk": {
@@ -92,6 +109,19 @@
     "production": {
       "ios": {
         "ascAppId": "6444370199"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./credentials/google-play-service-account.json"
+      }
+    },
+    "store-ios": {
+      "ios": {
+        "ascAppId": "6444370199"
+      }
+    },
+    "store-android": {
+      "android": {
+        "serviceAccountKeyPath": "./credentials/google-play-service-account.json"
       }
     }
   }
