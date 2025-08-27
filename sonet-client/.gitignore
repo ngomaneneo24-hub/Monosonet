@@ -20,14 +20,7 @@ DerivedData
 *.hmap
 *.xcuserstate
 
-# Android/IntelliJ
-#
-build/
-.idea
-.gradle
-local.properties
-*.iml
-*.hprof
+
 
 # node.js
 #
@@ -89,10 +82,6 @@ stats.json
 !.gitignore
 !.github
 
-
-# Android & iOS folders
-/android/
-/ios/
 
 # environment variables
 .env
