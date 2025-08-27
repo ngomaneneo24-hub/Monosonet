@@ -18,6 +18,7 @@ import { registerNotificationRoutes } from './routes/notifications.js';
 import { registerListRoutes } from './routes/lists.js';
 import { registerStarterpackRoutes } from './routes/starterpacks.js';
 import { registerDraftRoutes } from './routes/drafts.js';
+import { registerModerationRoutes } from './routes/moderation.js';
 import { registerMessageWebsocket } from './ws/messages.js';
 
 // Load environment variables from .env (if present)
@@ -45,6 +46,7 @@ registerNotificationRoutes(router, clients);
 registerListRoutes(router, clients);
 registerStarterpackRoutes(router, clients);
 registerDraftRoutes(router, clients);
+registerModerationRoutes(router, clients);
 
 app.use('/api', router);
 
