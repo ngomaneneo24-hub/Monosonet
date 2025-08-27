@@ -104,6 +104,8 @@ export function GhostReplyManager({ghostReplies, onClose, style}: Props) {
                 ghostAvatar={reply.ghostAvatar}
                 ghostId={reply.ghostId}
                 timestamp={reply.createdAt}
+                ghostReplyId={reply.id}
+                threadId="moderation" // Context for moderation view
                 style={styles.reply}
               />
               

@@ -63,6 +63,8 @@ export function GhostReplyList({threadId, style}: Props) {
           ghostAvatar={reply.ghostAvatar}
           ghostId={reply.ghostId}
           timestamp={reply.createdAt}
+          ghostReplyId={reply.id}
+          threadId={threadId}
           style={[
             styles.reply,
             index > 0 && {borderTopWidth: 1, borderTopColor: t.palette.border_contrast_low}

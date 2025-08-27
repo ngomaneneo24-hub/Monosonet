@@ -79,6 +79,8 @@ export function GhostReplyShowcase({style}: Props) {
                 ghostAvatar={reply.ghostAvatar}
                 ghostId={reply.ghostId}
                 timestamp={reply.createdAt}
+                ghostReplyId={reply.id}
+                threadId="showcase" // Context for showcase view
                 style={[
                   styles.demoReply,
                   index > 0 && {borderTopWidth: 1, borderTopColor: t.palette.border_contrast_low}
