@@ -115,6 +115,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to datastores
     let datastores = Datastores::connect(&cfg.database_url, &cfg.redis_url).await.expect("datastores connect failed");
     datastores.ensure_moderation_schema().await.expect("ensure schema failed");
+    datastores.ensure_audit_schema().await.expect("ensure audit schema failed");
     let state = Arc::new(datastores);
 
     // Initialize broadcast channels for streaming
