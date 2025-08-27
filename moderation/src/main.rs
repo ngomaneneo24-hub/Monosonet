@@ -116,7 +116,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         signal_processor.clone(),
         metrics.clone(),
         Default::default(),
-    ));
+    ).with_datastores(state.clone()));
     tracing::info!("Report manager initialized");
 
     // Initialize production classifier
@@ -146,6 +146,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Connect to datastores
     let datastores = Datastores::connect(&cfg.database_url, &cfg.redis_url).await.expect("datastores connect failed");
+    datastores.ensure_moderation_schema().await.expect("ensure schema failed");
     let state = Arc::new(datastores);
 
     // Create application state with all components
