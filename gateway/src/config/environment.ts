@@ -69,6 +69,7 @@ export const SERVICE_ENDPOINTS = {
   notificationService: process.env.NOTIFICATION_GRPC_ADDR || 'notification-service:9097',
   messagingService: process.env.MESSAGING_GRPC_ADDR || 'messaging-service:9095',
   analyticsService: process.env.ANALYTICS_GRPC_ADDR || 'analytics-service:9097',
+  moderationHttpBase: process.env.MODERATION_HTTP_BASE || 'http://localhost:8080',
 } as const
 
 /**

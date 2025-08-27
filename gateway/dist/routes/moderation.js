@@ -1,5 +1,8 @@
-import { verifyJwt } from '../middleware/auth.js';
+import { verifyJwt, verifyJwtFromHeaderOrQuery } from '../middleware/auth.js';
 import crypto from 'node:crypto';
+import { SERVICE_ENDPOINTS } from '../config/environment.js';
+import http from 'http';
+import https from 'https';
 // Basic mapping from client reasonType to server report_type
 function mapReasonToReportType(reason) {
     switch ((reason || '').toLowerCase()) {
@@ -118,5 +121,51 @@ export function registerModerationRoutes(router, clients) {
         catch (e) {
             return res.status(400).json({ ok: false, message: e?.message || 'Failed to fetch reports' });
         }
+    });
+    // SSE proxy helper
+    function proxySse(req, res, upstreamPath) {
+        const base = new URL(SERVICE_ENDPOINTS.moderationHttpBase);
+        const url = new URL(upstreamPath, base);
+        url.search = new URLSearchParams(req.query).toString();
+        const isHttps = url.protocol === 'https:';
+        const agent = isHttps ? https : http;
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders?.();
+        const upstreamReq = agent.request(url, {
+            method: 'GET',
+            headers: {
+                'accept': 'text/event-stream',
+                // Forward auth if needed by upstream
+                'authorization': req.headers['authorization'] || '',
+            },
+        }, (upstreamRes) => {
+            upstreamRes.on('data', (chunk) => {
+                res.write(chunk);
+            });
+            upstreamRes.on('end', () => {
+                res.end();
+            });
+        });
+        upstreamReq.on('error', () => {
+            // Emit an SSE error event, then close
+            res.write(`event: error\n`);
+            res.write(`data: {"message":"upstream connection error"}\n\n`);
+            res.end();
+        });
+        // Close upstream if client disconnects
+        req.on('close', () => {
+            upstreamReq.destroy();
+        });
+        upstreamReq.end();
+    }
+    // Reports stream proxy
+    router.get('/v1/stream/reports', verifyJwtFromHeaderOrQuery, (req, res) => {
+        proxySse(req, res, '/api/v1/stream/reports');
+    });
+    // Signals stream proxy
+    router.get('/v1/stream/signals', verifyJwtFromHeaderOrQuery, (req, res) => {
+        proxySse(req, res, '/api/v1/stream/signals');
     });
 }

@@ -17,7 +17,7 @@ export default function AuditPage() {
     const params = new URLSearchParams()
     if (action) params.set('action', action)
     params.set('limit', '100')
-    const res = await fetch(`${process.env.NEXT_PUBLIC_MOD_API}/api/v1/audit?${params.toString()}`, { credentials: 'include' })
+    const res = await fetch(`${process.env.NEXT_PUBLIC_MOD_API?.replace(/\/$/, '')}/api/v1/audit?${params.toString()}`, { credentials: 'include' })
     const json = await res.json()
     setItems(json.data || [])
   }, [action])
