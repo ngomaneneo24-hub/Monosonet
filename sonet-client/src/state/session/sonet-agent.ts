@@ -176,8 +176,13 @@ export class SonetAppAgent {
   }
 
   async createModerationReport(report: any) {
-    // Implement moderation report creation
-    return { success: true }
+    // Proxy to SonetClient which calls the gateway moderation route
+    try {
+      const resp = await this.client.createReport(report)
+      return resp
+    } catch (e) {
+      throw e
+    }
   }
 
   // Make session accessible for compatibility
