@@ -243,7 +243,7 @@ let PagerTabBar = ({
     setMinimumHeight,
   }: {
     setMinimumHeight: (height: number) => void
-  }) => JSX.Element
+  }) => React.ReactNode
   onHeaderOnlyLayout: (height: number) => void
   onTabBarLayout: (e: LayoutChangeEvent) => void
   onCurrentPageSelected?: (index: number) => void

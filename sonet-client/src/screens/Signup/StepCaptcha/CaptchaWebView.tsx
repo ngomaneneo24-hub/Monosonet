@@ -31,7 +31,7 @@ export function CaptchaWebView({
   onError: (error: unknown) => void
 }) {
   const startedAt = useRef(Date.now())
-  const successTo = useRef<NodeJS.Timeout>()
+  const successTo = useRef<NodeJS.Timeout | undefined>(undefined)
 
   useEffect(() => {
     return () => {
@@ -50,7 +50,7 @@ export function CaptchaWebView({
       : 'sonet.app'
   }, [state?.serviceUrl])
 
-  const wasSuccessful = useRef(false)
+  const wasSuccessful = useRef<boolean>(false)
 
   const onShouldStartLoadWithRequest = (event: ShouldStartLoadRequest) => {
     const urlp = new URL(event.url)
