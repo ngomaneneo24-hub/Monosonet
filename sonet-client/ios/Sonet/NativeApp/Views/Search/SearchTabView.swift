@@ -3,33 +3,10 @@ import SwiftUI
 struct SearchTabView: View {
     @EnvironmentObject var navigationManager: NavigationManager
     @EnvironmentObject var themeManager: ThemeManager
+    @StateObject private var grpcClient = SonetGRPCClient(configuration: .development)
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                // Search Header
-                VStack(spacing: 16) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 60))
-                        .foregroundColor(.blue)
-                    
-                    Text("Search")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                    
-                    Text("Search functionality coming soon")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                }
-                
-                Spacer()
-            }
-            .padding(.vertical, 32)
-            .navigationBarHidden(true)
-        }
-        .navigationViewStyle(StackNavigationViewStyle())
+        SearchView(grpcClient: grpcClient)
     }
 }
 
