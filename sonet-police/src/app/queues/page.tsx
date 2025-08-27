@@ -1,5 +1,7 @@
 "use client"
 import React from 'react'
+import { useAuth } from '@/lib/auth'
+import { createApi } from '@/lib/api'
 
 type Report = {
   id: string
@@ -11,6 +13,8 @@ type Report = {
 }
 
 export default function QueuesPage() {
+  const { state } = useAuth()
+  const api = React.useMemo(() => createApi(() => state.token), [state.token])
   const [reports, setReports] = React.useState<Report[]>([])
   const [status, setStatus] = React.useState<string>('Pending')
   const [priority, setPriority] = React.useState<string>('')
@@ -20,10 +24,9 @@ export default function QueuesPage() {
     if (status) params.set('status', status.toLowerCase())
     if (priority) params.set('priority', priority.toLowerCase())
     params.set('limit', '50')
-    const res = await fetch(`${process.env.NEXT_PUBLIC_MOD_API}/api/v1/reports?${params.toString()}`, { credentials: 'include' })
-    const json = await res.json()
+    const json = await api.getReports(params)
     setReports(json.data || [])
-  }, [status, priority])
+  }, [status, priority, api])
 
   React.useEffect(() => { fetchReports() }, [fetchReports])
 
@@ -72,8 +75,8 @@ export default function QueuesPage() {
             </thead>
             <tbody>
               {reports.map(r => (
-                <tr key={r.id} className="border-b hover:bg-gray-50">
-                  <td className="p-2 font-mono text-xs">{r.id}</td>
+                <tr key={r.id} className="border-b hover:bg-gray-50" onClick={() => location.assign(`/reports/${r.id}`)}>
+                  <td className="p-2 font-mono text-xs underline cursor-pointer">{r.id}</td>
                   <td className="p-2">{r.report_type}</td>
                   <td className="p-2">{r.priority}</td>
                   <td className="p-2">{r.status}</td>
