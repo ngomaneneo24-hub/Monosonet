@@ -4,76 +4,36 @@ struct ProfileTabView: View {
     @EnvironmentObject var navigationManager: NavigationManager
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var sessionManager: SessionManager
+    @StateObject private var grpcClient = SonetGRPCClient(configuration: .development)
     
     var body: some View {
-        NavigationView {
+        if let user = sessionManager.currentUser {
+            ProfileView(userId: user.id, grpcClient: grpcClient)
+        } else {
+            // Show login prompt
             VStack(spacing: 20) {
-                // Profile Header
-                VStack(spacing: 16) {
-                    if let user = sessionManager.currentUser {
-                        // User Avatar
-                        AsyncImage(url: user.avatarURL) { image in
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        } placeholder: {
-                            Image(systemName: "person.circle.fill")
-                                .foregroundColor(.gray)
-                        }
-                        .frame(width: 100, height: 100)
-                        .clipShape(Circle())
-                        
-                        // User Info
-                        VStack(spacing: 8) {
-                            HStack {
-                                Text(user.displayName)
-                                    .font(.title)
-                                    .fontWeight(.bold)
-                                
-                                if user.isVerified {
-                                    Image(systemName: "checkmark.seal.fill")
-                                        .foregroundColor(.blue)
-                                        .font(.title2)
-                                }
-                            }
-                            
-                            Text(user.handle)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        // Sign Out Button
-                        Button("Sign Out") {
-                            Task {
-                                await sessionManager.signOut()
-                            }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.red)
-                    } else {
-                        // No User State
-                        Image(systemName: "person.circle")
-                            .font(.system(size: 60))
-                            .foregroundColor(.gray)
-                        
-                        Text("Profile")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                        
-                        Text("User profile coming soon")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                    }
-                }
+                Image(systemName: "person.circle")
+                    .font(.system(size: 60))
+                    .foregroundColor(.secondary)
                 
-                Spacer()
+                Text("Not Logged In")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                Text("Please log in to view your profile")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+                
+                Button("Log In") {
+                    // Navigate to login
+                }
+                .buttonStyle(.borderedProminent)
             }
             .padding(.vertical, 32)
-            .navigationBarHidden(true)
+            .navigationTitle("Profile")
         }
-        .navigationViewStyle(StackNavigationViewStyle())
     }
 }
 
