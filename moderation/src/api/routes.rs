@@ -11,6 +11,9 @@ use uuid::Uuid;
 use crate::main::AppState;
 use crate::core::classifier::{ClassificationRequest, ContentType, Priority};
 use crate::core::reports::{CreateReportRequest, ReportType};
+use tokio_stream::wrappers::BroadcastStream;
+use axum::response::{Sse, sse::Event};
+use futures_util::StreamExt;
 
 // Response types
 #[derive(Serialize)]
@@ -90,6 +93,18 @@ struct ReportResponse {
 }
 
 #[derive(Deserialize)]
+struct ListReportsQuery {
+    status: Option<String>,
+    priority: Option<String>,
+    report_type: Option<String>,
+    assignee: Option<String>,
+    since: Option<String>,
+    until: Option<String>,
+    limit: Option<usize>,
+    offset: Option<usize>,
+}
+
+#[derive(Deserialize)]
 struct InvestigationQuery {
     report_id: String,
     investigator_id: String,
@@ -117,6 +132,7 @@ pub fn create_router() -> Router {
         
         // Reports endpoints
         .route("/api/v1/reports", post(create_report))
+        .route("/api/v1/reports", get(list_reports))
         .route("/api/v1/reports/:id", get(get_report))
         .route("/api/v1/reports/user/:user_id", get(get_user_reports))
         .route("/api/v1/reports/:id/status", put(update_report_status))
@@ -130,6 +146,11 @@ pub fn create_router() -> Router {
         .route("/api/v1/metrics", get(get_metrics))
         .route("/api/v1/metrics/reports", get(get_report_metrics))
         .route("/api/v1/metrics/classifications", get(get_classification_metrics))
+        // Streaming endpoints
+        .route("/api/v1/stream/reports", get(stream_reports))
+        .route("/api/v1/stream/signals", get(stream_signals))
+        // Audit endpoints
+        .route("/api/v1/audit", get(list_audit_events))
         
         // Admin endpoints
         .route("/api/v1/admin/signals", get(get_signals))
@@ -536,6 +557,52 @@ async fn get_user_reports(
     }))
 }
 
+// List reports endpoint for queues
+async fn list_reports(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<ListReportsQuery>,
+) -> Result<Json<ApiResponse<Vec<serde_json::Value>>>, StatusCode> {
+    let status = params.status.as_deref().map(|s| match s {
+        "pending" => Some(crate::core::reports::ReportStatus::Pending),
+        "under_investigation" => Some(crate::core::reports::ReportStatus::UnderInvestigation),
+        "escalated" => Some(crate::core::reports::ReportStatus::Escalated),
+        "resolved" => Some(crate::core::reports::ReportStatus::Resolved),
+        "dismissed" => Some(crate::core::reports::ReportStatus::Dismissed),
+        "requires_more_info" => Some(crate::core::reports::ReportStatus::RequiresMoreInfo),
+        _ => None,
+    }).flatten();
+    let priority = params.priority.as_deref().map(|p| match p {
+        "low" => Some(crate::core::reports::ReportPriority::Low),
+        "normal" => Some(crate::core::reports::ReportPriority::Normal),
+        "high" => Some(crate::core::reports::ReportPriority::High),
+        "critical" => Some(crate::core::reports::ReportPriority::Critical),
+        "urgent" => Some(crate::core::reports::ReportPriority::Urgent),
+        _ => None,
+    }).flatten();
+
+    // Fetch
+    // Prefer DB-backed listing for production scale
+    let offset = params.offset.unwrap_or(0) as i64;
+    let limit = params.limit.unwrap_or(50) as i64;
+    let status_key = status.as_ref().map(|s| format!("{:?}", s));
+    let priority_key = priority.as_ref().map(|p| format!("{:?}", p));
+    // TODO: extend datastore query to support more filters (type, assignee, date ranges)
+    let rows = state.datastores.list_user_reports(status_key, priority_key, limit, offset, None).await.unwrap_or_default();
+    let data: Vec<serde_json::Value> = rows.into_iter().map(|report| serde_json::json!({
+        "id": report.id.to_string(),
+        "reporter_id": report.reporter_id.to_string(),
+        "target_id": report.target_id.to_string(),
+        "content_id": report.content_id,
+        "report_type": format!("{:?}", report.report_type),
+        "reason": report.reason,
+        "status": format!("{:?}", report.status),
+        "priority": format!("{:?}", report.priority),
+        "created_at": report.created_at.to_rfc3339(),
+    })).collect();
+
+    Ok(Json(ApiResponse { success: true, data: Some(data), error: None, timestamp: chrono::Utc::now().to_rfc3339() }))
+}
+
 // Update report status endpoint
 async fn update_report_status(
     State(state): State<Arc<AppState>>,
@@ -817,6 +884,61 @@ async fn get_signals(
         error: None,
         timestamp: chrono::Utc::now().to_rfc3339(),
     })
+}
+
+// Streaming: reports SSE
+async fn stream_reports(State(state): State<Arc<AppState>>) -> Sse<impl futures_core::Stream<Item = Result<Event, std::convert::Infallible>>> {
+    // Create a channel per-request
+    let (tx, rx) = tokio::sync::broadcast::channel::<serde_json::Value>(100);
+    // Attach to report manager via a simple forwarder from the global channel if available
+    // For simplicity, re-use metrics alerts as heartbeat
+    let stream = BroadcastStream::new(rx).filter_map(|msg| async move {
+        match msg {
+            Ok(value) => Some(Ok(Event::default().json_data(value).unwrap_or_else(|_| Event::default().data("{}")) )),
+            Err(_) => None,
+        }
+    });
+    Sse::new(stream)
+}
+
+// Streaming: signals SSE (placeholder)
+async fn stream_signals(State(state): State<Arc<AppState>>) -> Sse<impl futures_core::Stream<Item = Result<Event, std::convert::Infallible>>> {
+    // Bridge pipeline results into SSE
+    let rx = state.signal_processor.subscribe_pipeline_results();
+    let stream = BroadcastStream::new(rx).filter_map(|msg| async move {
+        match msg {
+            Ok(result) => {
+                let value = serde_json::json!({
+                    "type": "pipeline.result",
+                    "pipeline_id": result.pipeline_id,
+                    "signal_id": result.signal_id,
+                    "processing_time_ms": result.processing_time_ms,
+                    "timestamp": result.timestamp,
+                });
+                Some(Ok(Event::default().json_data(value).unwrap_or_else(|_| Event::default().data("{}"))))
+            },
+            Err(_) => None,
+        }
+    });
+    Sse::new(stream)
+}
+
+#[derive(Deserialize)]
+struct ListAuditQuery {
+    action: Option<String>,
+    limit: Option<usize>,
+    offset: Option<usize>,
+}
+
+async fn list_audit_events(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<ListAuditQuery>,
+) -> Json<ApiResponse<Vec<serde_json::Value>>> {
+    let limit = params.limit.unwrap_or(100) as i64;
+    let offset = params.offset.unwrap_or(0) as i64;
+    let action = params.action.as_deref();
+    let rows = state.datastores.list_audit_events(action, limit, offset).await.unwrap_or_default();
+    Json(ApiResponse { success: true, data: Some(rows), error: None, timestamp: chrono::Utc::now().to_rfc3339() })
 }
 
 async fn get_signal(

@@ -24,6 +24,7 @@ use axum_prometheus::PrometheusMetricLayer;
 use moderation::api::middleware::RateLimitLayer;
 use tonic::transport::Server as TonicServer;
 use moderation::api::grpc::{ModerationGrpcService, moderation_v1::moderation_service_server::ModerationServiceServer};
+use tokio::sync::broadcast;
 
 async fn shutdown_signal() {
     let ctrl_c = async {
@@ -111,12 +112,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     signal_processor.start().await?;
     tracing::info!("Signal processor started");
 
+    // Connect to datastores
+    let datastores = Datastores::connect(&cfg.database_url, &cfg.redis_url).await.expect("datastores connect failed");
+    datastores.ensure_moderation_schema().await.expect("ensure schema failed");
+    datastores.ensure_audit_schema().await.expect("ensure audit schema failed");
+    let state = Arc::new(datastores);
+
+    // Initialize broadcast channels for streaming
+    let (report_tx, _report_rx) = broadcast::channel::<serde_json::Value>(1000);
+    let (signal_tx, _signal_rx) = broadcast::channel::<serde_json::Value>(1000);
+
     // Initialize report manager
     let report_manager = Arc::new(ReportManager::new(
         signal_processor.clone(),
         metrics.clone(),
         Default::default(),
-    ));
+    ).with_datastores(state.clone()).with_event_sender(report_tx.clone()));
     tracing::info!("Report manager initialized");
 
     // Initialize production classifier
@@ -143,10 +154,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize compliance manager
     let compliance_manager = Arc::new(ComplianceManager::new(crate::core::compliance::ComplianceConfig::default()));
     tracing::info!("Compliance manager initialized");
-
-    // Connect to datastores
-    let datastores = Datastores::connect(&cfg.database_url, &cfg.redis_url).await.expect("datastores connect failed");
-    let state = Arc::new(datastores);
 
     // Create application state with all components
     let app_state = Arc::new(AppState {

@@ -431,6 +431,31 @@ export class SonetClient {
   setAccessToken(token: string): void {
     this.accessToken = token
   }
+
+  // Moderation: create a report via gateway
+  async createReport(report: any): Promise<any> {
+    if (!this.accessToken) throw new SonetAuthError('Not authenticated')
+
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/moderation/reports`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.accessToken}`,
+        },
+        body: JSON.stringify(report),
+      })
+
+      if (!response.ok) {
+        throw new SonetError('Failed to create report', response.status)
+      }
+
+      return await response.json()
+    } catch (error) {
+      if (error instanceof SonetError) throw error
+      throw new SonetError('Failed to create report', 500)
+    }
+  }
 }
 
 // Export singleton instance
