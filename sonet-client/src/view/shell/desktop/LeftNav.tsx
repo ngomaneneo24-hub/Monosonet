@@ -321,8 +321,8 @@ interface NavItemProps {
   count?: string
   hasNew?: boolean
   href: string
-  icon: JSX.Element
-  iconFilled: JSX.Element
+  icon: React.ReactNode
+  iconFilled: React.ReactNode
   label: string
 }
 function NavItem({count, hasNew, href, icon, iconFilled, label}: NavItemProps) {
