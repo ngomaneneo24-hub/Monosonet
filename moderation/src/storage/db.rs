@@ -89,6 +89,56 @@ impl Datastores {
 		Ok(())
 	}
 
+	// Audit log schema
+	pub async fn ensure_audit_schema(&self) -> Result<()> {
+		let create_audit = r#"
+		CREATE TABLE IF NOT EXISTS audit_events (
+			id UUID PRIMARY KEY,
+			action TEXT NOT NULL,
+			subject_id TEXT,
+			actor_id TEXT,
+			metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+			created_at TIMESTAMPTZ NOT NULL
+		);
+		CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_events(action);
+		CREATE INDEX IF NOT EXISTS idx_audit_created_at ON audit_events(created_at);
+		"#;
+		sqlx::query(create_audit).execute(&self.pg).await?;
+		Ok(())
+	}
+
+	pub async fn insert_audit_event(&self, action: &str, subject_id: Option<&str>, actor_id: Option<&str>, metadata: &serde_json::Value) -> Result<()> {
+		let q = r#"INSERT INTO audit_events (id, action, subject_id, actor_id, metadata, created_at) VALUES ($1,$2,$3,$4,$5,NOW())"#;
+		sqlx::query(q)
+			.bind(uuid::Uuid::new_v4())
+			.bind(action)
+			.bind(subject_id)
+			.bind(actor_id)
+			.bind(metadata)
+			.execute(&self.pg)
+			.await?;
+		Ok(())
+	}
+
+	pub async fn list_audit_events(&self, action: Option<&str>, limit: i64, offset: i64) -> Result<Vec<serde_json::Value>> {
+		let mut base = String::from("SELECT id, action, subject_id, actor_id, metadata, created_at FROM audit_events");
+		if action.is_some() { base.push_str(" WHERE action = $1"); }
+		base.push_str(" ORDER BY created_at DESC LIMIT $2 OFFSET $3");
+		let mut q = sqlx::query(&base);
+		if let Some(a) = action { q = q.bind(a); }
+		q = q.bind(limit).bind(offset);
+		let rows = q.fetch_all(&self.pg).await?;
+		let data = rows.into_iter().map(|r| serde_json::json!({
+			"id": r.try_get::<uuid::Uuid,_>("id").ok().map(|v| v.to_string()),
+			"action": r.try_get::<String,_>("action").unwrap_or_default(),
+			"subject_id": r.try_get::<String,_>("subject_id").ok(),
+			"actor_id": r.try_get::<String,_>("actor_id").ok(),
+			"metadata": r.try_get::<serde_json::Value,_>("metadata").unwrap_or(serde_json::json!({})),
+			"created_at": r.try_get::<chrono::DateTime<chrono::Utc>,_>("created_at").unwrap(),
+		})).collect();
+		Ok(data)
+	}
+
 	// Reports CRUD
 	pub async fn insert_user_report(&self, report: &crate::core::reports::UserReport) -> Result<()> {
 		let q = r#"INSERT INTO user_reports (

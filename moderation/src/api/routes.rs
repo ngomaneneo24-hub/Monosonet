@@ -13,6 +13,7 @@ use crate::core::classifier::{ClassificationRequest, ContentType, Priority};
 use crate::core::reports::{CreateReportRequest, ReportType};
 use tokio_stream::wrappers::BroadcastStream;
 use axum::response::{Sse, sse::Event};
+use futures_util::StreamExt;
 
 // Response types
 #[derive(Serialize)]
@@ -148,6 +149,8 @@ pub fn create_router() -> Router {
         // Streaming endpoints
         .route("/api/v1/stream/reports", get(stream_reports))
         .route("/api/v1/stream/signals", get(stream_signals))
+        // Audit endpoints
+        .route("/api/v1/audit", get(list_audit_events))
         
         // Admin endpoints
         .route("/api/v1/admin/signals", get(get_signals))
@@ -900,14 +903,42 @@ async fn stream_reports(State(state): State<Arc<AppState>>) -> Sse<impl futures_
 
 // Streaming: signals SSE (placeholder)
 async fn stream_signals(State(state): State<Arc<AppState>>) -> Sse<impl futures_core::Stream<Item = Result<Event, std::convert::Infallible>>> {
-    let (tx, rx) = tokio::sync::broadcast::channel::<serde_json::Value>(100);
+    // Bridge pipeline results into SSE
+    let rx = state.signal_processor.subscribe_pipeline_results();
     let stream = BroadcastStream::new(rx).filter_map(|msg| async move {
         match msg {
-            Ok(value) => Some(Ok(Event::default().json_data(value).unwrap_or_else(|_| Event::default().data("{}")) )),
+            Ok(result) => {
+                let value = serde_json::json!({
+                    "type": "pipeline.result",
+                    "pipeline_id": result.pipeline_id,
+                    "signal_id": result.signal_id,
+                    "processing_time_ms": result.processing_time_ms,
+                    "timestamp": result.timestamp,
+                });
+                Some(Ok(Event::default().json_data(value).unwrap_or_else(|_| Event::default().data("{}"))))
+            },
             Err(_) => None,
         }
     });
     Sse::new(stream)
+}
+
+#[derive(Deserialize)]
+struct ListAuditQuery {
+    action: Option<String>,
+    limit: Option<usize>,
+    offset: Option<usize>,
+}
+
+async fn list_audit_events(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<ListAuditQuery>,
+) -> Json<ApiResponse<Vec<serde_json::Value>>> {
+    let limit = params.limit.unwrap_or(100) as i64;
+    let offset = params.offset.unwrap_or(0) as i64;
+    let action = params.action.as_deref();
+    let rows = state.datastores.list_audit_events(action, limit, offset).await.unwrap_or_default();
+    Json(ApiResponse { success: true, data: Some(rows), error: None, timestamp: chrono::Utc::now().to_rfc3339() })
 }
 
 async fn get_signal(

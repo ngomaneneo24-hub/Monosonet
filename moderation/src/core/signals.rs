@@ -257,6 +257,10 @@ impl SignalProcessor {
         Ok(())
     }
 
+    pub fn subscribe_pipeline_results(&self) -> broadcast::Receiver<PipelineResult> {
+        self.pipeline_tx.subscribe()
+    }
+
     pub async fn add_signal(&self, signal: Signal) -> Result<()> {
         let signal_id = signal.id;
         
