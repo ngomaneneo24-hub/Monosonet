@@ -11,6 +11,8 @@ use uuid::Uuid;
 use crate::main::AppState;
 use crate::core::classifier::{ClassificationRequest, ContentType, Priority};
 use crate::core::reports::{CreateReportRequest, ReportType};
+use tokio_stream::wrappers::BroadcastStream;
+use axum::response::{Sse, sse::Event};
 
 // Response types
 #[derive(Serialize)]
@@ -93,6 +95,10 @@ struct ReportResponse {
 struct ListReportsQuery {
     status: Option<String>,
     priority: Option<String>,
+    report_type: Option<String>,
+    assignee: Option<String>,
+    since: Option<String>,
+    until: Option<String>,
     limit: Option<usize>,
     offset: Option<usize>,
 }
@@ -139,6 +145,9 @@ pub fn create_router() -> Router {
         .route("/api/v1/metrics", get(get_metrics))
         .route("/api/v1/metrics/reports", get(get_report_metrics))
         .route("/api/v1/metrics/classifications", get(get_classification_metrics))
+        // Streaming endpoints
+        .route("/api/v1/stream/reports", get(stream_reports))
+        .route("/api/v1/stream/signals", get(stream_signals))
         
         // Admin endpoints
         .route("/api/v1/admin/signals", get(get_signals))
@@ -574,6 +583,7 @@ async fn list_reports(
     let limit = params.limit.unwrap_or(50) as i64;
     let status_key = status.as_ref().map(|s| format!("{:?}", s));
     let priority_key = priority.as_ref().map(|p| format!("{:?}", p));
+    // TODO: extend datastore query to support more filters (type, assignee, date ranges)
     let rows = state.datastores.list_user_reports(status_key, priority_key, limit, offset, None).await.unwrap_or_default();
     let data: Vec<serde_json::Value> = rows.into_iter().map(|report| serde_json::json!({
         "id": report.id.to_string(),
@@ -871,6 +881,33 @@ async fn get_signals(
         error: None,
         timestamp: chrono::Utc::now().to_rfc3339(),
     })
+}
+
+// Streaming: reports SSE
+async fn stream_reports(State(state): State<Arc<AppState>>) -> Sse<impl futures_core::Stream<Item = Result<Event, std::convert::Infallible>>> {
+    // Create a channel per-request
+    let (tx, rx) = tokio::sync::broadcast::channel::<serde_json::Value>(100);
+    // Attach to report manager via a simple forwarder from the global channel if available
+    // For simplicity, re-use metrics alerts as heartbeat
+    let stream = BroadcastStream::new(rx).filter_map(|msg| async move {
+        match msg {
+            Ok(value) => Some(Ok(Event::default().json_data(value).unwrap_or_else(|_| Event::default().data("{}")) )),
+            Err(_) => None,
+        }
+    });
+    Sse::new(stream)
+}
+
+// Streaming: signals SSE (placeholder)
+async fn stream_signals(State(state): State<Arc<AppState>>) -> Sse<impl futures_core::Stream<Item = Result<Event, std::convert::Infallible>>> {
+    let (tx, rx) = tokio::sync::broadcast::channel::<serde_json::Value>(100);
+    let stream = BroadcastStream::new(rx).filter_map(|msg| async move {
+        match msg {
+            Ok(value) => Some(Ok(Event::default().json_data(value).unwrap_or_else(|_| Event::default().data("{}")) )),
+            Err(_) => None,
+        }
+    });
+    Sse::new(stream)
 }
 
 async fn get_signal(
