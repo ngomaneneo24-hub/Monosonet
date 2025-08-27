@@ -292,6 +292,7 @@ struct SettingsPreferencesSection: View {
                 subtitle: "Account, privacy, security"
             ) {
                 // Navigate to settings
+                // This would typically navigate to SettingsView
             }
             
             MenuItem(
