@@ -12,6 +12,7 @@ export type ParsedReportSubject =
       type: 'note'
       uri: string
       id: string
+      authorUserId?: string
       attributes: {
         reply: boolean
         image: boolean

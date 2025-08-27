@@ -67,6 +67,7 @@ export function parseReportSubject(
         type: 'note',
         uri: subject.uri,
         cid: subject.cid,
+        authorUserId: subject.author?.id,
         nsid: 'app.sonet.feed.note',
         attributes: {
           reply: !!record.reply,
