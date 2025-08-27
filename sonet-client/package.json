@@ -194,13 +194,13 @@
     "patch-package": "^6.5.1",
     "psl": "^1.9.0",
     "radix-ui": "^1.2.0",
-    "react": "^19.1.1",
+    "react": "19.0.0",
     "react-compiler-runtime": "^19.1.0-rc.1",
     "react-dom": "19.0.0",
     "react-image-crop": "^11.0.7",
     "react-is": "19",
     "react-keyed-flatten-children": "^5.0.0",
-    "react-native": "^0.79.3",
+    "react-native": "0.79.6",
     "react-native-compressor": "^1.11.0",
     "react-native-date-picker": "^5.0.12",
     "react-native-device-attest": "^0.1.6",
@@ -237,7 +237,8 @@
     "tldts": "^6.1.46",
     "unraw": "^3.0.0",
     "zeego": "^1.6.2",
-    "zod": "^3.20.2"
+    "zod": "^3.20.2",
+    "expo-status-bar": "~2.2.3"
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",

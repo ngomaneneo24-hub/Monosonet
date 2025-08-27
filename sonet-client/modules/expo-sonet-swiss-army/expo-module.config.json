@@ -2,18 +2,18 @@
   "platforms": ["ios", "tvos", "android", "web"],
   "ios": {
     "modules": [
-      "ExpoSonetSharedPrefsModule",
-      "ExpoSonetReferrerModule",
-      "ExpoSonetVisibilityViewModule",
+      "ExpoBlueskySharedPrefsModule",
+      "ExpoBlueskyReferrerModule",
+      "ExpoBlueskyVisibilityViewModule",
       "ExpoPlatformInfoModule"
     ]
   },
   "android": {
     "modules": [
-      "expo.modules.sonetswissarmy.sharedprefs.ExpoSonetSharedPrefsModule",
-      "expo.modules.sonetswissarmy.referrer.ExpoSonetReferrerModule",
-      "expo.modules.sonetswissarmy.visibilityview.ExpoSonetVisibilityViewModule",
-      "expo.modules.sonetswissarmy.platforminfo.ExpoPlatformInfoModule"
+      "expo.modules.blueskyswissarmy.sharedprefs.ExpoBlueskySharedPrefsModule",
+      "expo.modules.blueskyswissarmy.referrer.ExpoBlueskyReferrerModule",
+      "expo.modules.blueskyswissarmy.visibilityview.ExpoBlueskyVisibilityViewModule",
+      "expo.modules.blueskyswissarmy.platforminfo.ExpoPlatformInfoModule"
     ]
   }
 }
