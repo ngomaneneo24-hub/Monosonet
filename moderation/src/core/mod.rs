@@ -1,4 +1,9 @@
 pub mod classifier;
-pub mod rules;
-pub mod actions;
+pub mod languages;
+pub mod ml_models;
+pub mod signals;
 pub mod reports;
+pub mod observability;
+pub mod storage;
+pub mod security;
+pub mod compliance;
