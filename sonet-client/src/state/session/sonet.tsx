@@ -55,11 +55,19 @@ export function SonetSessionProvider({children}: {children: React.ReactNode}) {
   }, [])
 
   const setAccount = React.useCallback((account: SonetSessionAccount | undefined) => {
-    setState({account, hasSession: !!account})
+    const nextState: SonetSessionState = {hasSession: !!account}
+    if (account) nextState.account = account
+    setState(nextState)
     // fire and forget
     void writePersisted(account)
-    if (account) applyTokens({accessToken: account.accessToken, refreshToken: account.refreshToken})
-    else applyTokens(null)
+    if (account) {
+      const tokens: AuthTokens = account.refreshToken
+        ? {accessToken: account.accessToken, refreshToken: account.refreshToken}
+        : {accessToken: account.accessToken}
+      applyTokens(tokens)
+    } else {
+      applyTokens(null)
+    }
   }, [applyTokens, writePersisted])
 
   const login = React.useCallback(async (input: {username: string; password: string}) => {
