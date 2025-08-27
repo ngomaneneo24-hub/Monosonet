@@ -90,6 +90,14 @@ struct ReportResponse {
 }
 
 #[derive(Deserialize)]
+struct ListReportsQuery {
+    status: Option<String>,
+    priority: Option<String>,
+    limit: Option<usize>,
+    offset: Option<usize>,
+}
+
+#[derive(Deserialize)]
 struct InvestigationQuery {
     report_id: String,
     investigator_id: String,
@@ -117,6 +125,7 @@ pub fn create_router() -> Router {
         
         // Reports endpoints
         .route("/api/v1/reports", post(create_report))
+        .route("/api/v1/reports", get(list_reports))
         .route("/api/v1/reports/:id", get(get_report))
         .route("/api/v1/reports/user/:user_id", get(get_user_reports))
         .route("/api/v1/reports/:id/status", put(update_report_status))
@@ -534,6 +543,60 @@ async fn get_user_reports(
         error: None,
         timestamp: chrono::Utc::now().to_rfc3339(),
     }))
+}
+
+// List reports endpoint for queues
+async fn list_reports(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<ListReportsQuery>,
+) -> Result<Json<ApiResponse<Vec<serde_json::Value>>>, StatusCode> {
+    let status = params.status.as_deref().map(|s| match s {
+        "pending" => Some(crate::core::reports::ReportStatus::Pending),
+        "under_investigation" => Some(crate::core::reports::ReportStatus::UnderInvestigation),
+        "escalated" => Some(crate::core::reports::ReportStatus::Escalated),
+        "resolved" => Some(crate::core::reports::ReportStatus::Resolved),
+        "dismissed" => Some(crate::core::reports::ReportStatus::Dismissed),
+        "requires_more_info" => Some(crate::core::reports::ReportStatus::RequiresMoreInfo),
+        _ => None,
+    }).flatten();
+    let priority = params.priority.as_deref().map(|p| match p {
+        "low" => Some(crate::core::reports::ReportPriority::Low),
+        "normal" => Some(crate::core::reports::ReportPriority::Normal),
+        "high" => Some(crate::core::reports::ReportPriority::High),
+        "critical" => Some(crate::core::reports::ReportPriority::Critical),
+        "urgent" => Some(crate::core::reports::ReportPriority::Urgent),
+        _ => None,
+    }).flatten();
+
+    // Fetch
+    let mut reports = if let Some(s) = status {
+        state.report_manager.get_reports_by_status(s).await
+    } else {
+        state.report_manager.get_all_reports().await
+    };
+
+    if let Some(p) = priority {
+        reports.retain(|r| r.priority == p);
+    }
+
+    // Apply pagination
+    let offset = params.offset.unwrap_or(0);
+    let limit = params.limit.unwrap_or(50);
+    let slice = reports.into_iter().skip(offset).take(limit);
+
+    let data: Vec<serde_json::Value> = slice.map(|report| serde_json::json!({
+        "id": report.id.to_string(),
+        "reporter_id": report.reporter_id.to_string(),
+        "target_id": report.target_id.to_string(),
+        "content_id": report.content_id,
+        "report_type": format!("{:?}", report.report_type),
+        "reason": report.reason,
+        "status": format!("{:?}", report.status),
+        "priority": format!("{:?}", report.priority),
+        "created_at": report.created_at.to_rfc3339(),
+    })).collect();
+
+    Ok(Json(ApiResponse { success: true, data: Some(data), error: None, timestamp: chrono::Utc::now().to_rfc3339() }))
 }
 
 // Update report status endpoint

@@ -292,6 +292,13 @@ impl ReportManager {
             .collect()
     }
 
+    pub async fn get_all_reports(&self) -> Vec<UserReport> {
+        self.reports.read().await
+            .values()
+            .cloned()
+            .collect()
+    }
+
     pub async fn update_report_status(&self, report_id: Uuid, status: ReportStatus) -> Result<()> {
         let mut reports = self.reports.write().await;
         

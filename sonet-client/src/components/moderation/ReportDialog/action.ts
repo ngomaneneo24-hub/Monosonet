@@ -53,6 +53,7 @@ export function useSubmitReportMutation() {
               type: 'content',
               uri: subject.uri,
               id: subject.cid,
+              userId: (subject as any).authorUserId,
             },
           }
           break
@@ -72,17 +73,8 @@ export function useSubmitReportMutation() {
         }
       }
 
-      if (__DEV__) {
-        logger.info('Submitting report', {
-          labeler: {
-            username: state.selectedLabeler.creator.username,
-          },
-          report,
-        })
-      } else {
-        // Use Sonet API for reporting
-        await sonetClient.createReport(report)
-      }
+      // Submit via agent (which proxies to SonetClient -> Gateway)
+      await agent.createModerationReport(report)
     },
   })
 }

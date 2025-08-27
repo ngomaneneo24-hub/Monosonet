@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { GrpcClients } from '../grpc/clients.js';
 import { verifyJwt, AuthenticatedRequest } from '../middleware/auth.js';
+import crypto from 'node:crypto';
 
 // Basic mapping from client reasonType to server report_type
 function mapReasonToReportType(reason: string): string {
@@ -24,6 +25,24 @@ function mapReasonToReportType(reason: string): string {
 }
 
 export function registerModerationRoutes(router: Router, clients: GrpcClients) {
+  // Deterministic UUID v5-like mapping for non-UUID ids
+  function toUuid(id: string): string {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(id)) return id;
+    const ns = 'sonet-id-namespace::moderation';
+    const hash = crypto.createHash('sha1').update(ns).update(id || '').digest('hex');
+    // Set version (5) and variant bits on the hex string
+    const bytes = hash.substring(0, 32); // 16 bytes (32 hex)
+    const v = (parseInt(bytes.substring(12, 13), 16) & 0x0f) | 0x50; // set version 5
+    const r = (parseInt(bytes.substring(16, 17), 16) & 0x3) | 0x8;   // set variant 10xx
+    const hex =
+      bytes.substring(0, 8) + '-' +
+      bytes.substring(8, 12) + '-' +
+      v.toString(16) + bytes.substring(13, 16) + '-' +
+      r.toString(16) + bytes.substring(17, 20) + '-' +
+      bytes.substring(20, 32);
+    return hex;
+  }
   // Create a user report (proxy to moderation service)
   router.post('/v1/moderation/reports', verifyJwt, async (req: AuthenticatedRequest, res: Response) => {
     try {
@@ -34,17 +53,17 @@ export function registerModerationRoutes(router: Router, clients: GrpcClients) {
 
       // Build CreateReportRequest for gRPC
       const report_type = mapReasonToReportType(reasonType);
-      const reporter_id = req.userId || '';
+      const reporter_id = toUuid(req.userId || '');
       let target_id = '';
       let content_id: string | undefined = undefined;
 
       if (subject.type === 'user') {
-        target_id = subject.userId || '';
+        target_id = toUuid(subject.userId || '');
       } else if (subject.type === 'content') {
-        target_id = subject.userId || subject.ownerId || '';
+        target_id = toUuid(subject.userId || subject.ownerId || '');
         content_id = subject.id || subject.uri || undefined;
       } else if (subject.type === 'message') {
-        target_id = subject.userId || subject.senderId || '';
+        target_id = toUuid(subject.userId || subject.senderId || '');
         content_id = subject.messageId || undefined;
       }
 
