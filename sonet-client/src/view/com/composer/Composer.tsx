@@ -113,7 +113,7 @@ import {
   type TextInputRef,
 } from '#/view/com/composer/text-input/TextInput'
 import {ThreadgateBtn} from '#/view/com/composer/threadgate/ThreadgateBtn'
-import {SelectVideoBtn} from '#/view/com/composer/videos/SelectVideoBtn'
+import {Ghost_Stroke2_Corner0_Rounded as Ghost} from '#/components/icons/Ghost'
 import {MediaManagerDialog} from '#/view/com/composer/photos/MediaManagerDialog'
 import {SubtitleDialogBtn} from '#/view/com/composer/videos/SubtitleDialog'
 import {VideoPreview} from '#/view/com/composer/videos/VideoPreview'
@@ -132,6 +132,7 @@ import {Text as NewText} from '#/components/Typography'
 import {DraftsButton} from '#/components/DraftsButton'
 import {DraftsDialog} from '#/components/DraftsDialog'
 import {useCreateDraftMutation, useUserDraftsQuery, useAutoSaveDraftMutation} from '#/state/queries/drafts'
+import {useCreateGhostReply} from '#/state/queries/ghost-replies'
 import {SaveDraftDialog} from '#/components/SaveDraftDialog'
 import {BottomSheetPortalProvider} from '../../../../modules/bottom-sheet'
 import {
@@ -194,11 +195,119 @@ export const ComposeNote = ({
   const [showDraftsDialog, setShowDraftsDialog] = useState(false)
   const [showMediaManager, setShowMediaManager] = useState(false)
   const saveDraftControl = Prompt.usePromptControl()
+  const [isGhostMode, setIsGhostMode] = useState(false)
+  const [ghostAvatar, setGhostAvatar] = useState<string>('')
+  const [ghostId, setGhostId] = useState<string>('')
+  const [ghostModeCooldown, setGhostModeCooldown] = useState(false)
+  const [ghostModeCooldownTime, setGhostModeCooldownTime] = useState(0)
+  
+  // Feature flag - set to true when ghost mode is ready for production
+  const GHOST_MODE_ENABLED = false // TODO: Set to true when development is complete
+  
+  // Ghost mode management
+  const GHOST_AVATARS = [
+    '/assets/ghosts/ghost-1.jpg',
+    '/assets/ghosts/ghost-2.jpg',
+    '/assets/ghosts/ghost-3.jpg',
+    '/assets/ghosts/ghost-4.jpg',
+    '/assets/ghosts/ghost-5.jpg',
+    '/assets/ghosts/ghost-6.jpg',
+    '/assets/ghosts/ghost-7.jpg',
+    '/assets/ghosts/ghost-8.jpg',
+    '/assets/ghosts/ghost-9.jpg',
+    '/assets/ghosts/ghost-10.jpg',
+    '/assets/ghosts/ghost-11.jpg',
+    '/assets/ghosts/ghost-12.jpg',
+  ]
+
+  const generateGhostId = useCallback(() => {
+    const chars = '0123456789ABCDEF'
+    return 'Ghost #' + Array.from({length: 4}, () => 
+      chars[Math.floor(Math.random() * chars.length)]
+    ).join('')
+  }, [])
+
+  // Initialize ghost mode with rate limiting and cooldown
+  const initializeGhostMode = useCallback(async () => {
+    if (!GHOST_MODE_ENABLED) {
+      setError(_(msg`Ghost mode is not yet available. Coming soon!`))
+      return
+    }
+    
+    if (ghostModeCooldown) {
+      const remainingTime = Math.ceil((ghostModeCooldownTime - Date.now()) / 1000)
+      setError(_(msg`Ghost mode cooldown active. Please wait ${remainingTime} seconds.`))
+      return
+    }
+    
+    if (!isGhostMode) {
+      try {
+        // Check rate limit before activating ghost mode
+        const canActivate = await checkGhostModeRateLimit()
+        if (!canActivate) {
+          setError(_(msg`Ghost mode rate limit exceeded. Please wait before trying again.`))
+          return
+        }
+        
+        // Select random ghost avatar
+        const randomIndex = Math.floor(Math.random() * GHOST_AVATARS.length)
+        const selectedAvatar = GHOST_AVATARS[randomIndex]
+        setGhostAvatar(selectedAvatar)
+        setGhostId(generateGhostId())
+        setIsGhostMode(true)
+        
+        // Set cooldown timer (5 minutes between ghost mode activations)
+        setGhostModeCooldown(true)
+        setGhostModeCooldownTime(Date.now() + (5 * 60 * 1000))
+        
+        // Clear cooldown after timer expires
+        setTimeout(() => {
+          setGhostModeCooldown(false)
+          setGhostModeCooldownTime(0)
+        }, 5 * 60 * 1000)
+        
+      } catch (error) {
+        setError(_(msg`Failed to activate ghost mode. Please try again.`))
+        logger.error('Ghost mode activation failed:', error)
+      }
+    } else {
+      // Deactivate ghost mode
+      setIsGhostMode(false)
+      setGhostAvatar('')
+      setGhostId('')
+    }
+  }, [isGhostMode, generateGhostId, ghostModeCooldown, ghostModeCooldownTime, _])
+  
+  // Check ghost mode rate limit
+  const checkGhostModeRateLimit = useCallback(async () => {
+    try {
+      // TODO: Implement actual rate limit check with backend
+      // For now, return true to allow testing
+      return true
+    } catch (error) {
+      logger.error('Rate limit check failed:', error)
+      return false
+    }
+  }, [])
+
+  // Initialize ghost mode for new threads
+  useEffect(() => {
+    if (replyTo?.uri && !ghostAvatar) {
+      // New thread, initialize ghost mode if it was active before
+      // This ensures same ghost avatar within a thread
+      const randomIndex = Math.floor(Math.random() * GHOST_AVATARS.length)
+      setGhostAvatar(GHOST_AVATARS[randomIndex])
+      setGhostId(generateGhostId())
+    }
+  }, [replyTo?.uri, ghostAvatar, generateGhostId])
   
   // Draft hooks
   const createDraft = useCreateDraftMutation()
   const autoSaveDraft = useAutoSaveDraftMutation()
   const {data: userDrafts} = useUserDraftsQuery(20, undefined, false)
+  
+  // Ghost reply hooks
+  const createGhostReply = useCreateGhostReply()
   
   // Auto-save draft when content changes
   useEffect(() => {
@@ -516,6 +625,55 @@ export const ComposeNote = ({
     let noteSuccessData: OnNoteSuccessData
     try {
       logger.info(`composer: noteing...`)
+      
+      // Handle ghost mode publishing
+      if (isGhostMode) {
+        logger.info(`composer: publishing in ghost mode as ${ghostId}`)
+        
+        try {
+          // Create ghost reply instead of regular note
+          const ghostReplyData = {
+            content: activeNote.richtext.text,
+            ghostAvatar,
+            ghostId,
+            threadId: replyTo?.uri || 'main',
+            // User tracking for moderation (hidden from public)
+            authorId: currentDid,
+            ipAddress: '', // TODO: Get from request context
+            userAgent: '', // TODO: Get from request context
+          }
+          
+          const ghostReplyResult = await createGhostReply.mutateAsync(ghostReplyData)
+          
+          if (ghostReplyResult.success) {
+            logger.info(`composer: ghost reply created successfully`)
+            
+            // For ghost replies, we don't need to wait for app view
+            // since they're handled separately
+            noteUri = `ghost-${ghostReplyResult.ghostReply.id}`
+            noteSuccessData = {
+              replyToUri: replyTo?.uri,
+              notes: [], // Ghost replies don't have regular note structure
+            }
+            
+            // Exit ghost mode after successful publish
+            setIsGhostMode(false)
+            setGhostAvatar('')
+            setGhostId('')
+            
+            // Close composer and show success
+            closeComposer()
+            return
+          }
+        } catch (ghostError) {
+          logger.error('Failed to create ghost reply:', ghostError)
+          setError(_(msg`Failed to create ghost reply. Please try again.`))
+          setIsPublishing(false)
+          return
+        }
+      }
+      
+      // Regular note publishing
       noteUri = (
         await apilib.note(agent, queryClient, {
           thread,
@@ -762,6 +920,8 @@ export const ComposeNote = ({
             type: 'add_note',
           })
         }}
+        isGhostMode={isGhostMode}
+        onToggleGhostMode={initializeGhostMode}
       />
     </>
   )
@@ -984,6 +1144,41 @@ let ComposerNote = React.memo(function ComposerNote({
           type={currentProfile?.associated?.labeler ? 'labeler' : 'user'}
           style={[a.mt_xs]}
         />
+              {/* Ghost Mode Indicator */}
+      {isGhostMode && (
+        <View style={[a.flex_row, a.align_center, a.gap_sm, a.p_sm, a.mb_xs, {backgroundColor: t.palette.primary_50, borderRadius: 8}]}>
+          <Ghost size="sm" style={{color: t.palette.primary_500}} />
+          <Text style={[a.text_sm, a.font_medium, {color: t.palette.primary_700}]}>
+            <Trans>👻 Ghost Mode Active - You'll reply as {ghostId}</Trans>
+          </Text>
+          <Text style={[a.text_xs, {color: t.palette.primary_600}]}>
+            <Trans>⚠️ Note: Your identity is visible to moderators for safety</Trans>
+          </Text>
+          <Button
+            onPress={() => setIsGhostMode(false)}
+            style={[a.p_xs]}
+            label={_(msg`Exit Ghost Mode`)}
+            variant="ghost"
+            shape="round"
+            color="primary"
+            size="small">
+            <Trans>Exit</Trans>
+          </Button>
+        </View>
+      )}
+      
+      {/* Ghost Mode Cooldown Indicator */}
+      {ghostModeCooldown && !isGhostMode && (
+        <View style={[a.flex_row, a.align_center, a.gap_sm, a.p_sm, a.mb_xs, {backgroundColor: t.palette.warning_50, borderRadius: 8}]}>
+          <Text style={[a.text_sm, a.font_medium, {color: t.palette.warning_700}]}>
+            <Trans>⏰ Ghost Mode Cooldown - Please wait before activating again</Trans>
+          </Text>
+          <Text style={[a.text_xs, {color: t.palette.warning_600}]}>
+            <Trans>{Math.ceil((ghostModeCooldownTime - Date.now()) / 1000)}s remaining</Trans>
+          </Text>
+        </View>
+      )}
+        
         <TextInput
           ref={textInput}
           style={[a.pt_xs]}
@@ -1395,6 +1590,8 @@ function ComposerFooter({
   onError,
   onSelectVideo,
   onAddNote,
+  isGhostMode,
+  onToggleGhostMode,
 }: {
   note: NoteDraft
   dispatch: (action: NoteAction) => void
@@ -1403,6 +1600,8 @@ function ComposerFooter({
   onError: (error: string) => void
   onSelectVideo: (noteId: string, asset: ImagePickerAsset) => void
   onAddNote: () => void
+  isGhostMode: boolean
+  onToggleGhostMode: () => void
 }) {
   const t = useTheme()
   const {_} = useLingui()
@@ -1448,22 +1647,43 @@ function ComposerFooter({
             <VideoUploadToolbar state={video} />
           ) : (
             <ToolbarWrapper style={[a.flex_row, a.align_center, a.gap_xs]}>
-              <EnhancedSelectPhotoBtn
-                size={images.length}
-                disabled={media?.type === 'images' ? isMaxImages : !!media}
-                onAdd={onImageAdd}
-                onShowMediaManager={() => setShowMediaManager(true)}
-              />
-              <SelectVideoBtn
-                onSelectVideo={asset => onSelectVideo(note.id, asset)}
-                disabled={!!media}
-                setError={onError}
-              />
-              <OpenCameraBtn
-                disabled={media?.type === 'images' ? isMaxImages : !!media}
-                onAdd={onImageAdd}
-              />
-              <SelectGifBtn onSelectGif={onSelectGif} disabled={!!media} />
+              {/* Only show media tools when NOT in ghost mode */}
+              {!isGhostMode && (
+                <>
+                  <EnhancedSelectPhotoBtn
+                    size={images.length}
+                    disabled={media?.type === 'images' ? isMaxImages : !!media}
+                    onAddImages={onImageAdd}
+                    onAddVideo={asset => onSelectVideo(note.id, asset)}
+                    onShowMediaManager={() => setShowMediaManager(true)}
+                  />
+                  <OpenCameraBtn
+                    disabled={media?.type === 'images' ? isMaxImages : !!media}
+                    onAdd={onImageAdd}
+                  />
+                  <SelectGifBtn onSelectGif={onSelectGif} disabled={!!media} />
+                </>
+              )}
+              
+              {/* Ghost mode button - only show when feature is enabled */}
+              {GHOST_MODE_ENABLED && (
+                <Button
+                  onPress={onToggleGhostMode}
+                  style={a.p_sm}
+                  label={isGhostMode ? _(msg`Deactivate Ghost Mode`) : _(msg`Activate Ghost Mode`)}
+                  accessibilityHint={isGhostMode ? _(msg`Deactivates ghost mode`) : _(msg`Activates ghost mode for anonymous replies`)}
+                  variant="ghost"
+                  shape="round"
+                  color={isGhostMode ? "primary" : "secondary"}
+                  disabled={ghostModeCooldown}>
+                  <Ghost 
+                    size="lg" 
+                    style={isGhostMode ? {color: t.palette.primary_500} : {color: t.palette.text_contrast_low}}
+                  />
+                </Button>
+              )}
+              
+              {/* Emoji button - always available */}
               {!isMobile ? (
                 <Button
                   onPress={onEmojiButtonPress}
@@ -1472,8 +1692,8 @@ function ComposerFooter({
                   accessibilityHint={_(msg`Opens emoji picker`)}
                   variant="ghost"
                   shape="round"
-                  color="primary">
-                  <EmojiSmile size="lg" />
+                  color="secondary">
+                  <EmojiSmile size="lg" style={{color: t.palette.text_contrast_low}} />
                 </Button>
               ) : null}
             </ToolbarWrapper>

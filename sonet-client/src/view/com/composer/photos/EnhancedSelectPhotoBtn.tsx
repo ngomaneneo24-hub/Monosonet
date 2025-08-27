@@ -16,11 +16,12 @@ import {MAX_IMAGES} from '../state/composer'
 type Props = {
   size: number
   disabled?: boolean
-  onAdd: (next: ComposerImage[]) => void
+  onAddImages: (next: ComposerImage[]) => void
+  onAddVideo: (asset: any) => void
   onShowMediaManager?: () => void
 }
 
-export function EnhancedSelectPhotoBtn({size, disabled, onAdd, onShowMediaManager}: Props) {
+export function EnhancedSelectPhotoBtn({size, disabled, onAddImages, onAddVideo, onShowMediaManager}: Props) {
   const {_} = useLingui()
   const {requestPhotoAccessIfNeeded} = usePhotoLibraryPermission()
   const t = useTheme()
@@ -31,7 +32,7 @@ export function EnhancedSelectPhotoBtn({size, disabled, onAdd, onShowMediaManage
   const canAddMore = size < MAX_IMAGES
   const remainingSlots = MAX_IMAGES - size
   
-  const onPressSelectPhotos = useCallback(async () => {
+  const onPressSelectMedia = useCallback(async () => {
     if (!canAddMore) {
       Alert.alert(
         _(msg`Media Limit Reached`),
@@ -51,7 +52,7 @@ export function EnhancedSelectPhotoBtn({size, disabled, onAdd, onShowMediaManage
     setIsSelecting(true)
     
     try {
-      const images = await sheetWrapper(
+      const media = await sheetWrapper(
         openPicker({
           selectionLimit: remainingSlots,
           allowsMultipleSelection: true,
@@ -59,24 +60,36 @@ export function EnhancedSelectPhotoBtn({size, disabled, onAdd, onShowMediaManage
         }),
       )
       
-      if (images && images.length > 0) {
-        const results = await Promise.all(
-          images.map(img => createComposerImage(img)),
-        )
+      if (media && media.length > 0) {
+        // Separate images and videos
+        const images = media.filter(item => item.type === 'image')
+        const videos = media.filter(item => item.type === 'video')
         
-        onAdd(results)
+        // Handle images
+        if (images.length > 0) {
+          const imageResults = await Promise.all(
+            images.map(img => createComposerImage(img)),
+          )
+          onAddImages(imageResults)
+        }
         
-        // Show success message for multiple images
-        if (results.length > 1) {
+        // Handle videos (only one video allowed)
+        if (videos.length > 0) {
+          // Take the first video
+          onAddVideo(videos[0])
+        }
+        
+        // Show success message for multiple media items
+        if (media.length > 1) {
           Alert.alert(
             _(msg`Media Added`),
-            _(msg`Successfully added ${results.length} media items. You can now reorder them or add more.`),
+            _(msg`Successfully added ${media.length} media items. You can now reorder them or add more.`),
             [{text: 'OK'}]
           )
         }
       }
     } catch (error) {
-      console.error('Error selecting photos:', error)
+      console.error('Error selecting media:', error)
       Alert.alert(
         _(msg`Error`),
         _(msg`Failed to select media. Please try again.`),
@@ -85,7 +98,7 @@ export function EnhancedSelectPhotoBtn({size, disabled, onAdd, onShowMediaManage
     } finally {
       setIsSelecting(false)
     }
-  }, [requestPhotoAccessIfNeeded, size, onAdd, sheetWrapper, canAddMore, remainingSlots, onShowMediaManager, _])
+  }, [requestPhotoAccessIfNeeded, size, onAddImages, onAddVideo, sheetWrapper, canAddMore, remainingSlots, onShowMediaManager, _])
   
   const onPressManageMedia = useCallback(() => {
     if (onShowMediaManager) {
@@ -104,9 +117,9 @@ export function EnhancedSelectPhotoBtn({size, disabled, onAdd, onShowMediaManage
       {/* Main select button */}
       <Button
         testID="openGalleryBtn"
-        onPress={onPressSelectPhotos}
+        onPress={onPressSelectMedia}
         label={_(msg`Add Media`)}
-        accessibilityHint={_(msg`Opens device photo gallery to select up to ${remainingSlots} more media items`)}
+        accessibilityHint={_(msg`Opens device media gallery to select images and videos up to ${remainingSlots} more items`)}
         style={[a.p_sm, styles.mainButton]}
         variant="ghost"
         shape="round"
@@ -115,7 +128,7 @@ export function EnhancedSelectPhotoBtn({size, disabled, onAdd, onShowMediaManage
         <Image 
           size="lg" 
           style={[
-            disabled && t.atoms.text_contrast_low,
+            {color: t.palette.text_contrast_low},
             isSelecting && {opacity: 0.6}
           ]} 
         />
