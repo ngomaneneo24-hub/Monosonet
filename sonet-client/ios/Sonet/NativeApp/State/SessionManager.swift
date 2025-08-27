@@ -15,9 +15,13 @@ class SessionManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private let keychainService = "xyz.sonet.app"
     private let userDefaults = UserDefaults.standard
+    private let grpcClient: SonetGRPCClient
     
     // MARK: - Initialization
     init() {
+        // Initialize gRPC client with development configuration
+        self.grpcClient = SonetGRPCClient(configuration: .development)
+        
         setupSessionPersistence()
         loadStoredSession()
     }
@@ -115,18 +119,23 @@ class SessionManager: ObservableObject {
     }
     
     private func performAuthentication(username: String, password: String) async throws -> SonetUser {
-        // Simulate API call - replace with actual Sonet API
-        try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-        
-        // For now, create a mock user
-        return SonetUser(
-            id: UUID().uuidString,
-            username: username,
-            displayName: "User",
-            avatarURL: nil,
-            isVerified: false,
-            createdAt: Date()
-        )
+        do {
+            // Use gRPC client for authentication
+            let userProfile = try await grpcClient.authenticate(email: username, password: password)
+            
+            // Convert UserProfile to SonetUser
+            return SonetUser(
+                id: userProfile.userId,
+                username: userProfile.username,
+                displayName: userProfile.displayName,
+                avatarURL: URL(string: userProfile.avatarUrl),
+                isVerified: userProfile.isVerified,
+                createdAt: userProfile.createdAt.date
+            )
+        } catch {
+            print("gRPC authentication failed: \(error)")
+            throw AuthenticationError.invalidCredentials
+        }
     }
     
     private func performSessionRefresh(for user: SonetUser) async throws -> SonetUser {

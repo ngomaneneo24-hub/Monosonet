@@ -1,6 +1,7 @@
 package xyz.sonet.app.viewmodels
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,9 +11,11 @@ import xyz.sonet.app.models.SonetNote
 import xyz.sonet.app.models.SonetUser
 import xyz.sonet.app.models.MediaItem
 import xyz.sonet.app.models.MediaType
+import xyz.sonet.app.grpc.SonetGRPCClient
+import xyz.sonet.app.grpc.SonetConfiguration
 import java.util.UUID
 
-class HomeViewModel : ViewModel() {
+class HomeViewModel(application: Application) : AndroidViewModel(application) {
     
     // State flows
     private val _selectedFeed = MutableStateFlow(FeedType.FOLLOWING)
@@ -31,6 +34,7 @@ class HomeViewModel : ViewModel() {
     val hasMoreContent: StateFlow<Boolean> = _hasMoreContent.asStateFlow()
     
     // Private properties
+    private val grpcClient = SonetGRPCClient(application, SonetConfiguration.development)
     private var currentPage = 0
     private val pageSize = 20
     private var isLoadingMore = false
@@ -96,11 +100,45 @@ class HomeViewModel : ViewModel() {
     }
     
     private suspend fun fetchNotes(feed: FeedType, page: Int): List<SonetNote> {
-        // Simulate API call - replace with actual Sonet API
-        kotlinx.coroutines.delay(1000) // 1 second
-        
-        // Generate mock notes for demonstration
-        return generateMockNotes(feed, page)
+        try {
+            // Use gRPC client to fetch timeline
+            val timelineItems = grpcClient.getHomeTimeline(page, pageSize)
+            
+            // Convert TimelineItems to SonetNotes
+            return timelineItems.map { timelineItem ->
+                val note = timelineItem.note
+                SonetNote(
+                    id = note.noteId,
+                    text = note.content,
+                    author = SonetUser(
+                        id = note.authorId,
+                        username = "user", // This would come from a separate user lookup
+                        displayName = "User",
+                        avatarUrl = null,
+                        isVerified = false,
+                        createdAt = note.createdAt.seconds * 1000 // Convert to milliseconds
+                    ),
+                    createdAt = note.createdAt.seconds * 1000,
+                    likeCount = note.engagement.likeCount.toInt(),
+                    repostCount = note.engagement.repostCount.toInt(),
+                    replyCount = note.engagement.replyCount.toInt(),
+                    media = note.mediaList.map { media ->
+                        MediaItem(
+                            id = media.mediaId,
+                            url = media.url,
+                            type = MediaType.IMAGE, // Default to image for now
+                            altText = media.altText
+                        )
+                    },
+                    isLiked = note.engagement.isLiked,
+                    isReposted = note.engagement.isReposted
+                )
+            }
+        } catch (error: Exception) {
+            println("gRPC fetch notes failed: $error")
+            // Fallback to mock notes if gRPC fails
+            return generateMockNotes(feed, page)
+        }
     }
     
     private fun generateMockNotes(feed: FeedType, page: Int): List<SonetNote> {

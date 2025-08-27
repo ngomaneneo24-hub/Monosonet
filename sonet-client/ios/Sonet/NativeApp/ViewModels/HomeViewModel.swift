@@ -12,6 +12,8 @@ class HomeViewModel: ObservableObject {
     @Published var hasMoreContent = true
     
     // MARK: - Private Properties
+    private let grpcClient: SonetGRPCClient
+    
     private var cancellables = Set<AnyCancellable>()
     private var currentPage = 0
     private let pageSize = 20
@@ -19,6 +21,9 @@ class HomeViewModel: ObservableObject {
     
     // MARK: - Initialization
     init() {
+        // Initialize gRPC client with development configuration
+        self.grpcClient = SonetGRPCClient(configuration: .development)
+        
         setupFeedObservers()
     }
     
@@ -84,11 +89,45 @@ class HomeViewModel: ObservableObject {
     }
     
     private func fetchNotes(for feed: FeedType, page: Int) async throws -> [SonetNote] {
-        // Simulate API call - replace with actual Sonet API
-        try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-        
-        // Generate mock notes for demonstration
-        return generateMockNotes(for: feed, page: page)
+        do {
+            // Use gRPC client to fetch timeline
+            let timelineItems = try await grpcClient.getHomeTimeline(page: page, pageSize: pageSize)
+            
+            // Convert TimelineItems to SonetNotes
+            return timelineItems.map { timelineItem in
+                let note = timelineItem.note
+                return SonetNote(
+                    id: note.noteId,
+                    text: note.content,
+                    author: SonetUser(
+                        id: note.authorId,
+                        username: "user", // This would come from a separate user lookup
+                        displayName: "User",
+                        avatarURL: nil,
+                        isVerified: false,
+                        createdAt: note.createdAt.date
+                    ),
+                    createdAt: note.createdAt.date,
+                    likeCount: Int(note.engagement.likeCount),
+                    repostCount: Int(note.engagement.repostCount),
+                    replyCount: Int(note.engagement.replyCount),
+                    media: note.media.map { media in
+                        MediaItem(
+                            id: media.mediaId,
+                            url: media.url,
+                            type: .image, // Default to image for now
+                            altText: media.altText
+                        )
+                    },
+                    isLiked: note.engagement.isLiked,
+                    isReposted: note.engagement.isReposted
+                )
+            }
+        } catch {
+            print("gRPC fetch notes failed: \(error)")
+            // Fallback to mock notes if gRPC fails
+            return generateMockNotes(for: feed, page: page)
+        }
     }
     
     private func generateMockNotes(for feed: FeedType, page: Int) -> [SonetNote] {

@@ -32,6 +32,7 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
     // Private properties
     private val keychainUtils = KeychainUtils(application)
     private val preferenceUtils = PreferenceUtils(application)
+    private val grpcClient = SonetGRPCClient(application, SonetConfiguration.development)
     
     init {
         loadStoredSession()
@@ -127,18 +128,23 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
     }
     
     private suspend fun performAuthentication(username: String, password: String): SonetUser {
-        // Simulate API call - replace with actual Sonet API
-        kotlinx.coroutines.delay(1000) // 1 second
-        
-        // For now, create a mock user
-        return SonetUser(
-            id = UUID.randomUUID().toString(),
-            username = username,
-            displayName = "User",
-            avatarUrl = null,
-            isVerified = false,
-            createdAt = System.currentTimeMillis()
-        )
+        try {
+            // Use gRPC client for authentication
+            val userProfile = grpcClient.authenticate(username, password)
+            
+            // Convert UserProfile to SonetUser
+            return SonetUser(
+                id = userProfile.userId,
+                username = userProfile.username,
+                displayName = userProfile.displayName,
+                avatarUrl = userProfile.avatarUrl,
+                isVerified = userProfile.isVerified,
+                createdAt = userProfile.createdAt.seconds * 1000 // Convert to milliseconds
+            )
+        } catch (error: Exception) {
+            println("gRPC authentication failed: $error")
+            throw AuthenticationError.InvalidCredentials
+        }
     }
     
     private suspend fun performSessionRefresh(user: SonetUser): SonetUser {
