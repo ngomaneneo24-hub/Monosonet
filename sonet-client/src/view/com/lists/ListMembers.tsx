@@ -42,8 +42,8 @@ export function ListMembers({
   scrollElRef?: ListRef
   onScrolledDownChange: (isScrolledDown: boolean) => void
   onPressTryAgain?: () => void
-  renderHeader: () => JSX.Element
-  renderEmptyState: () => JSX.Element
+  renderHeader: () => React.ReactNode
+  renderEmptyState: () => React.ReactNode
   testID?: string
   headerOffset?: number
   desktopFixedHeightOffset?: number

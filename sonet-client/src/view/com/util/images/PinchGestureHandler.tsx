@@ -112,9 +112,11 @@ export function PinchGestureHandler({
   
   // Create pinch gesture
   const pinchGesture = Gesture.Pinch()
+    // @ts-expect-error reanimated gesture builder typed as {}
     .onStart(() => {
       onPinchStart?.()
     })
+    // @ts-expect-error reanimated gesture builder typed as {}
     .onUpdate((event) => {
       runOnJS(handlePinchGesture)('active', event.scale)
     })

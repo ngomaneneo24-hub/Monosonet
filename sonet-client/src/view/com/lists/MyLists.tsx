@@ -38,7 +38,7 @@ export function MyLists({
   filter: MyListsFilter
   inline?: boolean
   style?: StyleProp<ViewStyle>
-  renderItem?: (list: GraphDefs.ListView, index: number) => JSX.Element
+  renderItem?: (list: GraphDefs.ListView, index: number) => React.ReactNode
   testID?: string
 }) {
   const pal = usePalette('default')

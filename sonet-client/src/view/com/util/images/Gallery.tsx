@@ -167,8 +167,8 @@ export function EnhancedGallery({
         }}>
         <AdvancedMediaCarousel
           images={images}
-          onPress={onPress ? (index) => onPress(index, containerRefs, thumbDimsRef.current.slice()) : undefined}
-          onLongPress={onLongPress}
+          onPress={onPress ? (index) => onPress(index, containerRefs, thumbDimsRef.current.slice()) : undefined as any}
+          onLongPress={onLongPress as any}
           viewContext={viewContext}
         />
       </PinchGestureHandler>

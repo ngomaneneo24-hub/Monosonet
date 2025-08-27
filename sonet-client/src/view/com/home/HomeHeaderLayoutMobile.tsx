@@ -21,7 +21,7 @@ export function HomeHeaderLayoutMobile({
   children,
 }: {
   children: React.ReactNode
-  tabBarAnchor: JSX.Element | null | undefined
+  tabBarAnchor: React.ReactNode | null | undefined
 }) {
   const t = useTheme()
   const {_} = useLingui()

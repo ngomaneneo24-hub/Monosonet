@@ -11,7 +11,7 @@ export function TimeElapsed({
   timeToString,
 }: {
   timestamp: string
-  children: ({timeElapsed}: {timeElapsed: string}) => JSX.Element
+  children: ({timeElapsed}: {timeElapsed: string}) => React.ReactNode
   timeToString?: (i18n: I18n, timeElapsed: string) => string
 }) {
   const {i18n} = useLingui()

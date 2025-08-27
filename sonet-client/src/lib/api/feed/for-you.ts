@@ -74,8 +74,8 @@ class ForYouFeedAPIImpl implements ForYouFeedAPI {
     }
 
     const response = await fetch(url, {
-      ...options
-      headers
+      ...options,
+      headers,
     })
 
     if (!response.ok) {

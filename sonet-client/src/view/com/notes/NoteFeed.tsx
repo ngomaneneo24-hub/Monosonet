@@ -200,13 +200,13 @@ let NoteFeed = ({
   scrollElRef?: ListRef
   onHasNew?: (v: boolean) => void
   onScrolledDownChange?: (isScrolledDown: boolean) => void
-  renderEmptyState: () => JSX.Element
-  renderEndOfFeed?: () => JSX.Element
+  renderEmptyState: () => React.ReactNode
+  renderEndOfFeed?: () => React.ReactNode
   testID?: string
   headerOffset?: number
   progressViewOffset?: number
   desktopFixedHeightOffset?: number
-  ListHeaderComponent?: () => JSX.Element
+  ListHeaderComponent?: () => React.ReactNode
   extraData?: any
   savedFeedConfig?: SonetSavedFeed
   initialNumToRender?: number

@@ -376,7 +376,7 @@ let DrawerFooter = ({
 DrawerFooter = React.memo(DrawerFooter)
 
 interface MenuItemProps extends ComponentProps<typeof PressableScale> {
-  icon: JSX.Element
+  icon: React.ReactNode
   label: string
   count?: string
   bold?: boolean

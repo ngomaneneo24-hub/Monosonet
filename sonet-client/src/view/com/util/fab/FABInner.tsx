@@ -16,7 +16,7 @@ import {ios} from '#/alf'
 export interface FABProps
   extends ComponentProps<typeof TouchableWithoutFeedback> {
   testID?: string
-  icon: JSX.Element
+  icon: React.ReactNode
 }
 
 export function FABInner({testID, icon, onPress, ...props}: FABProps) {

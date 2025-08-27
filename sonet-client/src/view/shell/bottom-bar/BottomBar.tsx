@@ -379,7 +379,7 @@ interface BtnProps
     | 'accessibilityLabel'
   > {
   testID?: string
-  icon: JSX.Element
+  icon: React.ReactNode
   notificationCount?: string
   hasNew?: boolean
   onPress?: (event: GestureResponderEvent) => void
