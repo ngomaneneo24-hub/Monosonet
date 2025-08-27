@@ -23,3 +23,26 @@ export function verifyJwt(req: AuthenticatedRequest, res: Response, next: NextFu
     return res.status(401).json({ ok: false, message: 'Invalid or expired token' });
   }
 }
+
+// Variant that also accepts token from query string (?token=...)
+export function verifyJwtFromHeaderOrQuery(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  let token: string | undefined;
+  const auth = req.header('authorization') || req.header('Authorization');
+  if (auth) {
+    const m = /^Bearer\s+(.+)$/i.exec(auth);
+    if (m) token = m[1];
+  }
+  if (!token) {
+    const t = (req.query?.token as string | undefined) || undefined;
+    if (t) token = t;
+  }
+  if (!token) return res.status(401).json({ ok: false, message: 'Missing token' });
+  try {
+    const payload: any = jwt.verify(token, JWT_SECRET as string);
+    req.userId = payload.sub || payload.user_id || payload.uid;
+    if (!req.userId) return res.status(401).json({ ok: false, message: 'Invalid token payload' });
+    return next();
+  } catch (e: any) {
+    return res.status(401).json({ ok: false, message: 'Invalid or expired token' });
+  }
+}

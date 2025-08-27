@@ -19,6 +19,18 @@ export function createApi(token: TokenProvider) {
   }
 
   return {
+    streamReports(token?: string) {
+      const qs = new URLSearchParams()
+      if (token) qs.set('token', token)
+      const es = new EventSource(`${baseUrl()}/api/v1/stream/reports?${qs.toString()}`)
+      return es
+    },
+    streamSignals(token?: string) {
+      const qs = new URLSearchParams()
+      if (token) qs.set('token', token)
+      const es = new EventSource(`${baseUrl()}/api/v1/stream/signals?${qs.toString()}`)
+      return es
+    },
     getReports(params: URLSearchParams) {
       return request<{ success: boolean; data: any[] }>(`/api/v1/reports?${params.toString()}`)
     },
