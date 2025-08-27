@@ -8,6 +8,7 @@ use uuid::Uuid;
 use crate::core::classifier::{ClassificationLabel, ClassificationResult};
 use crate::core::signals::{Signal, SignalType, SignalSeverity, SignalProcessor};
 use crate::core::observability::MetricsCollector;
+use tokio::sync::broadcast;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserReport {
@@ -189,6 +190,8 @@ pub struct ReportManager {
     signal_processor: Arc<SignalProcessor>,
     metrics: Arc<MetricsCollector>,
     config: ReportManagerConfig,
+    datastores: Option<Arc<crate::storage::db::Datastores>>,
+    event_tx: Option<broadcast::Sender<serde_json::Value>>,
 }
 
 #[derive(Debug, Clone)]
@@ -219,6 +222,7 @@ impl ReportManager {
         signal_processor: Arc<SignalProcessor>,
         metrics: Arc<MetricsCollector>,
         config: ReportManagerConfig,
+        
     ) -> Self {
         Self {
             reports: Arc::new(RwLock::new(HashMap::new())),
@@ -226,7 +230,19 @@ impl ReportManager {
             signal_processor,
             metrics,
             config,
+            datastores: None,
+            event_tx: None,
         }
+    }
+
+    pub fn with_datastores(mut self, datastores: Arc<crate::storage::db::Datastores>) -> Self {
+        self.datastores = Some(datastores);
+        self
+    }
+
+    pub fn with_event_sender(mut self, tx: broadcast::Sender<serde_json::Value>) -> Self {
+        self.event_tx = Some(tx);
+        self
     }
 
     pub async fn create_report(&self, report: CreateReportRequest) -> Result<UserReport> {
@@ -255,8 +271,12 @@ impl ReportManager {
             metadata: report.metadata,
         };
         
-        // Store report
+        // Store report (in memory)
         self.reports.write().await.insert(user_report.id, user_report.clone());
+        // Persist to database if configured
+        if let Some(ds) = &self.datastores {
+            ds.insert_user_report(&user_report).await.ok();
+        }
         
         // Generate signals
         self.generate_report_signals(&user_report).await?;
@@ -268,12 +288,33 @@ impl ReportManager {
         
         // Record metrics
         self.metrics.record_report_created(&user_report);
+        // Emit event
+        if let Some(tx) = &self.event_tx {
+            let _ = tx.send(serde_json::json!({
+                "type": "report.created",
+                "report": {
+                    "id": user_report.id,
+                    "reporter_id": user_report.reporter_id,
+                    "target_id": user_report.target_id,
+                    "content_id": user_report.content_id,
+                    "report_type": format!("{:?}", user_report.report_type),
+                    "reason": user_report.reason,
+                    "priority": format!("{:?}", user_report.priority),
+                    "status": format!("{:?}", user_report.status),
+                    "created_at": user_report.created_at,
+                }
+            }));
+        }
         
         Ok(user_report)
     }
 
     pub async fn get_report(&self, report_id: Uuid) -> Option<UserReport> {
-        self.reports.read().await.get(&report_id).cloned()
+        if let Some(r) = self.reports.read().await.get(&report_id).cloned() { return Some(r); }
+        if let Some(ds) = &self.datastores {
+            if let Ok(opt) = ds.fetch_user_report(report_id).await { return opt; }
+        }
+        None
     }
 
     pub async fn get_reports_by_user(&self, user_id: Uuid) -> Vec<UserReport> {
@@ -285,9 +326,20 @@ impl ReportManager {
     }
 
     pub async fn get_reports_by_status(&self, status: ReportStatus) -> Vec<UserReport> {
+        // Prefer in-memory for speed; fall back to DB
+        let mut v: Vec<UserReport> = self.reports.read().await.values().filter(|r| r.status == status).cloned().collect();
+        if v.is_empty() {
+            if let Some(ds) = &self.datastores {
+                let key = format!("{:?}", status);
+                if let Ok(rows) = ds.list_user_reports(Some(key), None, 100, 0, None).await { v = rows; }
+            }
+        }
+        v
+    }
+
+    pub async fn get_all_reports(&self) -> Vec<UserReport> {
         self.reports.read().await
             .values()
-            .filter(|report| report.status == status)
             .cloned()
             .collect()
     }
@@ -302,6 +354,19 @@ impl ReportManager {
             if matches!(status, ReportStatus::Resolved | ReportStatus::Dismissed) {
                 report.resolved_at = Some(Utc::now());
             }
+            // Emit event
+            if let Some(tx) = &self.event_tx {
+                let _ = tx.send(serde_json::json!({
+                    "type": "report.status_updated",
+                    "report_id": report_id,
+                    "status": format!("{:?}", status),
+                    "updated_at": report.updated_at,
+                }));
+            }
+        }
+        if let Some(ds) = &self.datastores {
+            let key = format!("{:?}", status);
+            ds.update_user_report_status(report_id, key).await.ok();
         }
         
         Ok(())
@@ -337,6 +402,16 @@ impl ReportManager {
         
         // Update report status
         self.update_report_status(report_id, ReportStatus::UnderInvestigation).await?;
+        // Emit event
+        if let Some(tx) = &self.event_tx {
+            let _ = tx.send(serde_json::json!({
+                "type": "investigation.started",
+                "investigation_id": investigation.id,
+                "report_id": report_id,
+                "investigator_id": investigator_id,
+                "started_at": investigation.started_at,
+            }));
+        }
         
         Ok(investigation)
     }
@@ -351,6 +426,12 @@ impl ReportManager {
         if let Some(investigation) = investigations.get_mut(&investigation_id) {
             investigation.findings.push(finding);
         }
+        if let Some(tx) = &self.event_tx {
+            let _ = tx.send(serde_json::json!({
+                "type": "investigation.finding_added",
+                "investigation_id": investigation_id,
+            }));
+        }
         
         Ok(())
     }
@@ -364,6 +445,12 @@ impl ReportManager {
         
         if let Some(investigation) = investigations.get_mut(&investigation_id) {
             investigation.notes.push(note);
+        }
+        if let Some(tx) = &self.event_tx {
+            let _ = tx.send(serde_json::json!({
+                "type": "investigation.note_added",
+                "investigation_id": investigation_id,
+            }));
         }
         
         Ok(())
@@ -385,6 +472,12 @@ impl ReportManager {
                 let duration = completed_at - investigation.started_at;
                 investigation.time_spent_minutes = duration.num_minutes() as u32;
             }
+        }
+        if let Some(tx) = &self.event_tx {
+            let _ = tx.send(serde_json::json!({
+                "type": "investigation.completed",
+                "investigation_id": investigation_id,
+            }));
         }
         
         Ok(())

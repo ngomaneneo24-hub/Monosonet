@@ -13,6 +13,15 @@ function loadProto(protoRelPath) {
     });
     return loadPackageDefinition(packageDefinition);
 }
+function loadAbsoluteProto(absPath) {
+    const packageDefinition = loadSync(absPath, {
+        longs: String,
+        enums: String,
+        defaults: true,
+        oneofs: true
+    });
+    return loadPackageDefinition(packageDefinition);
+}
 const userPkgDef = loadProto('src/services/user_service_go/proto/user_service.proto');
 const notePkgDef = loadProto('services/note_service.proto');
 const timelinePkgDef = loadProto('services/timeline.proto');
@@ -24,6 +33,9 @@ const notificationPkgDef = loadProto('services/notification.proto');
 const listPkgDef = loadProto('src/services/list_service/proto/list_service.proto');
 const starterpackPkgDef = loadProto('src/services/starterpack_service/proto/starterpack_service.proto');
 const draftsPkgDef = loadProto('src/services/drafts_service/proto/drafts_service.proto');
+// Load moderation proto from Rust crate
+const MODERATION_PROTO = process.env.MODERATION_PROTO_PATH || path.resolve(__dirname, '../../../moderation/proto/moderation.proto');
+const moderationPkgDef = loadAbsoluteProto(MODERATION_PROTO);
 export function createGrpcClients() {
     const userTarget = process.env.USER_GRPC_ADDR || 'user-service:9090';
     const noteTarget = process.env.NOTE_GRPC_ADDR || 'note-service:9090';
@@ -36,6 +48,7 @@ export function createGrpcClients() {
     const listTarget = process.env.LIST_GRPC_ADDR || 'list-service:9098';
     const starterpackTarget = process.env.STARTERPACK_GRPC_ADDR || 'starterpack-service:9099';
     const draftsTarget = process.env.DRAFTS_GRPC_ADDR || 'drafts-service:9100';
+    const moderationTarget = process.env.MODERATION_GRPC_ADDR || 'moderation-service:9090';
     const userPackage = userPkgDef['sonet.user.v1'];
     const notePackage = notePkgDef['sonet.note.grpc'];
     const timelinePackage = timelinePkgDef['sonet.timeline'];
@@ -51,6 +64,7 @@ export function createGrpcClients() {
     const analyticsPkgDef = loadProto('services/analytics.proto');
     const videoFeedPackage = videoFeedPkgDef?.['sonet.services'] || videoFeedPkgDef?.['sonet.video'] || {};
     const analyticsPackage = analyticsPkgDef?.['sonet.analytics'] || {};
+    const moderationPackage = moderationPkgDef['moderation.v1'];
     const user = new userPackage.UserService(userTarget, credentials.createInsecure());
     const note = new notePackage.NoteService(noteTarget, credentials.createInsecure());
     const timeline = new timelinePackage.TimelineService(timelineTarget, credentials.createInsecure());
@@ -77,5 +91,6 @@ export function createGrpcClients() {
             analytics = new AnalyticsCtor(process.env.ANALYTICS_GRPC_ADDR || 'analytics-service:9097', credentials.createInsecure());
     }
     catch { }
-    return { user, note, timeline, media, follow, messaging, search, notification, list, starterpack, drafts, videoFeed, analytics };
+    const moderation = new moderationPackage.ModerationService(moderationTarget, credentials.createInsecure());
+    return { user, note, timeline, media, follow, messaging, search, notification, list, starterpack, drafts, videoFeed, analytics, moderation };
 }
