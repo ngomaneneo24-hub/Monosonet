@@ -334,26 +334,7 @@ class SonetGRPCClient(
         }
     }
 
-    // TEMP: HTTP fallback for per-media like until gRPC is added
-    suspend fun toggleMediaLikeHttp(mediaId: String, isLiked: Boolean): Int {
-        // Note: For simplicity using java.net; replace with OkHttp in production
-        val url = java.net.URL("http://10.0.2.2:3000/v1/media/$mediaId/like") // 10.0.2.2 for Android emulator
-        val conn = (url.openConnection() as java.net.HttpURLConnection).apply {
-            requestMethod = "POST"
-            doOutput = true
-            setRequestProperty("Content-Type", "application/json")
-        }
-        val body = "{" + "\"isLiked\":" + isLiked.toString() + "}"
-        conn.outputStream.use { it.write(body.toByteArray()) }
-        val code = conn.responseCode
-        if (code in 200..299) {
-            val response = conn.inputStream.bufferedReader().readText()
-            val likeCount = Regex("\"likeCount\"\s*:\s*(\\d+)").find(response)?.groupValues?.get(1)?.toIntOrNull()
-            return likeCount ?: 0
-        } else {
-            throw Exception("HTTP error $code")
-        }
-    }
+    // Removed HTTP fallback now that gRPC is available
 
     suspend fun toggleMediaLike(mediaId: String, userId: String, isLiked: Boolean): ToggleMediaLikeResponse {
         return suspendCancellableCoroutine { continuation ->
