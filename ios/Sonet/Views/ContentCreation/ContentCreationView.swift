@@ -130,6 +130,7 @@ struct ContentCreationHeader: View {
                         .foregroundColor(.white)
                 }
             }
+            .sensoryFeedback(.selection, trigger: isPosting)
             .disabled(!canPost)
             .padding(.horizontal, 20)
             .padding(.vertical, 8)
@@ -247,12 +248,15 @@ struct ContentArea: View {
                 .lineLimit(10...15)
                 .frame(minHeight: 120)
             
-            // Media grid
+            // Media grid with drag and drop reordering
             if !selectedMedia.isEmpty {
                 MediaGridView(
                     media: selectedMedia,
                     onRemove: onRemoveMedia
                 )
+                .onDrag {
+                    NSItemProvider(object: NSString(string: "media-drag"))
+                }
             }
             
             // Character count
