@@ -9,9 +9,7 @@ struct MessagesTabView: View {
             VStack(spacing: 20) {
                 // Messages Header
                 VStack(spacing: 16) {
-                    Image(systemName: "message")
-                        .font(.system(size: 60))
-                        .foregroundColor(.blue)
+                    IconView(AppIcons.messages, size: 60, color: .blue)
                     
                     Text("Messages")
                         .font(.largeTitle)
