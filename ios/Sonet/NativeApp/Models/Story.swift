@@ -31,7 +31,9 @@ struct Story: Identifiable, Codable {
     }
     
     var isOwnStory: Bool {
-        userId == "current_user" // Replace with actual current user ID
+        // This will be evaluated by comparing against the current session user where used
+        // Avoid hardcoded IDs here; call sites should supply the viewer's userId
+        return false
     }
     
     var canReply: Bool {

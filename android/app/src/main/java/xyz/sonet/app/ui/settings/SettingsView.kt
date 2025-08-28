@@ -54,6 +54,57 @@ fun SettingsView(
         viewModel.loadSettings()
     }
     
+    var subpage by remember { mutableStateOf<SettingsSubpage?>(null) }
+    if (subpage != null) {
+        when (subpage) {
+            SettingsSubpage.SECURITY -> SecurityView(onNavigateBack = { subpage = null })
+            SettingsSubpage.TWO_FACTOR -> TwoFactorSettingsView(onNavigateBack = { subpage = null })
+            SettingsSubpage.CONNECTED_ACCOUNTS -> SimpleSettingsPage(title = "Connected Accounts", onNavigateBack = { subpage = null }) {
+                Text("Manage your connected accounts here.")
+            }
+            SettingsSubpage.NOTIFICATION_PREFERENCES -> SimpleSettingsPage(title = "Notification Preferences", onNavigateBack = { subpage = null }) {
+                Text("Fine-tune your notifications here.")
+            }
+            SettingsSubpage.CONTENT_PREFERENCES -> SimpleSettingsPage(title = "Content Preferences", onNavigateBack = { subpage = null }) {
+                Text("Adjust content preferences here.")
+            }
+            SettingsSubpage.PRIVACY -> SimpleSettingsPage(title = "Privacy", onNavigateBack = { subpage = null }) {
+                Text("Privacy settings will appear here.")
+            }
+            SettingsSubpage.SAFETY -> SimpleSettingsPage(title = "Safety", onNavigateBack = { subpage = null }) {
+                Text("Safety settings will appear here.")
+            }
+            SettingsSubpage.BLOCKED_ACCOUNTS -> SimpleSettingsPage(title = "Blocked Accounts", onNavigateBack = { subpage = null }) {
+                Text("Manage blocked accounts here.")
+            }
+            SettingsSubpage.MUTED_ACCOUNTS -> SimpleSettingsPage(title = "Muted Accounts", onNavigateBack = { subpage = null }) {
+                Text("Manage muted accounts here.")
+            }
+            SettingsSubpage.HIDDEN_CONTENT -> SimpleSettingsPage(title = "Hidden Content", onNavigateBack = { subpage = null }) {
+                Text("Review content you've hidden.")
+            }
+            SettingsSubpage.HELP_CENTER -> SimpleSettingsPage(title = "Help Center", onNavigateBack = { subpage = null }) {
+                Text("Find help articles and FAQs here.")
+            }
+            SettingsSubpage.CONTACT_SUPPORT -> SimpleSettingsPage(title = "Contact Support", onNavigateBack = { subpage = null }) {
+                Text("Reach out to our support team here.")
+            }
+            SettingsSubpage.REPORT_PROBLEM -> SimpleSettingsPage(title = "Report a Problem", onNavigateBack = { subpage = null }) {
+                Text("Describe the issue you're facing.")
+            }
+            SettingsSubpage.TERMS -> SimpleSettingsPage(title = "Terms of Service", onNavigateBack = { subpage = null }) {
+                Text("Review our Terms of Service.")
+            }
+            SettingsSubpage.PRIVACY_POLICY -> SimpleSettingsPage(title = "Privacy Policy", onNavigateBack = { subpage = null }) {
+                Text("Review our Privacy Policy.")
+            }
+            SettingsSubpage.ABOUT -> SimpleSettingsPage(title = "About Sonet", onNavigateBack = { subpage = null }) {
+                Text("Version 1.0.0")
+                Text("Connect, share, and discover with the world.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            else -> subpage = null
+        }
+    } else {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -81,7 +132,8 @@ fun SettingsView(
             item {
                 AccountSettingsSection(
                     accountVisibility = accountVisibility,
-                    onUpdateVisibility = { viewModel.updateAccountVisibility(it) }
+                    onUpdateVisibility = { viewModel.updateAccountVisibility(it) },
+                    onNavigateTo = { subpage = it }
                 )
             }
             
@@ -100,7 +152,8 @@ fun SettingsView(
                     pushNotificationsEnabled = pushNotificationsEnabled,
                     emailNotificationsEnabled = emailNotificationsEnabled,
                     inAppNotificationsEnabled = inAppNotificationsEnabled,
-                    onUpdateNotifications = { viewModel.updateNotificationSettings() }
+                    onUpdateNotifications = { viewModel.updateNotificationSettings() },
+                    onNavigateTo = { subpage = it }
                 )
             }
             
@@ -112,7 +165,8 @@ fun SettingsView(
                     autoPlayVideos = autoPlayVideos,
                     onUpdateLanguage = { viewModel.updateContentLanguage(it) },
                     onUpdateFiltering = { viewModel.updateContentFiltering(it) },
-                    onToggleAutoPlay = { viewModel.toggleAutoPlayVideos() }
+                    onToggleAutoPlay = { viewModel.toggleAutoPlayVideos() },
+                    onNavigateTo = { subpage = it }
                 )
             }
             
@@ -129,12 +183,12 @@ fun SettingsView(
             
             // Privacy & Safety
             item {
-                PrivacySafetySection()
+                PrivacySafetySection(onNavigateTo = { subpage = it })
             }
             
             // Help & Support
             item {
-                HelpSupportSection()
+                HelpSupportSection(onNavigateTo = { subpage = it })
             }
             
             // Account Actions
@@ -229,7 +283,7 @@ fun ProfileSection(userProfile: UserProfile?) {
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            HStack(spacing = 16.dp) {
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(userProfile?.avatarUrl ?: "")
@@ -288,7 +342,8 @@ fun ProfileSection(userProfile: UserProfile?) {
 @Composable
 fun AccountSettingsSection(
     accountVisibility: AccountVisibility,
-    onUpdateVisibility: (AccountVisibility) -> Unit
+    onUpdateVisibility: (AccountVisibility) -> Unit,
+    onNavigateTo: (SettingsSubpage) -> Unit
 ) {
     SettingsSection(
         title = "Account",
@@ -303,19 +358,19 @@ fun AccountSettingsSection(
         SettingsItem(
             icon = Icons.Default.Security,
             title = "Security",
-            onClick = { /* Navigate to SecurityView */ }
+            onClick = { onNavigateTo(SettingsSubpage.SECURITY) }
         )
         
         SettingsItem(
             icon = Icons.Default.Lock,
             title = "Two-Factor Authentication",
-            onClick = { /* Navigate to 2FA */ }
+            onClick = { onNavigateTo(SettingsSubpage.TWO_FACTOR) }
         )
         
         SettingsItem(
             icon = Icons.Default.Link,
             title = "Connected Accounts",
-            onClick = { /* Navigate to connected accounts */ }
+            onClick = { onNavigateTo(SettingsSubpage.CONNECTED_ACCOUNTS) }
         )
         
         // Account Visibility Picker
@@ -408,7 +463,8 @@ fun NotificationsSection(
     pushNotificationsEnabled: Boolean,
     emailNotificationsEnabled: Boolean,
     inAppNotificationsEnabled: Boolean,
-    onUpdateNotifications: () -> Unit
+    onUpdateNotifications: () -> Unit,
+    onNavigateTo: (SettingsSubpage) -> Unit
 ) {
     SettingsSection(
         title = "Notifications",
@@ -446,7 +502,7 @@ fun NotificationsSection(
             SettingsItem(
                 icon = Icons.Default.Settings,
                 title = "Notification Preferences",
-                onClick = { /* Navigate to notification preferences */ }
+                onClick = { onNavigateTo(SettingsSubpage.NOTIFICATION_PREFERENCES) }
             )
         }
     }
@@ -460,7 +516,8 @@ fun ContentPreferencesSection(
     autoPlayVideos: Boolean,
     onUpdateLanguage: (String) -> Unit,
     onUpdateFiltering: (ContentFiltering) -> Unit,
-    onToggleAutoPlay: () -> Unit
+    onToggleAutoPlay: () -> Unit,
+    onNavigateTo: (SettingsSubpage) -> Unit
 ) {
     val languages = listOf("English", "Spanish", "French", "German", "Italian", "Portuguese", "Russian", "Chinese", "Japanese", "Korean")
     
@@ -499,7 +556,7 @@ fun ContentPreferencesSection(
         SettingsItem(
             icon = Icons.Default.Settings,
             title = "Content Preferences",
-            onClick = { /* Navigate to content preferences */ }
+            onClick = { onNavigateTo(SettingsSubpage.CONTENT_PREFERENCES) }
         )
     }
 }
@@ -600,7 +657,7 @@ fun DataStorageSection(
 
 // MARK: - Privacy & Safety Section
 @Composable
-fun PrivacySafetySection() {
+fun PrivacySafetySection(onNavigateTo: (SettingsSubpage) -> Unit) {
     SettingsSection(
         title = "Privacy & Safety",
         subtitle = "Control your privacy and safety settings"
@@ -608,38 +665,38 @@ fun PrivacySafetySection() {
         SettingsItem(
             icon = Icons.Default.PrivacyTip,
             title = "Privacy",
-            onClick = { /* TODO: navigate("privacy/location") or show privacy root */ }
+            onClick = { onNavigateTo(SettingsSubpage.PRIVACY) }
         )
         
         SettingsItem(
             icon = Icons.Default.Security,
             title = "Safety",
-            onClick = { /* Navigate to safety */ }
+            onClick = { onNavigateTo(SettingsSubpage.SAFETY) }
         )
         
         SettingsItem(
             icon = Icons.Default.Block,
             title = "Blocked Accounts",
-            onClick = { /* Navigate to blocked accounts */ }
+            onClick = { onNavigateTo(SettingsSubpage.BLOCKED_ACCOUNTS) }
         )
         
         SettingsItem(
             icon = Icons.Default.VolumeOff,
             title = "Muted Accounts",
-            onClick = { /* Navigate to muted accounts */ }
+            onClick = { onNavigateTo(SettingsSubpage.MUTED_ACCOUNTS) }
         )
         
         SettingsItem(
             icon = Icons.Default.VisibilityOff,
             title = "Content You've Hidden",
-            onClick = { /* Navigate to hidden content */ }
+            onClick = { onNavigateTo(SettingsSubpage.HIDDEN_CONTENT) }
         )
     }
 }
 
 // MARK: - Help & Support Section
 @Composable
-fun HelpSupportSection() {
+fun HelpSupportSection(onNavigateTo: (SettingsSubpage) -> Unit) {
     SettingsSection(
         title = "Help & Support",
         subtitle = "Get help and learn more about Sonet"
@@ -647,37 +704,37 @@ fun HelpSupportSection() {
         SettingsItem(
             icon = Icons.Default.Help,
             title = "Help Center",
-            onClick = { /* Navigate to help center */ }
+            onClick = { onNavigateTo(SettingsSubpage.HELP_CENTER) }
         )
         
         SettingsItem(
             icon = Icons.Default.Support,
             title = "Contact Support",
-            onClick = { /* Navigate to contact support */ }
+            onClick = { onNavigateTo(SettingsSubpage.CONTACT_SUPPORT) }
         )
         
         SettingsItem(
             icon = Icons.Default.Report,
             title = "Report a Problem",
-            onClick = { /* Navigate to report problem */ }
+            onClick = { onNavigateTo(SettingsSubpage.REPORT_PROBLEM) }
         )
         
         SettingsItem(
             icon = Icons.Default.Description,
             title = "Terms of Service",
-            onClick = { /* Navigate to terms */ }
+            onClick = { onNavigateTo(SettingsSubpage.TERMS) }
         )
         
         SettingsItem(
             icon = Icons.Default.Policy,
             title = "Privacy Policy",
-            onClick = { /* Navigate to privacy policy */ }
+            onClick = { onNavigateTo(SettingsSubpage.PRIVACY_POLICY) }
         )
         
         SettingsItem(
             icon = Icons.Default.Info,
             title = "About Sonet",
-            onClick = { /* Navigate to about */ }
+            onClick = { onNavigateTo(SettingsSubpage.ABOUT) }
         )
     }
 }
@@ -924,5 +981,62 @@ private fun formatBytes(bytes: Long): String {
         bytes < 1024 * 1024 -> "${formatter.format(bytes / 1024.0)} KB"
         bytes < 1024 * 1024 * 1024 -> "${formatter.format(bytes / (1024.0 * 1024.0))} MB"
         else -> "${formatter.format(bytes / (1024.0 * 1024.0 * 1024.0))} GB"
+    }
+}
+
+private enum class SettingsSubpage {
+    SECURITY,
+    TWO_FACTOR,
+    CONNECTED_ACCOUNTS,
+    NOTIFICATION_PREFERENCES,
+    CONTENT_PREFERENCES,
+    PRIVACY,
+    SAFETY,
+    BLOCKED_ACCOUNTS,
+    MUTED_ACCOUNTS,
+    HIDDEN_CONTENT,
+    HELP_CENTER,
+    CONTACT_SUPPORT,
+    REPORT_PROBLEM,
+    TERMS,
+    PRIVACY_POLICY,
+    ABOUT
+}
+
+@Composable
+private fun SimpleSettingsPage(
+    title: String,
+    onNavigateBack: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
+private fun TwoFactorSettingsView(onNavigateBack: () -> Unit) {
+    SimpleSettingsPage(title = "Two-Factor Authentication", onNavigateBack = onNavigateBack) {
+        Text("Two-Factor Authentication setup is coming soon.", style = MaterialTheme.typography.bodyMedium)
+        Text("You will be able to enable app-based codes and manage backup codes here.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

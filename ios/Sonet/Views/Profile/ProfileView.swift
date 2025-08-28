@@ -4,6 +4,7 @@ struct ProfileView: View {
     @StateObject private var viewModel: ProfileViewModel
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var sessionManager: SessionManager
     
     init(userId: String, grpcClient: SonetGRPCClient) {
         _viewModel = StateObject(wrappedValue: ProfileViewModel(userId: userId, grpcClient: grpcClient))
@@ -19,6 +20,7 @@ struct ProfileView: View {
                             profile: profile,
                             isFollowing: viewModel.isFollowing,
                             isBlocked: viewModel.isBlocked,
+                            isOwnProfile: profile.userId == sessionManager.currentUser?.id,
                             onFollowToggle: { viewModel.toggleFollow() },
                             onBlock: { viewModel.blockUser() },
                             onUnblock: { viewModel.unblockUser() }
@@ -32,13 +34,16 @@ struct ProfileView: View {
                     )
                     
                     // Tab Content
-                    TabContent(
-                        selectedTab: viewModel.selectedTab,
-                        posts: viewModel.posts,
-                        replies: viewModel.replies,
-                        media: viewModel.media,
-                        likes: viewModel.likes
-                    )
+                    if let profile = viewModel.userProfile {
+                        TabContent(
+                            selectedTab: viewModel.selectedTab,
+                            posts: viewModel.posts,
+                            replies: viewModel.replies,
+                            media: viewModel.media,
+                            likes: viewModel.likes,
+                            authorProfile: profile
+                        )
+                    }
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -53,11 +58,14 @@ struct ProfileView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    ProfileMoreButton(
-                        onShare: { /* Share profile */ },
-                        onReport: { /* Report user */ },
-                        onBlock: { viewModel.blockUser() }
-                    )
+                    if let profile = viewModel.userProfile {
+                        ProfileMoreButton(
+                            onShare: { /* Share profile */ },
+                            onReport: { /* Report user */ },
+                            onBlock: { viewModel.blockUser() },
+                            viewedUserId: profile.userId
+                        )
+                    }
                 }
             }
             .refreshable {
@@ -81,6 +89,7 @@ struct ProfileHeader: View {
     let profile: UserProfile
     let isFollowing: Bool
     let isBlocked: Bool
+    let isOwnProfile: Bool
     let onFollowToggle: () -> Void
     let onBlock: () -> Void
     let onUnblock: () -> Void
@@ -95,6 +104,7 @@ struct ProfileHeader: View {
                 profile: profile,
                 isFollowing: isFollowing,
                 isBlocked: isBlocked,
+                isOwnProfile: isOwnProfile,
                 onFollowToggle: onFollowToggle,
                 onBlock: onBlock,
                 onUnblock: onUnblock
@@ -173,6 +183,7 @@ struct ProfileInfoView: View {
     let profile: UserProfile
     let isFollowing: Bool
     let isBlocked: Bool
+    let isOwnProfile: Bool
     let onFollowToggle: () -> Void
     let onBlock: () -> Void
     let onUnblock: () -> Void
@@ -185,29 +196,41 @@ struct ProfileInfoView: View {
                 
                 // Action buttons
                 HStack(spacing: 12) {
-                    // Message button
-                    Button(action: { /* Navigate to messages */ }) {
-                        IconView(AppIcons.messages)
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.primary)
-                            .frame(width: 36, height: 36)
-                            .background(
-                                Circle()
-                                    .fill(Color(.systemGray6))
-                            )
-                    }
-                    
-                    // Follow/Following button
-                    Button(action: onFollowToggle) {
-                        Text(isFollowing ? "Following" : "Follow")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(isFollowing ? .primary : .white)
-                            .padding(.horizontal: 20)
-                            .padding(.vertical: 8)
-                            .background(
-                                RoundedRectangle(cornerRadius: 20)
-                                    .fill(isFollowing ? Color(.systemGray5) : Color.accentColor)
-                            )
+                    if isOwnProfile {
+                        Button(action: { /* Navigate to edit profile */ }) {
+                            Text("Edit Profile")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal: 20)
+                                .padding(.vertical: 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 20)
+                                        .fill(Color.accentColor)
+                                )
+                        }
+                    } else {
+                        Button(action: { /* Navigate to messages */ }) {
+                            IconView(AppIcons.messages)
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.primary)
+                                .frame(width: 36, height: 36)
+                                .background(
+                                    Circle()
+                                        .fill(Color(.systemGray6))
+                                )
+                        }
+                        
+                        Button(action: onFollowToggle) {
+                            Text(isFollowing ? "Following" : "Follow")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(isFollowing ? .primary : .white)
+                                .padding(.horizontal: 20)
+                                .padding(.vertical: 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 20)
+                                        .fill(isFollowing ? Color(.systemGray5) : Color.accentColor)
+                                )
+                        }
                     }
                 }
             }
@@ -403,18 +426,19 @@ struct TabContent: View {
     let replies: [Note]
     let media: [Note]
     let likes: [Note]
+    let authorProfile: UserProfile
     
     var body: some View {
         Group {
             switch selectedTab {
             case .posts:
-                ProfilePostsView(posts: posts)
+                ProfilePostsView(posts: posts, authorProfile: authorProfile)
             case .replies:
-                ProfileRepliesView(replies: replies)
+                ProfileRepliesView(replies: replies, authorProfile: authorProfile)
             case .media:
-                ProfileMediaView(media: media)
+                ProfileMediaView(media: media, authorProfile: authorProfile)
             case .likes:
-                ProfileLikesView(likes: likes)
+                ProfileLikesView(likes: likes, authorProfile: authorProfile)
             }
         }
         .padding(.top, 16)
@@ -424,18 +448,19 @@ struct TabContent: View {
 // MARK: - Profile Posts View
 struct ProfilePostsView: View {
     let posts: [Note]
+    let authorProfile: UserProfile
     
     var body: some View {
         if posts.isEmpty {
             EmptyStateView(
                 icon: "bubble.left",
                 title: "No posts yet",
-                message: "When \("User") posts, they'll show up here."
+                message: "When \(authorProfile.displayName) posts, they'll show up here."
             )
         } else {
             LazyVStack(spacing: 0) {
                 ForEach(posts, id: \.noteId) { post in
-                    ProfileNoteRow(note: post)
+                    ProfileNoteRow(note: post, authorProfile: authorProfile)
                 }
             }
         }
@@ -445,18 +470,19 @@ struct ProfilePostsView: View {
 // MARK: - Profile Replies View
 struct ProfileRepliesView: View {
     let replies: [Note]
+    let authorProfile: UserProfile
     
     var body: some View {
         if replies.isEmpty {
             EmptyStateView(
                 icon: "arrowshape.turn.up.left",
                 title: "No replies yet",
-                message: "When \("User") replies, they'll show up here."
+                message: "When \(authorProfile.displayName) replies, they'll show up here."
             )
         } else {
             LazyVStack(spacing: 0) {
                 ForEach(replies, id: \.noteId) { reply in
-                    ProfileNoteRow(note: reply)
+                    ProfileNoteRow(note: reply, authorProfile: authorProfile)
                 }
             }
         }
@@ -466,18 +492,19 @@ struct ProfileRepliesView: View {
 // MARK: - Profile Media View
 struct ProfileMediaView: View {
     let media: [Note]
+    let authorProfile: UserProfile
     
     var body: some View {
         if media.isEmpty {
             EmptyStateView(
                 icon: "photo",
                 title: "No media yet",
-                message: "When \("User") posts photos or videos, they'll show up here."
+                message: "When \(authorProfile.displayName) posts photos or videos, they'll show up here."
             )
         } else {
             LazyVStack(spacing: 0) {
                 ForEach(media, id: \.noteId) { mediaNote in
-                    ProfileNoteRow(note: mediaNote)
+                    ProfileNoteRow(note: mediaNote, authorProfile: authorProfile)
                 }
             }
         }
@@ -487,18 +514,19 @@ struct ProfileMediaView: View {
 // MARK: - Profile Likes View
 struct ProfileLikesView: View {
     let likes: [Note]
+    let authorProfile: UserProfile
     
     var body: some View {
         if likes.isEmpty {
             EmptyStateView(
                 icon: "heart",
                 title: "No likes yet",
-                message: "Likes from \("User") will show up here."
+                message: "Likes from \(authorProfile.displayName) will show up here."
             )
         } else {
             LazyVStack(spacing: 0) {
                 ForEach(likes, id: \.noteId) { likedNote in
-                    ProfileNoteRow(note: likedNote)
+                    ProfileNoteRow(note: likedNote, authorProfile: authorProfile)
                 }
             }
         }
@@ -508,13 +536,14 @@ struct ProfileLikesView: View {
 // MARK: - Profile Note Row
 struct ProfileNoteRow: View {
     let note: Note
+    let authorProfile: UserProfile
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
             HStack(spacing: 12) {
                 // Author avatar
-                AsyncImage(url: URL(string: "")) { image in
+                AsyncImage(url: URL(string: authorProfile.avatarUrl)) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -532,7 +561,7 @@ struct ProfileNoteRow: View {
                 
                 // Author info
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("User") // This would come from a separate user lookup
+                    Text(authorProfile.displayName)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.primary)
                     
@@ -692,6 +721,8 @@ struct ProfileMoreButton: View {
     let onShare: () -> Void
     let onReport: () -> Void
     let onBlock: () -> Void
+    @EnvironmentObject var sessionManager: SessionManager
+    var viewedUserId: String? = nil
     
     @State private var showingActionSheet = false
     
@@ -701,16 +732,13 @@ struct ProfileMoreButton: View {
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(.primary)
         }
-        .actionSheet(isPresented: $showingActionSheet) {
-            ActionSheet(
-                title: Text("Profile Options"),
-                buttons: [
-                    .default(Text("Share Profile"), action: onShare),
-                    .destructive(Text("Report User"), action: onReport),
-                    .destructive(Text("Block User"), action: onBlock),
-                    .cancel()
-                ]
-            )
+        .confirmationDialog("Profile Options", isPresented: $showingActionSheet, titleVisibility: .automatic) {
+            Button("Share Profile", action: onShare)
+            if let viewedUserId = viewedUserId, viewedUserId != sessionManager.currentUser?.id {
+                Button("Report User", role: .destructive, action: onReport)
+                Button("Block User", role: .destructive, action: onBlock)
+            }
+            Button("Cancel", role: .cancel) {}
         }
     }
 }

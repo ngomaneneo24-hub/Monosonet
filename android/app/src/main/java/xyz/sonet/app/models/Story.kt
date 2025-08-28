@@ -37,7 +37,7 @@ data class Story(
         get() = maxOf(0, expiresAt.time - Date().time)
     
     val isOwnStory: Boolean
-        get() = userId == "current_user" // Replace with actual current user ID
+        get() = false // Call sites should compare story.userId to session user id
     
     val canReply: Boolean
         get() = privacy.allowsReplies && !isExpired

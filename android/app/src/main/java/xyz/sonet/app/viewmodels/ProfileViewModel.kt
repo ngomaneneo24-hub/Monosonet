@@ -48,6 +48,27 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     // MARK: - Private Properties
     private val grpcClient = SonetGRPCClient(application, SonetConfiguration.development)
     private var userId: String? = null
+    private val sessionViewModel: SessionViewModel = SessionViewModel(application)
+
+    // Author cache for resolving note authorId -> UserProfile
+    private val _authorCache = MutableStateFlow<Map<String, UserProfile>>(emptyMap())
+    val authorCache: StateFlow<Map<String, UserProfile>> = _authorCache.asStateFlow()
+
+    private fun cacheAuthor(profile: UserProfile) {
+        _authorCache.value = _authorCache.value + (profile.userId to profile)
+    }
+
+    fun resolveAuthor(authorId: String) {
+        if (_authorCache.value.containsKey(authorId)) return
+        viewModelScope.launch {
+            try {
+                val profile = grpcClient.getUserProfile(authorId)
+                cacheAuthor(profile)
+            } catch (_: Exception) {
+                // Ignore failures silently for UI; can log if needed
+            }
+        }
+    }
     
     // MARK: - Profile Tabs
     enum class ProfileTab(val title: String, val icon: String) {
@@ -71,6 +92,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     
     fun toggleFollow() {
         val profile = _userProfile.value ?: return
+        if (profile.userId == sessionViewModel.currentUser.value?.id) return
         
         viewModelScope.launch {
             try {
@@ -142,6 +164,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                 _userProfile.value = profile
                 _isFollowing.value = profile.isFollowing
                 _isBlocked.value = profile.isBlocked
+                cacheAuthor(profile)
             } catch (error: Exception) {
                 _error.value = "Failed to load profile: ${error.message}"
             } finally {
@@ -163,21 +186,25 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
                     ProfileTab.POSTS -> {
                         val notes = grpcClient.getUserPosts(currentUserId, 0, 20)
                         _posts.value = notes
+                        notes.forEach { note -> if (note.authorId != currentUserId) resolveAuthor(note.authorId) }
                     }
                     
                     ProfileTab.REPLIES -> {
                         val notes = grpcClient.getUserReplies(currentUserId, 0, 20)
                         _replies.value = notes
+                        notes.forEach { note -> if (note.authorId != currentUserId) resolveAuthor(note.authorId) }
                     }
                     
                     ProfileTab.MEDIA -> {
                         val notes = grpcClient.getUserMedia(currentUserId, 0, 20)
                         _media.value = notes
+                        notes.forEach { note -> if (note.authorId != currentUserId) resolveAuthor(note.authorId) }
                     }
                     
                     ProfileTab.LIKES -> {
                         val notes = grpcClient.getUserLikes(currentUserId, 0, 20)
                         _likes.value = notes
+                        notes.forEach { note -> resolveAuthor(note.authorId) }
                     }
                 }
             } catch (error: Exception) {

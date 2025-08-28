@@ -151,7 +151,7 @@ private fun NotificationHeader(
             
             Spacer(modifier = Modifier.weight(1f))
             
-            HStack(spacing = 16.dp) {
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 // Unread count badge
                 if (unreadCount > 0) {
                     Button(
@@ -237,7 +237,7 @@ private fun NotificationFilterTab(
         ),
         shape = RoundedCornerShape(20.dp)
     ) {
-        HStack(spacing = 8.dp) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(
                 imageVector = getIconForFilter(filter.icon),
                 contentDescription = null,
@@ -307,9 +307,9 @@ private fun NotificationRow(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             // Title and message
-            VStack(
-                alignment = Alignment.Start,
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                horizontalAlignment = Alignment.Start
             ) {
                 Text(
                     text = notification.title,

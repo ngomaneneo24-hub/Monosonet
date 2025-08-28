@@ -82,6 +82,7 @@ fun MessagingView(
                     onStartVoiceRecording = { viewModel.startVoiceRecording() },
                     onStopVoiceRecording = { viewModel.stopVoiceRecording() },
                     onDeleteMessage = { viewModel.deleteMessage(it) },
+                    onReportMessage = { viewModel.reportMessage(it) },
                     onBack = { viewModel.backToConversationList() },
                     onAddMedia = { viewModel.addMedia(it) },
                     onRemoveMedia = { viewModel.removeMedia(it) }
@@ -339,6 +340,7 @@ fun ChatView(
     onStartVoiceRecording: () -> Unit,
     onStopVoiceRecording: () -> Unit,
     onDeleteMessage: (Message) -> Unit,
+    onReportMessage: (Message) -> Unit = {},
     onBack: () -> Unit,
     onAddMedia: (MediaItem) -> Unit,
     onRemoveMedia: (Int) -> Unit
@@ -361,7 +363,8 @@ fun ChatView(
             items(messages) { message ->
                 MessageBubble(
                     message = message,
-                    onDelete = { onDeleteMessage(message) }
+                    onDelete = { onDeleteMessage(message) },
+                    onReport = { onReportMessage(message) }
                 )
             }
             
@@ -480,9 +483,11 @@ fun ChatHeader(
 @Composable
 fun MessageBubble(
     message: Message,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onReport: () -> Unit = {}
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showReportDialog by remember { mutableStateOf(false) }
     
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -529,6 +534,13 @@ fun MessageBubble(
             
             // Message info
             MessageInfo(message = message)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (message.isFromCurrentUser) {
+                    TextButton(onClick = { showDeleteDialog = true }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                } else {
+                    TextButton(onClick = { showReportDialog = true }) { Text("Report", color = MaterialTheme.colorScheme.error) }
+                }
+            }
         }
         
         if (!message.isFromCurrentUser) {
@@ -554,6 +566,29 @@ fun MessageBubble(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+    // Report confirmation dialog
+    if (showReportDialog) {
+        AlertDialog(
+            onDismissRequest = { showReportDialog = false },
+            title = { Text("Report Message") },
+            text = { Text("Report this message for moderation?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onReport()
+                        showReportDialog = false
+                    }
+                ) {
+                    Text("Report")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReportDialog = false }) {
                     Text("Cancel")
                 }
             }

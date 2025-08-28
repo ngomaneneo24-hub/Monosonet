@@ -44,6 +44,7 @@ import java.util.*
 @Composable
 fun ProfileView(
     userId: String,
+    isOwnProfile: Boolean,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = viewModel()
 ) {
@@ -58,6 +59,7 @@ fun ProfileView(
     val isBlocked by viewModel.isBlocked.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+    val authorCache by viewModel.authorCache.collectAsState()
     
     // Load profile when view is created
     LaunchedEffect(userId) {
@@ -75,6 +77,7 @@ fun ProfileView(
                         profile = profile,
                         isFollowing = isFollowing,
                         isBlocked = isBlocked,
+                        isOwnProfile = isOwnProfile,
                         onFollowToggle = { viewModel.toggleFollow() },
                         onBlock = { viewModel.blockUser() },
                         onUnblock = { viewModel.unblockUser() }
@@ -92,13 +95,18 @@ fun ProfileView(
             
             // Tab Content
             item {
-                TabContent(
-                    selectedTab = selectedTab,
-                    posts = posts,
-                    replies = replies,
-                    media = media,
-                    likes = likes
-                )
+                val profile = userProfile
+                if (profile != null) {
+                    TabContent(
+                        selectedTab = selectedTab,
+                        posts = posts,
+                        replies = replies,
+                        media = media,
+                        likes = likes,
+                        authorProfile = profile,
+                        authorCache = authorCache
+                    )
+                }
             }
         }
         
@@ -119,6 +127,7 @@ private fun ProfileHeader(
     profile: UserProfile,
     isFollowing: Boolean,
     isBlocked: Boolean,
+    isOwnProfile: Boolean,
     onFollowToggle: () -> Unit,
     onBlock: () -> Unit,
     onUnblock: () -> Unit
@@ -132,6 +141,7 @@ private fun ProfileHeader(
             profile = profile,
             isFollowing = isFollowing,
             isBlocked = isBlocked,
+            isOwnProfile = isOwnProfile,
             onFollowToggle = onFollowToggle,
             onBlock = onBlock,
             onUnblock = onUnblock
@@ -208,6 +218,7 @@ private fun ProfileInfoView(
     profile: UserProfile,
     isFollowing: Boolean,
     isBlocked: Boolean,
+    isOwnProfile: Boolean,
     onFollowToggle: () -> Unit,
     onBlock: () -> Unit,
     onUnblock: () -> Unit
@@ -221,50 +232,67 @@ private fun ProfileInfoView(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
         ) {
-            HStack(
+            Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Message button
-                Surface(
-                    onClick = { /* Navigate to messages */ },
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center
+                if (isOwnProfile) {
+                    Button(
+                        onClick = { /* Navigate to edit profile */ },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
+                        shape = RoundedCornerShape(20.dp)
                     ) {
-                        Icon(
-                            imageVector = xyz.sonet.app.ui.AppIcons.Messages,
-                            contentDescription = "Message",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
+                        Text(
+                            text = "Edit Profile",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimary
                         )
                     }
-                }
-                
-                // Follow/Following button
-                Button(
-                    onClick = onFollowToggle,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isFollowing) {
-                            MaterialTheme.colorScheme.surfaceVariant
-                        } else {
-                            MaterialTheme.colorScheme.primary
+                } else {
+                    // Message button
+                    Surface(
+                        onClick = { /* Navigate to messages */ },
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = xyz.sonet.app.ui.AppIcons.Messages,
+                                contentDescription = "Message",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
-                    ),
-                    shape = RoundedCornerShape(20.dp)
-                ) {
-                    Text(
-                        text = if (isFollowing) "Following" else "Follow",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (isFollowing) {
-                            MaterialTheme.colorScheme.onSurface
-                        } else {
-                            MaterialTheme.colorScheme.onPrimary
-                        }
-                    )
+                    }
+                    
+                    // Follow/Following button
+                    Button(
+                        onClick = onFollowToggle,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isFollowing) {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            }
+                        ),
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Text(
+                            text = if (isFollowing) "Following" else "Follow",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isFollowing) {
+                                MaterialTheme.colorScheme.onSurface
+                            } else {
+                                MaterialTheme.colorScheme.onPrimary
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -319,7 +347,7 @@ private fun ProfileInfoView(
                     ),
                     modifier = Modifier.padding(0.dp)
                 ) {
-                    HStack(verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = profile.followingCount.toString(),
                             fontSize = 16.sp,
@@ -345,7 +373,7 @@ private fun ProfileInfoView(
                     ),
                     modifier = Modifier.padding(0.dp)
                 ) {
-                    HStack(verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = profile.followerCount.toString(),
                             fontSize = 16.sp,
@@ -510,19 +538,21 @@ private fun TabContent(
     posts: List<Note>,
     replies: List<Note>,
     media: List<Note>,
-    likes: List<Note>
+    likes: List<Note>,
+    authorProfile: UserProfile,
+    authorCache: Map<String, UserProfile>
 ) {
     when (selectedTab) {
-        ProfileViewModel.ProfileTab.POSTS -> ProfilePostsView(posts = posts)
-        ProfileViewModel.ProfileTab.REPLIES -> ProfileRepliesView(replies = replies)
-        ProfileViewModel.ProfileTab.MEDIA -> ProfileMediaView(media = media)
-        ProfileViewModel.ProfileTab.LIKES -> ProfileLikesView(likes = likes)
+        ProfileViewModel.ProfileTab.POSTS -> ProfilePostsView(posts = posts, authorCache = authorCache)
+        ProfileViewModel.ProfileTab.REPLIES -> ProfileRepliesView(replies = replies, authorCache = authorCache)
+        ProfileViewModel.ProfileTab.MEDIA -> ProfileMediaView(media = media, authorCache = authorCache)
+        ProfileViewModel.ProfileTab.LIKES -> ProfileLikesView(likes = likes, authorCache = authorCache)
     }
 }
 
 // MARK: - Profile Posts View
 @Composable
-private fun ProfilePostsView(posts: List<Note>) {
+private fun ProfilePostsView(posts: List<Note>, authorCache: Map<String, UserProfile>) {
     if (posts.isEmpty()) {
         EmptyStateView(
             icon = "bubble_left",
@@ -532,7 +562,7 @@ private fun ProfilePostsView(posts: List<Note>) {
     } else {
         LazyColumn {
             items(posts) { post ->
-                ProfileNoteRow(note = post)
+                ProfileNoteRow(note = post, authorCache = authorCache)
             }
         }
     }
@@ -540,7 +570,7 @@ private fun ProfilePostsView(posts: List<Note>) {
 
 // MARK: - Profile Replies View
 @Composable
-private fun ProfileRepliesView(replies: List<Note>) {
+private fun ProfileRepliesView(replies: List<Note>, authorCache: Map<String, UserProfile>) {
     if (replies.isEmpty()) {
         EmptyStateView(
             icon = "arrowshape_turn_up_left",
@@ -550,7 +580,7 @@ private fun ProfileRepliesView(replies: List<Note>) {
     } else {
         LazyColumn {
             items(replies) { reply ->
-                ProfileNoteRow(note = reply)
+                ProfileNoteRow(note = reply, authorCache = authorCache)
             }
         }
     }
@@ -558,7 +588,7 @@ private fun ProfileRepliesView(replies: List<Note>) {
 
 // MARK: - Profile Media View
 @Composable
-private fun ProfileMediaView(media: List<Note>) {
+private fun ProfileMediaView(media: List<Note>, authorCache: Map<String, UserProfile>) {
     if (media.isEmpty()) {
         EmptyStateView(
             icon = "photo",
@@ -568,7 +598,7 @@ private fun ProfileMediaView(media: List<Note>) {
     } else {
         LazyColumn {
             items(media) { mediaNote ->
-                ProfileNoteRow(note = mediaNote)
+                ProfileNoteRow(note = mediaNote, authorCache = authorCache)
             }
         }
     }
@@ -576,7 +606,7 @@ private fun ProfileMediaView(media: List<Note>) {
 
 // MARK: - Profile Likes View
 @Composable
-private fun ProfileLikesView(likes: List<Note>) {
+private fun ProfileLikesView(likes: List<Note>, authorCache: Map<String, UserProfile>) {
     if (likes.isEmpty()) {
         EmptyStateView(
             icon = "heart",
@@ -586,7 +616,7 @@ private fun ProfileLikesView(likes: List<Note>) {
     } else {
         LazyColumn {
             items(likes) { likedNote ->
-                ProfileNoteRow(note = likedNote)
+                ProfileNoteRow(note = likedNote, authorCache = authorCache)
             }
         }
     }
@@ -594,7 +624,7 @@ private fun ProfileLikesView(likes: List<Note>) {
 
 // MARK: - Profile Note Row
 @Composable
-private fun ProfileNoteRow(note: Note) {
+private fun ProfileNoteRow(note: Note, authorCache: Map<String, UserProfile>) {
     var isPressed by remember { mutableStateOf(false) }
     var isLiked by remember { mutableStateOf(note.engagement.isLiked) }
     var isReposted by remember { mutableStateOf(note.engagement.isReposted) }
@@ -617,20 +647,36 @@ private fun ProfileNoteRow(note: Note) {
             modifier = Modifier.fillMaxWidth()
         ) {
             // Author avatar
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center
+            val author = authorCache[note.authorId]
+            if (author?.avatarUrl?.isNotEmpty() == true) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(author.avatarUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Author avatar",
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop,
+                    error = {
+                        Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.size(32.dp)) {}
+                    }
+                )
+            } else {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.size(32.dp)
                 ) {
-                    Icon(
-                        imageVector = xyz.sonet.app.ui.AppIcons.Profile,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = xyz.sonet.app.ui.AppIcons.Profile,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
             
@@ -638,8 +684,9 @@ private fun ProfileNoteRow(note: Note) {
             
             // Author info
             Column {
+                val authorName = author?.displayName ?: author?.username ?: note.authorId
                 Text(
-                    text = "User", // This would come from a separate user lookup
+                    text = authorName,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
