@@ -26,6 +26,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.rememberAsyncImagePainter
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.background
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.DisposableEffect
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem as ExoMediaItem
@@ -269,7 +272,20 @@ fun NoteCard(note: SonetNote) {
             
             // Media carousel (full-bleed)
             if (note.media != null && note.media.isNotEmpty()) {
-                MediaCarousel(media = note.media)
+                var showLightbox by remember { mutableStateOf(false) }
+                var startIndex by remember { mutableStateOf(0) }
+                val mediaList = note.media
+                MediaCarousel(media = mediaList!!) { tappedIndex ->
+                    startIndex = tappedIndex
+                    showLightbox = true
+                }
+                if (showLightbox) {
+                    Dialog(onDismissRequest = { showLightbox = false }) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            MediaLightbox(media = mediaList, startIndex = startIndex) { showLightbox = false }
+                        }
+                    }
+                }
             }
             
             // Action Buttons
@@ -443,7 +459,7 @@ enum class MediaType {
 }
 
 @Composable
-private fun MediaCarousel(media: List<MediaItem>) {
+private fun MediaCarousel(media: List<MediaItem>, onOpen: (Int) -> Unit = {}) {
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { media.size })
     Column(modifier = Modifier.fillMaxWidth()) {
         HorizontalPager(
@@ -453,14 +469,16 @@ private fun MediaCarousel(media: List<MediaItem>) {
                 .height(300.dp)
         ) { page ->
             val item = media[page]
-            when (item.type) {
-                MediaType.VIDEO -> VideoPage(url = item.url)
-                else -> Image(
-                    painter = rememberAsyncImagePainter(item.url),
-                    contentDescription = item.altText,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+            Box(modifier = Modifier.fillMaxSize().clickable { onOpen(page) }) {
+                when (item.type) {
+                    MediaType.VIDEO -> VideoPage(url = item.url)
+                    else -> Image(
+                        painter = rememberAsyncImagePainter(item.url),
+                        contentDescription = item.altText,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
             }
         }
 
@@ -489,7 +507,7 @@ private fun MediaCarousel(media: List<MediaItem>) {
 }
 
 @Composable
-private fun VideoPage(url: String) {
+private fun VideoPage(url: String, onClick: () -> Unit = {}) {
     val context = LocalContext.current
     val exoPlayer = remember(url) {
         ExoPlayer.Builder(context).build().apply {
@@ -524,4 +542,47 @@ private fun VideoPage(url: String) {
             }
         }
     )
+}
+
+// Full-screen lightbox
+@Composable
+private fun MediaLightbox(
+    media: List<MediaItem>,
+    startIndex: Int,
+    onDismiss: () -> Unit
+) {
+    var index by remember { mutableStateOf(startIndex) }
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+        HorizontalPager(
+            state = rememberPagerState(initialPage = startIndex, pageCount = { media.size }),
+            modifier = Modifier.fillMaxSize()
+        ) { page ->
+            val item = media[page]
+            when (item.type) {
+                MediaType.VIDEO -> VideoPage(url = item.url)
+                else -> Image(
+                    painter = rememberAsyncImagePainter(item.url),
+                    contentDescription = item.altText,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+
+        // Centered overlay actions placeholder (reuse post actions outside this scope if needed)
+        Row(
+            modifier = Modifier.align(Alignment.Center).background(MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.35f)).padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            Icon(imageVector = Icons.Default.FavoriteBorder, contentDescription = null, tint = MaterialTheme.colorScheme.onInverseSurface)
+            Icon(imageVector = Icons.Default.ChatBubbleOutline, contentDescription = null, tint = MaterialTheme.colorScheme.onInverseSurface)
+            Icon(imageVector = Icons.Default.Reply, contentDescription = null, tint = MaterialTheme.colorScheme.onInverseSurface)
+            Icon(imageVector = Icons.Default.Share, contentDescription = null, tint = MaterialTheme.colorScheme.onInverseSurface)
+        }
+
+        IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopStart).padding(16.dp)) {
+            Icon(imageVector = Icons.Default.Close, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+        }
+    }
 }

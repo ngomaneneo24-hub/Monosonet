@@ -167,7 +167,33 @@ struct NoteCard: View {
             // Media (if any)
             if !note.media.isEmpty {
                 // Full-bleed carousel
-                MediaCarouselView(media: note.media)
+                MediaCarouselView(media: note.media) {
+                    // Reuse the same actions layout inside lightbox
+                    HStack(spacing: 20) {
+                        Button(action: { /* Like */ }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "heart").font(.system(size: 20))
+                                Text("\(note.likeCount)")
+                            }
+                        }
+                        Button(action: { /* Reply */ }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "message").font(.system(size: 20))
+                                Text("\(note.replyCount)")
+                            }
+                        }
+                        Button(action: { /* Repost */ }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.2.squarepath").font(.system(size: 20))
+                                Text("\(note.repostCount)")
+                            }
+                        }
+                        Button(action: { /* Share */ }) {
+                            Image(systemName: "square.and.arrow.up").font(.system(size: 20))
+                        }
+                    }
+                    .foregroundColor(.white)
+                }
             }
             
             // Actions
@@ -241,10 +267,12 @@ struct NoteCard: View {
 // MARK: - Media Carousel View
 import AVKit
 
-struct MediaCarouselView: View {
+struct MediaCarouselView<Overlay: View>: View {
     let media: [MediaItem]
+    var overlayContent: (() -> Overlay)? = nil
 
     @State private var currentIndex: Int = 0
+    @State private var isPresentingLightbox: Bool = false
 
     var body: some View {
         VStack(spacing: 8) {
@@ -256,6 +284,9 @@ struct MediaCarouselView: View {
                         .aspectRatio(1, contentMode: .fit)
                         .clipped()
                         .tag(index)
+                        .onTapGesture {
+                            isPresentingLightbox = true
+                        }
                 }
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
@@ -276,6 +307,9 @@ struct MediaCarouselView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 0)
+        .fullScreenCover(isPresented: $isPresentingLightbox) {
+            LightboxView(media: media, startIndex: currentIndex, overlayContent: overlayContent)
+        }
     }
 }
 
@@ -331,6 +365,59 @@ private struct MediaPage: View {
                 Color.gray.opacity(0.1)
             }
         }
+    }
+}
+
+// MARK: - Lightbox
+private struct LightboxView<Overlay: View>: View {
+    let media: [MediaItem]
+    let startIndex: Int
+    var overlayContent: (() -> Overlay)? = nil
+    @Environment(\.dismiss) private var dismiss
+    @State private var index: Int = 0
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            TabView(selection: $index) {
+                ForEach(Array(media.enumerated()), id: \\.0) { i, item in
+                    MediaPage(item: item)
+                        .ignoresSafeArea()
+                        .tag(i)
+                }
+            }
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+
+            // Centered overlay actions
+            if let overlay = overlayContent?() {
+                VStack {
+                    Spacer()
+                    overlay
+                        .padding(12)
+                        .background(Color.black.opacity(0.35))
+                        .clipShape(Capsule())
+                    Spacer()
+                }
+            }
+
+            // Close button
+            VStack {
+                HStack {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark")
+                            .foregroundColor(.white)
+                            .padding(10)
+                            .background(Color.black.opacity(0.4))
+                            .clipShape(Circle())
+                    }
+                    Spacer()
+                }
+                Spacer()
+            }
+            .padding()
+        }
+        .onAppear { index = startIndex }
     }
 }
 
