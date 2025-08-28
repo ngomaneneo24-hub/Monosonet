@@ -182,6 +182,7 @@ dependencies {
     // Compose pager and Coil for image loading
     implementation("androidx.compose.foundation:foundation:1.6.8")
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("com.google.android.exoplayer:exoplayer:2.19.1")
 }
 
 apply plugin: 'com.google.gms.google-services'

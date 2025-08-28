@@ -239,6 +239,8 @@ struct NoteCard: View {
 }
 
 // MARK: - Media Carousel View
+import AVKit
+
 struct MediaCarouselView: View {
     let media: [MediaItem]
 
@@ -249,22 +251,11 @@ struct MediaCarouselView: View {
             // Full-bleed pager
             TabView(selection: $currentIndex) {
                 ForEach(Array(media.enumerated()), id: \._0) { index, item in
-                    ZStack {
-                        Color.black.opacity(0.03)
-                        // Images for now; videos can be integrated with AVPlayer later
-                        AsyncImage(url: URL(string: item.url)) { image in
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        } placeholder: {
-                            ProgressView()
-                                .progressViewStyle(.circular)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .aspectRatio(1, contentMode: .fit)
-                    .clipped()
-                    .tag(index)
+                    MediaPage(item: item)
+                        .frame(maxWidth: .infinity)
+                        .aspectRatio(1, contentMode: .fit)
+                        .clipped()
+                        .tag(index)
                 }
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
@@ -285,6 +276,59 @@ struct MediaCarouselView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 0)
+    }
+}
+
+private struct MediaPage: View {
+    let item: MediaItem
+    @State private var player: AVPlayer?
+    @State private var isPlaying: Bool = false
+
+    var body: some View {
+        Group {
+            if item.type == .video, let url = URL(string: item.url) {
+                ZStack {
+                    VideoPlayer(player: player)
+                        .onAppear {
+                            if player == nil {
+                                let p = AVPlayer(url: url)
+                                p.actionAtItemEnd = .none
+                                player = p
+                                player?.play()
+                                isPlaying = true
+                                NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: p.currentItem, queue: .main) { _ in
+                                    p.seek(to: .zero)
+                                    p.play()
+                                }
+                            } else {
+                                player?.play()
+                                isPlaying = true
+                            }
+                        }
+                        .onDisappear {
+                            player?.pause()
+                            isPlaying = false
+                        }
+
+                    // Minimal overlay control (tap to pause/play)
+                    Color.clear.contentShape(Rectangle())
+                        .onTapGesture {
+                            if isPlaying { player?.pause() } else { player?.play() }
+                            isPlaying.toggle()
+                        }
+                }
+            } else if let url = URL(string: item.url) {
+                AsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .scaledToFill()
+                } placeholder: {
+                    ProgressView().progressViewStyle(.circular)
+                }
+            } else {
+                Color.gray.opacity(0.1)
+            }
+        }
     }
 }
 

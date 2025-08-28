@@ -26,6 +26,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.rememberAsyncImagePainter
 import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.DisposableEffect
+import com.google.android.exoplayer2.ExoPlayer
+import com.google.android.exoplayer2.MediaItem as ExoMediaItem
+import androidx.compose.ui.viewinterop.AndroidView
+import com.google.android.exoplayer2.ui.PlayerView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -448,13 +453,15 @@ private fun MediaCarousel(media: List<MediaItem>) {
                 .height(300.dp)
         ) { page ->
             val item = media[page]
-            // Images for now; videos can be integrated with ExoPlayer later
-            Image(
-                painter = rememberAsyncImagePainter(item.url),
-                contentDescription = item.altText,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+            when (item.type) {
+                MediaType.VIDEO -> VideoPage(url = item.url)
+                else -> Image(
+                    painter = rememberAsyncImagePainter(item.url),
+                    contentDescription = item.altText,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
 
         // Indicator aligned to media left edge
@@ -479,4 +486,33 @@ private fun MediaCarousel(media: List<MediaItem>) {
             Spacer(modifier = Modifier.weight(1f))
         }
     }
+}
+
+@Composable
+private fun VideoPage(url: String) {
+    val context = LocalContext.current
+    val exoPlayer = remember(url) {
+        ExoPlayer.Builder(context).build().apply {
+            repeatMode = ExoPlayer.REPEAT_MODE_ALL
+            setMediaItem(ExoMediaItem.fromUri(url))
+            prepare()
+            playWhenReady = true
+        }
+    }
+
+    DisposableEffect(exoPlayer) {
+        onDispose {
+            exoPlayer.release()
+        }
+    }
+
+    AndroidView(
+        modifier = Modifier.fillMaxSize(),
+        factory = { ctx ->
+            PlayerView(ctx).apply {
+                useController = false
+                player = exoPlayer
+            }
+        }
+    )
 }
