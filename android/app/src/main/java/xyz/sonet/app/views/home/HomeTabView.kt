@@ -44,6 +44,7 @@ fun HomeTabView(
     themeViewModel: ThemeViewModel
 ) {
     val homeViewModel = androidx.lifecycle.viewmodel.compose.viewModel<HomeViewModel>()
+    val currentUser by sessionViewModel.currentUser.collectAsState()
     
     Column(
         modifier = Modifier.fillMaxSize()
@@ -78,7 +79,8 @@ fun HomeTabView(
                     },
                     onLoadMore = {
                         homeViewModel.loadMoreNotes()
-                    }
+                    },
+                    currentUserId = currentUser?.id
                 )
             }
         }
@@ -162,14 +164,15 @@ fun FeedView(
     feed: FeedType,
     notes: List<SonetNote>,
     onRefresh: () -> Unit,
-    onLoadMore: () -> Unit
+    onLoadMore: () -> Unit,
+    currentUserId: String?
 ) {
     LazyColumn(
         contentPadding = PaddingValues(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(notes) { note ->
-            NoteCard(note = note)
+            NoteCard(note = note, currentUserId = currentUserId)
         }
         
         // Load More Button
@@ -188,7 +191,7 @@ fun FeedView(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NoteCard(note: SonetNote) {
+fun NoteCard(note: SonetNote, currentUserId: String?) {
     var isLiked by remember { mutableStateOf(false) }
     var isReposted by remember { mutableStateOf(false) }
     
@@ -256,7 +259,7 @@ fun NoteCard(note: SonetNote) {
                             Icon(imageVector = AppIcons.More, contentDescription = "More options", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                            val isOwn = false // TODO: pass current user id and compare with note.author.id
+                            val isOwn = currentUserId != null && currentUserId == note.author.id
                             if (isOwn) {
                                 DropdownMenuItem(text = { Text("Edit") }, onClick = { showMenu = false })
                                 DropdownMenuItem(text = { Text("Delete", color = MaterialTheme.colorScheme.error) }, onClick = { showMenu = false })
