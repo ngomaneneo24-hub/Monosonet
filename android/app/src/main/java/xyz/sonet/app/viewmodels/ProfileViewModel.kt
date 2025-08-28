@@ -48,6 +48,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     // MARK: - Private Properties
     private val grpcClient = SonetGRPCClient(application, SonetConfiguration.development)
     private var userId: String? = null
+    private val sessionViewModel: SessionViewModel = SessionViewModel(application)
     
     // MARK: - Profile Tabs
     enum class ProfileTab(val title: String, val icon: String) {
@@ -71,6 +72,7 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
     
     fun toggleFollow() {
         val profile = _userProfile.value ?: return
+        if (profile.userId == sessionViewModel.currentUser.value?.id) return
         
         viewModelScope.launch {
             try {

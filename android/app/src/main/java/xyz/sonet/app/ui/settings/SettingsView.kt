@@ -229,7 +229,7 @@ fun ProfileSection(userProfile: UserProfile?) {
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            HStack(spacing = 16.dp) {
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(userProfile?.avatarUrl ?: "")

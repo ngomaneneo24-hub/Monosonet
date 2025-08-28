@@ -221,50 +221,68 @@ private fun ProfileInfoView(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
         ) {
-            HStack(
+            Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Message button
-                Surface(
-                    onClick = { /* Navigate to messages */ },
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center
+                val isOwnProfile = profile.userId == xyz.sonet.app.viewmodels.SessionViewModel(LocalContext.current as android.app.Application).currentUser.value?.id
+                if (isOwnProfile) {
+                    Button(
+                        onClick = { /* Navigate to edit profile */ },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
+                        shape = RoundedCornerShape(20.dp)
                     ) {
-                        Icon(
-                            imageVector = xyz.sonet.app.ui.AppIcons.Messages,
-                            contentDescription = "Message",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
+                        Text(
+                            text = "Edit Profile",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimary
                         )
                     }
-                }
-                
-                // Follow/Following button
-                Button(
-                    onClick = onFollowToggle,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isFollowing) {
-                            MaterialTheme.colorScheme.surfaceVariant
-                        } else {
-                            MaterialTheme.colorScheme.primary
+                } else {
+                    // Message button
+                    Surface(
+                        onClick = { /* Navigate to messages */ },
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Box(
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = xyz.sonet.app.ui.AppIcons.Messages,
+                                contentDescription = "Message",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
-                    ),
-                    shape = RoundedCornerShape(20.dp)
-                ) {
-                    Text(
-                        text = if (isFollowing) "Following" else "Follow",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (isFollowing) {
-                            MaterialTheme.colorScheme.onSurface
-                        } else {
-                            MaterialTheme.colorScheme.onPrimary
-                        }
-                    )
+                    }
+                    
+                    // Follow/Following button
+                    Button(
+                        onClick = onFollowToggle,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isFollowing) {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            }
+                        ),
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Text(
+                            text = if (isFollowing) "Following" else "Follow",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isFollowing) {
+                                MaterialTheme.colorScheme.onSurface
+                            } else {
+                                MaterialTheme.colorScheme.onPrimary
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -319,7 +337,7 @@ private fun ProfileInfoView(
                     ),
                     modifier = Modifier.padding(0.dp)
                 ) {
-                    HStack(verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = profile.followingCount.toString(),
                             fontSize = 16.sp,
@@ -345,7 +363,7 @@ private fun ProfileInfoView(
                     ),
                     modifier = Modifier.padding(0.dp)
                 ) {
-                    HStack(verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = profile.followerCount.toString(),
                             fontSize = 16.sp,

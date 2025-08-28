@@ -8,6 +8,7 @@ fun ProfileTabView(
     sessionViewModel: xyz.sonet.app.viewmodels.SessionViewModel,
     themeViewModel: xyz.sonet.app.viewmodels.ThemeViewModel
 ) {
-    // For now, show a demo profile. In a real app, this would be the current user's ID
-    ProfileView(userId = "demo_user_123")
+    val currentUser = sessionViewModel.currentUser.collectAsState().value
+    val userId = currentUser?.id ?: ""
+    ProfileView(userId = userId)
 }

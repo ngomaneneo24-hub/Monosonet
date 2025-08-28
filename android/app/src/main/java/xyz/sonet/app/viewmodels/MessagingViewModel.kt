@@ -71,7 +71,7 @@ class MessagingViewModel(application: Application) : AndroidViewModel(applicatio
     private var messageStream: kotlinx.coroutines.Job? = null
     private var typingJob: kotlinx.coroutines.Job? = null
     private var voiceRecordingJob: kotlinx.coroutines.Job? = null
-    private val currentUserId = "demo_user_123" // This would come from auth
+    private val currentUserId = SessionViewModel(getApplication()).currentUser.value?.id ?: ""
     
     // MARK: - Initialization
     init {
@@ -87,7 +87,7 @@ class MessagingViewModel(application: Application) : AndroidViewModel(applicatio
             
             try {
                 val response = grpcClient.getConversations(page = 0, pageSize = 50)
-                _conversations.value = response.conversationsList.map { Conversation.from(it) }
+                _conversations.value = response.conversationsList.map { Conversation.from(it, currentUserId) }
                 applySearchFilter()
             } catch (e: Exception) {
                 _error.value = "Failed to load conversations: ${e.localizedMessage}"
@@ -323,7 +323,7 @@ class MessagingViewModel(application: Application) : AndroidViewModel(applicatio
             val conversation = updatedConversations[index]
             updatedConversations[index] = conversation.copy(
                 lastMessage = newMessage,
-                lastMessageTime = Date(message.lastMessageTime.seconds * 1000),
+                lastMessageTime = Date(message.timestamp.seconds * 1000),
                 unreadCount = conversation.unreadCount + if (message.isRead) 0 else 1
             )
             
@@ -405,13 +405,13 @@ data class Conversation(
     val isOnline: Boolean
 ) {
     companion object {
-        fun from(grpcConversation: xyz.sonet.app.grpc.proto.Conversation): Conversation {
+        fun from(grpcConversation: xyz.sonet.app.grpc.proto.Conversation, currentUserId: String): Conversation {
             return Conversation(
                 id = grpcConversation.conversationId,
                 name = grpcConversation.name,
                 type = ConversationType.from(grpcConversation.type),
                 participants = grpcConversation.participantsList.map { UserProfile.from(it) },
-                lastMessage = if (grpcConversation.hasLastMessage()) Message.from(grpcConversation.lastMessage, "") else null,
+                lastMessage = if (grpcConversation.hasLastMessage()) Message.from(grpcConversation.lastMessage, currentUserId) else null,
                 lastMessageTime = Date(grpcConversation.lastMessageTime.seconds * 1000),
                 unreadCount = grpcConversation.unreadCount,
                 isGroup = grpcConversation.type == ConversationType.CONVERSATION_TYPE_GROUP,

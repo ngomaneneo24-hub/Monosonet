@@ -50,7 +50,7 @@ class MessagingViewModel: ObservableObject {
             do {
                 let response = try await grpcClient.getConversations(page: 0, pageSize: 50)
                 await MainActor.run {
-                    self.conversations = response.conversations.map { Conversation(from: $0) }
+                    self.conversations = response.conversations.map { Conversation(from: $0, currentUserId: self.currentUserId) }
                     self.applySearchFilter()
                 }
             } catch {
@@ -370,12 +370,12 @@ struct Conversation: Identifiable {
     let groupAvatar: String?
     let isOnline: Bool
     
-    init(from grpcConversation: xyz.sonet.app.grpc.proto.Conversation) {
+    init(from grpcConversation: xyz.sonet.app.grpc.proto.Conversation, currentUserId: String) {
         self.id = grpcConversation.conversationId
         self.name = grpcConversation.name
         self.type = ConversationType(from: grpcConversation.type)
         self.participants = grpcConversation.participantsList.map { UserProfile(from: $0) }
-        self.lastMessage = grpcConversation.hasLastMessage ? Message(from: grpcConversation.lastMessage, currentUserId: "") : nil
+        self.lastMessage = grpcConversation.hasLastMessage ? Message(from: grpcConversation.lastMessage, currentUserId: currentUserId) : nil
         self.lastMessageTime = Date(timeIntervalSince1970: TimeInterval(grpcConversation.lastMessageTime.seconds))
         self.unreadCount = Int(grpcConversation.unreadCount)
         self.isGroup = grpcConversation.type == .CONVERSATION_TYPE_GROUP
