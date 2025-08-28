@@ -469,12 +469,12 @@ private fun MediaItemView(
             Icon(
                 imageVector = Icons.Default.Close,
                 contentDescription = "Remove",
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier
                     .size(20.dp)
                     .background(
                         CircleShape,
-                        Color.Black.copy(alpha = 0.6f)
+                        MaterialTheme.colorScheme.background.copy(alpha = 0.6f)
                     )
             )
         }
@@ -587,13 +587,13 @@ private fun MentionChip(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(Color.Blue.copy(alpha = 0.1f))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Text(
             text = mention,
             fontSize = 12.sp,
-            color = Color.Blue
+            color = MaterialTheme.colorScheme.primary
         )
         
         Spacer(modifier = Modifier.width(6.dp))
@@ -621,14 +621,14 @@ private fun SchedulingInfoView(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFFF8C00).copy(alpha = 0.1f))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = Icons.Default.Schedule,
             contentDescription = null,
-            tint = Color(0xFFFF8C00),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(16.dp)
         )
         
@@ -649,7 +649,7 @@ private fun SchedulingInfoView(
             Text(
                 text = "Cancel",
                 fontSize = 12.sp,
-                color = Color.Red
+                color = MaterialTheme.colorScheme.primary
             )
         }
     }
@@ -661,14 +661,14 @@ private fun ErrorMessageView(error: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.Red.copy(alpha = 0.1f))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = Icons.Default.Warning,
             contentDescription = null,
-            tint = Color.Red,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(16.dp)
         )
         
@@ -677,7 +677,7 @@ private fun ErrorMessageView(error: String) {
         Text(
             text = error,
             fontSize = 12.sp,
-            color = Color.Red
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }

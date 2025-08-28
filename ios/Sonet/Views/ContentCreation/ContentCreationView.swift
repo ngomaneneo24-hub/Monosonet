@@ -123,7 +123,7 @@ struct ContentCreationHeader: View {
                 if isPosting {
                     ProgressView()
                         .scaleEffect(0.8)
-                        .foregroundColor(.white)
+                        .foregroundColor(.accentColor)
                 } else {
                     Text("Post")
                         .fontWeight(.semibold)
@@ -135,12 +135,12 @@ struct ContentCreationHeader: View {
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(canPost ? Color.accentColor : Color(.systemGray4))
+                    .fill(canPost ? Color.accentColor : Color.secondary.opacity(0.3))
             )
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(Color(.systemBackground))
+        .background(Color(UIColor.systemBackground))
         .overlay(
             Rectangle()
                 .fill(Color(.separator))
@@ -159,11 +159,11 @@ struct ReplyContextView: View {
             // Reply indicator
             VStack(spacing: 0) {
                 Circle()
-                    .fill(Color(.systemGray4))
+                    .fill(Color.secondary.opacity(0.3))
                     .frame(width: 8, height: 8)
                 
                 Rectangle()
-                    .fill(Color(.systemGray4))
+                    .fill(Color.secondary.opacity(0.3))
                     .frame(width: 2)
                     .frame(maxHeight: .infinity)
             }
@@ -184,7 +184,7 @@ struct ReplyContextView: View {
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
-        .background(Color(.systemGray6))
+        .background(Color(UIColor.systemGray6))
         .cornerRadius(12)
     }
 }
@@ -198,11 +198,11 @@ struct QuoteContextView: View {
             // Quote indicator
             VStack(spacing: 0) {
                 Circle()
-                    .fill(Color(.systemGray4))
+                    .fill(Color.secondary.opacity(0.3))
                     .frame(width: 8, height: 8)
                 
                 Rectangle()
-                    .fill(Color(.systemGray4))
+                    .fill(Color.secondary.opacity(0.3))
                     .frame(width: 2)
                     .frame(maxHeight: .infinity)
             }
@@ -223,7 +223,7 @@ struct QuoteContextView: View {
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
-        .background(Color(.systemGray6))
+        .background(Color(UIColor.systemGray6))
         .cornerRadius(12)
     }
 }
@@ -323,7 +323,7 @@ struct MediaItemView: View {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 20))
                     .foregroundColor(.white)
-                    .background(Circle().fill(Color.black.opacity(0.6)))
+                    .background(Circle().fill(Color.primary.opacity(0.6)))
             }
             .padding(8)
         }
@@ -413,7 +413,7 @@ struct MentionChip: View {
         HStack(spacing: 6) {
             Text(mention)
                 .font(.caption)
-                .foregroundColor(.blue)
+                .foregroundColor(.accentColor)
             
             Button(action: onRemove) {
                 Image(systemName: "xmark.circle.fill")
@@ -425,7 +425,7 @@ struct MentionChip: View {
         .padding(.vertical, 4)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.blue.opacity(0.1))
+                .fill(Color.accentColor.opacity(0.1))
         )
     }
 }
@@ -452,7 +452,7 @@ struct SchedulingInfoView: View {
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
-        .background(Color.orange.opacity(0.1))
+        .background(Color.secondary.opacity(0.1))
         .cornerRadius(8)
     }
 }
@@ -474,7 +474,7 @@ struct ErrorMessageView: View {
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
-        .background(Color.red.opacity(0.1))
+        .background(Color.primary.opacity(0.08))
         .cornerRadius(8)
     }
 }
@@ -525,7 +525,7 @@ struct ContentCreationToolbar: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(Color(.systemBackground))
+            .background(Color(UIColor.systemBackground))
             .overlay(
                 Rectangle()
                     .fill(Color(.separator))
@@ -579,7 +579,7 @@ struct SuggestionsOverlay: View {
                 )
             }
         }
-        .background(Color(.systemBackground))
+        .background(Color(UIColor.systemBackground))
         .cornerRadius(12)
         .shadow(radius: 8)
         .padding(.horizontal, 16)

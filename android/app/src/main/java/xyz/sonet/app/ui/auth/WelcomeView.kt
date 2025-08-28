@@ -65,9 +65,9 @@ fun WelcomeView(
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
-                            Color.Blue.copy(alpha = 0.8f),
-                            Color(0xFF9C27B0).copy(alpha = 0.6f),
-                            Color(0xFFFF9800).copy(alpha = 0.4f)
+                            MaterialTheme.colorScheme.background,
+                            MaterialTheme.colorScheme.surface,
+                            MaterialTheme.colorScheme.background
                         ),
                         start = if (gradientAnimation < 0.5f) 
                             androidx.compose.ui.geometry.Offset(0f, 0f)
@@ -102,7 +102,7 @@ fun WelcomeView(
                     modifier = Modifier
                         .size(120.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.2f)),
+                        .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -111,7 +111,7 @@ fun WelcomeView(
                         modifier = Modifier
                             .size(60.dp)
                             .scale(scaleAnimation),
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
                 
@@ -120,7 +120,7 @@ fun WelcomeView(
                     text = "Sonet",
                     fontSize = 48.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 
                 // Tagline
@@ -128,7 +128,7 @@ fun WelcomeView(
                     text = "Connect. Share. Discover.",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color.White.copy(alpha = 0.9f),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.9f),
                     textAlign = TextAlign.Center
                 )
             }
@@ -170,7 +170,7 @@ fun WelcomeView(
                         .height(64.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White
+                        containerColor = MaterialTheme.colorScheme.onBackground
                     )
                 ) {
                     Row(
@@ -181,13 +181,13 @@ fun WelcomeView(
                             text = "Get Started",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color.Blue
+                            color = MaterialTheme.colorScheme.background
                         )
                         
                         Icon(
                             imageVector = Icons.Default.ArrowForward,
                             contentDescription = "Get Started",
-                            tint = Color.Blue
+                            tint = MaterialTheme.colorScheme.background
                         )
                     }
                 }
@@ -201,7 +201,7 @@ fun WelcomeView(
                         text = "Already have an account? Sign In",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
             }
@@ -223,12 +223,12 @@ fun FeatureRow(
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 16.dp)
             .background(
-                color = Color.White.copy(alpha = 0.1f),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f),
                 shape = RoundedCornerShape(16.dp)
             )
             .border(
                 width = 1.dp,
-                color = Color.White.copy(alpha = 0.2f),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
                 shape = RoundedCornerShape(16.dp)
             ),
         verticalAlignment = Alignment.CenterVertically,
@@ -239,14 +239,14 @@ fun FeatureRow(
             modifier = Modifier
                 .size(50.dp)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.2f)),
+                .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = title,
                 modifier = Modifier.size(24.dp),
-                tint = Color.White
+                tint = MaterialTheme.colorScheme.onBackground
             )
         }
         
@@ -259,13 +259,13 @@ fun FeatureRow(
                 text = title,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onBackground
             )
             
             Text(
                 text = description,
                 fontSize = 14.sp,
-                color = Color.White.copy(alpha = 0.8f),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                 textAlign = TextAlign.Start
             )
         }

@@ -92,9 +92,9 @@ class ContentCreationViewModel(application: Application) : AndroidViewModel(appl
     
     val characterCountColor: androidx.compose.ui.graphics.Color
         get() = when {
-            remainingCharacters < 0 -> androidx.compose.ui.graphics.Color.Red
-            remainingCharacters <= 20 -> androidx.compose.ui.graphics.Color(0xFFFF8C00) // Orange
-            else -> androidx.compose.ui.graphics.Color.Gray
+            remainingCharacters < 0 -> androidx.compose.ui.graphics.Color(0xFFDD3333)
+            remainingCharacters <= 20 -> androidx.compose.ui.graphics.Color(0xFF888888)
+            else -> androidx.compose.ui.graphics.Color(0xFF6B6B6B)
         }
     
     // MARK: - Initialization

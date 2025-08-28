@@ -1209,11 +1209,11 @@ fun MediaPreviewGrid(
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Remove",
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier
                             .size(16.dp)
                             .background(
-                                color = Color.Black.copy(alpha = 0.6f),
+                                color = MaterialTheme.colorScheme.background.copy(alpha = 0.6f),
                                 shape = CircleShape
                             )
                     )
