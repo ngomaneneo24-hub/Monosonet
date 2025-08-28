@@ -389,40 +389,25 @@ private struct LightboxView: View {
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
 
-            // Centered overlay actions with per-media like
+            // Bottom-centered heart only
             VStack {
                 Spacer()
-                HStack(spacing: 24) {
-                    let current = media[index]
-                    let likeState = perMediaLikes[current.id] ?? (false, 0)
-                    Button(action: {
-                        var (liked, count) = likeState
-                        liked.toggle()
-                        count += liked ? 1 : max(count > 0 ? -1 : 0, 0)
-                        perMediaLikes[current.id] = (liked, max(count, 0))
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: likeState.liked ? "heart.fill" : "heart")
-                                .foregroundColor(likeState.liked ? .red : .white)
-                            Text("\(likeState.count)")
-                                .foregroundColor(.white)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(Color.black.opacity(0.35))
-                    .clipShape(Capsule())
-
-                    // Other actions (reply/repost/share) without counts for now
-                    HStack(spacing: 18) {
-                        Image(systemName: "message").foregroundColor(.white)
-                        Image(systemName: "arrow.2.squarepath").foregroundColor(.white)
-                        Image(systemName: "square.and.arrow.up").foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(Color.black.opacity(0.35))
-                    .clipShape(Capsule())
+                let current = media[index]
+                let likeState = perMediaLikes[current.id] ?? (false, 0)
+                Button(action: {
+                    var (liked, count) = likeState
+                    liked.toggle()
+                    count += liked ? 1 : max(count > 0 ? -1 : 0, 0)
+                    perMediaLikes[current.id] = (liked, max(count, 0))
+                    UserDefaults.standard.set(liked, forKey: "media_like_\(current.id)")
+                    UserDefaults.standard.set(count, forKey: "media_like_count_\(current.id)")
+                }) {
+                    Image(systemName: likeState.liked ? "heart.fill" : "heart")
+                        .font(.system(size: 30, weight: .semibold))
+                        .foregroundColor(likeState.liked ? .red : .white)
+                        .padding(12)
+                        .background(Color.black.opacity(0.35))
+                        .clipShape(Circle())
                 }
                 .padding(.bottom, 24)
             }
