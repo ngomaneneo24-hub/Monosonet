@@ -58,11 +58,14 @@ struct ProfileView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    ProfileMoreButton(
-                        onShare: { /* Share profile */ },
-                        onReport: { /* Report user */ },
-                        onBlock: { viewModel.blockUser() }
-                    )
+                    if let profile = viewModel.userProfile {
+                        ProfileMoreButton(
+                            onShare: { /* Share profile */ },
+                            onReport: { /* Report user */ },
+                            onBlock: { viewModel.blockUser() },
+                            viewedUserId: profile.userId
+                        )
+                    }
                 }
             }
             .refreshable {
@@ -718,6 +721,8 @@ struct ProfileMoreButton: View {
     let onShare: () -> Void
     let onReport: () -> Void
     let onBlock: () -> Void
+    @EnvironmentObject var sessionManager: SessionManager
+    var viewedUserId: String? = nil
     
     @State private var showingActionSheet = false
     
@@ -727,16 +732,13 @@ struct ProfileMoreButton: View {
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(.primary)
         }
-        .actionSheet(isPresented: $showingActionSheet) {
-            ActionSheet(
-                title: Text("Profile Options"),
-                buttons: [
-                    .default(Text("Share Profile"), action: onShare),
-                    .destructive(Text("Report User"), action: onReport),
-                    .destructive(Text("Block User"), action: onBlock),
-                    .cancel()
-                ]
-            )
+        .confirmationDialog("Profile Options", isPresented: $showingActionSheet, titleVisibility: .automatic) {
+            Button("Share Profile", action: onShare)
+            if let viewedUserId = viewedUserId, viewedUserId != sessionManager.currentUser?.id {
+                Button("Report User", role: .destructive, action: onReport)
+                Button("Block User", role: .destructive, action: onBlock)
+            }
+            Button("Cancel", role: .cancel) {}
         }
     }
 }

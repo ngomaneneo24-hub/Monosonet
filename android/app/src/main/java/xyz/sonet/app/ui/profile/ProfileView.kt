@@ -657,7 +657,7 @@ private fun ProfileNoteRow(note: Note) {
             // Author info
             Column {
                 Text(
-                    text = "User", // This would come from a separate user lookup
+                    text = note.authorId, // TODO: map to display name via user cache if available
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
