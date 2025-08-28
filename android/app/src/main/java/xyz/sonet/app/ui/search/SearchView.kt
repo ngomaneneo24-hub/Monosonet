@@ -1005,12 +1005,26 @@ private fun NoteSearchRow(note: Note) {
             
             Spacer(modifier = Modifier.weight(1f))
             
-            IconButton(onClick = { /* Show more options */ }) {
-                Icon(
-                    imageVector = xyz.sonet.app.ui.AppIcons.More,
-                    contentDescription = "More options",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            var showMenu by remember { mutableStateOf(false) }
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        imageVector = xyz.sonet.app.ui.AppIcons.More,
+                        contentDescription = "More options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                    val isOwn = false // TODO: compare against session user id when available here
+                    if (isOwn) {
+                        DropdownMenuItem(text = { Text("Edit") }, onClick = { showMenu = false })
+                        DropdownMenuItem(text = { Text("Delete", color = MaterialTheme.colorScheme.error) }, onClick = { showMenu = false })
+                    } else {
+                        DropdownMenuItem(text = { Text("Mute @user") }, onClick = { showMenu = false })
+                        DropdownMenuItem(text = { Text("Block @user", color = MaterialTheme.colorScheme.error) }, onClick = { showMenu = false })
+                        DropdownMenuItem(text = { Text("Report", color = MaterialTheme.colorScheme.error) }, onClick = { showMenu = false })
+                    }
+                }
             }
         }
         
