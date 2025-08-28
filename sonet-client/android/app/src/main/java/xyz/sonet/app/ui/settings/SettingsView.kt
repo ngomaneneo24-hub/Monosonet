@@ -608,7 +608,7 @@ fun PrivacySafetySection() {
         SettingsItem(
             icon = Icons.Default.PrivacyTip,
             title = "Privacy",
-            onClick = { /* Navigate to LocationPrivacyView/ThirdPartyAppsView/DataExportView root as needed */ }
+            onClick = { /* TODO: navigate("privacy/location") or show privacy root */ }
         )
         
         SettingsItem(
