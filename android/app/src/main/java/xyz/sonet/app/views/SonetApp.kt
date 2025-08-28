@@ -66,31 +66,31 @@ fun MainTabView(
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(
-                    icon = { androidx.compose.material.icons.Icons.Default.Home },
+                    icon = { xyz.sonet.app.ui.AppIcons.Home },
                     label = { androidx.compose.material3.Text("Home") },
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 }
                 )
                 NavigationBarItem(
-                    icon = { androidx.compose.material.icons.Icons.Default.VideoLibrary },
+                    icon = { xyz.sonet.app.ui.AppIcons.Video },
                     label = { androidx.compose.material3.Text("Video") },
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 }
                 )
                 NavigationBarItem(
-                    icon = { androidx.compose.material.icons.Icons.Default.Message },
+                    icon = { xyz.sonet.app.ui.AppIcons.Messages },
                     label = { androidx.compose.material3.Text("Messages") },
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 }
                 )
                 NavigationBarItem(
-                    icon = { androidx.compose.material.icons.Icons.Default.Notifications },
+                    icon = { xyz.sonet.app.ui.AppIcons.Notifications },
                     label = { androidx.compose.material3.Text("Notifications") },
                     selected = selectedTab == 3,
                     onClick = { selectedTab = 3 }
                 )
                 NavigationBarItem(
-                    icon = { androidx.compose.material.icons.Icons.Default.Person },
+                    icon = { xyz.sonet.app.ui.AppIcons.Profile },
                     label = { androidx.compose.material3.Text("Profile") },
                     selected = selectedTab == 4,
                     onClick = { selectedTab = 4 }

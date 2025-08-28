@@ -103,11 +103,7 @@ struct NotificationHeader: View {
                     }
                     
                     // Preferences button
-                    Button(action: onPreferences) {
-                        Image(systemName: "gearshape")
-                            .font(.system(size: 20))
-                            .foregroundColor(.primary)
-                    }
+                    Button(action: onPreferences) { IconView(AppIcons.gear, size: 20) }
                 }
             }
             .padding(.horizontal, 16)
@@ -160,8 +156,7 @@ struct NotificationFilterTab: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 8) {
-                Image(systemName: filter.icon)
-                    .font(.system(size: 16, weight: .medium))
+                IconView(filter.icon, size: 16)
                 
                 Text(filter.rawValue)
                     .font(.system(size: 14, weight: .medium))
@@ -243,11 +238,7 @@ struct NotificationRow: View {
                 Spacer()
                 
                 // More options
-                Button(action: { showingDeleteAlert = true }) {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
-                }
+                Button(action: { showingDeleteAlert = true }) { IconView(AppIcons.more, size: 14, color: .secondary) }
                 .buttonStyle(PlainButtonStyle())
             }
             .padding(.horizontal, 16)
@@ -316,9 +307,7 @@ struct EmptyNotificationsView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            Image(systemName: iconForFilter)
-                .font(.system(size: 60))
-                .foregroundColor(.secondary)
+            IconView(iconForFilter, size: 60, color: .secondary)
             
             Text(titleForFilter)
                 .font(.title2)
@@ -398,9 +387,7 @@ struct ErrorView: View {
     
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 48))
-                .foregroundColor(.orange)
+            IconView(AppIcons.warning, size: 48, color: .orange)
             
             Text("Notifications Error")
                 .font(.system(size: 20, weight: .bold))
@@ -491,9 +478,7 @@ struct AppUpdateView: View {
                 VStack(spacing: 24) {
                     // App icon and version
                     VStack(spacing: 16) {
-                        Image(systemName: "app.badge.fill")
-                            .font(.system(size: 80))
-                            .foregroundColor(.indigo)
+                        IconView("app.badge.fill", size: 80, color: .indigo)
                         
                         Text("Update Available")
                             .font(.title)

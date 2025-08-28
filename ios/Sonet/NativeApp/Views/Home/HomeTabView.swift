@@ -60,13 +60,7 @@ struct HomeNavigationBar: View {
                 
                 Spacer()
                 
-                Button(action: {
-                    // Open composer
-                }) {
-                    Image(systemName: "plus")
-                        .font(.title2)
-                        .foregroundColor(.blue)
-                }
+                Button(action: { /* Open composer */ }) { IconView(AppIcons.add, size: 22, color: .blue) }
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
@@ -170,8 +164,7 @@ struct NoteCard: View {
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                 } placeholder: {
-                    Image(systemName: "person.circle.fill")
-                        .foregroundColor(.gray)
+                    IconView(AppIcons.personCircle, size: 16, color: .gray)
                 }
                 .frame(width: 40, height: 40)
                 .clipShape(Circle())
@@ -182,11 +175,7 @@ struct NoteCard: View {
                             .font(.subheadline)
                             .fontWeight(.semibold)
                         
-                        if note.author.isVerified {
-                            Image(systemName: "checkmark.seal.fill")
-                                .foregroundColor(.blue)
-                                .font(.caption)
-                        }
+                        if note.author.isVerified { IconView(AppIcons.verified, size: 12, color: .blue) }
                     }
                     
                     Text(note.author.handle)

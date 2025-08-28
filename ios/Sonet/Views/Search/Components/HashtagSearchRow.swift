@@ -10,9 +10,7 @@ struct HashtagSearchRow: View {
         }) {
             HStack(spacing: 12) {
                 // Hashtag icon
-                Image(systemName: "number")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.accentColor)
+                IconView(AppIcons.number, size: 16, color: .accentColor)
                     .frame(width: 24)
                 
                 // Hashtag text
@@ -31,9 +29,7 @@ struct HashtagSearchRow: View {
                 Spacer()
                 
                 // Arrow indicator
-                Image(systemName: "arrow.up.right")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.secondary)
+                IconView(AppIcons.arrowUpRight, size: 14, color: .secondary)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)

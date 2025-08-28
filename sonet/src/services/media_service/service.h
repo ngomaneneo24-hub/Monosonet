@@ -115,8 +115,12 @@ public:
 								 ::sonet::media::ListUserMediaResponse* response) override;
 
 	::grpc::Status HealthCheck(::grpc::ServerContext* context,
-									 const ::sonet::media::HealthCheckRequest* request,
-									 ::sonet::media::HealthCheckResponse* response) override;
+								 const ::sonet::media::HealthCheckRequest* request,
+								 ::sonet::media::HealthCheckResponse* response) override;
+
+	::grpc::Status ToggleMediaLike(::grpc::ServerContext* context,
+									 const ::sonet::media::ToggleMediaLikeRequest* request,
+									 ::sonet::media::ToggleMediaLikeResponse* response) override;
 
 private:
 	std::shared_ptr<MediaRepository> repo_;

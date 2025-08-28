@@ -498,39 +498,29 @@ struct ContentCreationToolbar: View {
             HStack(spacing: 20) {
                 // Media button
                 Button(action: { /* Show media picker */ }) {
-                    Image(systemName: "photo")
-                        .font(.system(size: 20))
-                        .foregroundColor(.accentColor)
+                    IconView(AppIcons.photo, size: 20, color: .accentColor)
                 }
                 
                 // Hashtag button
                 Button(action: { /* Show hashtag picker */ }) {
-                    Image(systemName: "number")
-                        .font(.system(size: 20))
-                        .foregroundColor(.accentColor)
+                    IconView(AppIcons.number, size: 20, color: .accentColor)
                 }
                 
                 // Mention button
                 Button(action: { /* Show mention picker */ }) {
-                    Image(systemName: "at")
-                        .font(.system(size: 20))
-                        .foregroundColor(.accentColor)
+                    IconView(AppIcons.at, size: 20, color: .accentColor)
                 }
                 
                 // Schedule button
                 Button(action: onSchedule) {
-                    Image(systemName: "clock")
-                        .font(.system(size: 20))
-                        .foregroundColor(.accentColor)
+                    IconView(AppIcons.clock, size: 20, color: .accentColor)
                 }
                 
                 Spacer()
                 
                 // Draft button
                 Button(action: onSaveDraft) {
-                    Image(systemName: "square.and.arrow.down")
-                        .font(.system(size: 20))
-                        .foregroundColor(.secondary)
+                    IconView(AppIcons.download, size: 20, color: .secondary)
                 }
             }
             .padding(.horizontal, 16)

@@ -6,6 +6,7 @@ import path from 'node:path';
 import url from 'node:url';
 import multer from 'multer';
 import { AuthenticatedRequest, verifyJwt } from '../middleware/auth.js';
+import { createGrpcClients } from '../grpc/clients.js';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const PROTO_DIR = process.env.PROTO_DIR || path.resolve(__dirname, '../../proto');
@@ -15,8 +16,9 @@ const mediaPackage: any = loadPackageDefinition(mediaPkgDef)['sonet.media'];
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
 export function registerMediaRoutes(router: Router) {
-  const target = process.env.MEDIA_GRPC_ADDR || 'media-service:9090';
-  const mediaClient = new mediaPackage.MediaService(target, credentials.createInsecure());
+  const { media: mediaClient } = createGrpcClients();
+  // naive in-memory like store for media items: { mediaId: { likeCount, userIds:Set } }
+  const mediaLikes: Map<string, { count: number } > = new Map();
 
   router.post('/v1/media/upload', verifyJwt, upload.single('media') /* accept 'media' */, (req: (AuthenticatedRequest & Request) & { file?: Express.Multer.File }, res: Response) => {
     if (!req.file) return res.status(400).json({ ok: false, message: 'file required' });
@@ -40,6 +42,23 @@ export function registerMediaRoutes(router: Router) {
     mediaClient.DeleteMedia({ media_id: req.params.id }, (err: any, resp: any) => {
       if (err) return res.status(400).json({ ok: false, message: err.message });
       return res.json({ ok: resp?.deleted ?? false });
+    });
+  });
+
+  // Toggle like via gRPC MediaService (backed by dev in-memory counter server-side)
+  router.post('/v1/media/:id/like', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
+    const mediaId = req.params.id;
+    const userId = req.userId;
+    const { isLiked } = (req.body as any) ?? {};
+    if (typeof isLiked !== 'boolean') {
+      return res.status(400).json({ ok: false, message: 'isLiked boolean required' });
+    }
+    // Attach user id in both payload and metadata for server-side auditing
+    const md = new (require('@grpc/grpc-js').Metadata)();
+    if (userId) md.add('x-user-id', String(userId));
+    mediaClient.ToggleMediaLike({ media_id: mediaId, user_id: userId || '', is_liked: isLiked }, md, (err: any, resp: any) => {
+      if (err) return res.status(400).json({ ok: false, message: err.message });
+      return res.json({ ok: true, mediaId: resp?.media_id, isLiked: !!resp?.is_liked, likeCount: Number(resp?.like_count || 0) });
     });
   });
 }

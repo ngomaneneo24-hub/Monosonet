@@ -361,7 +361,7 @@ fun VideoPlayerView(
                             modifier = Modifier.size(48.dp)
                         ) {
                             Icon(
-                                imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
+                                imageVector = if (isLiked) xyz.sonet.app.ui.AppIcons.Like else xyz.sonet.app.ui.AppIcons.LikeBorder,
                                 contentDescription = "Like",
                                 tint = if (isLiked) Color.Red else Color.White,
                                 modifier = Modifier.size(28.dp)
@@ -386,7 +386,7 @@ fun VideoPlayerView(
                             modifier = Modifier.size(48.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.ChatBubbleOutline,
+                                imageVector = xyz.sonet.app.ui.AppIcons.Comment,
                                 contentDescription = "Comment",
                                 tint = Color.White,
                                 modifier = Modifier.size(28.dp)
@@ -411,7 +411,7 @@ fun VideoPlayerView(
                             modifier = Modifier.size(48.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Share,
+                                imageVector = xyz.sonet.app.ui.AppIcons.Share,
                                 contentDescription = "Share",
                                 tint = Color.White,
                                 modifier = Modifier.size(28.dp)

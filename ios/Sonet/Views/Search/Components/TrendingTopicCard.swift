@@ -30,9 +30,7 @@ struct TrendingTopicCard: View {
                     // Trending indicator
                     if topic.isTrending {
                         HStack(spacing: 4) {
-                            Image(systemName: "flame.fill")
-                                .font(.system(size: 10))
-                                .foregroundColor(.orange)
+                            IconView("flame.fill", size: 10, color: .orange)
                             
                             Text("Trending")
                                 .font(.system(size: 10, weight: .bold))
@@ -56,9 +54,7 @@ struct TrendingTopicCard: View {
                     Spacer()
                     
                     // Arrow indicator
-                    Image(systemName: "arrow.up.right")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.accentColor)
+                    IconView(AppIcons.arrowUpRight, size: 12, color: .accentColor)
                 }
             }
             .padding(16)

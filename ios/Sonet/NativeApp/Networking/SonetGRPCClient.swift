@@ -334,6 +334,8 @@ class SonetGRPCClient: ObservableObject {
         return try await client.unlikeNote(request)
     }
     
+    // Removed HTTP fallback now that gRPC is available
+    
     // MARK: - Search Methods
     func searchUsers(query: String, page: Int, pageSize: Int) async throws -> [UserProfile] {
         guard let client = searchServiceClient else {
@@ -761,6 +763,20 @@ class SonetGRPCClient: ObservableObject {
         
         let request = ExportUserDataRequest()
         return try await client.exportUserData(request)
+    }
+
+    // MARK: - Media Like (gRPC)
+    func toggleMediaLike(mediaId: String, userId: String, isLiked: Bool) async throws -> Int {
+        guard let client = mediaServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        let request = ToggleMediaLikeRequest.with {
+            $0.mediaID = mediaId
+            $0.userID = userId
+            $0.isLiked = isLiked
+        }
+        let resp = try await client.toggleMediaLike(request)
+        return Int(resp.likeCount)
     }
     
     func deleteAccount() async throws -> DeleteAccountResponse {

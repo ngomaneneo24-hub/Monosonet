@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct HomeView: View {
+    @EnvironmentObject var sessionManager: SessionManager
     @StateObject private var viewModel: HomeViewModel
     @State private var showingMeatballMenu = false
     
@@ -62,9 +63,7 @@ struct HomeHeader: View {
             Button(action: {
                 // Navigate to search
             }) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 20))
-                    .foregroundColor(.primary)
+                IconView(AppIcons.search, size: 20)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(Color(.systemGray6))
@@ -108,7 +107,7 @@ struct FeedView: View {
                 .foregroundColor(.accentColor)
                 .padding(.vertical, 16)
             }
-            .padding(.horizontal, 16)
+            // Avoid global horizontal padding so media can render full-bleed
             .padding(.vertical, 8)
         }
         .refreshable {
@@ -133,7 +132,7 @@ struct NoteCard: View {
                     Circle()
                         .fill(Color(.systemGray4))
                         .overlay(
-                            Image(systemName: "person.fill")
+                            IconView(AppIcons.person)
                                 .foregroundColor(.secondary)
                         )
                 }
@@ -162,18 +161,45 @@ struct NoteCard: View {
                 .font(.system(size: 16))
                 .foregroundColor(.primary)
                 .multilineTextAlignment(.leading)
+                .padding(.horizontal, 12)
             
             // Media (if any)
             if !note.media.isEmpty {
-                MediaGridView(media: note.media)
+                // Full-bleed carousel
+                MediaCarouselView(media: note.media) {
+                    // Reuse the same actions layout inside lightbox
+                    HStack(spacing: 20) {
+                        Button(action: { /* Like */ }) {
+                            HStack(spacing: 4) {
+                                IconView(AppIcons.like, size: 20)
+                                Text("\(note.likeCount)")
+                            }
+                        }
+                        Button(action: { /* Reply */ }) {
+                            HStack(spacing: 4) {
+                                IconView(AppIcons.reply, size: 20)
+                                Text("\(note.replyCount)")
+                            }
+                        }
+                        Button(action: { /* Repost */ }) {
+                            HStack(spacing: 4) {
+                                IconView(AppIcons.repost, size: 20)
+                                Text("\(note.repostCount)")
+                            }
+                        }
+                        Button(action: { /* Share */ }) {
+                            IconView(AppIcons.share, size: 20)
+                        }
+                    }
+                    .foregroundColor(.white)
+                }
             }
             
             // Actions
             HStack(spacing: 20) {
                 Button(action: { /* Like */ }) {
                     HStack(spacing: 4) {
-                        Image(systemName: "heart")
-                            .font(.system(size: 16))
+                        IconView(AppIcons.like, size: 16)
                         Text("\(note.likeCount)")
                             .font(.system(size: 14))
                     }
@@ -182,8 +208,7 @@ struct NoteCard: View {
                 
                 Button(action: { /* Reply */ }) {
                     HStack(spacing: 4) {
-                        Image(systemName: "message")
-                            .font(.system(size: 16))
+                        IconView(AppIcons.reply, size: 16)
                         Text("\(note.replyCount)")
                             .font(.system(size: 14))
                     }
@@ -192,8 +217,7 @@ struct NoteCard: View {
                 
                 Button(action: { /* Repost */ }) {
                     HStack(spacing: 4) {
-                        Image(systemName: "arrow.2.squarepath")
-                            .font(.system(size: 16))
+                        IconView(AppIcons.repost, size: 16)
                         Text("\(note.repostCount)")
                             .font(.system(size: 14))
                     }
@@ -203,16 +227,13 @@ struct NoteCard: View {
                 Spacer()
                 
                 Button(action: { /* Share */ }) {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 16))
-                        .foregroundColor(.secondary)
+                    IconView(AppIcons.share, size: 16, color: .secondary)
                 }
             }
+            .padding(.horizontal, 0) // align with media left edge
         }
-        .padding(16)
+        .padding(.vertical, 8)
         .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
     }
     
     private var timeAgoString: String {
@@ -237,30 +258,182 @@ struct NoteCard: View {
     }
 }
 
-// MARK: - Media Grid View
-struct MediaGridView: View {
+// MARK: - Media Carousel View
+import AVKit
+
+struct MediaCarouselView<Overlay: View>: View {
     let media: [MediaItem]
-    
+    var overlayContent: (() -> Overlay)? = nil
+
+    @State private var currentIndex: Int = 0
+    @State private var isPresentingLightbox: Bool = false
+
     var body: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 2), spacing: 4) {
-            ForEach(media.prefix(4)) { mediaItem in
-                AsyncImage(url: URL(string: mediaItem.url)) { image in
+        VStack(spacing: 8) {
+            // Full-bleed pager
+            TabView(selection: $currentIndex) {
+                ForEach(Array(media.enumerated()), id: \._0) { index, item in
+                    MediaPage(item: item)
+                        .frame(maxWidth: .infinity)
+                        .aspectRatio(1, contentMode: .fit)
+                        .clipped()
+                        .tag(index)
+                        .onTapGesture {
+                            isPresentingLightbox = true
+                        }
+                }
+            }
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+            .frame(maxWidth: .infinity)
+            .listRowInsets(EdgeInsets())
+            .padding(.horizontal, 0)
+
+            // Page indicator aligned to media edges
+            HStack(spacing: 6) {
+                ForEach(0..<media.count, id: \.self) { i in
+                    Circle()
+                        .fill(i == currentIndex ? Color.primary : Color.secondary.opacity(0.4))
+                        .frame(width: 6, height: 6)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 0)
+        .fullScreenCover(isPresented: $isPresentingLightbox) {
+            LightboxView(media: media, startIndex: currentIndex)
+        }
+    }
+}
+
+private struct MediaPage: View {
+    let item: MediaItem
+    @State private var player: AVPlayer?
+    @State private var isPlaying: Bool = false
+    @State private var isMuted: Bool = true
+
+    var body: some View {
+        Group {
+            if item.type == .video, let url = URL(string: item.url) {
+                ZStack {
+                    VideoPlayer(player: player)
+                        .onAppear {
+                            if player == nil {
+                                let p = AVPlayer(url: url)
+                                p.actionAtItemEnd = .none
+                                p.isMuted = true
+                                player = p
+                                player?.play()
+                                isPlaying = true
+                                NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: p.currentItem, queue: .main) { _ in
+                                    p.seek(to: .zero)
+                                    p.play()
+                                }
+                            } else {
+                                player?.play()
+                                isPlaying = true
+                            }
+                        }
+                        .onDisappear {
+                            player?.pause()
+                            isPlaying = false
+                        }
+
+                    // Minimal overlay gesture: tap toggles mute/unmute
+                    Color.clear.contentShape(Rectangle())
+                        .onTapGesture {
+                            isMuted.toggle()
+                            player?.isMuted = isMuted
+                        }
+                }
+            } else if let url = URL(string: item.url) {
+                AsyncImage(url: url) { image in
                     image
                         .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(height: 120)
-                        .clipped()
-                        .cornerRadius(8)
+                        .scaledToFill()
                 } placeholder: {
-                    Rectangle()
-                        .fill(Color(.systemGray4))
-                        .frame(height: 120)
-                        .overlay(
-                            ProgressView()
-                                .scaleEffect(1.2)
-                        )
-                        .cornerRadius(8)
+                    ProgressView().progressViewStyle(.circular)
                 }
+            } else {
+                Color.gray.opacity(0.1)
+            }
+        }
+    }
+}
+
+// MARK: - Lightbox
+private struct LightboxView: View {
+    let media: [MediaItem]
+    let startIndex: Int
+    @Environment(\.dismiss) private var dismiss
+    @State private var index: Int = 0
+    @State private var perMediaLikes: [String: (liked: Bool, count: Int)] = [:]
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            TabView(selection: $index) {
+                ForEach(Array(media.enumerated()), id: \\.0) { i, item in
+                    MediaPage(item: item)
+                        .ignoresSafeArea()
+                        .tag(i)
+                }
+            }
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+
+            // Bottom-centered heart only
+            VStack {
+                Spacer()
+                let current = media[index]
+                let likeState = perMediaLikes[current.id] ?? (false, 0)
+                Button(action: {
+                    var (liked, count) = likeState
+                    liked.toggle()
+                    count += liked ? 1 : max(count > 0 ? -1 : 0, 0)
+                    perMediaLikes[current.id] = (liked, max(count, 0))
+                    UserDefaults.standard.set(liked, forKey: "media_like_\(current.id)")
+                    UserDefaults.standard.set(count, forKey: "media_like_count_\(current.id)")
+                    // Persist via gRPC
+                    Task {
+                        let userId = sessionManager.currentUser?.id ?? "anon"
+                        _ = try? await SonetGRPCClient(configuration: .development).toggleMediaLike(mediaId: current.id, userId: userId, isLiked: liked)
+                    }
+                }) {
+                    Image(systemName: likeState.liked ? "heart.fill" : "heart")
+                        .font(.system(size: 30, weight: .semibold))
+                        .foregroundColor(likeState.liked ? .red : .white)
+                        .padding(12)
+                        .background(Color.black.opacity(0.35))
+                        .clipShape(Circle())
+                }
+                .padding(.bottom, 24)
+            }
+
+            // Close button
+            VStack {
+                HStack {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark")
+                            .foregroundColor(.white)
+                            .padding(10)
+                            .background(Color.black.opacity(0.4))
+                            .clipShape(Circle())
+                    }
+                    Spacer()
+                }
+                Spacer()
+            }
+            .padding()
+        }
+        .onAppear {
+            index = startIndex
+            // Initialize like state map if empty
+            if perMediaLikes.isEmpty {
+                var initial: [String: (Bool, Int)] = [:]
+                media.forEach { initial[$0.id] = (false, 0) }
+                perMediaLikes = initial
             }
         }
     }
