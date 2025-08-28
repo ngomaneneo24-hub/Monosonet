@@ -354,6 +354,23 @@ class SonetGRPCClient(
             throw Exception("HTTP error $code")
         }
     }
+
+    suspend fun toggleMediaLike(mediaId: String, userId: String, isLiked: Boolean): ToggleMediaLikeResponse {
+        return suspendCancellableCoroutine { continuation ->
+            try {
+                val request = ToggleMediaLikeRequest.newBuilder()
+                    .setMediaId(mediaId)
+                    .setUserId(userId)
+                    .setIsLiked(isLiked)
+                    .build()
+                val response = mediaServiceClient?.toggleMediaLike(request)
+                    ?: throw Exception("Media service client not available")
+                continuation.resume(response)
+            } catch (e: Exception) {
+                continuation.resumeWithException(e)
+            }
+        }
+    }
     
     suspend fun getNotesBatch(noteIds: List<String>): List<Note> {
         return suspendCancellableCoroutine { continuation ->

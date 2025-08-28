@@ -778,6 +778,20 @@ class SonetGRPCClient: ObservableObject {
         let request = ExportUserDataRequest()
         return try await client.exportUserData(request)
     }
+
+    // MARK: - Media Like (gRPC)
+    func toggleMediaLike(mediaId: String, userId: String, isLiked: Bool) async throws -> Int {
+        guard let client = mediaServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        let request = ToggleMediaLikeRequest.with {
+            $0.mediaID = mediaId
+            $0.userID = userId
+            $0.isLiked = isLiked
+        }
+        let resp = try await client.toggleMediaLike(request)
+        return Int(resp.likeCount)
+    }
     
     func deleteAccount() async throws -> DeleteAccountResponse {
         guard let client = userServiceClient else {

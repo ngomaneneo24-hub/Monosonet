@@ -584,10 +584,10 @@ private fun MediaLightbox(
                     val newLiked = !liked
                     val newCount = (count + if (newLiked) 1 else if (count > 0) -1 else 0).coerceAtLeast(0)
                     likeState[current.id] = newLiked to newCount
-                    // Persist to gateway HTTP (best-effort)
+                    // Persist via gRPC
                     val client = SonetGRPCClient(LocalContext.current, SonetConfiguration.development)
                     androidx.compose.runtime.LaunchedEffect(current.id, newLiked) {
-                        try { client.toggleMediaLikeHttp(current.id, newLiked) } catch (_: Exception) {}
+                        try { client.toggleMediaLike(current.id, userId = "anon", isLiked = newLiked) } catch (_: Exception) {}
                     }
                 }) {
                     Icon(
