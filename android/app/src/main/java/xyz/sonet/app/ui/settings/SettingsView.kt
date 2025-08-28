@@ -926,3 +926,60 @@ private fun formatBytes(bytes: Long): String {
         else -> "${formatter.format(bytes / (1024.0 * 1024.0 * 1024.0))} GB"
     }
 }
+
+private enum class SettingsSubpage {
+    SECURITY,
+    TWO_FACTOR,
+    CONNECTED_ACCOUNTS,
+    NOTIFICATION_PREFERENCES,
+    CONTENT_PREFERENCES,
+    PRIVACY,
+    SAFETY,
+    BLOCKED_ACCOUNTS,
+    MUTED_ACCOUNTS,
+    HIDDEN_CONTENT,
+    HELP_CENTER,
+    CONTACT_SUPPORT,
+    REPORT_PROBLEM,
+    TERMS,
+    PRIVACY_POLICY,
+    ABOUT
+}
+
+@Composable
+private fun SimpleSettingsPage(
+    title: String,
+    onNavigateBack: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
+private fun TwoFactorSettingsView(onNavigateBack: () -> Unit) {
+    SimpleSettingsPage(title = "Two-Factor Authentication", onNavigateBack = onNavigateBack) {
+        Text("Two-Factor Authentication setup is coming soon.", style = MaterialTheme.typography.bodyMedium)
+        Text("You will be able to enable app-based codes and manage backup codes here.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
