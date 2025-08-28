@@ -88,6 +88,45 @@ class SonetGRPCClient: ObservableObject {
             }
         }
     }
+
+    // MARK: - Media Upload (streaming)
+    @discardableResult
+    func uploadMedia(ownerId: String, filename: String, mimeType: String, data: Data, progress: ((Double) -> Void)? = nil) async throws -> UploadResponse {
+        guard let client = mediaServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        #if canImport(UIKit)
+        #endif
+        // Client-streaming upload: init + chunks
+        let call = client.upload(callOptions: nil)
+        // Send init
+        var initMsg = UploadRequest()
+        var initPayload = UploadInit()
+        initPayload.ownerUserID = ownerId
+        initPayload.type = .mediaTypeImage
+        initPayload.originalFilename = filename
+        initPayload.mimeType = mimeType
+        initMsg.payload = .init(initPayload)
+        try await call.sendMessage(initMsg)
+
+        // Send chunks
+        let chunkSize = 64 * 1024
+        var sent = 0
+        while sent < data.count {
+            let end = min(sent + chunkSize, data.count)
+            let chunkData = data[sent..<end]
+            var chunk = UploadChunk()
+            chunk.content = Data(chunkData)
+            var chunkReq = UploadRequest()
+            chunkReq.payload = .chunk(chunk)
+            try await call.sendMessage(chunkReq)
+            sent = end
+            progress?(Double(sent) / Double(data.count))
+        }
+        try await call.sendEnd()
+        let response = try await call.response
+        return response
+    }
     
     // MARK: - Authentication Methods
     func authenticate(email: String, password: String) async throws -> UserProfile {

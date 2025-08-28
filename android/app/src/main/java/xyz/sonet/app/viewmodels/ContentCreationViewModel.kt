@@ -92,9 +92,9 @@ class ContentCreationViewModel(application: Application) : AndroidViewModel(appl
     
     val characterCountColor: androidx.compose.ui.graphics.Color
         get() = when {
-            remainingCharacters < 0 -> androidx.compose.ui.graphics.Color.Red
-            remainingCharacters <= 20 -> androidx.compose.ui.graphics.Color(0xFFFF8C00) // Orange
-            else -> androidx.compose.ui.graphics.Color.Gray
+            remainingCharacters < 0 -> androidx.compose.ui.graphics.Color(0xFFDD3333)
+            remainingCharacters <= 20 -> androidx.compose.ui.graphics.Color(0xFF888888)
+            else -> androidx.compose.ui.graphics.Color(0xFF6B6B6B)
         }
     
     // MARK: - Initialization
@@ -177,17 +177,52 @@ class ContentCreationViewModel(application: Application) : AndroidViewModel(appl
             try {
                 val content = _noteContent.value.trim()
                 
-                // Create note request
+                // Start foreground service and upload media, collect URLs
+                try {
+                    val ctx = getApplication<Application>()
+                    val intent = android.content.Intent(ctx, xyz.sonet.app.notifications.UploadForegroundService::class.java)
+                    ctx.startForegroundService(intent)
+                } catch (_: Exception) {}
+                
+                // Upload media and collect URLs
+                val uploadedUrls = mutableListOf<String>()
+                _selectedMedia.value.forEachIndexed { index, media ->
+                    if (media.localUri != null) {
+                        try {
+                            val uri = android.net.Uri.parse(media.localUri)
+                            val bytes = getApplication<Application>().contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: byteArrayOf()
+                            val resp = grpcClient.uploadMedia(ownerUserId = SessionViewModel(getApplication()).currentUser.value?.id ?: "current_user", fileName = media.altText ?: "media", mimeType = when (media.type) {
+                                MediaType.MEDIA_TYPE_IMAGE -> "image/jpeg"
+                                MediaType.MEDIA_TYPE_VIDEO -> "video/mp4"
+                                MediaType.MEDIA_TYPE_GIF -> "image/gif"
+                                else -> "application/octet-stream"
+                            }, bytes = bytes) { progress ->
+                                try {
+                                    val nm = getApplication<Application>().getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                                    val notif = xyz.sonet.app.notifications.MessagingNotificationHelper.buildUploadProgressNotification(
+                                        getApplication(),
+                                        "Uploading…",
+                                        (progress * 100).toInt(),
+                                        100,
+                                        content = media.altText ?: "Media ${index + 1} of ${_selectedMedia.value.size}"
+                                    )
+                                    nm.notify(1001, notif)
+                                } catch (_: Exception) {}
+                            }
+                            uploadedUrls.add(resp.url)
+                        } catch (e: Exception) {
+                            // Fallback to existing url
+                            if (media.url.isNotEmpty()) uploadedUrls.add(media.url)
+                        }
+                    } else if (media.url.isNotEmpty()) {
+                        uploadedUrls.add(media.url)
+                    }
+                }
+                
+                // Create note request with uploaded URLs
                 val noteRequest = CreateNoteRequest.newBuilder()
                     .setContent(content)
-                    .addAllMediaList(_selectedMedia.value.map { media ->
-                        xyz.sonet.app.grpc.proto.MediaItem.newBuilder()
-                            .setMediaId(media.mediaId)
-                            .setUrl(media.url)
-                            .setType(media.type)
-                            .setAltText(media.altText ?: "")
-                            .build()
-                    })
+                    .addAllMediaUrls(uploadedUrls)
                     .addAllHashtags(_selectedHashtags.value.map { it.removePrefix("#") })
                     .addAllMentions(_selectedMentions.value.map { it.removePrefix("@") })
                     .setVisibility(NoteVisibility.NOTE_VISIBILITY_PUBLIC)
@@ -215,6 +250,10 @@ class ContentCreationViewModel(application: Application) : AndroidViewModel(appl
                 val response = grpcClient.createNote(noteRequest.build())
                 
                 if (response.success) {
+                    try {
+                        val nm = getApplication<Application>().getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                        nm.cancel(1001)
+                    } catch (_: Exception) {}
                     // Clear form
                     clearForm()
                     

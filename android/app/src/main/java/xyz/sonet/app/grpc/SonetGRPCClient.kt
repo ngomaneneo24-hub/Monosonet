@@ -91,6 +91,47 @@ class SonetGRPCClient(
             println("gRPC connection test failed: $error")
         }
     }
+
+    // MARK: - Media Upload (streaming)
+    suspend fun uploadMedia(ownerUserId: String, fileName: String, mimeType: String, bytes: ByteArray, onProgress: ((Double) -> Unit)? = null): UploadResponse {
+        return suspendCancellableCoroutine { continuation ->
+            try {
+                val asyncClient = MediaServiceGrpc.newStub(channel)
+                val responses = arrayListOf<UploadResponse>()
+                val requestObserver = asyncClient.upload(object : StreamObserver<UploadResponse> {
+                    override fun onNext(value: UploadResponse) { responses.add(value) }
+                    override fun onError(t: Throwable) { continuation.resumeWithException(t) }
+                    override fun onCompleted() {
+                        continuation.resume(responses.last())
+                    }
+                })
+
+                // init
+                val init = UploadInit.newBuilder()
+                    .setOwnerUserId(ownerUserId)
+                    .setType(MediaType.MEDIA_TYPE_IMAGE)
+                    .setOriginalFilename(fileName)
+                    .setMimeType(mimeType)
+                    .build()
+                val initReq = UploadRequest.newBuilder().setInit(init).build()
+                requestObserver.onNext(initReq)
+
+                val chunkSize = 64 * 1024
+                var sent = 0
+                while (sent < bytes.size) {
+                    val end = kotlin.math.min(sent + chunkSize, bytes.size)
+                    val chunk = UploadChunk.newBuilder().setContent(com.google.protobuf.ByteString.copyFrom(bytes, sent, end - sent)).build()
+                    val req = UploadRequest.newBuilder().setChunk(chunk).build()
+                    requestObserver.onNext(req)
+                    sent = end
+                    onProgress?.invoke(sent.toDouble() / bytes.size.toDouble())
+                }
+                requestObserver.onCompleted()
+            } catch (e: Exception) {
+                continuation.resumeWithException(e)
+            }
+        }
+    }
     
     // MARK: - Authentication Methods
     suspend fun authenticate(email: String, password: String): UserProfile {

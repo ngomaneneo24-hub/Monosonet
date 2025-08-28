@@ -346,6 +346,24 @@ class MessagingViewModel(application: Application) : AndroidViewModel(applicatio
         }
         
         applySearchFilter()
+
+        // Post direct-reply notification for background state (placeholder)
+        try {
+            val context = getApplication<Application>().applicationContext
+            val recent = _messages.value.takeLast(5).map { it.sender.displayName to it.content }
+            val convo = _currentConversation.value ?: updatedConversations.firstOrNull { it.id == message.conversationId }
+            if (convo != null) {
+                val notif = xyz.sonet.app.notifications.MessagingNotificationHelper.buildMessageNotification(
+                    context = context,
+                    conversationId = convo.id,
+                    conversationTitle = convo.name,
+                    selfName = "You",
+                    messages = recent
+                )
+                val nm = context.getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                nm.notify(convo.id.hashCode(), notif)
+            }
+        } catch (_: Exception) { }
     }
     
     private fun markMessageAsRead(messageId: String) {

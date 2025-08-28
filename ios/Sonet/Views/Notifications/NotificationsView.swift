@@ -96,9 +96,9 @@ struct NotificationHeader: View {
                             Text("\(unreadCount)")
                                 .font(.caption)
                                 .fontWeight(.semibold)
-                                .foregroundColor(.white)
+                                .foregroundColor(.background)
                                 .frame(width: 20, height: 20)
-                                .background(Circle().fill(Color.red))
+                                .background(Circle().fill(Color.accentColor))
                         }
                     }
                     
@@ -161,12 +161,12 @@ struct NotificationFilterTab: View {
                 Text(filter.rawValue)
                     .font(.system(size: 14, weight: .medium))
             }
-            .foregroundColor(isSelected ? filter.color : .secondary)
+            .foregroundColor(isSelected ? .primary : .secondary)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(isSelected ? filter.color.opacity(0.1) : Color.clear)
+                    .fill(isSelected ? Color.primary.opacity(0.1) : Color.clear)
             )
         }
         .buttonStyle(PlainButtonStyle())

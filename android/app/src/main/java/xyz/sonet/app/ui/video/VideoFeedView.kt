@@ -101,7 +101,7 @@ fun VideoTabsView(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 20.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
@@ -116,7 +116,7 @@ fun VideoTabsView(
                     text = tab.displayName,
                     fontSize = 16.sp,
                     fontWeight = if (selectedTab == tab) FontWeight.SemiBold else FontWeight.Medium,
-                    color = if (selectedTab == tab) Color.White else Color.White.copy(alpha = 0.7f)
+                    color = if (selectedTab == tab) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                 )
                 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -127,7 +127,7 @@ fun VideoTabsView(
                         .height(2.dp)
                         .fillMaxWidth()
                         .background(
-                            color = if (selectedTab == tab) Color.White else Color.Transparent,
+                            color = if (selectedTab == tab) MaterialTheme.colorScheme.onBackground else Color.Transparent,
                             shape = RoundedCornerShape(1.dp)
                         )
                 )
@@ -204,7 +204,7 @@ fun VideoPlayerView(
         modifier = Modifier
             .fillMaxWidth()
             .height(600.dp)
-            .background(Color.Black)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Video player
         if (player != null) {
@@ -272,13 +272,13 @@ fun VideoPlayerView(
                                 text = video.author.displayName,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onBackground
                             )
                             
                             Text(
                                 text = "@${video.author.username}",
                                 fontSize = 14.sp,
-                                color = Color.White.copy(alpha = 0.8f)
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
                             )
                         }
                         
@@ -287,13 +287,13 @@ fun VideoPlayerView(
                         Button(
                             onClick = onFollow,
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isFollowing) Color.White.copy(alpha = 0.3f) else Color.White
+                                containerColor = if (isFollowing) MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onBackground
                             ),
                             shape = RoundedCornerShape(20.dp)
                         ) {
                             Text(
                                 text = if (isFollowing) "Following" else "Follow",
-                                color = if (isFollowing) Color.White else Color.Black,
+                                color = if (isFollowing) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.background,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -304,7 +304,7 @@ fun VideoPlayerView(
                     Text(
                         text = video.caption,
                         fontSize = 16.sp,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         maxLines = 3
                     )
                     
@@ -317,7 +317,7 @@ fun VideoPlayerView(
                                 Text(
                                     text = "#$hashtag",
                                     fontSize = 14.sp,
-                                    color = Color.White.copy(alpha = 0.8f)
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
                                 )
                             }
                         }
@@ -332,14 +332,14 @@ fun VideoPlayerView(
                             Icon(
                                 imageVector = Icons.Default.MusicNote,
                                 contentDescription = "Music",
-                                tint = Color.White.copy(alpha = 0.8f),
+                                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                                 modifier = Modifier.size(14.dp)
                             )
                             
                             Text(
                                 text = "${music.title} - ${music.artist}",
                                 fontSize = 14.sp,
-                                color = Color.White.copy(alpha = 0.8f),
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                                 maxLines = 1
                             )
                         }
@@ -363,7 +363,7 @@ fun VideoPlayerView(
                             Icon(
                                 imageVector = if (isLiked) xyz.sonet.app.ui.AppIcons.Like else xyz.sonet.app.ui.AppIcons.LikeBorder,
                                 contentDescription = "Like",
-                                tint = if (isLiked) Color.Red else Color.White,
+                                tint = if (isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.size(28.dp)
                             )
                         }
@@ -372,7 +372,7 @@ fun VideoPlayerView(
                             text = "${video.likeCount}",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                     }
                     
@@ -388,7 +388,7 @@ fun VideoPlayerView(
                             Icon(
                                 imageVector = xyz.sonet.app.ui.AppIcons.Comment,
                                 contentDescription = "Comment",
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.size(28.dp)
                             )
                         }
@@ -397,7 +397,7 @@ fun VideoPlayerView(
                             text = "${video.commentCount}",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                     }
                     
@@ -413,7 +413,7 @@ fun VideoPlayerView(
                             Icon(
                                 imageVector = xyz.sonet.app.ui.AppIcons.Share,
                                 contentDescription = "Share",
-                                tint = Color.White,
+                                tint = MaterialTheme.colorScheme.onBackground,
                                 modifier = Modifier.size(28.dp)
                             )
                         }
@@ -422,7 +422,7 @@ fun VideoPlayerView(
                             text = "${video.shareCount}",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                     }
                     
@@ -441,7 +441,7 @@ fun VideoPlayerView(
                         Icon(
                             imageVector = if (isPlaying) Icons.Filled.PauseCircle else Icons.Filled.PlayCircle,
                             contentDescription = "Play/Pause",
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.size(28.dp)
                         )
                     }
@@ -457,7 +457,7 @@ fun LoadingView() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -465,7 +465,7 @@ fun LoadingView() {
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             CircularProgressIndicator(
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.size(48.dp)
             )
             
@@ -473,7 +473,7 @@ fun LoadingView() {
                 text = "Loading videos...",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
     }
@@ -488,7 +488,7 @@ fun ErrorView(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -499,7 +499,7 @@ fun ErrorView(
             Icon(
                 imageVector = Icons.Default.Error,
                 contentDescription = "Error",
-                tint = Color.White,
+                tint = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.size(48.dp)
             )
             
@@ -507,26 +507,26 @@ fun ErrorView(
                 text = "Error",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onBackground
             )
             
             Text(
                 text = error,
                 fontSize = 16.sp,
-                color = Color.White.copy(alpha = 0.8f),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                 textAlign = TextAlign.Center
             )
             
             Button(
                 onClick = onRetry,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.onBackground
                 ),
                 shape = RoundedCornerShape(20.dp)
             ) {
                 Text(
                     text = "Try Again",
-                    color = Color.Black,
+                    color = MaterialTheme.colorScheme.background,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
@@ -542,7 +542,7 @@ fun EmptyVideoView() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -553,7 +553,7 @@ fun EmptyVideoView() {
             Icon(
                 imageVector = Icons.Default.VideoLibrary,
                 contentDescription = "No videos",
-                tint = Color.White.copy(alpha = 0.6f),
+                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                 modifier = Modifier.size(60.dp)
             )
             
@@ -561,13 +561,13 @@ fun EmptyVideoView() {
                 text = "No videos yet",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onBackground
             )
             
             Text(
                 text = "Videos will appear here based on your interests",
                 fontSize = 16.sp,
-                color = Color.White.copy(alpha = 0.8f),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                 textAlign = TextAlign.Center
             )
         }

@@ -56,18 +56,7 @@ class NotificationsViewModel: ObservableObject {
             }
         }
         
-        var color: Color {
-            switch self {
-            case .all: return .blue
-            case .mentions: return .blue
-            case .likes: return .red
-            case .reposts: return .green
-            case .follows: return .purple
-            case .replies: return .blue
-            case .hashtags: return .orange
-            case .appUpdates: return .indigo
-            }
-        }
+        var color: Color { .primary }
     }
     
     // MARK: - Public Methods
@@ -377,18 +366,7 @@ enum NotificationType: String, CaseIterable {
         }
     }
     
-    var color: Color {
-        switch self {
-        case .like: return .red
-        case .reply: return .blue
-        case .repost: return .green
-        case .follow: return .purple
-        case .mention: return .blue
-        case .hashtag: return .orange
-        case .appUpdate: return .indigo
-        case .system: return .gray
-        }
-    }
+    var color: Color { .primary }
 }
 
 struct AppUpdateInfo: Identifiable {

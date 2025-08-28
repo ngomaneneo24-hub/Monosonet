@@ -98,6 +98,7 @@ struct MainTabView: View {
         .accentColor(themeManager.accentColor)
         .onAppear {
             setupTabBarAppearance()
+            setupNavigationBarAppearance()
         }
     }
     
@@ -105,9 +106,25 @@ struct MainTabView: View {
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = themeManager.tabBarBackgroundColor
+        appearance.stackedLayoutAppearance.selected.iconColor = themeManager.barAccentColor
+        appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: themeManager.barAccentColor]
+        appearance.stackedLayoutAppearance.normal.iconColor = themeManager.barUnselectedItemColor
+        appearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: themeManager.barUnselectedItemColor]
         
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
+    }
+
+    private func setupNavigationBarAppearance() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = themeManager.navigationBarBackgroundColor
+        appearance.titleTextAttributes = [.foregroundColor: themeManager.barAccentColor]
+        appearance.largeTitleTextAttributes = [.foregroundColor: themeManager.barAccentColor]
+        
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().tintColor = themeManager.barAccentColor
     }
 }
 

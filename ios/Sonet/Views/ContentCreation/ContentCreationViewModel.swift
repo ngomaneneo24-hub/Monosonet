@@ -113,21 +113,36 @@ class ContentCreationViewModel: ObservableObject {
         
         isPosting = true
         postingError = nil
+        var activity: Any? = nil
+        if #available(iOS 16.1, *) {
+            let firstFile = selectedMedia.first?.fileName ?? "Uploading"
+            activity = UploadActivityManager.start(title: "Posting", filename: firstFile)
+        }
         
         do {
             let content = noteContent.trimmingCharacters(in: .whitespacesAndNewlines)
             
+            // Upload media first via MediaService.Upload and collect URLs
+            var uploadedUrls: [String] = []
+            for (index, media) in selectedMedia.enumerated() {
+                if let local = media.localImage, let jpeg = local.jpegData(compressionQuality: 0.9) {
+                    if #available(iOS 16.1, *), let act = activity as? Activity<UploadActivityAttributes> {
+                        UploadActivityManager.update(act, progress: Double(index)/Double(max(selectedMedia.count,1)), filename: media.altText ?? "Image", isCompleted: false)
+                    }
+                    let upload = try await grpcClient.uploadMedia(ownerId: "current_user", filename: media.altText ?? "image.jpg", mimeType: "image/jpeg", data: jpeg) { p in
+                        if #available(iOS 16.1, *), let act = activity as? Activity<UploadActivityAttributes> {
+                            UploadActivityManager.update(act, progress: (Double(index) + p)/Double(max(selectedMedia.count,1)), filename: media.altText ?? "Image", isCompleted: false)
+                        }
+                    }
+                    uploadedUrls.append(upload.url)
+                } else if !media.url.isEmpty {
+                    uploadedUrls.append(media.url)
+                }
+            }
             // Create note request
             var noteRequest = CreateNoteRequest()
             noteRequest.content = content
-            noteRequest.mediaList = selectedMedia.map { media in
-                var grpcMedia = MediaItem()
-                grpcMedia.mediaId = media.mediaId
-                grpcMedia.url = media.url
-                grpcMedia.type = media.type
-                grpcMedia.altText = media.altText
-                return grpcMedia
-            }
+            noteRequest.mediaUrls = uploadedUrls
             
             // Add hashtags
             noteRequest.hashtags = selectedHashtags.map { $0.replacingOccurrences(of: "#", with: "") }
@@ -156,6 +171,14 @@ class ContentCreationViewModel: ObservableObject {
             noteRequest.visibility = .NOTE_VISIBILITY_PUBLIC
             
             // Post the note
+            // Simulate progressive updates if there are media items
+            if #available(iOS 16.1, *), let act = activity as? Activity<UploadActivityAttributes> {
+                for (index, media) in selectedMedia.enumerated() {
+                    let progress = Double(index + 1) / Double(max(selectedMedia.count, 1))
+                    UploadActivityManager.update(act, progress: progress, filename: media.fileName ?? "Media", isCompleted: false)
+                    try await Task.sleep(nanoseconds: 200_000_000)
+                }
+            }
             let response = try await grpcClient.createNote(request: noteRequest)
             
             if response.success {
@@ -164,6 +187,9 @@ class ContentCreationViewModel: ObservableObject {
                 
                 // Navigate back or show success
                 // This would be handled by the view
+                if #available(iOS 16.1, *), let act = activity as? Activity<UploadActivityAttributes> {
+                    UploadActivityManager.update(act, progress: 1.0, filename: "Done", isCompleted: true)
+                }
             } else {
                 postingError = response.errorMessage
             }

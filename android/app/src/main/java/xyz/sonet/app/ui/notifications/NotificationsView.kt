@@ -157,7 +157,7 @@ private fun NotificationHeader(
                     Button(
                         onClick = onMarkAllRead,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Red
+                            containerColor = MaterialTheme.colorScheme.onSurface
                         ),
                         shape = CircleShape,
                         modifier = Modifier.size(24.dp)
@@ -166,7 +166,7 @@ private fun NotificationHeader(
                             text = unreadCount.toString(),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.surface
                         )
                     }
                 }
@@ -219,16 +219,7 @@ private fun NotificationFilterTab(
     isSelected: Boolean,
     onTap: () -> Unit
 ) {
-    val color = when (filter) {
-        NotificationFilter.ALL -> MaterialTheme.colorScheme.primary
-        NotificationFilter.MENTIONS -> MaterialTheme.colorScheme.primary
-        NotificationFilter.LIKES -> Color.Red
-        NotificationFilter.REPOSTS -> Color.Green
-        NotificationFilter.FOLLOWS -> Color(0xFF9C27B0) // Purple
-        NotificationFilter.REPLIES -> MaterialTheme.colorScheme.primary
-        NotificationFilter.HASHTAGS -> Color(0xFFFF9800) // Orange
-        NotificationFilter.APP_UPDATES -> Color(0xFF3F51B5) // Indigo
-    }
+    val color = MaterialTheme.colorScheme.onSurface
     
     Button(
         onClick = onTap,
@@ -387,16 +378,7 @@ private fun NotificationIcon(
     type: NotificationType,
     isRead: Boolean
 ) {
-    val color = when (type) {
-        NotificationType.LIKE -> Color.Red
-        NotificationType.REPLY -> MaterialTheme.colorScheme.primary
-        NotificationType.REPOST -> Color.Green
-        NotificationType.FOLLOW -> Color(0xFF9C27B0) // Purple
-        NotificationType.MENTION -> MaterialTheme.colorScheme.primary
-        NotificationType.HASHTAG -> Color(0xFFFF9800) // Orange
-        NotificationType.APP_UPDATE -> Color(0xFF3F51B5) // Indigo
-        NotificationType.SYSTEM -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    val color = MaterialTheme.colorScheme.onSurface
     
     Box(
         modifier = Modifier.size(40.dp),

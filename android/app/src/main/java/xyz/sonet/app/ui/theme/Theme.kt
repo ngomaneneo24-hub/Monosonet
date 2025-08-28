@@ -16,22 +16,34 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = MonoPrimaryDark,
+    onPrimary = MonoOnPrimaryDark,
+    secondary = MonoContentSecondaryDark,
+    background = MonoBackgroundDark,
+    onBackground = MonoContentPrimaryDark,
+    surface = MonoSurfaceDark,
+    onSurface = MonoContentPrimaryDark,
+    surfaceVariant = MonoDividerDark,
+    outline = MonoDividerDark
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = MonoPrimaryLight,
+    onPrimary = MonoOnPrimaryLight,
+    secondary = MonoContentSecondaryLight,
+    background = MonoBackgroundLight,
+    onBackground = MonoContentPrimaryLight,
+    surface = MonoSurfaceLight,
+    onSurface = MonoContentPrimaryLight,
+    surfaceVariant = MonoDividerLight,
+    outline = MonoDividerLight
 )
 
 @Composable
 fun SonetTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    // Keep dynamic color off to preserve strict monochrome aesthetics
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -46,14 +58,15 @@ fun SonetTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkTheme
+            window.statusBarColor = colorScheme.background.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = Shapes,
         content = content
     )
 }

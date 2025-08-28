@@ -59,16 +59,16 @@ enum class SecurityEventType(
     val color: Color,
     val requiresAttention: Boolean = false
 ) {
-    LOGIN("Login", Icons.Default.PersonAdd, Color.Green),
-    LOGOUT("Logout", Icons.Default.PersonRemove, Color.Orange),
-    PASSWORD_CHANGED("Password Changed", Icons.Default.Key, Color.Green),
-    PASSWORD_REQUIREMENT_CHANGED("Password Requirement Changed", Icons.Default.KeyOff, Color.Orange),
-    BIOMETRIC_ENABLED("Biometric Enabled", Icons.Default.Fingerprint, Color.Green),
-    BIOMETRIC_DISABLED("Biometric Disabled", Icons.Default.FingerprintOff, Color.Orange),
-    SESSION_REVOKED("Session Revoked", Icons.Default.Block, Color.Red, true),
-    SUSPICIOUS_ACTIVITY("Suspicious Activity", Icons.Default.Warning, Color.Red, true),
-    TWO_FACTOR_ENABLED("2FA Enabled", Icons.Default.Security, Color.Green),
-    TWO_FACTOR_DISABLED("2FA Disabled", Icons.Default.SecurityOff, Color.Orange);
+    LOGIN("Login", Icons.Default.PersonAdd, Color(0xFF6B6B6B)),
+    LOGOUT("Logout", Icons.Default.PersonRemove, Color(0xFF6B6B6B)),
+    PASSWORD_CHANGED("Password Changed", Icons.Default.Key, Color(0xFF6B6B6B)),
+    PASSWORD_REQUIREMENT_CHANGED("Password Requirement Changed", Icons.Default.KeyOff, Color(0xFF6B6B6B)),
+    BIOMETRIC_ENABLED("Biometric Enabled", Icons.Default.Fingerprint, Color(0xFF6B6B6B)),
+    BIOMETRIC_DISABLED("Biometric Disabled", Icons.Default.FingerprintOff, Color(0xFF6B6B6B)),
+    SESSION_REVOKED("Session Revoked", Icons.Default.Block, Color(0xFF9E9E9E), true),
+    SUSPICIOUS_ACTIVITY("Suspicious Activity", Icons.Default.Warning, Color(0xFF9E9E9E), true),
+    TWO_FACTOR_ENABLED("2FA Enabled", Icons.Default.Security, Color(0xFF6B6B6B)),
+    TWO_FACTOR_DISABLED("2FA Disabled", Icons.Default.SecurityOff, Color(0xFF6B6B6B));
     
     companion object {
         fun from(eventType: String): SecurityEventType {
