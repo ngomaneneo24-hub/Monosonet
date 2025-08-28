@@ -25,6 +25,56 @@ namespace fs = std::filesystem;
 
 namespace sonet::media_service {
 
+// Persistent like state (development-grade durability)
+static std::mutex g_like_mu;
+static std::unordered_map<std::string, uint32_t> g_media_like_counts; // media_id -> count
+static std::unordered_map<std::string, bool> g_user_media_liked;      // user_id|media_id -> liked
+static bool g_likes_loaded = false;
+
+static std::string LikesStorePath() {
+	const char* env = std::getenv("SONET_MEDIA_LIKES_PATH");
+	return env && *env ? std::string(env) : std::string("/tmp/media_likes.json");
+}
+
+static void LoadLikesIfNeeded() {
+	if (g_likes_loaded) return;
+	std::lock_guard<std::mutex> lock(g_like_mu);
+	if (g_likes_loaded) return;
+	std::ifstream ifs(LikesStorePath());
+	if (ifs) {
+		// very small hand-rolled parser: two sections separated by a blank line
+		// section 1: media_id count
+		// section 2: user_id|media_id liked(0/1)
+		std::string line;
+		bool second = false;
+		while (std::getline(ifs, line)) {
+			if (line.empty()) { second = true; continue; }
+			std::istringstream iss(line);
+			if (!second) {
+				std::string media; uint32_t cnt;
+				if (iss >> media >> cnt) g_media_like_counts[media] = cnt;
+			} else {
+				std::string key; int liked;
+				if (iss >> key >> liked) g_user_media_liked[key] = (liked != 0);
+			}
+		}
+	}
+	g_likes_loaded = true;
+}
+
+static void SaveLikes() {
+	std::lock_guard<std::mutex> lock(g_like_mu);
+	std::ofstream ofs(LikesStorePath(), std::ios::trunc);
+	if (!ofs) return;
+	for (const auto& [media, cnt] : g_media_like_counts) {
+		ofs << media << ' ' << cnt << '\n';
+	}
+	ofs << '\n';
+	for (const auto& [key, liked] : g_user_media_liked) {
+		ofs << key << ' ' << (liked ? 1 : 0) << '\n';
+	}
+}
+
 // ---------------- In-memory Repo (simple, for dev/testing) ----------------
 class InMemoryRepo final : public MediaRepository {
 public:
@@ -417,32 +467,44 @@ static RateLimiter g_upload_rate_limiter;
 	return ::grpc::Status::OK;
 }
 
-// Simple in-memory like counter for media items (development only)
-static std::mutex g_like_mu;
-static std::unordered_map<std::string, uint32_t> g_media_like_counts;
-
-::grpc::Status MediaServiceImpl::ToggleMediaLike(::grpc::ServerContext* /*context*/,
+::grpc::Status MediaServiceImpl::ToggleMediaLike(::grpc::ServerContext* context,
 													 const ::sonet::media::ToggleMediaLikeRequest* request,
 													 ::sonet::media::ToggleMediaLikeResponse* response) {
 	if (!request || request->media_id().empty()) {
 		return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "media_id required");
 	}
-	const std::string media_id = request->media_id();
-	bool is_liked = request->is_liked();
+	LoadLikesIfNeeded();
+	std::string media_id = request->media_id();
+	std::string user_id = request->user_id();
+	if (user_id.empty() && context) {
+		std::string md = GetMetadataValue(context, "x-user-id");
+		if (!md.empty()) user_id = md;
+	}
+	if (user_id.empty()) user_id = "anon";
+	bool desired = request->is_liked();
 	uint32_t count = 0;
 	{
 		std::lock_guard<std::mutex> lock(g_like_mu);
-		uint32_t& ref = g_media_like_counts[media_id];
-		if (is_liked) {
-			ref += 1;
-		} else if (ref > 0) {
-			ref -= 1;
+		std::string key = user_id + "|" + media_id;
+		bool prev = g_user_media_liked[key]; // default false
+		if (prev != desired) {
+			uint32_t& ref = g_media_like_counts[media_id];
+			if (desired) {
+				ref += 1;
+			} else {
+				if (ref > 0) ref -= 1;
+			}
+			g_user_media_liked[key] = desired;
+			count = ref;
+		} else {
+			// no change
+			count = g_media_like_counts[media_id];
 		}
-		count = ref;
 	}
+	SaveLikes();
 	response->set_media_id(media_id);
 	response->set_like_count(count);
-	response->set_is_liked(is_liked);
+	response->set_is_liked(desired);
 	return ::grpc::Status::OK;
 }
 
