@@ -556,11 +556,160 @@ struct EmergencyContactsView: View {
 }
 
 struct AccountRecoveryView: View {
+    @StateObject private var vm = AccountRecoveryViewModel()
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
-        Text("Account Recovery")
-            .navigationTitle("Account Recovery")
+        Form {
+            Section("Recovery Email") {
+                TextField("Email address", text: $vm.recoveryEmail)
+                    .keyboardType(.emailAddress)
+                    .autocapitalization(.none)
+                Button("Verify Email") { vm.verifyEmail() }.disabled(!vm.canVerifyEmail)
+                if vm.emailVerified { Label("Verified", systemImage: "checkmark.seal.fill").foregroundColor(.green) }
+            }
+            Section("Recovery Phone") {
+                TextField("Phone number", text: $vm.recoveryPhone)
+                    .keyboardType(.phonePad)
+                Button("Verify Phone") { vm.verifyPhone() }.disabled(!vm.canVerifyPhone)
+                if vm.phoneVerified { Label("Verified", systemImage: "checkmark.seal.fill").foregroundColor(.green) }
+            }
+            Section("Backup Codes") {
+                if vm.backupCodes.isEmpty {
+                    Button("Generate Backup Codes") { vm.generateBackupCodes() }
+                } else {
+                    ForEach(vm.backupCodes, id: \.self) { code in HStack { Text(code); Spacer(); Image(systemName: "doc.on.doc") } }
+                    Button("Regenerate Codes", role: .destructive) { vm.regenerateBackupCodes() }
+                }
+            }
+            Section("Password Reset") {
+                SecureField("New Password", text: $vm.newPassword)
+                SecureField("Confirm Password", text: $vm.confirmPassword)
+                Button("Set New Password") { vm.resetPassword() }.disabled(!vm.canResetPassword)
+            }
+        }
+        .navigationTitle("Account Recovery")
+        .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
+        .onAppear { vm.loadRecoveryState() }
+        .alert("Success", isPresented: $vm.showSuccess) { Button("OK") {} } message: { Text(vm.successMessage) }
+        .alert("Error", isPresented: $vm.showError) { Button("OK") {} } message: { Text(vm.errorMessage) }
     }
 }
+
+final class AccountRecoveryViewModel: ObservableObject {
+    @Published var recoveryEmail = ""
+    @Published var emailVerified = false
+    @Published var recoveryPhone = ""
+    @Published var phoneVerified = false
+    @Published var backupCodes: [String] = []
+    @Published var newPassword = ""
+    @Published var confirmPassword = ""
+
+    @Published var showSuccess = false
+    @Published var showError = false
+    @Published var successMessage = ""
+    @Published var errorMessage = ""
+
+    private let grpcClient: SonetGRPCClient = SonetGRPCClient(configuration: .development)
+
+    var canVerifyEmail: Bool { recoveryEmail.contains("@") && recoveryEmail.contains(".") }
+    var canVerifyPhone: Bool { recoveryPhone.count >= 7 }
+    var canResetPassword: Bool { newPassword.count >= 8 && newPassword == confirmPassword }
+
+    func loadRecoveryState() {
+        Task {
+            do {
+                let req = GetRecoveryStateRequest.newBuilder().setUserId("current_user").build()
+                let res = try await grpcClient.getRecoveryState(request: req)
+                if res.success {
+                    await MainActor.run {
+                        recoveryEmail = res.state.email
+                        emailVerified = res.state.emailVerified
+                        recoveryPhone = res.state.phone
+                        phoneVerified = res.state.phoneVerified
+                        backupCodes = res.state.backupCodes
+                    }
+                }
+            } catch {
+                await MainActor.run { errorMessage = error.localizedDescription; showError = true }
+            }
+        }
+    }
+
+    func verifyEmail() {
+        Task {
+            do {
+                let req = VerifyRecoveryEmailRequest.newBuilder().setUserId("current_user").setEmail(recoveryEmail).build()
+                let res = try await grpcClient.verifyRecoveryEmail(request: req)
+                await MainActor.run {
+                    if res.success { emailVerified = true; successMessage = "Email verified"; showSuccess = true }
+                    else { errorMessage = res.errorMessage; showError = true }
+                }
+            } catch { await MainActor.run { errorMessage = error.localizedDescription; showError = true } }
+        }
+    }
+
+    func verifyPhone() {
+        Task {
+            do {
+                let req = VerifyRecoveryPhoneRequest.newBuilder().setUserId("current_user").setPhone(recoveryPhone).build()
+                let res = try await grpcClient.verifyRecoveryPhone(request: req)
+                await MainActor.run {
+                    if res.success { phoneVerified = true; successMessage = "Phone verified"; showSuccess = true }
+                    else { errorMessage = res.errorMessage; showError = true }
+                }
+            } catch { await MainActor.run { errorMessage = error.localizedDescription; showError = true } }
+        }
+    }
+
+    func generateBackupCodes() {
+        Task {
+            do {
+                let req = GenerateBackupCodesRequest.newBuilder().setUserId("current_user").build()
+                let res = try await grpcClient.generateBackupCodes(request: req)
+                await MainActor.run {
+                    if res.success { backupCodes = res.codes; successMessage = "Backup codes generated"; showSuccess = true }
+                    else { errorMessage = res.errorMessage; showError = true }
+                }
+            } catch { await MainActor.run { errorMessage = error.localizedDescription; showError = true } }
+        }
+    }
+
+    func regenerateBackupCodes() {
+        generateBackupCodes()
+    }
+
+    func resetPassword() {
+        Task {
+            do {
+                let req = ResetPasswordRequest.newBuilder().setUserId("current_user").setNewPassword(newPassword).build()
+                let res = try await grpcClient.resetPassword(request: req)
+                await MainActor.run {
+                    if res.success { successMessage = "Password updated"; showSuccess = true; newPassword = ""; confirmPassword = "" }
+                    else { errorMessage = res.errorMessage; showError = true }
+                }
+            } catch { await MainActor.run { errorMessage = error.localizedDescription; showError = true } }
+        }
+    }
+}
+
+// gRPC placeholders
+struct GetRecoveryStateRequest { let userId: String; static func newBuilder() -> GetRecoveryStateRequestBuilder { GetRecoveryStateRequestBuilder() } }
+class GetRecoveryStateRequestBuilder { private var userId: String = ""; func setUserId(_ userId: String) -> GetRecoveryStateRequestBuilder { self.userId = userId; return self } ; func build() -> GetRecoveryStateRequest { GetRecoveryStateRequest(userId: userId) } }
+struct GetRecoveryStateResponse { let success: Bool; let state: GRPCRecoveryState; let errorMessage: String }
+struct VerifyRecoveryEmailRequest { let userId: String; let email: String; static func newBuilder() -> VerifyRecoveryEmailRequestBuilder { VerifyRecoveryEmailRequestBuilder() } }
+class VerifyRecoveryEmailRequestBuilder { private var userId: String = ""; private var email: String = ""; func setUserId(_ userId: String) -> VerifyRecoveryEmailRequestBuilder { self.userId = userId; return self } ; func setEmail(_ email: String) -> VerifyRecoveryEmailRequestBuilder { self.email = email; return self } ; func build() -> VerifyRecoveryEmailRequest { VerifyRecoveryEmailRequest(userId: userId, email: email) } }
+struct VerifyRecoveryEmailResponse { let success: Bool; let errorMessage: String }
+struct VerifyRecoveryPhoneRequest { let userId: String; let phone: String; static func newBuilder() -> VerifyRecoveryPhoneRequestBuilder { VerifyRecoveryPhoneRequestBuilder() } }
+class VerifyRecoveryPhoneRequestBuilder { private var userId: String = ""; private var phone: String = ""; func setUserId(_ userId: String) -> VerifyRecoveryPhoneRequestBuilder { self.userId = userId; return self } ; func setPhone(_ phone: String) -> VerifyRecoveryPhoneRequestBuilder { self.phone = phone; return self } ; func build() -> VerifyRecoveryPhoneRequest { VerifyRecoveryPhoneRequest(userId: userId, phone: phone) } }
+struct VerifyRecoveryPhoneResponse { let success: Bool; let errorMessage: String }
+struct GenerateBackupCodesRequest { let userId: String; static func newBuilder() -> GenerateBackupCodesRequestBuilder { GenerateBackupCodesRequestBuilder() } }
+class GenerateBackupCodesRequestBuilder { private var userId: String = ""; func setUserId(_ userId: String) -> GenerateBackupCodesRequestBuilder { self.userId = userId; return self } ; func build() -> GenerateBackupCodesRequest { GenerateBackupCodesRequest(userId: userId) } }
+struct GenerateBackupCodesResponse { let success: Bool; let codes: [String]; let errorMessage: String }
+struct ResetPasswordRequest { let userId: String; let newPassword: String; static func newBuilder() -> ResetPasswordRequestBuilder { ResetPasswordRequestBuilder() } }
+class ResetPasswordRequestBuilder { private var userId: String = ""; private var newPassword: String = ""; func setUserId(_ userId: String) -> ResetPasswordRequestBuilder { self.userId = userId; return self } ; func setNewPassword(_ password: String) -> ResetPasswordRequestBuilder { self.newPassword = password; return self } ; func build() -> ResetPasswordRequest { ResetPasswordRequest(userId: userId, newPassword: newPassword) } }
+struct ResetPasswordResponse { let success: Bool; let errorMessage: String }
+struct GRPCRecoveryState { let email: String; let emailVerified: Bool; let phone: String; let phoneVerified: Bool; let backupCodes: [String] }
 
 struct HiddenPostsView: View {
     var body: some View {

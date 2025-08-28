@@ -557,9 +557,90 @@ struct SearchAndTagsView: View {
 }
 
 struct LocationPrivacyView: View {
+    @ObservedObject var viewModel: PrivacyViewModel
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
-        Text("Location Privacy Settings")
-            .navigationTitle("Location Privacy")
+        List {
+            Section {
+                Toggle("Enable Location Services", isOn: $viewModel.locationServicesEnabled)
+                    .onChange(of: viewModel.locationServicesEnabled) { _ in
+                        viewModel.updateLocationServicesEnabled()
+                    }
+                Toggle("Share Precise Location", isOn: $viewModel.sharePreciseLocation)
+                    .onChange(of: viewModel.sharePreciseLocation) { _ in
+                        viewModel.updateSharePreciseLocation()
+                    }
+                Toggle("Allow Location on Posts by Default", isOn: $viewModel.allowLocationOnPosts)
+                    .onChange(of: viewModel.allowLocationOnPosts) { _ in
+                        viewModel.updateAllowLocationOnPosts()
+                    }
+            } header: {
+                Text("Location Sharing")
+            } footer: {
+                Text("Control how and when your location is used.")
+            }
+
+            Section {
+                Picker("Default Geotag Privacy", selection: $viewModel.defaultGeotagPrivacy) {
+                    ForEach(PostPrivacy.allCases, id: \.self) { privacy in
+                        Text(privacy.displayName).tag(privacy)
+                    }
+                }
+                .pickerStyle(.navigationLink)
+                .onChange(of: viewModel.defaultGeotagPrivacy) { _ in
+                    viewModel.updateDefaultGeotagPrivacy()
+                }
+            } header: {
+                Text("Geotagging")
+            }
+
+            Section {
+                NavigationLink("Location History") {
+                    LocationHistoryList(viewModel: viewModel)
+                }
+                Button(role: .destructive) {
+                    viewModel.clearLocationHistory()
+                } label: {
+                    Text("Clear Location History")
+                }
+                .disabled(viewModel.locationHistory.isEmpty)
+            } header: {
+                Text("History")
+            } footer: {
+                Text("We store recent locations used to improve suggestions.")
+            }
+        }
+        .navigationTitle("Location Privacy")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } }
+        }
+        .onAppear { viewModel.loadLocationPrivacy() }
+        .alert("Error", isPresented: $viewModel.showErrorAlert) {
+            Button("OK") { viewModel.clearError() }
+        } message: { Text(viewModel.errorMessage) }
+    }
+}
+
+struct LocationHistoryList: View {
+    @ObservedObject var viewModel: PrivacyViewModel
+
+    var body: some View {
+        List {
+            if viewModel.locationHistory.isEmpty {
+                Text("No location history").foregroundColor(.secondary)
+            } else {
+                ForEach(viewModel.locationHistory, id: \.id) { item in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.name).font(.headline)
+                        Text(item.timestamp.formatted(date: .abbreviated, time: .shortened))
+                            .font(.caption).foregroundColor(.secondary)
+                    }
+                }
+            }
+        }
+        .navigationTitle("Location History")
     }
 }
 
@@ -599,9 +680,40 @@ struct AnalyticsPrivacyView: View {
 }
 
 struct ThirdPartyAppsView: View {
+    @ObservedObject var viewModel: PrivacyViewModel
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
-        Text("Third-Party Apps")
-            .navigationTitle("Third-Party Apps")
+        List {
+            Section {
+                if viewModel.connectedApps.isEmpty {
+                    Text("No connected apps").foregroundColor(.secondary)
+                } else {
+                    ForEach(viewModel.connectedApps, id: \.id) { app in
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text(app.name).font(.headline)
+                                Spacer()
+                                Button(role: .destructive) {
+                                    viewModel.revokeThirdPartyApp(appId: app.id)
+                                } label: { Text("Revoke") }
+                            }
+                            Text("Scopes: \(app.scopes.joined(separator: ", "))")
+                                .font(.caption).foregroundColor(.secondary)
+                            Text("Last used: \(app.lastUsed.formatted(date: .abbreviated, time: .shortened))")
+                                .font(.caption2).foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            } header: { Text("Connected Apps") }
+        }
+        .navigationTitle("Third-Party Apps")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
+        .onAppear { viewModel.loadConnectedApps() }
+        .alert("Error", isPresented: $viewModel.showErrorAlert) { Button("OK") { viewModel.clearError() } } message: { Text(viewModel.errorMessage) }
+        .alert("Success", isPresented: $viewModel.showUpdateAlert) { Button("OK") {} } message: { Text(viewModel.updateMessage) }
     }
 }
 
@@ -613,10 +725,74 @@ struct PrivacyHistoryView: View {
 }
 
 struct DataExportView: View {
+    @ObservedObject var viewModel: PrivacyViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var includeMedia = true
+    @State private var includeMessages = true
+    @State private var includeConnections = true
+    @State private var format: DataExportFormat = .json
+    @State private var range: DataExportRange = .allTime
+
     var body: some View {
-        Text("Data Export")
-            .navigationTitle("Data Export")
+        List {
+            Section("What to include") {
+                Toggle("Posts & Activity", isOn: .constant(true)).disabled(true)
+                Toggle("Media (photos, videos)", isOn: $includeMedia)
+                Toggle("Messages", isOn: $includeMessages)
+                Toggle("Connections (followers, following)", isOn: $includeConnections)
+            }
+            Section("Export options") {
+                Picker("Format", selection: $format) {
+                    ForEach(DataExportFormat.allCases, id: \.self) { f in
+                        Text(f.displayName).tag(f)
+                    }
+                }
+                .pickerStyle(.navigationLink)
+                Picker("Time range", selection: $range) {
+                    ForEach(DataExportRange.allCases, id: \.self) { r in
+                        Text(r.displayName).tag(r)
+                    }
+                }
+                .pickerStyle(.navigationLink)
+                Button("Request Export") {
+                    viewModel.requestDataExport(includeMedia: includeMedia, includeMessages: includeMessages, includeConnections: includeConnections, format: format, range: range)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            Section("Previous exports") {
+                if viewModel.previousExports.isEmpty {
+                    Text("No previous exports").foregroundColor(.secondary)
+                } else {
+                    ForEach(viewModel.previousExports, id: \.id) { export in
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text("Requested: \(export.requestedAt.formatted(date: .abbreviated, time: .shortened))")
+                                Text("Status: \(export.status.displayName)").font(.caption).foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            if export.status == .ready {
+                                Button("Download") { viewModel.downloadExport(exportId: export.id) }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("Data Export")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
+        .onAppear { viewModel.loadPreviousExports() }
+        .alert("Error", isPresented: $viewModel.showErrorAlert) { Button("OK") { viewModel.clearError() } } message: { Text(viewModel.errorMessage) }
+        .alert("Export", isPresented: $viewModel.showUpdateAlert) { Button("OK") {} } message: { Text(viewModel.updateMessage) }
     }
+}
+
+enum DataExportFormat: String, CaseIterable { case json, csv, html
+    var displayName: String { switch self { case .json: return "JSON"; case .csv: return "CSV"; case .html: return "HTML" } }
+}
+
+enum DataExportRange: String, CaseIterable { case lastMonth, lastYear, allTime
+    var displayName: String { switch self { case .lastMonth: return "Last month"; case .lastYear: return "Last year"; case .allTime: return "All time" } }
 }
 
 struct AccountDeletionView: View {
