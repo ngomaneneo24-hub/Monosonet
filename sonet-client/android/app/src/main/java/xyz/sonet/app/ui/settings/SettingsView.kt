@@ -303,7 +303,7 @@ fun AccountSettingsSection(
         SettingsItem(
             icon = Icons.Default.Security,
             title = "Security",
-            onClick = { /* Navigate to security */ }
+            onClick = { /* Navigate to SecurityView */ }
         )
         
         SettingsItem(
@@ -608,7 +608,7 @@ fun PrivacySafetySection() {
         SettingsItem(
             icon = Icons.Default.PrivacyTip,
             title = "Privacy",
-            onClick = { /* Navigate to privacy */ }
+            onClick = { /* TODO: navigate("privacy/location") or show privacy root */ }
         )
         
         SettingsItem(

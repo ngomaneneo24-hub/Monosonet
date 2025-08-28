@@ -489,24 +489,445 @@ struct AccountInformationView: View {
     }
 }
 
+// MARK: - Security View
 struct SecurityView: View {
+    @StateObject private var viewModel = SecurityViewModel()
+    @Environment(\.dismiss) private var dismiss
+    
     var body: some View {
-        Text("Security Settings")
+        NavigationView {
+            List {
+                // Password Section
+                Section {
+                    NavigationLink("Change Password") {
+                        ChangePasswordView(viewModel: viewModel)
+                    }
+                    
+                    NavigationLink("Password History") {
+                        PasswordHistoryView(viewModel: viewModel)
+                    }
+                    
+                    Toggle("Require Password for App Store", isOn: $viewModel.requirePasswordForPurchases)
+                        .onChange(of: viewModel.requirePasswordForPurchases) { newValue in
+                            viewModel.updatePasswordRequirement(for: .purchases, required: newValue)
+                        }
+                    
+                    Toggle("Require Password for Settings", isOn: $viewModel.requirePasswordForSettings)
+                        .onChange(of: viewModel.requirePasswordForSettings) { newValue in
+                            viewModel.updatePasswordRequirement(for: .settings, required: newValue)
+                        }
+                } header: {
+                    Text("Password")
+                } footer: {
+                    Text("Configure when your password is required for sensitive actions.")
+                }
+                
+                // Biometric Authentication Section
+                Section {
+                    if viewModel.biometricType != .none {
+                        Toggle("Use \(viewModel.biometricType.displayName)", isOn: $viewModel.biometricEnabled)
+                            .onChange(of: viewModel.biometricEnabled) { newValue in
+                                viewModel.updateBiometricAuthentication(enabled: newValue)
+                            }
+                        
+                        if viewModel.biometricEnabled {
+                            Text("You can use \(viewModel.biometricType.displayName) to unlock the app and authorize sensitive actions.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    } else {
+                        Text("Biometric authentication is not available on this device.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                } header: {
+                    Text("Biometric Authentication")
+                } footer: {
+                    Text("Use your fingerprint or face to quickly access the app.")
+                }
+                
+                // Active Sessions Section
+                Section {
+                    if viewModel.activeSessions.isEmpty {
+                        Text("No active sessions")
+                            .foregroundColor(.secondary)
+                    } else {
+                        ForEach(viewModel.activeSessions) { session in
+                            SessionRow(
+                                session: session,
+                                isCurrentSession: session.id == viewModel.currentSessionId,
+                                onRevoke: {
+                                    viewModel.revokeSession(session.id)
+                                }
+                            )
+                        }
+                    }
+                    
+                    Button("View All Sessions") {
+                        viewModel.loadAllSessions()
+                    }
+                    .foregroundColor(.blue)
+                } header: {
+                    Text("Active Sessions")
+                } footer: {
+                    Text("Manage devices and browsers that are currently signed into your account.")
+                }
+                
+                // Security Logs Section
+                Section {
+                    if viewModel.securityLogs.isEmpty {
+                        Text("No security events")
+                            .foregroundColor(.secondary)
+                    } else {
+                        ForEach(viewModel.securityLogs.prefix(5)) { log in
+                            SecurityLogRow(log: log)
+                        }
+                        
+                        if viewModel.securityLogs.count > 5 {
+                            NavigationLink("View All Security Events (\(viewModel.securityLogs.count))") {
+                                SecurityLogsView(viewModel: viewModel)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Recent Security Events")
+                } footer: {
+                    Text("Track important security events like logins, password changes, and suspicious activity.")
+                }
+                
+                // Security Alerts Section
+                Section {
+                    Toggle("Login Alerts", isOn: $viewModel.loginAlertsEnabled)
+                        .onChange(of: viewModel.loginAlertsEnabled) { newValue in
+                            viewModel.updateLoginAlerts(enabled: newValue)
+                        }
+                    
+                    Toggle("Suspicious Activity Alerts", isOn: $viewModel.suspiciousActivityAlertsEnabled)
+                        .onChange(of: viewModel.suspiciousActivityAlertsEnabled) { newValue in
+                            viewModel.updateSuspiciousActivityAlerts(enabled: newValue)
+                        }
+                    
+                    Toggle("Password Change Alerts", isOn: $viewModel.passwordChangeAlertsEnabled)
+                        .onChange(of: viewModel.passwordChangeAlertsEnabled) { newValue in
+                            viewModel.updatePasswordChangeAlerts(enabled: newValue)
+                        }
+                } header: {
+                    Text("Security Alerts")
+                } footer: {
+                    Text("Get notified about important security events on your account.")
+                }
+                
+                // Advanced Security Section
+                Section {
+                    NavigationLink("Trusted Devices") {
+                        TrustedDevicesView(viewModel: viewModel)
+                    }
+                    
+                    NavigationLink("Login History") {
+                        LoginHistoryView(viewModel: viewModel)
+                    }
+                    
+                    NavigationLink("Security Questions") {
+                        SecurityQuestionsView(viewModel: viewModel)
+                    }
+                } header: {
+                    Text("Advanced Security")
+                }
+            }
             .navigationTitle("Security")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .onAppear {
+            viewModel.loadSecuritySettings()
+            viewModel.loadActiveSessions()
+            viewModel.loadSecurityLogs()
+        }
+        .alert("Error", isPresented: $viewModel.showErrorAlert) {
+            Button("OK") {
+                viewModel.clearError()
+            }
+        } message: {
+            if let error = viewModel.error {
+                Text(error)
+            }
+        }
     }
 }
 
+// MARK: - Session Row
+struct SessionRow: View {
+    let session: SecuritySession
+    let isCurrentSession: Bool
+    let onRevoke: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: session.deviceType.iconName)
+                .foregroundColor(.blue)
+                .frame(width: 24, height: 24)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(session.deviceName)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    
+                    if isCurrentSession {
+                        Text("(Current)")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                    }
+                }
+                
+                Text(session.location)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Text("Last active: \(session.lastActivity, style: .relative)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            if !isCurrentSession {
+                Button("Revoke") {
+                    onRevoke()
+                }
+                .buttonStyle(.bordered)
+                .foregroundColor(.red)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Security Log Row
+struct SecurityLogRow: View {
+    let log: SecurityLog
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: log.eventType.iconName)
+                .foregroundColor(log.eventType.color)
+                .frame(width: 24, height: 24)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(log.eventType.displayName)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                
+                Text(log.description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Text(log.timestamp, style: .relative)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            if log.requiresAttention {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(.orange)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Two-Factor Authentication View
 struct TwoFactorView: View {
+    @StateObject private var viewModel = TwoFactorViewModel()
+    @Environment(\.dismiss) private var dismiss
+    
     var body: some View {
-        Text("Two-Factor Authentication")
-            .navigationTitle("2FA")
+        NavigationView {
+            List {
+                if viewModel.is2FAEnabled {
+                    // 2FA Status Section
+                    Section {
+                        HStack {
+                            Image(systemName: "checkmark.shield.fill")
+                                .foregroundColor(.green)
+                            Text("Two-Factor Authentication is enabled")
+                                .fontWeight(.medium)
+                        }
+                        
+                        if let lastUsed = viewModel.lastUsedDate {
+                            HStack {
+                                Image(systemName: "clock")
+                                    .foregroundColor(.secondary)
+                                Text("Last used: \(lastUsed, style: .relative)")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    } header: {
+                        Text("Status")
+                    }
+                    
+                    // Backup Codes Section
+                    Section {
+                        if viewModel.backupCodes.isEmpty {
+                            Button("Generate Backup Codes") {
+                                viewModel.generateBackupCodes()
+                            }
+                            .foregroundColor(.blue)
+                        } else {
+                            ForEach(viewModel.backupCodes, id: \.self) { code in
+                                HStack {
+                                    Text(code)
+                                        .font(.system(.body, design: .monospaced))
+                                        .fontWeight(.medium)
+                                    Spacer()
+                                    if viewModel.usedBackupCodes.contains(code) {
+                                        Text("Used")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                            }
+                            
+                            Button("Regenerate Backup Codes") {
+                                viewModel.showRegenerateAlert = true
+                            }
+                            .foregroundColor(.orange)
+                        }
+                    } header: {
+                        Text("Backup Codes")
+                    } footer: {
+                        Text("Save these codes in a secure location. Each code can only be used once.")
+                    }
+                    
+                    // Disable 2FA Section
+                    Section {
+                        Button("Disable Two-Factor Authentication") {
+                            viewModel.showDisableAlert = true
+                        }
+                        .foregroundColor(.red)
+                    } header: {
+                        Text("Danger Zone")
+                    } footer: {
+                        Text("Disabling 2FA will make your account less secure.")
+                    }
+                } else {
+                    // Setup 2FA Section
+                    Section {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Two-Factor Authentication adds an extra layer of security to your account by requiring a verification code in addition to your password.")
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                            
+                            Button("Set Up Two-Factor Authentication") {
+                                viewModel.setup2FA()
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                        .padding(.vertical, 8)
+                    } header: {
+                        Text("Setup")
+                    }
+                }
+                
+                // Security Tips Section
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        SecurityTipRow(
+                            icon: "shield.checkered",
+                            title: "Keep your backup codes safe",
+                            description: "Store them in a password manager or secure location"
+                        )
+                        
+                        SecurityTipRow(
+                            icon: "iphone",
+                            title: "Use a dedicated authenticator app",
+                            description: "Apps like Google Authenticator or Authy are recommended"
+                        )
+                        
+                        SecurityTipRow(
+                            icon: "exclamationmark.triangle",
+                            title: "Never share your 2FA codes",
+                            description: "These codes provide access to your account"
+                        )
+                    }
+                    .padding(.vertical, 8)
+                } header: {
+                    Text("Security Tips")
+                }
+            }
+            .navigationTitle("Two-Factor Authentication")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $viewModel.showSetupSheet) {
+            TwoFASetupSheet(viewModel: viewModel)
+        }
+        .alert("Regenerate Backup Codes", isPresented: $viewModel.showRegenerateAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Regenerate", role: .destructive) {
+                viewModel.generateBackupCodes()
+            }
+        } message: {
+            Text("This will invalidate all existing backup codes. Are you sure?")
+        }
+        .alert("Disable 2FA", isPresented: $viewModel.showDisableAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Disable", role: .destructive) {
+                viewModel.disable2FA()
+            }
+        } message: {
+            Text("This will make your account less secure. Are you sure?")
+        }
+        .alert("Error", isPresented: $viewModel.showErrorAlert) {
+            Button("OK") {
+                viewModel.clearError()
+            }
+        } message: {
+            if let error = viewModel.error {
+                Text(error)
+            }
+        }
     }
 }
 
-struct ConnectedAccountsView: View {
+// MARK: - Security Tip Row
+struct SecurityTipRow: View {
+    let icon: String
+    let title: String
+    let description: String
+    
     var body: some View {
-        Text("Connected Accounts")
-            .navigationTitle("Connected Accounts")
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(.blue)
+                .frame(width: 24, height: 24)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+        }
     }
 }
 
