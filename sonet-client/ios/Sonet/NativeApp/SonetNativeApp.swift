@@ -67,12 +67,12 @@ struct MainTabView: View {
                 }
                 .tag(Tab.home)
             
-            SearchTabView()
+            VideoFeedView(grpcClient: SonetGRPCClient(configuration: .development))
                 .tabItem {
-                    Image(systemName: "magnifyingglass")
-                    Text("Search")
+                    Image(systemName: "video")
+                    Text("Video")
                 }
-                .tag(Tab.search)
+                .tag(Tab.video)
             
             MessagesTabView()
                 .tabItem {
@@ -114,7 +114,7 @@ struct MainTabView: View {
 // MARK: - Tab Enumeration
 enum Tab: Int, CaseIterable {
     case home = 0
-    case search = 1
+    case video = 1
     case messages = 2
     case notifications = 3
     case profile = 4

@@ -16,7 +16,7 @@ import xyz.sonet.app.views.home.HomeTabView
 import xyz.sonet.app.views.messages.MessagesTabView
 import xyz.sonet.app.views.notifications.NotificationsTabView
 import xyz.sonet.app.views.profile.ProfileTabView
-import xyz.sonet.app.views.search.SearchTabView
+import xyz.sonet.app.ui.video.VideoFeedView
 
 @Composable
 fun SonetApp(
@@ -72,8 +72,8 @@ fun MainTabView(
                     onClick = { selectedTab = 0 }
                 )
                 NavigationBarItem(
-                    icon = { androidx.compose.material.icons.Icons.Default.Search },
-                    label = { androidx.compose.material3.Text("Search") },
+                    icon = { androidx.compose.material.icons.Icons.Default.VideoLibrary },
+                    label = { androidx.compose.material3.Text("Video") },
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 }
                 )
@@ -108,10 +108,7 @@ fun MainTabView(
                     sessionViewModel = sessionViewModel,
                     themeViewModel = themeViewModel
                 )
-                1 -> SearchTabView(
-                    sessionViewModel = sessionViewModel,
-                    themeViewModel = themeViewModel
-                )
+                1 -> VideoFeedView()
                 2 -> MessagesTabView(
                     sessionViewModel = sessionViewModel,
                     themeViewModel = themeViewModel

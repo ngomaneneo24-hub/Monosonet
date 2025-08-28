@@ -11,8 +11,12 @@ struct HomeView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Custom header with Sonet logo and meatball menu
-                HomeHeader(showingMeatballMenu: $showingMeatballMenu)
+                // Custom header with Sonet logo, search button, and meatball menu
+                HomeHeader(
+                    showingMeatballMenu: $showingMeatballMenu,
+                    searchQuery: .constant(""),
+                    onSearch: { _ in }
+                )
                 
                 // Content
                 if viewModel.isLoading {
@@ -44,6 +48,8 @@ struct HomeView: View {
 // MARK: - Home Header
 struct HomeHeader: View {
     @Binding var showingMeatballMenu: Bool
+    @Binding var searchQuery: String
+    let onSearch: (String) -> Void
     
     var body: some View {
         HStack {
@@ -51,6 +57,19 @@ struct HomeHeader: View {
             SonetLogo(size: .medium, color: .primary)
             
             Spacer()
+            
+            // Search button
+            Button(action: {
+                // Navigate to search
+            }) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 20))
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color(.systemGray6))
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+            }
             
             // Meatball menu on the right
             MeatballMenuButton {
