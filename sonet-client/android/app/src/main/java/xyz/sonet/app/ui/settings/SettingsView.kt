@@ -303,7 +303,7 @@ fun AccountSettingsSection(
         SettingsItem(
             icon = Icons.Default.Security,
             title = "Security",
-            onClick = { /* Navigate to security */ }
+            onClick = { /* Navigate to SecurityView */ }
         )
         
         SettingsItem(
