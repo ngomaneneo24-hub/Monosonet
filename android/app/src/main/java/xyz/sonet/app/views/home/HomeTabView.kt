@@ -552,6 +552,10 @@ private fun MediaLightbox(
     onDismiss: () -> Unit
 ) {
     var index by remember { mutableStateOf(startIndex) }
+    val likeState = remember { mutableStateMapOf<String, Pair<Boolean, Int>>() }
+    LaunchedEffect(media) {
+        if (likeState.isEmpty()) media.forEach { likeState[it.id] = false to 0 }
+    }
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         HorizontalPager(
             state = rememberPagerState(initialPage = startIndex, pageCount = { media.size }),
@@ -569,16 +573,39 @@ private fun MediaLightbox(
             }
         }
 
-        // Centered overlay actions placeholder (reuse post actions outside this scope if needed)
+        // Centered overlay actions with per-media like state
         Row(
-            modifier = Modifier.align(Alignment.Center).background(MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.35f)).padding(12.dp),
+            modifier = Modifier.align(Alignment.Center),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(20.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Icon(imageVector = Icons.Default.FavoriteBorder, contentDescription = null, tint = MaterialTheme.colorScheme.onInverseSurface)
-            Icon(imageVector = Icons.Default.ChatBubbleOutline, contentDescription = null, tint = MaterialTheme.colorScheme.onInverseSurface)
-            Icon(imageVector = Icons.Default.Reply, contentDescription = null, tint = MaterialTheme.colorScheme.onInverseSurface)
-            Icon(imageVector = Icons.Default.Share, contentDescription = null, tint = MaterialTheme.colorScheme.onInverseSurface)
+            val current = media[index]
+            val state = likeState[current.id] ?: (false to 0)
+            Surface(color = MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.35f), shape = MaterialTheme.shapes.large) {
+                Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    IconButton(onClick = {
+                        val (liked, count) = state
+                        val newLiked = !liked
+                        val newCount = (count + if (newLiked) 1 else if (count > 0) -1 else 0).coerceAtLeast(0)
+                        likeState[current.id] = newLiked to newCount
+                    }) {
+                        Icon(
+                            imageVector = if (state.first) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = null,
+                            tint = if (state.first) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onInverseSurface
+                        )
+                    }
+                    Text("${state.second}", color = MaterialTheme.colorScheme.onInverseSurface)
+                }
+            }
+
+            Surface(color = MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.35f), shape = MaterialTheme.shapes.large) {
+                Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                    Icon(imageVector = Icons.Default.ChatBubbleOutline, contentDescription = null, tint = MaterialTheme.colorScheme.onInverseSurface)
+                    Icon(imageVector = Icons.Default.Reply, contentDescription = null, tint = MaterialTheme.colorScheme.onInverseSurface)
+                    Icon(imageVector = Icons.Default.Share, contentDescription = null, tint = MaterialTheme.colorScheme.onInverseSurface)
+                }
+            }
         }
 
         IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopStart).padding(16.dp)) {

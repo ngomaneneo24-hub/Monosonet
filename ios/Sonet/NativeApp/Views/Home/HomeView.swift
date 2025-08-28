@@ -308,7 +308,7 @@ struct MediaCarouselView<Overlay: View>: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 0)
         .fullScreenCover(isPresented: $isPresentingLightbox) {
-            LightboxView(media: media, startIndex: currentIndex, overlayContent: overlayContent)
+            LightboxView(media: media, startIndex: currentIndex)
         }
     }
 }
@@ -369,12 +369,12 @@ private struct MediaPage: View {
 }
 
 // MARK: - Lightbox
-private struct LightboxView<Overlay: View>: View {
+private struct LightboxView: View {
     let media: [MediaItem]
     let startIndex: Int
-    var overlayContent: (() -> Overlay)? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var index: Int = 0
+    @State private var perMediaLikes: [String: (liked: Bool, count: Int)] = [:]
 
     var body: some View {
         ZStack {
@@ -389,16 +389,42 @@ private struct LightboxView<Overlay: View>: View {
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
 
-            // Centered overlay actions
-            if let overlay = overlayContent?() {
-                VStack {
-                    Spacer()
-                    overlay
-                        .padding(12)
-                        .background(Color.black.opacity(0.35))
-                        .clipShape(Capsule())
-                    Spacer()
+            // Centered overlay actions with per-media like
+            VStack {
+                Spacer()
+                HStack(spacing: 24) {
+                    let current = media[index]
+                    let likeState = perMediaLikes[current.id] ?? (false, 0)
+                    Button(action: {
+                        var (liked, count) = likeState
+                        liked.toggle()
+                        count += liked ? 1 : max(count > 0 ? -1 : 0, 0)
+                        perMediaLikes[current.id] = (liked, max(count, 0))
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: likeState.liked ? "heart.fill" : "heart")
+                                .foregroundColor(likeState.liked ? .red : .white)
+                            Text("\(likeState.count)")
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color.black.opacity(0.35))
+                    .clipShape(Capsule())
+
+                    // Other actions (reply/repost/share) without counts for now
+                    HStack(spacing: 18) {
+                        Image(systemName: "message").foregroundColor(.white)
+                        Image(systemName: "arrow.2.squarepath").foregroundColor(.white)
+                        Image(systemName: "square.and.arrow.up").foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color.black.opacity(0.35))
+                    .clipShape(Capsule())
                 }
+                .padding(.bottom, 24)
             }
 
             // Close button
@@ -417,7 +443,15 @@ private struct LightboxView<Overlay: View>: View {
             }
             .padding()
         }
-        .onAppear { index = startIndex }
+        .onAppear {
+            index = startIndex
+            // Initialize like state map if empty
+            if perMediaLikes.isEmpty {
+                var initial: [String: (Bool, Int)] = [:]
+                media.forEach { initial[$0.id] = (false, 0) }
+                perMediaLikes = initial
+            }
+        }
     }
 }
 
