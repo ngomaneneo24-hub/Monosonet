@@ -36,9 +36,7 @@ struct SearchView: View {
             HStack {
                 // Search Bar
                 HStack(spacing: 12) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.secondary)
-                        .font(.system(size: 16, weight: .medium))
+                    IconView(AppIcons.search, size: 16, color: .secondary)
                     
                     TextField("Search Sonet", text: $viewModel.searchQuery)
                         .focused($isSearchFocused)
@@ -50,9 +48,7 @@ struct SearchView: View {
                             viewModel.searchQuery = ""
                             isSearchFocused = false
                         }) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.secondary)
-                                .font(.system(size: 16))
+                            IconView(AppIcons.closeCircle, size: 16, color: .secondary)
                         }
                     }
                 }
@@ -96,8 +92,7 @@ struct SearchView: View {
                         }
                     }) {
                         HStack(spacing: 8) {
-                            Image(systemName: searchType.icon)
-                                .font(.system(size: 14, weight: .medium))
+                            IconView(searchType.icon, size: 14)
                             Text(searchType.rawValue)
                                 .font(.system(size: 15, weight: .medium))
                         }
@@ -257,9 +252,7 @@ struct SearchView: View {
     // MARK: - Error View
     private func errorView(error: String) -> some View {
         VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 48))
-                .foregroundColor(.orange)
+            IconView(AppIcons.warning, size: 48, color: .orange)
             
             Text("Search Error")
                 .font(.system(size: 20, weight: .bold))
@@ -289,9 +282,7 @@ struct SearchView: View {
     // MARK: - No Results View
     private var noResultsView: some View {
         VStack(spacing: 16) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 48))
-                .foregroundColor(.secondary)
+            IconView(AppIcons.search, size: 48, color: .secondary)
             
             Text("No Results Found")
                 .font(.system(size: 20, weight: .bold))
@@ -394,9 +385,7 @@ struct SearchView: View {
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.accentColor)
                 
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.accentColor)
+                IconView(AppIcons.chevronDown, size: 14, color: .accentColor)
             }
             .padding(.vertical, 16)
             .frame(maxWidth: .infinity)
