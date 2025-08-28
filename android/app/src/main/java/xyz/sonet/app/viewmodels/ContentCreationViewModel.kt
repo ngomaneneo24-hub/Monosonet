@@ -177,17 +177,35 @@ class ContentCreationViewModel(application: Application) : AndroidViewModel(appl
             try {
                 val content = _noteContent.value.trim()
                 
-                // Create note request
+                // Upload media and collect URLs
+                val uploadedUrls = mutableListOf<String>()
+                _selectedMedia.value.forEachIndexed { index, media ->
+                    if (media.localUri != null) {
+                        try {
+                            val uri = android.net.Uri.parse(media.localUri)
+                            val bytes = getApplication<Application>().contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: byteArrayOf()
+                            val resp = grpcClient.uploadMedia(ownerUserId = SessionViewModel(getApplication()).currentUser.value?.id ?: "current_user", fileName = media.altText ?: "media", mimeType = when (media.type) {
+                                MediaType.MEDIA_TYPE_IMAGE -> "image/jpeg"
+                                MediaType.MEDIA_TYPE_VIDEO -> "video/mp4"
+                                MediaType.MEDIA_TYPE_GIF -> "image/gif"
+                                else -> "application/octet-stream"
+                            }, bytes = bytes) { progress ->
+                                // Optionally: update a progress state
+                            }
+                            uploadedUrls.add(resp.url)
+                        } catch (e: Exception) {
+                            // Fallback to existing url
+                            if (media.url.isNotEmpty()) uploadedUrls.add(media.url)
+                        }
+                    } else if (media.url.isNotEmpty()) {
+                        uploadedUrls.add(media.url)
+                    }
+                }
+                
+                // Create note request with uploaded URLs
                 val noteRequest = CreateNoteRequest.newBuilder()
                     .setContent(content)
-                    .addAllMediaList(_selectedMedia.value.map { media ->
-                        xyz.sonet.app.grpc.proto.MediaItem.newBuilder()
-                            .setMediaId(media.mediaId)
-                            .setUrl(media.url)
-                            .setType(media.type)
-                            .setAltText(media.altText ?: "")
-                            .build()
-                    })
+                    .addAllMediaUrls(uploadedUrls)
                     .addAllHashtags(_selectedHashtags.value.map { it.removePrefix("#") })
                     .addAllMentions(_selectedMentions.value.map { it.removePrefix("@") })
                     .setVisibility(NoteVisibility.NOTE_VISIBILITY_PUBLIC)
