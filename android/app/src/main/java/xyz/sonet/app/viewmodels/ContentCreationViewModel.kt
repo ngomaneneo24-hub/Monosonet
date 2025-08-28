@@ -190,7 +190,16 @@ class ContentCreationViewModel(application: Application) : AndroidViewModel(appl
                                 MediaType.MEDIA_TYPE_GIF -> "image/gif"
                                 else -> "application/octet-stream"
                             }, bytes = bytes) { progress ->
-                                // Optionally: update a progress state
+                                try {
+                                    val nm = getApplication<Application>().getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                                    val notif = xyz.sonet.app.notifications.MessagingNotificationHelper.buildUploadProgressNotification(
+                                        getApplication(),
+                                        "Uploading…",
+                                        (progress * 100).toInt(),
+                                        100
+                                    )
+                                    nm.notify(1001, notif)
+                                } catch (_: Exception) {}
                             }
                             uploadedUrls.add(resp.url)
                         } catch (e: Exception) {
@@ -233,6 +242,10 @@ class ContentCreationViewModel(application: Application) : AndroidViewModel(appl
                 val response = grpcClient.createNote(noteRequest.build())
                 
                 if (response.success) {
+                    try {
+                        val nm = getApplication<Application>().getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+                        nm.cancel(1001)
+                    } catch (_: Exception) {}
                     // Clear form
                     clearForm()
                     
