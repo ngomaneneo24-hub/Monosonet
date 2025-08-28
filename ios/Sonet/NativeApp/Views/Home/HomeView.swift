@@ -119,6 +119,7 @@ struct FeedView: View {
 // MARK: - Note Card
 struct NoteCard: View {
     let note: Note
+    @EnvironmentObject var sessionManager: SessionManager
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -154,6 +155,19 @@ struct NoteCard: View {
                 Text(timeAgoString)
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
+                
+                Menu {
+                    if note.authorId == sessionManager.currentUser?.id {
+                        Button("Edit") { /* Edit note */ }
+                        Button("Delete", role: .destructive) { /* Delete note */ }
+                    } else {
+                        Button("Mute @\(note.author.username)") { /* Mute */ }
+                        Button("Block @\(note.author.username)", role: .destructive) { /* Block */ }
+                        Button("Report", role: .destructive) { /* Report */ }
+                    }
+                } label: {
+                    IconView(AppIcons.more, size: 14, color: .secondary)
+                }
             }
             
             // Content
