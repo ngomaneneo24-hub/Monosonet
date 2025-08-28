@@ -63,9 +63,7 @@ struct HomeHeader: View {
             Button(action: {
                 // Navigate to search
             }) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 20))
-                    .foregroundColor(.primary)
+                IconView(AppIcons.search, size: 20)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(Color(.systemGray6))
@@ -134,7 +132,7 @@ struct NoteCard: View {
                     Circle()
                         .fill(Color(.systemGray4))
                         .overlay(
-                            Image(systemName: "person.fill")
+                            IconView(AppIcons.person)
                                 .foregroundColor(.secondary)
                         )
                 }
@@ -173,24 +171,24 @@ struct NoteCard: View {
                     HStack(spacing: 20) {
                         Button(action: { /* Like */ }) {
                             HStack(spacing: 4) {
-                                Image(systemName: "heart").font(.system(size: 20))
+                                IconView(AppIcons.like, size: 20)
                                 Text("\(note.likeCount)")
                             }
                         }
                         Button(action: { /* Reply */ }) {
                             HStack(spacing: 4) {
-                                Image(systemName: "message").font(.system(size: 20))
+                                IconView(AppIcons.reply, size: 20)
                                 Text("\(note.replyCount)")
                             }
                         }
                         Button(action: { /* Repost */ }) {
                             HStack(spacing: 4) {
-                                Image(systemName: "arrow.2.squarepath").font(.system(size: 20))
+                                IconView(AppIcons.repost, size: 20)
                                 Text("\(note.repostCount)")
                             }
                         }
                         Button(action: { /* Share */ }) {
-                            Image(systemName: "square.and.arrow.up").font(.system(size: 20))
+                            IconView(AppIcons.share, size: 20)
                         }
                     }
                     .foregroundColor(.white)
@@ -201,8 +199,7 @@ struct NoteCard: View {
             HStack(spacing: 20) {
                 Button(action: { /* Like */ }) {
                     HStack(spacing: 4) {
-                        Image(systemName: "heart")
-                            .font(.system(size: 16))
+                        IconView(AppIcons.like, size: 16)
                         Text("\(note.likeCount)")
                             .font(.system(size: 14))
                     }
@@ -211,8 +208,7 @@ struct NoteCard: View {
                 
                 Button(action: { /* Reply */ }) {
                     HStack(spacing: 4) {
-                        Image(systemName: "message")
-                            .font(.system(size: 16))
+                        IconView(AppIcons.reply, size: 16)
                         Text("\(note.replyCount)")
                             .font(.system(size: 14))
                     }
@@ -221,8 +217,7 @@ struct NoteCard: View {
                 
                 Button(action: { /* Repost */ }) {
                     HStack(spacing: 4) {
-                        Image(systemName: "arrow.2.squarepath")
-                            .font(.system(size: 16))
+                        IconView(AppIcons.repost, size: 16)
                         Text("\(note.repostCount)")
                             .font(.system(size: 14))
                     }
@@ -232,9 +227,7 @@ struct NoteCard: View {
                 Spacer()
                 
                 Button(action: { /* Share */ }) {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 16))
-                        .foregroundColor(.secondary)
+                    IconView(AppIcons.share, size: 16, color: .secondary)
                 }
             }
             .padding(.horizontal, 0) // align with media left edge

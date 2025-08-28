@@ -35,6 +35,7 @@ import com.google.android.exoplayer2.MediaItem as ExoMediaItem
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.exoplayer2.ui.PlayerView
 import xyz.sonet.app.grpc.SonetGRPCClient
+import xyz.sonet.app.ui.AppIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,15 +112,7 @@ fun HomeNavigationBar(
             
             Spacer(modifier = Modifier.weight(1f))
             
-            IconButton(
-                onClick = { /* Open composer */ }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Compose",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
+            IconButton(onClick = { /* Open composer */ }) { Icon(imageVector = AppIcons.Add, contentDescription = "Compose", tint = MaterialTheme.colorScheme.primary) }
         }
         
         // Feed Type Selector
@@ -238,12 +231,7 @@ fun NoteCard(note: SonetNote) {
                         
                         if (note.author.isVerified) {
                             Spacer(modifier = Modifier.width(4.dp))
-                            Icon(
-                                imageVector = Icons.Default.Verified,
-                                contentDescription = "Verified",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Icon(imageVector = AppIcons.Verified, contentDescription = "Verified", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                         }
                     }
                     
@@ -299,10 +287,7 @@ fun NoteCard(note: SonetNote) {
                 // Reply Button
                 IconButton(onClick = { /* Handle reply */ }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.ChatBubbleOutline,
-                            contentDescription = "Reply"
-                        )
+                        Icon(imageVector = AppIcons.Comment, contentDescription = "Reply")
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("${note.replyCount}")
                     }
@@ -313,11 +298,7 @@ fun NoteCard(note: SonetNote) {
                     onClick = { isReposted = !isReposted }
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = if (isReposted) Icons.Default.Reply else Icons.Default.Reply,
-                            contentDescription = "Repost",
-                            tint = if (isReposted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Icon(imageVector = AppIcons.Reply, contentDescription = "Repost", tint = if (isReposted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("${note.repostCount}")
                     }
@@ -328,11 +309,7 @@ fun NoteCard(note: SonetNote) {
                     onClick = { isLiked = !isLiked }
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = "Like",
-                            tint = if (isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Icon(imageVector = if (isLiked) AppIcons.Like else AppIcons.LikeBorder, contentDescription = "Like", tint = if (isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("${note.likeCount}")
                     }
@@ -340,10 +317,7 @@ fun NoteCard(note: SonetNote) {
                 
                 // Share Button
                 IconButton(onClick = { /* Handle share */ }) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = "Share"
-                    )
+                    Icon(imageVector = AppIcons.Share, contentDescription = "Share")
                 }
             }
         }
