@@ -56,6 +56,7 @@ enum AppIcons {
     static let calendar = "calendar"
     static let number = "number"
     static let at = "at"
+    static let photo = "photo"
     static let shield = "checkmark.shield.fill"
     static let lightbulb = "lightbulb.fill"
     static let docOnDoc = "doc.on.doc"
