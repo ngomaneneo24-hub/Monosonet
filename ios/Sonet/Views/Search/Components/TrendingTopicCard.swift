@@ -30,17 +30,17 @@ struct TrendingTopicCard: View {
                     // Trending indicator
                     if topic.isTrending {
                         HStack(spacing: 4) {
-                            IconView("flame.fill", size: 10, color: .orange)
+                            IconView("flame.fill", size: 10, color: .accentColor)
                             
                             Text("Trending")
                                 .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.orange)
+                                .foregroundColor(.accentColor)
                         }
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(
                             RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.orange.opacity(0.1))
+                                .fill(Color.accentColor.opacity(0.1))
                         )
                     }
                 }
@@ -65,7 +65,7 @@ struct TrendingTopicCard: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
                             .stroke(
-                                topic.isTrending ? Color.orange.opacity(0.3) : Color.clear,
+                                topic.isTrending ? Color.accentColor.opacity(0.3) : Color.clear,
                                 lineWidth: 1
                             )
                     )

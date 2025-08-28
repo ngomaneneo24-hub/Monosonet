@@ -757,7 +757,7 @@ struct LocationMessageView: View {
         VStack(spacing: 8) {
             Image(systemName: "location.fill")
                 .font(.system(size: 40))
-                .foregroundColor(.red)
+                .foregroundColor(.accentColor)
             
             Text("Location shared")
                 .font(.system(size: 14, weight: .medium))
@@ -810,7 +810,7 @@ struct TypingIndicator: View {
             HStack(spacing: 4) {
                 ForEach(0..<3, id: \.self) { index in
                     Circle()
-                        .fill(Color(.systemGray4))
+                        .fill(Color.secondary.opacity(0.3))
                         .frame(width: 8, height: 8)
                         .scaleEffect(animationOffset == CGFloat(index) ? 1.2 : 1.0)
                         .animation(
@@ -825,7 +825,7 @@ struct TypingIndicator: View {
             .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: 18)
-                    .fill(Color(.systemGray5))
+                    .fill(Color(UIColor.systemGray5))
             )
             
             Spacer()
@@ -874,7 +874,7 @@ struct ChatInputArea: View {
                     .lineLimit(1...4)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(Color(.systemGray6))
+                    .background(Color(UIColor.systemGray6))
                     .cornerRadius(20)
                 
                 // Voice recording or send button
@@ -882,7 +882,7 @@ struct ChatInputArea: View {
                     Button(action: isRecordingVoice ? onStopVoiceRecording : onStartVoiceRecording) {
                         Image(systemName: isRecordingVoice ? "stop.fill" : "mic.fill")
                             .font(.system(size: 20))
-                            .foregroundColor(isRecordingVoice ? .red : .accentColor)
+                            .foregroundColor(isRecordingVoice ? .accentColor : .accentColor)
                             .scaleEffect(isRecordingVoice ? 1.2 : 1.0)
                             .animation(.easeInOut(duration: 0.2), value: isRecordingVoice)
                     }
@@ -891,7 +891,7 @@ struct ChatInputArea: View {
                             if isRecordingVoice {
                                 Text(formatDuration(voiceRecordingDuration))
                                     .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(.red)
+                                    .foregroundColor(.accentColor)
                                     .padding(.top, 24)
                             }
                         }
@@ -954,7 +954,7 @@ struct MediaPreviewGrid: View {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 16))
                             .foregroundColor(.white)
-                            .background(Circle().fill(Color.black.opacity(0.6)))
+                            .background(Circle().fill(Color.primary.opacity(0.6)))
                     }
                     .padding(4)
                 }
@@ -977,7 +977,7 @@ struct LoadingView: View {
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
+        .background(Color(UIColor.systemBackground))
     }
 }
 
@@ -990,7 +990,7 @@ struct ErrorView: View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 48))
-                .foregroundColor(.orange)
+                .foregroundColor(.primary)
             
             Text("Error")
                 .font(.system(size: 20, weight: .bold))
