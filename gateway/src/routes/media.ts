@@ -17,6 +17,8 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 
 export function registerMediaRoutes(router: Router) {
   const target = process.env.MEDIA_GRPC_ADDR || 'media-service:9090';
   const mediaClient = new mediaPackage.MediaService(target, credentials.createInsecure());
+  // naive in-memory like store for media items: { mediaId: { likeCount, userIds:Set } }
+  const mediaLikes: Map<string, { count: number } > = new Map();
 
   router.post('/v1/media/upload', verifyJwt, upload.single('media') /* accept 'media' */, (req: (AuthenticatedRequest & Request) & { file?: Express.Multer.File }, res: Response) => {
     if (!req.file) return res.status(400).json({ ok: false, message: 'file required' });
@@ -41,5 +43,19 @@ export function registerMediaRoutes(router: Router) {
       if (err) return res.status(400).json({ ok: false, message: err.message });
       return res.json({ ok: resp?.deleted ?? false });
     });
+  });
+
+  // Lightweight toggle like endpoint for media (prototype persistence)
+  router.post('/v1/media/:id/like', (req: Request, res: Response) => {
+    const mediaId = req.params.id;
+    const { isLiked } = (req.body as any) ?? {};
+    if (typeof isLiked !== 'boolean') {
+      return res.status(400).json({ ok: false, message: 'isLiked boolean required' });
+    }
+    const current = mediaLikes.get(mediaId) ?? { count: 0 };
+    let count = current.count;
+    count = isLiked ? count + 1 : Math.max(0, count - 1);
+    mediaLikes.set(mediaId, { count });
+    return res.json({ ok: true, mediaId, isLiked, likeCount: count });
   });
 }

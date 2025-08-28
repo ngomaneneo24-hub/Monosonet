@@ -401,6 +401,7 @@ private struct LightboxView: View {
                     perMediaLikes[current.id] = (liked, max(count, 0))
                     UserDefaults.standard.set(liked, forKey: "media_like_\(current.id)")
                     UserDefaults.standard.set(count, forKey: "media_like_count_\(current.id)")
+                    Task { _ = try? await SonetGRPCClient(configuration: .development).toggleMediaLikeHTTP(mediaId: current.id, isLiked: liked) }
                 }) {
                     Image(systemName: likeState.liked ? "heart.fill" : "heart")
                         .font(.system(size: 30, weight: .semibold))

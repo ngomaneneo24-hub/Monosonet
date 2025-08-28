@@ -34,6 +34,7 @@ import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem as ExoMediaItem
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.exoplayer2.ui.PlayerView
+import xyz.sonet.app.grpc.SonetGRPCClient
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -583,8 +584,11 @@ private fun MediaLightbox(
                     val newLiked = !liked
                     val newCount = (count + if (newLiked) 1 else if (count > 0) -1 else 0).coerceAtLeast(0)
                     likeState[current.id] = newLiked to newCount
-                    // Persist locally
-                    // TODO: Hook into DataStore if needed
+                    // Persist to gateway HTTP (best-effort)
+                    val client = SonetGRPCClient(LocalContext.current, SonetConfiguration.development)
+                    androidx.compose.runtime.LaunchedEffect(current.id, newLiked) {
+                        try { client.toggleMediaLikeHttp(current.id, newLiked) } catch (_: Exception) {}
+                    }
                 }) {
                     Icon(
                         imageVector = if (state.first) Icons.Default.Favorite else Icons.Default.FavoriteBorder,

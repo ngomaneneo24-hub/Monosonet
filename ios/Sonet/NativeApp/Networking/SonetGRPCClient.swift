@@ -334,6 +334,22 @@ class SonetGRPCClient: ObservableObject {
         return try await client.unlikeNote(request)
     }
     
+    // TEMP: HTTP fallback for per-media like until gRPC is added
+    func toggleMediaLikeHTTP(mediaId: String, isLiked: Bool) async throws -> Int {
+        let gatewayBase = "http://localhost:3000" // adjust per env
+        let url = URL(string: "\(gatewayBase)/v1/media/\(mediaId)/like")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["isLiked": isLiked])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw SonetError.networkError
+        }
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        return (obj?["likeCount"] as? Int) ?? 0
+    }
+    
     // MARK: - Search Methods
     func searchUsers(query: String, page: Int, pageSize: Int) async throws -> [UserProfile] {
         guard let client = searchServiceClient else {
