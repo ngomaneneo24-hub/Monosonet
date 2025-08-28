@@ -75,14 +75,17 @@ object MessagingNotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        return NotificationCompat.Builder(context, CHANNEL_ID)
+        var builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.notification_icon)
             .setStyle(style)
             .setContentTitle(conversationTitle)
             .setContentIntent(contentIntent)
             .setAutoCancel(true)
             .addAction(replyAction)
-            .build()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            builder = BubblesSupport.applyBubble(builder, context, conversationId)
+        }
+        return builder.build()
     }
 }
 
