@@ -92,7 +92,7 @@ object MessagingNotificationHelper {
         return builder.build()
     }
 
-    fun buildUploadProgressNotification(context: Context, title: String, progress: Int, max: Int): Notification {
+    fun buildUploadProgressNotification(context: Context, title: String, progress: Int, max: Int, content: String? = null): Notification {
         ensureChannel(context)
         val builder = NotificationCompat.Builder(context, UPLOAD_CHANNEL_ID)
             .setSmallIcon(R.drawable.notification_icon)
@@ -100,6 +100,7 @@ object MessagingNotificationHelper {
             .setOnlyAlertOnce(true)
             .setOngoing(true)
             .setProgress(max, progress, false)
+        if (content != null) builder.setContentText(content)
         return builder.build()
     }
 }

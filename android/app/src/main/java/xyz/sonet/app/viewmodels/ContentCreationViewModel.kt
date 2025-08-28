@@ -177,6 +177,13 @@ class ContentCreationViewModel(application: Application) : AndroidViewModel(appl
             try {
                 val content = _noteContent.value.trim()
                 
+                // Start foreground service and upload media, collect URLs
+                try {
+                    val ctx = getApplication<Application>()
+                    val intent = android.content.Intent(ctx, xyz.sonet.app.notifications.UploadForegroundService::class.java)
+                    ctx.startForegroundService(intent)
+                } catch (_: Exception) {}
+                
                 // Upload media and collect URLs
                 val uploadedUrls = mutableListOf<String>()
                 _selectedMedia.value.forEachIndexed { index, media ->
@@ -196,7 +203,8 @@ class ContentCreationViewModel(application: Application) : AndroidViewModel(appl
                                         getApplication(),
                                         "Uploading…",
                                         (progress * 100).toInt(),
-                                        100
+                                        100,
+                                        content = media.altText ?: "Media ${index + 1} of ${_selectedMedia.value.size}"
                                     )
                                     nm.notify(1001, notif)
                                 } catch (_: Exception) {}
