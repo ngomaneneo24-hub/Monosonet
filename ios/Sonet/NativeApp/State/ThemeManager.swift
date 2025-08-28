@@ -11,6 +11,8 @@ class ThemeManager: ObservableObject {
     @Published var backgroundColor: Color = .white
     @Published var textColor: Color = .black
     @Published var secondaryTextColor: Color = .gray
+    @Published var surfaceColor: Color = Color(red: 245/255, green: 245/255, blue: 245/255)
+    @Published var dividerColor: Color = Color(red: 230/255, green: 230/255, blue: 230/255)
     
     // MARK: - Private Properties
     private var cancellables = Set<AnyCancellable>()
@@ -19,11 +21,19 @@ class ThemeManager: ObservableObject {
     
     // MARK: - Computed Properties
     var tabBarBackgroundColor: UIColor {
-        isDarkMode ? UIColor.systemBackground : UIColor.systemBackground
+        isDarkMode ? UIColor.black : UIColor.white
     }
     
     var navigationBarBackgroundColor: UIColor {
-        isDarkMode ? UIColor.systemBackground : UIColor.systemBackground
+        isDarkMode ? UIColor.black : UIColor.white
+    }
+
+    var barAccentColor: UIColor {
+        isDarkMode ? UIColor.white : UIColor.black
+    }
+
+    var barUnselectedItemColor: UIColor {
+        isDarkMode ? UIColor(red: 158/255, green: 158/255, blue: 158/255, alpha: 1) : UIColor(red: 107/255, green: 107/255, blue: 107/255, alpha: 1)
     }
     
     // MARK: - Initialization
@@ -118,16 +128,20 @@ class ThemeManager: ObservableObject {
     
     private func applyLightTheme() {
         backgroundColor = .white
-        textColor = .black
-        secondaryTextColor = .gray
-        accentColor = .blue
+        textColor = Color(red: 17/255, green: 17/255, blue: 17/255)
+        secondaryTextColor = Color(red: 107/255, green: 107/255, blue: 107/255)
+        accentColor = .black
+        surfaceColor = Color(red: 245/255, green: 245/255, blue: 245/255)
+        dividerColor = Color(red: 230/255, green: 230/255, blue: 230/255)
     }
     
     private func applyDarkTheme() {
-        backgroundColor = Color(.systemBackground)
-        textColor = Color(.label)
-        secondaryTextColor = Color(.secondaryLabel)
-        accentColor = .blue
+        backgroundColor = .black
+        textColor = Color(red: 242/255, green: 242/255, blue: 242/255)
+        secondaryTextColor = Color(red: 158/255, green: 158/255, blue: 158/255)
+        accentColor = .white
+        surfaceColor = Color(red: 10/255, green: 10/255, blue: 10/255)
+        dividerColor = Color(red: 31/255, green: 31/255, blue: 31/255)
     }
 }
 
@@ -173,6 +187,25 @@ extension Color {
     static let sonetInteractive = Color("SonetInteractive")
     static let sonetInteractivePressed = Color("SonetInteractivePressed")
     static let sonetInteractiveDisabled = Color("SonetInteractiveDisabled")
+}
+
+// MARK: - Design Tokens (Monochrome)
+struct SpacingTokens {
+    static let xxs: CGFloat = 2
+    static let xs: CGFloat = 4
+    static let sm: CGFloat = 8
+    static let md: CGFloat = 12
+    static let lg: CGFloat = 16
+    static let xl: CGFloat = 24
+    static let xxl: CGFloat = 32
+}
+
+struct TypographyTokens {
+    static let body: Font = .system(size: 16, weight: .regular)
+    static let bodySmall: Font = .system(size: 14, weight: .regular)
+    static let label: Font = .system(size: 12, weight: .medium)
+    static let title: Font = .system(size: 22, weight: .bold)
+    static let titleSmall: Font = .system(size: 16, weight: .semibold)
 }
 
 // MARK: - Theme Presets

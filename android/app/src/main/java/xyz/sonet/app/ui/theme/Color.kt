@@ -28,3 +28,25 @@ val SonetTextTertiary = Color(0xFFADB5BD)
 val SonetInteractive = Color(0xFF1083FE)
 val SonetInteractivePressed = Color(0xFF0B5AA3)
 val SonetInteractiveDisabled = Color(0xFFE9ECEF)
+
+// Monochrome palette (Threads-like)
+val MonoWhite = Color(0xFFFFFFFF)
+val MonoBlack = Color(0xFF000000)
+
+// Light theme neutrals
+val MonoBackgroundLight = Color(0xFFFFFFFF) // white
+val MonoSurfaceLight = Color(0xFFF5F5F5)
+val MonoPrimaryLight = Color(0xFF000000) // black accents
+val MonoOnPrimaryLight = Color(0xFFFFFFFF)
+val MonoContentPrimaryLight = Color(0xFF111111)
+val MonoContentSecondaryLight = Color(0xFF6B6B6B)
+val MonoDividerLight = Color(0xFFE6E6E6)
+
+// Dark theme neutrals
+val MonoBackgroundDark = Color(0xFF000000) // black
+val MonoSurfaceDark = Color(0xFF0A0A0A)
+val MonoPrimaryDark = Color(0xFFFFFFFF) // white accents
+val MonoOnPrimaryDark = Color(0xFF000000)
+val MonoContentPrimaryDark = Color(0xFFF2F2F2)
+val MonoContentSecondaryDark = Color(0xFF9E9E9E)
+val MonoDividerDark = Color(0xFF1F1F1F)
