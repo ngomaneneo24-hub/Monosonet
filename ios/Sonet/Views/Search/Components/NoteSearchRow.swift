@@ -39,9 +39,16 @@ struct NoteSearchRow: View {
                 Spacer()
                 
                 // More options
-                Button(action: {
-                    // Show more options
-                }) {
+                Menu {
+                    if note.authorId == "" /* inject session user id here when available */ {
+                        Button("Edit") { /* Edit note */ }
+                        Button("Delete", role: .destructive) { /* Delete note */ }
+                    } else {
+                        Button("Mute @user") { /* Mute */ }
+                        Button("Block @user", role: .destructive) { /* Block */ }
+                        Button("Report", role: .destructive) { /* Report */ }
+                    }
+                } label: {
                     IconView(AppIcons.more, size: 14, color: .secondary)
                 }
                 .buttonStyle(PlainButtonStyle())
