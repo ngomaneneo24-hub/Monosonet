@@ -46,13 +46,17 @@ export function registerMediaRoutes(router: Router) {
   });
 
   // Toggle like via gRPC MediaService (backed by dev in-memory counter server-side)
-  router.post('/v1/media/:id/like', (req: Request, res: Response) => {
+  router.post('/v1/media/:id/like', verifyJwt, (req: AuthenticatedRequest, res: Response) => {
     const mediaId = req.params.id;
+    const userId = req.userId;
     const { isLiked } = (req.body as any) ?? {};
     if (typeof isLiked !== 'boolean') {
       return res.status(400).json({ ok: false, message: 'isLiked boolean required' });
     }
-    mediaClient.ToggleMediaLike({ media_id: mediaId, user_id: 'current', is_liked: isLiked }, (err: any, resp: any) => {
+    // Attach user id in both payload and metadata for server-side auditing
+    const md = new (require('@grpc/grpc-js').Metadata)();
+    if (userId) md.add('x-user-id', String(userId));
+    mediaClient.ToggleMediaLike({ media_id: mediaId, user_id: userId || '', is_liked: isLiked }, md, (err: any, resp: any) => {
       if (err) return res.status(400).json({ ok: false, message: err.message });
       return res.json({ ok: true, mediaId: resp?.media_id, isLiked: !!resp?.is_liked, likeCount: Number(resp?.like_count || 0) });
     });
