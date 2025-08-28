@@ -143,7 +143,7 @@ private fun SearchHeader(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Search,
+                        imageVector = xyz.sonet.app.ui.AppIcons.Search,
                         contentDescription = "Search",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
@@ -171,7 +171,7 @@ private fun SearchHeader(
                             onClick = { onQueryChange("") }
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Close,
+                                imageVector = xyz.sonet.app.ui.AppIcons.Close,
                                 contentDescription = "Clear",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(18.dp)
@@ -546,7 +546,7 @@ private fun RecentSearchRow(
         ) {
             IconButton(onClick = onRemove) {
                 Icon(
-                    imageVector = Icons.Default.Close,
+                    imageVector = xyz.sonet.app.ui.AppIcons.Close,
                     contentDescription = "Remove",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -729,7 +729,7 @@ private fun NoResultsView() {
         modifier = Modifier.fillMaxSize()
     ) {
         Icon(
-            imageVector = Icons.Default.Search,
+            imageVector = xyz.sonet.app.ui.AppIcons.Search,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(48.dp)
@@ -848,7 +848,7 @@ private fun UserSearchRow(user: UserProfile) {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Person,
+                    imageVector = xyz.sonet.app.ui.AppIcons.Profile,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp)
@@ -876,7 +876,7 @@ private fun UserSearchRow(user: UserProfile) {
                 if (user.isVerified) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
-                        imageVector = Icons.Default.Verified,
+                        imageVector = xyz.sonet.app.ui.AppIcons.Verified,
                         contentDescription = "Verified",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp)
@@ -978,7 +978,7 @@ private fun NoteSearchRow(note: Note) {
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Person,
+                        imageVector = xyz.sonet.app.ui.AppIcons.Profile,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
@@ -1007,7 +1007,7 @@ private fun NoteSearchRow(note: Note) {
             
             IconButton(onClick = { /* Show more options */ }) {
                 Icon(
-                    imageVector = Icons.Default.MoreVert,
+                    imageVector = xyz.sonet.app.ui.AppIcons.More,
                     contentDescription = "More options",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1035,7 +1035,7 @@ private fun NoteSearchRow(note: Note) {
                 modifier = Modifier.clickable { isLiked = !isLiked }
             ) {
                 Icon(
-                    imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    imageVector = if (isLiked) xyz.sonet.app.ui.AppIcons.Like else xyz.sonet.app.ui.AppIcons.LikeBorder,
                     contentDescription = "Like",
                     tint = if (isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
@@ -1056,7 +1056,7 @@ private fun NoteSearchRow(note: Note) {
                 modifier = Modifier.clickable { /* Navigate to reply */ }
             ) {
                 Icon(
-                    imageVector = Icons.Default.ChatBubbleOutline,
+                    imageVector = xyz.sonet.app.ui.AppIcons.Comment,
                     contentDescription = "Reply",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
@@ -1077,7 +1077,7 @@ private fun NoteSearchRow(note: Note) {
                 modifier = Modifier.clickable { isReposted = !isReposted }
             ) {
                 Icon(
-                    imageVector = if (isReposted) Icons.Default.Reply else Icons.Default.Reply,
+                    imageVector = xyz.sonet.app.ui.AppIcons.Reply,
                     contentDescription = "Repost",
                     tint = if (isReposted) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
@@ -1097,7 +1097,7 @@ private fun NoteSearchRow(note: Note) {
             // Share button
             IconButton(onClick = { /* Share note */ }) {
                 Icon(
-                    imageVector = Icons.Default.Share,
+                    imageVector = xyz.sonet.app.ui.AppIcons.Share,
                     contentDescription = "Share",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)

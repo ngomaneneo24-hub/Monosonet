@@ -62,35 +62,35 @@ struct MainTabView: View {
         TabView(selection: $navigationManager.selectedTab) {
             HomeTabView()
                 .tabItem {
-                    Image(systemName: "house")
+                    IconView(AppIcons.home)
                     Text("Home")
                 }
                 .tag(Tab.home)
             
             VideoFeedView(grpcClient: SonetGRPCClient(configuration: .development))
                 .tabItem {
-                    Image(systemName: "video")
+                    IconView(AppIcons.video)
                     Text("Video")
                 }
                 .tag(Tab.video)
             
             MessagesTabView()
                 .tabItem {
-                    Image(systemName: "message")
+                    IconView(AppIcons.messages)
                     Text("Messages")
                 }
                 .tag(Tab.messages)
             
             NotificationsTabView()
                 .tabItem {
-                    Image(systemName: "bell")
+                    IconView(AppIcons.notifications)
                     Text("Notifications")
                 }
                 .tag(Tab.notifications)
             
             ProfileTabView()
                 .tabItem {
-                    Image(systemName: "person")
+                    IconView(AppIcons.profile)
                     Text("Profile")
                 }
                 .tag(Tab.profile)

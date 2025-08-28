@@ -235,7 +235,7 @@ private fun ProfileInfoView(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Email,
+                            imageVector = xyz.sonet.app.ui.AppIcons.Messages,
                             contentDescription = "Message",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp)
@@ -283,7 +283,7 @@ private fun ProfileInfoView(
                 if (profile.isVerified) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
-                        imageVector = Icons.Default.Verified,
+                        imageVector = xyz.sonet.app.ui.AppIcons.Verified,
                         contentDescription = "Verified",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
@@ -626,7 +626,7 @@ private fun ProfileNoteRow(note: Note) {
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Person,
+                        imageVector = xyz.sonet.app.ui.AppIcons.Profile,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
@@ -657,7 +657,7 @@ private fun ProfileNoteRow(note: Note) {
             // More options
             IconButton(onClick = { /* Show more options */ }) {
                 Icon(
-                    imageVector = Icons.Default.MoreVert,
+                    imageVector = xyz.sonet.app.ui.AppIcons.More,
                     contentDescription = "More options",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -711,7 +711,7 @@ private fun ProfileNoteRow(note: Note) {
                 modifier = Modifier.clickable { /* Navigate to reply */ }
             ) {
                 Icon(
-                    imageVector = Icons.Default.ChatBubbleOutline,
+                    imageVector = xyz.sonet.app.ui.AppIcons.Comment,
                     contentDescription = "Reply",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
@@ -752,7 +752,7 @@ private fun ProfileNoteRow(note: Note) {
             // Share button
             IconButton(onClick = { /* Share note */ }) {
                 Icon(
-                    imageVector = Icons.Default.Share,
+                    imageVector = xyz.sonet.app.ui.AppIcons.Share,
                     contentDescription = "Share",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(18.dp)
