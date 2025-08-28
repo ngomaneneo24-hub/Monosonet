@@ -367,7 +367,7 @@ struct ErrorView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            Image(systemName: "exclamationmark.triangle")
+            IconView(AppIcons.warning, size: 48, color: .white)
                 .font(.system(size: 48))
                 .foregroundColor(.white)
             
@@ -399,9 +399,7 @@ struct ErrorView: View {
 struct EmptyVideoView: View {
     var body: some View {
         VStack(spacing: 20) {
-            Image(systemName: "video")
-                .font(.system(size: 60))
-                .foregroundColor(.white.opacity(0.6))
+            IconView(AppIcons.video, size: 60, color: .white.opacity(0.6))
             
             Text("No videos yet")
                 .font(.title2)

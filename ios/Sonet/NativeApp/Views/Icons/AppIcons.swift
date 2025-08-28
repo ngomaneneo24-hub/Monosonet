@@ -24,12 +24,16 @@ enum AppIcons {
     static let play = "play.fill"
     static let playCircle = "play.circle.fill"
     static let download = "arrow.down.circle"
+    static let clock = "clock"
+    static let warning = "exclamationmark.triangle"
+    static let network = "network"
 
     // People
     static let person = "person.fill"
     static let personCircle = "person.circle"
     static let verified = "checkmark.seal.fill"
     static let group = "person.3"
+    static let shield = "checkmark.shield.fill"
 
     // Content
     static let photo = "photo"

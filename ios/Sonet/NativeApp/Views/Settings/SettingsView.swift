@@ -736,8 +736,7 @@ struct SecurityLogRow: View {
             Spacer()
             
             if log.requiresAttention {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundColor(.orange)
+                IconView(AppIcons.warning, size: 16, color: .orange)
             }
         }
         .padding(.vertical, 4)
@@ -756,16 +755,14 @@ struct TwoFactorView: View {
                     // 2FA Status Section
                     Section {
                         HStack {
-                            Image(systemName: "checkmark.shield.fill")
-                                .foregroundColor(.green)
+                            IconView(AppIcons.shield, size: 16, color: .green)
                             Text("Two-Factor Authentication is enabled")
                                 .fontWeight(.medium)
                         }
                         
                         if let lastUsed = viewModel.lastUsedDate {
                             HStack {
-                                Image(systemName: "clock")
-                                    .foregroundColor(.secondary)
+                                IconView(AppIcons.clock, size: 16, color: .secondary)
                                 Text("Last used: \(lastUsed, style: .relative)")
                                     .foregroundColor(.secondary)
                             }
@@ -841,7 +838,7 @@ struct TwoFactorView: View {
                 Section {
                     VStack(alignment: .leading, spacing: 12) {
                         SecurityTipRow(
-                            icon: "shield.checkered",
+                            icon: AppIcons.shield,
                             title: "Keep your backup codes safe",
                             description: "Store them in a password manager or secure location"
                         )
@@ -853,7 +850,7 @@ struct TwoFactorView: View {
                         )
                         
                         SecurityTipRow(
-                            icon: "exclamationmark.triangle",
+                            icon: AppIcons.warning,
                             title: "Never share your 2FA codes",
                             description: "These codes provide access to your account"
                         )
@@ -1039,9 +1036,7 @@ struct PrivacyPolicyView: View {
 struct AboutSonetView: View {
     var body: some View {
         VStack(spacing: 20) {
-            Image(systemName: "network")
-                .font(.system(size: 60))
-                .foregroundColor(.accentColor)
+            IconView(AppIcons.network, size: 60, color: .accentColor)
             
             Text("Sonet")
                 .font(.largeTitle)

@@ -9,9 +9,7 @@ struct NotificationsTabView: View {
             VStack(spacing: 20) {
                 // Notifications Header
                 VStack(spacing: 16) {
-                    Image(systemName: "bell")
-                        .font(.system(size: 60))
-                        .foregroundColor(.blue)
+                    IconView(AppIcons.notifications, size: 60, color: .blue)
                     
                     Text("Notifications")
                         .font(.largeTitle)
