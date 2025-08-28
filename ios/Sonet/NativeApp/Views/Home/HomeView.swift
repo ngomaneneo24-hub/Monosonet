@@ -283,6 +283,7 @@ private struct MediaPage: View {
     let item: MediaItem
     @State private var player: AVPlayer?
     @State private var isPlaying: Bool = false
+    @State private var isMuted: Bool = true
 
     var body: some View {
         Group {
@@ -293,6 +294,7 @@ private struct MediaPage: View {
                             if player == nil {
                                 let p = AVPlayer(url: url)
                                 p.actionAtItemEnd = .none
+                                p.isMuted = true
                                 player = p
                                 player?.play()
                                 isPlaying = true
@@ -310,11 +312,11 @@ private struct MediaPage: View {
                             isPlaying = false
                         }
 
-                    // Minimal overlay control (tap to pause/play)
+                    // Minimal overlay gesture: tap toggles mute/unmute
                     Color.clear.contentShape(Rectangle())
                         .onTapGesture {
-                            if isPlaying { player?.pause() } else { player?.play() }
-                            isPlaying.toggle()
+                            isMuted.toggle()
+                            player?.isMuted = isMuted
                         }
                 }
             } else if let url = URL(string: item.url) {

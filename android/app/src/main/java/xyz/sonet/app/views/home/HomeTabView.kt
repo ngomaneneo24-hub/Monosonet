@@ -497,6 +497,7 @@ private fun VideoPage(url: String) {
             setMediaItem(ExoMediaItem.fromUri(url))
             prepare()
             playWhenReady = true
+            volume = 0f
         }
     }
 
@@ -507,11 +508,19 @@ private fun VideoPage(url: String) {
     }
 
     AndroidView(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize(),
         factory = { ctx ->
             PlayerView(ctx).apply {
                 useController = false
                 player = exoPlayer
+            }
+        },
+        update = { view ->
+            // Tap to toggle mute/unmute
+            view.setOnClickListener {
+                val muted = exoPlayer.volume == 0f
+                exoPlayer.volume = if (muted) 1f else 0f
             }
         }
     )
