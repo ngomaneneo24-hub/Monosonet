@@ -6,6 +6,7 @@ import path from 'node:path';
 import url from 'node:url';
 import multer from 'multer';
 import { AuthenticatedRequest, verifyJwt } from '../middleware/auth.js';
+import { createGrpcClients } from '../grpc/clients.js';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const PROTO_DIR = process.env.PROTO_DIR || path.resolve(__dirname, '../../proto');
@@ -15,8 +16,7 @@ const mediaPackage: any = loadPackageDefinition(mediaPkgDef)['sonet.media'];
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
 export function registerMediaRoutes(router: Router) {
-  const target = process.env.MEDIA_GRPC_ADDR || 'media-service:9090';
-  const mediaClient = new mediaPackage.MediaService(target, credentials.createInsecure());
+  const { media: mediaClient } = createGrpcClients();
   // naive in-memory like store for media items: { mediaId: { likeCount, userIds:Set } }
   const mediaLikes: Map<string, { count: number } > = new Map();
 
@@ -45,17 +45,16 @@ export function registerMediaRoutes(router: Router) {
     });
   });
 
-  // Lightweight toggle like endpoint for media (prototype persistence)
+  // Toggle like via gRPC MediaService (backed by dev in-memory counter server-side)
   router.post('/v1/media/:id/like', (req: Request, res: Response) => {
     const mediaId = req.params.id;
     const { isLiked } = (req.body as any) ?? {};
     if (typeof isLiked !== 'boolean') {
       return res.status(400).json({ ok: false, message: 'isLiked boolean required' });
     }
-    const current = mediaLikes.get(mediaId) ?? { count: 0 };
-    let count = current.count;
-    count = isLiked ? count + 1 : Math.max(0, count - 1);
-    mediaLikes.set(mediaId, { count });
-    return res.json({ ok: true, mediaId, isLiked, likeCount: count });
+    mediaClient.ToggleMediaLike({ media_id: mediaId, user_id: 'current', is_liked: isLiked }, (err: any, resp: any) => {
+      if (err) return res.status(400).json({ ok: false, message: err.message });
+      return res.json({ ok: true, mediaId: resp?.media_id, isLiked: !!resp?.is_liked, likeCount: Number(resp?.like_count || 0) });
+    });
   });
 }

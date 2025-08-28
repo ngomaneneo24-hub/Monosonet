@@ -84,6 +84,19 @@ message ListUserMediaResponse {
 	uint32 total_pages = 4;
 }
 
+// Per-media like toggling
+message ToggleMediaLikeRequest {
+    string media_id = 1;
+    string user_id = 2;
+    bool is_liked = 3;
+}
+
+message ToggleMediaLikeResponse {
+    string media_id = 1;
+    uint32 like_count = 2;
+    bool is_liked = 3;
+}
+
 // Simple health check
 message HealthCheckRequest {}
 message HealthCheckResponse { string status = 1; }
@@ -95,5 +108,6 @@ service MediaService {
 	rpc DeleteMedia(DeleteMediaRequest) returns (DeleteMediaResponse);
 	rpc ListUserMedia(ListUserMediaRequest) returns (ListUserMediaResponse);
 	rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+    rpc ToggleMediaLike(ToggleMediaLikeRequest) returns (ToggleMediaLikeResponse);
 }
 

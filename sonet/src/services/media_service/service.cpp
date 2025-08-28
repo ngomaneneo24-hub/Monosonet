@@ -417,5 +417,34 @@ static RateLimiter g_upload_rate_limiter;
 	return ::grpc::Status::OK;
 }
 
+// Simple in-memory like counter for media items (development only)
+static std::mutex g_like_mu;
+static std::unordered_map<std::string, uint32_t> g_media_like_counts;
+
+::grpc::Status MediaServiceImpl::ToggleMediaLike(::grpc::ServerContext* /*context*/,
+													 const ::sonet::media::ToggleMediaLikeRequest* request,
+													 ::sonet::media::ToggleMediaLikeResponse* response) {
+	if (!request || request->media_id().empty()) {
+		return ::grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, "media_id required");
+	}
+	const std::string media_id = request->media_id();
+	bool is_liked = request->is_liked();
+	uint32_t count = 0;
+	{
+		std::lock_guard<std::mutex> lock(g_like_mu);
+		uint32_t& ref = g_media_like_counts[media_id];
+		if (is_liked) {
+			ref += 1;
+		} else if (ref > 0) {
+			ref -= 1;
+		}
+		count = ref;
+	}
+	response->set_media_id(media_id);
+	response->set_like_count(count);
+	response->set_is_liked(is_liked);
+	return ::grpc::Status::OK;
+}
+
 } // namespace sonet::media_service
 
