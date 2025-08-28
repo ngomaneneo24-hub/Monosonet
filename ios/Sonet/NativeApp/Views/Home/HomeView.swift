@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct HomeView: View {
+    @EnvironmentObject var sessionManager: SessionManager
     @StateObject private var viewModel: HomeViewModel
     @State private var showingMeatballMenu = false
     
@@ -403,7 +404,7 @@ private struct LightboxView: View {
                     UserDefaults.standard.set(count, forKey: "media_like_count_\(current.id)")
                     // Persist via gRPC
                     Task {
-                        let userId = SessionManager().currentUser?.id ?? "anon"
+                        let userId = sessionManager.currentUser?.id ?? "anon"
                         _ = try? await SonetGRPCClient(configuration: .development).toggleMediaLike(mediaId: current.id, userId: userId, isLiked: liked)
                     }
                 }) {
