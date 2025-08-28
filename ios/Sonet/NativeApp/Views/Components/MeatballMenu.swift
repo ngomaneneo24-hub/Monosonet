@@ -101,7 +101,7 @@ struct SearchBar: View {
     
     var body: some View {
         HStack {
-            Image(systemName: "magnifyingglass")
+            IconView(AppIcons.search)
                 .foregroundColor(.secondary)
                 .font(.system(size: 16))
             
@@ -141,7 +141,7 @@ struct ProfileSection: View {
                     Circle()
                         .fill(Color(.systemGray4))
                         .overlay(
-                            Image(systemName: "person.fill")
+                            IconView(AppIcons.person)
                                 .foregroundColor(.secondary)
                         )
                 }
