@@ -16,9 +16,7 @@ struct UserSearchRow: View {
                 Circle()
                     .fill(Color(.systemGray4))
                     .overlay(
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(.secondary)
+                        IconView(AppIcons.person, size: 20, color: .secondary)
                     )
             }
             .frame(width: 48, height: 48)
@@ -33,9 +31,7 @@ struct UserSearchRow: View {
                         .lineLimit(1)
                     
                     if user.isVerified {
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.blue)
+                        IconView(AppIcons.verified, size: 14, color: .blue)
                     }
                 }
                 

@@ -10,9 +10,7 @@ struct SuggestedSearchCard: View {
         Button(action: onTap) {
             HStack(spacing: 12) {
                 // Icon based on suggestion
-                Image(systemName: iconForSuggestion)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.accentColor)
+                IconView(iconForSuggestion, size: 16, color: .accentColor)
                     .frame(width: 24)
                 
                 // Suggestion text
@@ -24,9 +22,7 @@ struct SuggestedSearchCard: View {
                 Spacer()
                 
                 // Arrow indicator
-                Image(systemName: "arrow.up.right")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.secondary)
+                IconView(AppIcons.arrowUpRight, size: 12, color: .secondary)
             }
             .padding(16)
             .background(
