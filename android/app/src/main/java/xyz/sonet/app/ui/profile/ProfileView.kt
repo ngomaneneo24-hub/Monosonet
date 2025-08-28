@@ -44,6 +44,7 @@ import java.util.*
 @Composable
 fun ProfileView(
     userId: String,
+    isOwnProfile: Boolean,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = viewModel()
 ) {
@@ -75,6 +76,7 @@ fun ProfileView(
                         profile = profile,
                         isFollowing = isFollowing,
                         isBlocked = isBlocked,
+                        isOwnProfile = isOwnProfile,
                         onFollowToggle = { viewModel.toggleFollow() },
                         onBlock = { viewModel.blockUser() },
                         onUnblock = { viewModel.unblockUser() }
@@ -92,13 +94,17 @@ fun ProfileView(
             
             // Tab Content
             item {
-                TabContent(
-                    selectedTab = selectedTab,
-                    posts = posts,
-                    replies = replies,
-                    media = media,
-                    likes = likes
-                )
+                val profile = userProfile
+                if (profile != null) {
+                    TabContent(
+                        selectedTab = selectedTab,
+                        posts = posts,
+                        replies = replies,
+                        media = media,
+                        likes = likes,
+                        authorProfile = profile
+                    )
+                }
             }
         }
         
@@ -119,6 +125,7 @@ private fun ProfileHeader(
     profile: UserProfile,
     isFollowing: Boolean,
     isBlocked: Boolean,
+    isOwnProfile: Boolean,
     onFollowToggle: () -> Unit,
     onBlock: () -> Unit,
     onUnblock: () -> Unit
@@ -132,6 +139,7 @@ private fun ProfileHeader(
             profile = profile,
             isFollowing = isFollowing,
             isBlocked = isBlocked,
+            isOwnProfile = isOwnProfile,
             onFollowToggle = onFollowToggle,
             onBlock = onBlock,
             onUnblock = onUnblock
@@ -208,6 +216,7 @@ private fun ProfileInfoView(
     profile: UserProfile,
     isFollowing: Boolean,
     isBlocked: Boolean,
+    isOwnProfile: Boolean,
     onFollowToggle: () -> Unit,
     onBlock: () -> Unit,
     onUnblock: () -> Unit
@@ -224,7 +233,6 @@ private fun ProfileInfoView(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                val isOwnProfile = profile.userId == xyz.sonet.app.viewmodels.SessionViewModel(LocalContext.current as android.app.Application).currentUser.value?.id
                 if (isOwnProfile) {
                     Button(
                         onClick = { /* Navigate to edit profile */ },
@@ -528,7 +536,8 @@ private fun TabContent(
     posts: List<Note>,
     replies: List<Note>,
     media: List<Note>,
-    likes: List<Note>
+    likes: List<Note>,
+    authorProfile: UserProfile
 ) {
     when (selectedTab) {
         ProfileViewModel.ProfileTab.POSTS -> ProfilePostsView(posts = posts)

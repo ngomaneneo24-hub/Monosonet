@@ -455,7 +455,7 @@ struct ProfilePostsView: View {
             EmptyStateView(
                 icon: "bubble.left",
                 title: "No posts yet",
-                message: "When \("User") posts, they'll show up here."
+                message: "When \(authorProfile.displayName) posts, they'll show up here."
             )
         } else {
             LazyVStack(spacing: 0) {
@@ -477,7 +477,7 @@ struct ProfileRepliesView: View {
             EmptyStateView(
                 icon: "arrowshape.turn.up.left",
                 title: "No replies yet",
-                message: "When \("User") replies, they'll show up here."
+                message: "When \(authorProfile.displayName) replies, they'll show up here."
             )
         } else {
             LazyVStack(spacing: 0) {
@@ -499,7 +499,7 @@ struct ProfileMediaView: View {
             EmptyStateView(
                 icon: "photo",
                 title: "No media yet",
-                message: "When \("User") posts photos or videos, they'll show up here."
+                message: "When \(authorProfile.displayName) posts photos or videos, they'll show up here."
             )
         } else {
             LazyVStack(spacing: 0) {
@@ -521,7 +521,7 @@ struct ProfileLikesView: View {
             EmptyStateView(
                 icon: "heart",
                 title: "No likes yet",
-                message: "Likes from \("User") will show up here."
+                message: "Likes from \(authorProfile.displayName) will show up here."
             )
         } else {
             LazyVStack(spacing: 0) {

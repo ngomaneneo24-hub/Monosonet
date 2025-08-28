@@ -10,5 +10,5 @@ fun ProfileTabView(
 ) {
     val currentUser = sessionViewModel.currentUser.collectAsState().value
     val userId = currentUser?.id ?: ""
-    ProfileView(userId = userId)
+    ProfileView(userId = userId, isOwnProfile = true)
 }
