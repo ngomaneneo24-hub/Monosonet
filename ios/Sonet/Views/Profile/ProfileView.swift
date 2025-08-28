@@ -46,7 +46,7 @@ struct ProfileView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: { dismiss() }) {
-                        Image(systemName: "arrow.left")
+                        IconView(AppIcons.back)
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.primary)
                     }
@@ -148,7 +148,7 @@ struct CoverPhotoView: View {
                         Circle()
                             .fill(Color(.systemGray4))
                             .overlay(
-                                Image(systemName: "person.fill")
+                                IconView(AppIcons.person)
                                     .font(.system(size: 40))
                                     .foregroundColor(.secondary)
                             )
@@ -187,7 +187,7 @@ struct ProfileInfoView: View {
                 HStack(spacing: 12) {
                     // Message button
                     Button(action: { /* Navigate to messages */ }) {
-                        Image(systemName: "envelope")
+                        IconView(AppIcons.messages)
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(.primary)
                             .frame(width: 36, height: 36)
@@ -223,7 +223,7 @@ struct ProfileInfoView: View {
                         .foregroundColor(.primary)
                     
                     if profile.isVerified {
-                        Image(systemName: "checkmark.seal.fill")
+                        IconView(AppIcons.verified)
                             .font(.system(size: 20))
                             .foregroundColor(.blue)
                     }
@@ -290,7 +290,7 @@ struct ProfileInfoView: View {
                     VStack(spacing: 8) {
                         if !profile.location.isEmpty {
                             HStack {
-                                Image(systemName: "location")
+                                IconView(AppIcons.location)
                                     .font(.system(size: 14))
                                     .foregroundColor(.secondary)
                                 
@@ -304,7 +304,7 @@ struct ProfileInfoView: View {
                         
                         if !profile.website.isEmpty {
                             HStack {
-                                Image(systemName: "link")
+                                IconView(AppIcons.link)
                                     .font(.system(size: 14))
                                     .foregroundColor(.secondary)
                                 
@@ -320,7 +320,7 @@ struct ProfileInfoView: View {
                 
                 // Joined date
                 HStack {
-                    Image(systemName: "calendar")
+                    IconView(AppIcons.calendar)
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
                     
@@ -522,7 +522,7 @@ struct ProfileNoteRow: View {
                     Circle()
                         .fill(Color(.systemGray4))
                         .overlay(
-                            Image(systemName: "person.fill")
+                            IconView(AppIcons.person)
                                 .font(.system(size: 16))
                                 .foregroundColor(.secondary)
                         )
@@ -545,7 +545,7 @@ struct ProfileNoteRow: View {
                 
                 // More options
                 Button(action: { /* Show more options */ }) {
-                    Image(systemName: "ellipsis")
+                    IconView(AppIcons.more)
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
                 }
@@ -611,7 +611,7 @@ struct MediaPreviewView: View {
                         Rectangle()
                             .fill(Color(.systemGray4))
                             .overlay(
-                                Image(systemName: "photo")
+                                IconView(AppIcons.photo)
                                     .font(.system(size: 20))
                                     .foregroundColor(.secondary)
                             )
@@ -648,7 +648,7 @@ struct EngagementRow: View {
             // Reply button
             Button(action: { /* Navigate to reply */ }) {
                 HStack(spacing: 6) {
-                    Image(systemName: "bubble.left")
+                    IconView(AppIcons.reply)
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
                     
@@ -677,7 +677,7 @@ struct EngagementRow: View {
             
             // Share button
             Button(action: { /* Share note */ }) {
-                Image(systemName: "square.and.arrow.up")
+                IconView(AppIcons.share)
                     .font(.system(size: 14))
                     .foregroundColor(.secondary)
             }
@@ -697,7 +697,7 @@ struct ProfileMoreButton: View {
     
     var body: some View {
         Button(action: { showingActionSheet = true }) {
-            Image(systemName: "ellipsis")
+            IconView(AppIcons.more)
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(.primary)
         }
@@ -765,7 +765,7 @@ struct ErrorView: View {
     
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle")
+            IconView(AppIcons.warning)
                 .font(.system(size: 48))
                 .foregroundColor(.orange)
             

@@ -19,9 +19,7 @@ struct NoteSearchRow: View {
                     Circle()
                         .fill(Color(.systemGray4))
                         .overlay(
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(.secondary)
+                            IconView(AppIcons.person, size: 16, color: .secondary)
                         )
                 }
                 .frame(width: 32, height: 32)
@@ -44,9 +42,7 @@ struct NoteSearchRow: View {
                 Button(action: {
                     // Show more options
                 }) {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
+                    IconView(AppIcons.more, size: 14, color: .secondary)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -72,10 +68,7 @@ struct NoteSearchRow: View {
                     }
                 }) {
                     HStack(spacing: 6) {
-                        Image(systemName: isLiked ? "heart.fill" : "heart")
-                            .font(.system(size: 14))
-                            .foregroundColor(isLiked ? .red : .secondary)
-                        
+                        IconView(isLiked ? AppIcons.likeFilled : AppIcons.like, size: 14, color: isLiked ? .red : .secondary)
                         Text("\(note.engagement.likeCount)")
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
@@ -88,10 +81,7 @@ struct NoteSearchRow: View {
                     // Navigate to reply
                 }) {
                     HStack(spacing: 6) {
-                        Image(systemName: "bubble.left")
-                            .font(.system(size: 14))
-                            .foregroundColor(.secondary)
-                        
+                        IconView(AppIcons.reply, size: 14, color: .secondary)
                         Text("\(note.engagement.replyCount)")
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
@@ -106,10 +96,7 @@ struct NoteSearchRow: View {
                     }
                 }) {
                     HStack(spacing: 6) {
-                        Image(systemName: isReposted ? "arrow.2.squarepath.fill" : "arrow.2.squarepath")
-                            .font(.system(size: 14))
-                            .foregroundColor(isReposted ? .green : .secondary)
-                        
+                        IconView(AppIcons.repost, size: 14, color: isReposted ? .green : .secondary)
                         Text("\(note.engagement.repostCount)")
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
@@ -123,9 +110,7 @@ struct NoteSearchRow: View {
                 Button(action: {
                     // Share note
                 }) {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 14))
-                        .foregroundColor(.secondary)
+                    IconView(AppIcons.share, size: 14, color: .secondary)
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -161,9 +146,7 @@ struct NoteSearchRow: View {
                         Rectangle()
                             .fill(Color(.systemGray4))
                             .overlay(
-                                Image(systemName: mediaTypeIcon)
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.secondary)
+                                IconView(mediaTypeIcon, size: 20, color: .secondary)
                             )
                     }
                     .frame(width: 80, height: 80)

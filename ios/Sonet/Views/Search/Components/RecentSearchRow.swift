@@ -11,7 +11,7 @@ struct RecentSearchRow: View {
     var body: some View {
         HStack(spacing: 12) {
             // Search icon
-            Image(systemName: "clock")
+            IconView(AppIcons.clock)
                 .font(.system(size: 16, weight: .medium))
                 .foregroundColor(.secondary)
                 .frame(width: 24)
@@ -27,9 +27,7 @@ struct RecentSearchRow: View {
             // Remove button
             if showRemoveButton {
                 Button(action: onRemove) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(.secondary)
+                    IconView(AppIcons.closeCircle, size: 18, color: .secondary)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .transition(.scale.combined(with: .opacity))
