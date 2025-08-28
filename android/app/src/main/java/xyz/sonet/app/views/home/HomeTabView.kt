@@ -244,11 +244,30 @@ fun NoteCard(note: SonetNote) {
                 
                 Spacer(modifier = Modifier.weight(1f))
                 
-                Text(
-                    text = note.timeAgo,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = note.timeAgo,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    var showMenu by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(imageVector = AppIcons.More, contentDescription = "More options", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                            val isOwn = false // TODO: pass current user id and compare with note.author.id
+                            if (isOwn) {
+                                DropdownMenuItem(text = { Text("Edit") }, onClick = { showMenu = false })
+                                DropdownMenuItem(text = { Text("Delete", color = MaterialTheme.colorScheme.error) }, onClick = { showMenu = false })
+                            } else {
+                                DropdownMenuItem(text = { Text("Mute @${note.author.username}") }, onClick = { showMenu = false })
+                                DropdownMenuItem(text = { Text("Block @${note.author.username}", color = MaterialTheme.colorScheme.error) }, onClick = { showMenu = false })
+                                DropdownMenuItem(text = { Text("Report", color = MaterialTheme.colorScheme.error) }, onClick = { showMenu = false })
+                            }
+                        }
+                    }
+                }
             }
             
             // Note Content
