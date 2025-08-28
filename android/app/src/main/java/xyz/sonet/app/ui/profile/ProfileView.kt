@@ -643,7 +643,7 @@ private fun ProfileNoteRow(note: Note) {
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Author avatar
+            // Author avatar (placeholder until user cache is wired)
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceVariant,
@@ -666,7 +666,7 @@ private fun ProfileNoteRow(note: Note) {
             // Author info
             Column {
                 Text(
-                    text = note.authorId, // TODO: map to display name via user cache if available
+                    text = note.authorId, // TODO: replace with author displayName from cache
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
