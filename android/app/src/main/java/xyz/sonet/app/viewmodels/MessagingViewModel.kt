@@ -245,6 +245,17 @@ class MessagingViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
     
+    fun reportMessage(message: Message) {
+        viewModelScope.launch {
+            try {
+                // Replace with real moderation/report API when available
+                grpcClient.reportContent(contentId = message.id, contentType = xyz.sonet.app.grpc.proto.ContentType.MESSAGE)
+            } catch (_: Exception) {
+                // Silent
+            }
+        }
+    }
+    
     fun createGroupChat(name: String, participants: List<String>) {
         viewModelScope.launch {
             try {

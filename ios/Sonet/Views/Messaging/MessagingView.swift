@@ -40,6 +40,7 @@ struct MessagingView: View {
                         onStartVoiceRecording: { viewModel.startVoiceRecording() },
                         onStopVoiceRecording: { viewModel.stopVoiceRecording() },
                         onDeleteMessage: { viewModel.deleteMessage($0) },
+                        onReportMessage: { viewModel.reportMessage($0) },
                         onBack: { viewModel.backToConversationList() }
                     )
                 }
@@ -297,6 +298,7 @@ struct ChatView: View {
     let onStartVoiceRecording: () -> Void
     let onStopVoiceRecording: () -> Void
     let onDeleteMessage: (Message) -> Void
+    let onReportMessage: (Message) -> Void
     let onBack: () -> Void
     
     var body: some View {
@@ -314,7 +316,8 @@ struct ChatView: View {
                         ForEach(messages) { message in
                             MessageBubble(
                                 message: message,
-                                onDelete: { onDeleteMessage(message) }
+                                onDelete: { onDeleteMessage(message) },
+                                onReport: { onReportMessage(message) }
                             )
                             .id(message.id)
                         }
@@ -424,6 +427,7 @@ struct ChatHeader: View {
 struct MessageBubble: View {
     let message: Message
     let onDelete: () -> Void
+    let onReport: () -> Void
     
     @State private var showingDeleteAlert = false
     
@@ -470,7 +474,11 @@ struct MessageBubble: View {
             }
         }
         .contextMenu {
-            Button("Delete", role: .destructive, action: { showingDeleteAlert = true })
+            if message.isFromCurrentUser {
+                Button("Delete", role: .destructive, action: { showingDeleteAlert = true })
+            } else {
+                Button("Report", role: .destructive, action: onReport)
+            }
         }
         .alert("Delete Message", isPresented: $showingDeleteAlert) {
             Button("Delete", role: .destructive, action: onDelete)

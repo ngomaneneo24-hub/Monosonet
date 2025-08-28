@@ -221,6 +221,17 @@ class MessagingViewModel: ObservableObject {
         }
     }
     
+    func reportMessage(_ message: Message) {
+        Task {
+            do {
+                // Replace with actual moderation/report gRPC when available
+                _ = try await grpcClient.reportContent(contentId: message.id, contentType: .MESSAGE)
+            } catch {
+                // Silently ignore for now
+            }
+        }
+    }
+    
     func createGroupChat(name: String, participants: [String]) {
         Task {
             do {
