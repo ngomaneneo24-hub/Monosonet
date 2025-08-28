@@ -1,1 +1,0 @@
-export {Star_Filled_Corner0_Rounded as StarIcon} from './Star'
