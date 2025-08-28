@@ -21,6 +21,10 @@ class SonetGRPCClient: ObservableObject {
     private var timelineServiceClient: TimelineServiceClient?
     private var messagingServiceClient: MessagingServiceClient?
     private var searchServiceClient: SearchServiceClient?
+    private var videoServiceClient: VideoServiceClient?
+    private var notificationServiceClient: NotificationServiceClient?
+    private var followServiceClient: FollowServiceClient?
+    private var mediaServiceClient: MediaServiceClient?
     
     // MARK: - Initialization
     init(configuration: SonetConfiguration) {
@@ -60,19 +64,26 @@ class SonetGRPCClient: ObservableObject {
         timelineServiceClient = TimelineServiceClient(channel: channel)
         messagingServiceClient = MessagingServiceClient(channel: channel)
         searchServiceClient = SearchServiceClient(channel: channel)
+        videoServiceClient = VideoServiceClient(channel: channel)
+        notificationServiceClient = NotificationServiceClient(channel: channel)
+        followServiceClient = FollowServiceClient(channel: channel)
+        mediaServiceClient = MediaServiceClient(channel: channel)
     }
     
     private func testConnection() {
-        // Test connection with a simple call
         Task {
             do {
                 let response = try await userServiceClient?.ping(.init())
-                isConnected = true
-                connectionError = nil
+                await MainActor.run {
+                    isConnected = true
+                    connectionError = nil
+                }
                 print("gRPC connection established successfully")
             } catch {
-                isConnected = false
-                connectionError = "Connection test failed: \(error.localizedDescription)"
+                await MainActor.run {
+                    isConnected = false
+                    connectionError = "Connection test failed: \(error.localizedDescription)"
+                }
                 print("gRPC connection test failed: \(error)")
             }
         }
@@ -122,6 +133,137 @@ class SonetGRPCClient: ObservableObject {
         return response.session
     }
     
+    // MARK: - Video Service Methods
+    func getVideos(tab: VideoTab, page: Int, pageSize: Int) async throws -> GetVideosResponse {
+        guard let client = videoServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = GetVideosRequest.with {
+            $0.tab = tab
+            $0.page = UInt32(page)
+            $0.pageSize = UInt32(pageSize)
+        }
+        
+        return try await client.getVideos(request)
+    }
+    
+    func getVideoFeed(feedType: String, algorithm: String, page: Int, pageSize: Int) async throws -> VideoFeedResponse {
+        guard let client = videoServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = VideoFeedRequest.with {
+            $0.feedType = feedType
+            $0.algorithm = algorithm
+            $0.pagination = PaginationRequest.with {
+                $0.page = UInt32(page)
+                $0.pageSize = UInt32(pageSize)
+            }
+        }
+        
+        return try await client.getVideoFeed(request)
+    }
+    
+    func getPersonalizedFeed(userId: String, feedType: String, page: Int, pageSize: Int) async throws -> VideoFeedResponse {
+        guard let client = videoServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let baseRequest = VideoFeedRequest.with {
+            $0.feedType = feedType
+            $0.algorithm = "ml_ranking"
+            $0.pagination = PaginationRequest.with {
+                $0.page = UInt32(page)
+                $0.pageSize = UInt32(pageSize)
+            }
+        }
+        
+        let request = PersonalizedFeedRequest.with {
+            $0.userID = userId
+            $0.baseRequest = baseRequest
+        }
+        
+        return try await client.getPersonalizedFeed(request)
+    }
+    
+    func trackVideoEngagement(userId: String, videoId: String, eventType: String, durationMs: UInt32? = nil, completionRate: Double? = nil) async throws -> EngagementResponse {
+        guard let client = videoServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = EngagementEvent.with {
+            $0.userID = userId
+            $0.videoID = videoId
+            $0.eventType = eventType
+            $0.timestamp = ISO8601DateFormatter().string(from: Date())
+            if let durationMs = durationMs {
+                $0.durationMs = durationMs
+            }
+            if let completionRate = completionRate {
+                $0.completionRate = completionRate
+            }
+        }
+        
+        return try await client.trackEngagement(request)
+    }
+    
+    func streamVideoFeed(feedType: String, algorithm: String) -> AsyncThrowingStream<VideoFeedUpdate, Error> {
+        guard let client = videoServiceClient else {
+            return AsyncThrowingStream { continuation in
+                continuation.finish(throwing: SonetError.serviceUnavailable)
+            }
+        }
+        
+        let request = VideoFeedRequest.with {
+            $0.feedType = feedType
+            $0.algorithm = algorithm
+        }
+        
+        return AsyncThrowingStream { continuation in
+            Task {
+                do {
+                    let stream = client.streamVideoFeed(request)
+                    for try await update in stream {
+                        continuation.yield(update)
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Video Interaction Methods
+    func toggleVideoLike(videoId: String, userId: String, isLiked: Bool) async throws -> ToggleVideoLikeResponse {
+        guard let client = videoServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = ToggleVideoLikeRequest.with {
+            $0.videoID = videoId
+            $0.userID = userId
+            $0.isLiked = isLiked
+        }
+        
+        return try await client.toggleVideoLike(request)
+    }
+    
+    func toggleFollow(userId: String, targetUserId: String, isFollowing: Bool) async throws -> ToggleFollowResponse {
+        guard let client = followServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = ToggleFollowRequest.with {
+            $0.userID = userId
+            $0.targetUserID = targetUserId
+            $0.isFollowing = isFollowing
+        }
+        
+        return try await client.toggleFollow(request)
+    }
+    
     // MARK: - Note Methods
     func getHomeTimeline(page: Int, pageSize: Int) async throws -> [TimelineItem] {
         guard let client = timelineServiceClient else {
@@ -149,6 +291,21 @@ class SonetGRPCClient: ObservableObject {
         
         let response = try await client.getNotesBatch(request)
         return response.notes
+    }
+    
+    func createNote(content: String, authorId: String, mediaUrls: [String] = [], hashtags: [String] = []) async throws -> CreateNoteResponse {
+        guard let client = noteServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = CreateNoteRequest.with {
+            $0.content = content
+            $0.authorID = authorId
+            $0.mediaUrls = mediaUrls
+            $0.hashtags = hashtags
+        }
+        
+        return try await client.createNote(request)
     }
     
     func likeNote(noteId: String, userId: String) async throws -> LikeNoteResponse {
@@ -208,14 +365,31 @@ class SonetGRPCClient: ObservableObject {
         return response.notes
     }
     
+    func searchHashtags(query: String, page: Int, pageSize: Int) async throws -> [String] {
+        guard let client = searchServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = SearchHashtagsRequest.with {
+            $0.query = query
+            $0.page = UInt32(page)
+            $0.pageSize = UInt32(pageSize)
+        }
+        
+        let response = try await client.searchHashtags(request)
+        return response.hashtags
+    }
+    
     // MARK: - Messaging Methods
-    func getConversations(userId: String) async throws -> [Conversation] {
+    func getConversations(userId: String, page: Int, pageSize: Int) async throws -> [Conversation] {
         guard let client = messagingServiceClient else {
             throw SonetError.serviceUnavailable
         }
         
         let request = GetConversationsRequest.with {
             $0.userID = userId
+            $0.page = UInt32(page)
+            $0.pageSize = UInt32(pageSize)
         }
         
         let response = try await client.getConversations(request)
@@ -235,6 +409,367 @@ class SonetGRPCClient: ObservableObject {
         
         let response = try await client.getMessages(request)
         return response.messages
+    }
+    
+    func sendMessage(conversationId: String, senderId: String, content: String, messageType: MessageType = .text) async throws -> SendMessageResponse {
+        guard let client = messagingServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = SendMessageRequest.with {
+            $0.conversationID = conversationId
+            $0.senderID = senderId
+            $0.content = content
+            $0.messageType = messageType
+        }
+        
+        return try await client.sendMessage(request)
+    }
+    
+    func sendTypingIndicator(conversationId: String, userId: String, isTyping: Bool) async throws -> SendTypingIndicatorResponse {
+        guard let client = messagingServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = TypingIndicatorRequest.with {
+            $0.conversationID = conversationId
+            $0.userID = userId
+            $0.isTyping = isTyping
+        }
+        
+        return try await client.sendTypingIndicator(request)
+    }
+    
+    func markConversationAsRead(conversationId: String, userId: String) async throws -> MarkConversationAsReadResponse {
+        guard let client = messagingServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = MarkConversationAsReadRequest.with {
+            $0.conversationID = conversationId
+            $0.userID = userId
+        }
+        
+        return try await client.markConversationAsRead(request)
+    }
+    
+    func deleteMessage(messageId: String) async throws -> DeleteMessageResponse {
+        guard let client = messagingServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = DeleteMessageRequest.with {
+            $0.messageID = messageId
+        }
+        
+        return try await client.deleteMessage(request)
+    }
+    
+    func createGroup(name: String, creatorId: String, memberIds: [String]) async throws -> CreateGroupResponse {
+        guard let client = messagingServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = CreateGroupRequest.with {
+            $0.name = name
+            $0.creatorID = creatorId
+            $0.memberIDs = memberIds
+        }
+        
+        return try await client.createGroup(request)
+    }
+    
+    func messageStream() -> AsyncThrowingStream<Message, Error> {
+        guard let client = messagingServiceClient else {
+            return AsyncThrowingStream { continuation in
+                continuation.finish(throwing: SonetError.serviceUnavailable)
+            }
+        }
+        
+        return AsyncThrowingStream { continuation in
+            Task {
+                do {
+                    let request = MessageStreamRequest.with {
+                        $0.userID = "current_user" // This should be passed from the caller
+                    }
+                    
+                    let stream = client.messageStream(request)
+                    for try await message in stream {
+                        continuation.yield(message)
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Notification Methods
+    func getNotifications(page: Int, pageSize: Int) async throws -> [NotificationItem] {
+        guard let client = notificationServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = GetNotificationsRequest.with {
+            $0.page = UInt32(page)
+            $0.pageSize = UInt32(pageSize)
+        }
+        
+        let response = try await client.getNotifications(request)
+        return response.notifications
+    }
+    
+    func markNotificationAsRead(notificationId: String) async throws -> MarkNotificationAsReadResponse {
+        guard let client = notificationServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = MarkNotificationAsReadRequest.with {
+            $0.notificationID = notificationId
+        }
+        
+        return try await client.markNotificationAsRead(request)
+    }
+    
+    func markAllNotificationsAsRead() async throws -> MarkAllNotificationsAsReadResponse {
+        guard let client = notificationServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = MarkAllNotificationsAsReadRequest()
+        return try await client.markAllNotificationsAsRead(request)
+    }
+    
+    func deleteNotification(notificationId: String) async throws -> DeleteNotificationResponse {
+        guard let client = notificationServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = DeleteNotificationRequest.with {
+            $0.notificationID = notificationId
+        }
+        
+        return try await client.deleteNotification(request)
+    }
+    
+    func clearAllNotifications() async throws -> ClearAllNotificationsResponse {
+        guard let client = notificationServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = ClearAllNotificationsRequest()
+        return try await client.clearAllNotifications(request)
+    }
+    
+    func checkForAppUpdates() async throws -> AppUpdateInfo {
+        guard let client = notificationServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = CheckForUpdatesRequest()
+        let response = try await client.checkForUpdates(request)
+        return response.updateInfo
+    }
+    
+    func updateNotificationPreferences(preferences: NotificationPreferences) async throws -> UpdateNotificationPreferencesResponse {
+        guard let client = notificationServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = UpdateNotificationPreferencesRequest.with {
+            $0.preferences = preferences
+        }
+        
+        return try await client.updateNotificationPreferences(request)
+    }
+    
+    func notificationStream() -> AsyncThrowingStream<NotificationItem, Error> {
+        guard let client = notificationServiceClient else {
+            return AsyncThrowingStream { continuation in
+                continuation.finish(throwing: SonetError.serviceUnavailable)
+            }
+        }
+        
+        return AsyncThrowingStream { continuation in
+            Task {
+                do {
+                    let request = NotificationStreamRequest.with {
+                        $0.userID = "current_user" // This should be passed from the caller
+                    }
+                    
+                    let stream = client.notificationStream(request)
+                    for try await notification in stream {
+                        continuation.yield(notification)
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Profile Methods
+    func getUserProfile(userId: String) async throws -> UserProfile {
+        guard let client = userServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = GetUserProfileRequest.with {
+            $0.userID = userId
+        }
+        
+        let response = try await client.getUserProfile(request)
+        return response.userProfile
+    }
+    
+    func getUserPosts(userId: String, page: Int, pageSize: Int) async throws -> [Note] {
+        guard let client = noteServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = GetUserPostsRequest.with {
+            $0.userID = userId
+            $0.page = UInt32(page)
+            $0.pageSize = UInt32(pageSize)
+        }
+        
+        let response = try await client.getUserPosts(request)
+        return response.notes
+    }
+    
+    func getUserReplies(userId: String, page: Int, pageSize: Int) async throws -> [Note] {
+        guard let client = noteServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = GetUserRepliesRequest.with {
+            $0.userID = userId
+            $0.page = UInt32(page)
+            $0.pageSize = UInt32(pageSize)
+        }
+        
+        let response = try await client.getUserReplies(request)
+        return response.notes
+    }
+    
+    func getUserMedia(userId: String, page: Int, pageSize: Int) async throws -> [Note] {
+        guard let client = noteServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = GetUserMediaRequest.with {
+            $0.userID = userId
+            $0.page = UInt32(page)
+            $0.pageSize = UInt32(pageSize)
+        }
+        
+        let response = try await client.getUserMedia(request)
+        return response.notes
+    }
+    
+    func getUserLikes(userId: String, page: Int, pageSize: Int) async throws -> [Note] {
+        guard let client = noteServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = GetUserLikesRequest.with {
+            $0.userID = userId
+            $0.page = UInt32(page)
+            $0.pageSize = UInt32(pageSize)
+        }
+        
+        let response = try await client.getUserLikes(request)
+        return response.notes
+    }
+    
+    func blockUser(userId: String, targetUserId: String) async throws -> BlockUserResponse {
+        guard let client = userServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = BlockUserRequest.with {
+            $0.userID = userId
+            $0.targetUserID = targetUserId
+        }
+        
+        return try await client.blockUser(request)
+    }
+    
+    func unblockUser(userId: String, targetUserId: String) async throws -> UnblockUserResponse {
+        guard let client = userServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = UnblockUserRequest.with {
+            $0.userID = userId
+            $0.targetUserID = targetUserId
+        }
+        
+        return try await client.unblockUser(request)
+    }
+    
+    // MARK: - Settings Methods
+    func updateNotificationPreferences(request: UpdateNotificationPreferencesRequest) async throws -> UpdateNotificationPreferencesResponse {
+        guard let client = notificationServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        return try await client.updateNotificationPreferences(request)
+    }
+    
+    func updatePrivacySettings(request: UpdatePrivacySettingsRequest) async throws -> UpdatePrivacySettingsResponse {
+        guard let client = userServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        return try await client.updatePrivacySettings(request)
+    }
+    
+    func updateContentPreferences(request: UpdateContentPreferencesRequest) async throws -> UpdateContentPreferencesResponse {
+        guard let client = userServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        return try await client.updateContentPreferences(request)
+    }
+    
+    func getStorageUsage() async throws -> StorageUsage {
+        guard let client = mediaServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = GetStorageUsageRequest()
+        let response = try await client.getStorageUsage(request)
+        return response.storageUsage
+    }
+    
+    func clearCache() async throws -> ClearCacheResponse {
+        guard let client = mediaServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = ClearCacheRequest()
+        return try await client.clearCache(request)
+    }
+    
+    func exportUserData() async throws -> ExportUserDataResponse {
+        guard let client = userServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = ExportUserDataRequest()
+        return try await client.exportUserData(request)
+    }
+    
+    func deleteAccount() async throws -> DeleteAccountResponse {
+        guard let client = userServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+        
+        let request = DeleteAccountRequest()
+        return try await client.deleteAccount(request)
     }
 }
 
@@ -274,6 +809,11 @@ enum SonetError: LocalizedError {
     case networkError
     case invalidResponse
     case rateLimited
+    case videoNotFound
+    case userNotFound
+    case permissionDenied
+    case invalidRequest
+    case serverError
     
     var errorDescription: String? {
         switch self {
@@ -287,6 +827,16 @@ enum SonetError: LocalizedError {
             return "Invalid response from server"
         case .rateLimited:
             return "Too many requests, please try again later"
+        case .videoNotFound:
+            return "Video not found"
+        case .userNotFound:
+            return "User not found"
+        case .permissionDenied:
+            return "Permission denied"
+        case .invalidRequest:
+            return "Invalid request"
+        case .serverError:
+            return "Server error occurred"
         }
     }
 }
@@ -317,5 +867,22 @@ extension Note {
     
     var createdAt: Date {
         return Date(timeIntervalSince1970: TimeInterval(self.createdAt.seconds))
+    }
+}
+
+// MARK: - Video Tab Enum
+enum VideoTab: String, CaseIterable {
+    case forYou = "for_you"
+    case trending = "trending"
+    case following = "following"
+    case discover = "discover"
+    
+    var grpcType: sonet.services.VideoTab {
+        switch self {
+        case .forYou: return .VIDEO_TAB_FOR_YOU
+        case .trending: return .VIDEO_TAB_TRENDING
+        case .following: return .VIDEO_TAB_FOLLOWING
+        case .discover: return .VIDEO_TAB_DISCOVER
+        }
     }
 }
