@@ -3,6 +3,10 @@ package xyz.sonet.app.views.home
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -17,6 +21,11 @@ import androidx.compose.ui.unit.dp
 import xyz.sonet.app.viewmodels.SessionViewModel
 import xyz.sonet.app.viewmodels.ThemeViewModel
 import xyz.sonet.app.viewmodels.HomeViewModel
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.rememberAsyncImagePainter
+import androidx.compose.ui.graphics.Color
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -154,7 +163,7 @@ fun FeedView(
     onLoadMore: () -> Unit
 ) {
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(notes) { note ->
@@ -186,7 +195,7 @@ fun NoteCard(note: SonetNote) {
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // User Header
@@ -253,32 +262,16 @@ fun NoteCard(note: SonetNote) {
                 )
             }
             
-            // Media Content placeholder
+            // Media carousel (full-bleed)
             if (note.media != null && note.media.isNotEmpty()) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Image,
-                            contentDescription = "Media",
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+                MediaCarousel(media = note.media)
             }
             
             // Action Buttons
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 // Reply Button
@@ -442,4 +435,48 @@ data class MediaItem(
 
 enum class MediaType {
     IMAGE, VIDEO, GIF
+}
+
+@Composable
+private fun MediaCarousel(media: List<MediaItem>) {
+    val pagerState = rememberPagerState(initialPage = 0, pageCount = { media.size })
+    Column(modifier = Modifier.fillMaxWidth()) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(300.dp)
+        ) { page ->
+            val item = media[page]
+            // Images for now; videos can be integrated with ExoPlayer later
+            Image(
+                painter = rememberAsyncImagePainter(item.url),
+                contentDescription = item.altText,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        // Indicator aligned to media left edge
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            repeat(media.size) { index ->
+                val isActive = pagerState.currentPage == index
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .background(
+                            color = if (isActive) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            shape = MaterialTheme.shapes.small
+                        )
+                )
+                if (index != media.lastIndex) Spacer(modifier = Modifier.width(6.dp))
+            }
+            Spacer(modifier = Modifier.weight(1f))
+        }
+    }
 }

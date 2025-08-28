@@ -108,7 +108,7 @@ struct FeedView: View {
                 .foregroundColor(.accentColor)
                 .padding(.vertical, 16)
             }
-            .padding(.horizontal, 16)
+            // Avoid global horizontal padding so media can render full-bleed
             .padding(.vertical, 8)
         }
         .refreshable {
@@ -162,10 +162,12 @@ struct NoteCard: View {
                 .font(.system(size: 16))
                 .foregroundColor(.primary)
                 .multilineTextAlignment(.leading)
+                .padding(.horizontal, 12)
             
             // Media (if any)
             if !note.media.isEmpty {
-                MediaGridView(media: note.media)
+                // Full-bleed carousel
+                MediaCarouselView(media: note.media)
             }
             
             // Actions
@@ -208,11 +210,10 @@ struct NoteCard: View {
                         .foregroundColor(.secondary)
                 }
             }
+            .padding(.horizontal, 0) // align with media left edge
         }
-        .padding(16)
+        .padding(.vertical, 8)
         .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
     }
     
     private var timeAgoString: String {
@@ -237,32 +238,53 @@ struct NoteCard: View {
     }
 }
 
-// MARK: - Media Grid View
-struct MediaGridView: View {
+// MARK: - Media Carousel View
+struct MediaCarouselView: View {
     let media: [MediaItem]
-    
+
+    @State private var currentIndex: Int = 0
+
     var body: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 2), spacing: 4) {
-            ForEach(media.prefix(4)) { mediaItem in
-                AsyncImage(url: URL(string: mediaItem.url)) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(height: 120)
-                        .clipped()
-                        .cornerRadius(8)
-                } placeholder: {
-                    Rectangle()
-                        .fill(Color(.systemGray4))
-                        .frame(height: 120)
-                        .overlay(
+        VStack(spacing: 8) {
+            // Full-bleed pager
+            TabView(selection: $currentIndex) {
+                ForEach(Array(media.enumerated()), id: \._0) { index, item in
+                    ZStack {
+                        Color.black.opacity(0.03)
+                        // Images for now; videos can be integrated with AVPlayer later
+                        AsyncImage(url: URL(string: item.url)) { image in
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } placeholder: {
                             ProgressView()
-                                .scaleEffect(1.2)
-                        )
-                        .cornerRadius(8)
+                                .progressViewStyle(.circular)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .aspectRatio(1, contentMode: .fit)
+                    .clipped()
+                    .tag(index)
                 }
             }
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+            .frame(maxWidth: .infinity)
+            .listRowInsets(EdgeInsets())
+            .padding(.horizontal, 0)
+
+            // Page indicator aligned to media edges
+            HStack(spacing: 6) {
+                ForEach(0..<media.count, id: \.self) { i in
+                    Circle()
+                        .fill(i == currentIndex ? Color.primary : Color.secondary.opacity(0.4))
+                        .frame(width: 6, height: 6)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 0)
     }
 }
 
