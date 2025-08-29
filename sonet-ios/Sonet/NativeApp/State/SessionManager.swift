@@ -37,11 +37,21 @@ class SessionManager: ObservableObject {
         authenticationError = nil
         
         do {
-            // Perform authentication with Sonet API
-            let user = try await performAuthentication(username: username, password: password)
+            // Perform authentication with Sonet API (login returns tokens)
+            let loginResp = try await grpcClient.loginUser(email: username, password: password)
             
-            // Store session securely
-            try await storeSession(user: user)
+            // Convert UserProfile to SonetUser
+            let user = SonetUser(
+                id: loginResp.user.userId,
+                username: loginResp.user.username,
+                displayName: loginResp.user.displayName,
+                avatarURL: URL(string: loginResp.user.avatarUrl),
+                isVerified: loginResp.user.isVerified,
+                createdAt: loginResp.user.createdAt.date
+            )
+
+            // Store session securely (user + tokens)
+            try await storeSession(user: user, accessToken: loginResp.accessToken, refreshToken: loginResp.refreshToken)
             
             // Update state
             currentUser = user
@@ -81,9 +91,18 @@ class SessionManager: ObservableObject {
         }
         
         do {
-            let refreshedUser = try await performSessionRefresh(for: user)
-            currentUser = refreshedUser
-            try await storeSession(user: refreshedUser)
+            // Attempt token refresh using stored refresh token
+            guard let refreshToken = try? await getFromKeychain(key: "refreshToken") else {
+                throw AuthenticationError.sessionExpired
+            }
+            let resp = try await grpcClient.refreshToken(refreshToken: refreshToken)
+
+            // Persist updated access token
+            try await storeInKeychain(key: "accessToken", value: resp.accessToken)
+            // Keep refresh token as-is (unless server returned a new one)
+            if let newRefresh = resp.refreshToken, !newRefresh.isEmpty {
+                try await storeInKeychain(key: "refreshToken", value: newRefresh)
+            }
         } catch {
             // If refresh fails, sign out the user
             await signOut()
@@ -119,22 +138,9 @@ class SessionManager: ObservableObject {
     }
     
     private func performAuthentication(username: String, password: String) async throws -> SonetUser {
-        do {
-            // Use gRPC client for authentication
-            let userProfile = try await grpcClient.authenticate(email: username, password: password)
-            
-            // Convert UserProfile to SonetUser
-            return SonetUser(
-                id: userProfile.userId,
-                username: userProfile.username,
-                displayName: userProfile.displayName,
-                avatarURL: URL(string: userProfile.avatarUrl),
-                isVerified: userProfile.isVerified,
-                createdAt: userProfile.createdAt.date
-            )
-        } catch {
-            print("gRPC authentication failed: \(error)")
-            throw AuthenticationError.invalidCredentials
+        // Deprecated: see authenticate(username:password:) which uses loginUser
+        return try await withCheckedThrowingContinuation { cont in
+            cont.resume(throwing: AuthenticationError.invalidCredentials)
         }
     }
     
@@ -146,14 +152,15 @@ class SessionManager: ObservableObject {
         return user
     }
     
-    private func storeSession(user: SonetUser) async throws {
+    private func storeSession(user: SonetUser, accessToken: String, refreshToken: String) async throws {
         // Store user data in UserDefaults
         if let userData = try? JSONEncoder().encode(user) {
             userDefaults.set(userData, forKey: "currentUser")
         }
         
         // Store sensitive data in keychain
-        try await storeInKeychain(key: "authToken", value: "mock_token")
+        try await storeInKeychain(key: "accessToken", value: accessToken)
+        try await storeInKeychain(key: "refreshToken", value: refreshToken)
     }
     
     private func clearStoredSession() async throws {
@@ -194,6 +201,22 @@ class SessionManager: ObservableObject {
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw KeychainError.deleteFailed
         }
+    }
+
+    private func getFromKeychain(key: String) async throws -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: key,
+            kSecReturnData as String: kCFBooleanTrue!,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        if status == errSecSuccess, let data = item as? Data, let str = String(data: data, encoding: .utf8) {
+            return str
+        }
+        return nil
     }
 }
 

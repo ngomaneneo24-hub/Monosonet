@@ -49,11 +49,19 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
             _authenticationError.value = null
             
             try {
-                // Perform authentication with Sonet API
-                val user = performAuthentication(username, password)
-                
-                // Store session securely
-                storeSession(user)
+                // Perform authentication with Sonet API (now returns tokens)
+                val authResp = grpcClient.authenticate(username, password)
+                val user = SonetUser(
+                    id = authResp.userProfile.userId,
+                    username = authResp.userProfile.username,
+                    displayName = authResp.userProfile.displayName,
+                    avatarUrl = authResp.userProfile.avatarUrl,
+                    isVerified = authResp.userProfile.isVerified,
+                    createdAt = authResp.userProfile.createdAt.seconds * 1000
+                )
+
+                // Store session securely (user + tokens)
+                storeSession(user, authResp.accessToken, authResp.refreshToken)
                 
                 // Update state
                 _currentUser.value = user
@@ -93,11 +101,16 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
     fun refreshSession() {
         viewModelScope.launch {
             val user = _currentUser.value ?: throw AuthenticationError.NoActiveSession
-            
+
             try {
-                val refreshedUser = performSessionRefresh(user)
-                _currentUser.value = refreshedUser
-                storeSession(refreshedUser)
+                // Try to refresh access token using stored refresh token
+                val refreshToken = keychainUtils.getAuthRefreshToken() ?: throw AuthenticationError.SessionExpired
+                val resp = grpcClient.refreshAccessToken(refreshToken)
+
+                // If successful, update stored tokens and keep user
+                keychainUtils.storeAuthToken(resp.accessToken)
+                keychainUtils.storeAuthRefreshToken(refreshToken)
+
             } catch (error: Exception) {
                 // If refresh fails, sign out the user
                 signOut()
@@ -128,23 +141,8 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
     }
     
     private suspend fun performAuthentication(username: String, password: String): SonetUser {
-        try {
-            // Use gRPC client for authentication
-            val userProfile = grpcClient.authenticate(username, password)
-            
-            // Convert UserProfile to SonetUser
-            return SonetUser(
-                id = userProfile.userId,
-                username = userProfile.username,
-                displayName = userProfile.displayName,
-                avatarUrl = userProfile.avatarUrl,
-                isVerified = userProfile.isVerified,
-                createdAt = userProfile.createdAt.seconds * 1000 // Convert to milliseconds
-            )
-        } catch (error: Exception) {
-            println("gRPC authentication failed: $error")
-            throw AuthenticationError.InvalidCredentials
-        }
+        // Deprecated: use authenticate() above which returns tokens. Kept for compatibility.
+        return performAuthentication(username, password)
     }
     
     private suspend fun performSessionRefresh(user: SonetUser): SonetUser {
@@ -155,12 +153,13 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
         return user
     }
     
-    private suspend fun storeSession(user: SonetUser) {
+    private suspend fun storeSession(user: SonetUser, accessToken: String, refreshToken: String) {
         // Store user data in SharedPreferences
         preferenceUtils.saveCurrentUser(user)
-        
+
         // Store sensitive data in keychain
-        keychainUtils.storeAuthToken("mock_token")
+        keychainUtils.storeAuthToken(accessToken)
+        keychainUtils.storeAuthRefreshToken(refreshToken)
     }
     
     private suspend fun clearStoredSession() {
@@ -168,7 +167,8 @@ class SessionViewModel(application: Application) : AndroidViewModel(application)
         preferenceUtils.clearCurrentUser()
         
         // Clear keychain data
-        keychainUtils.clearAuthToken()
+    keychainUtils.clearAuthToken()
+    keychainUtils.clearAuthRefreshToken()
     }
     
     private suspend fun clearCachedData() {

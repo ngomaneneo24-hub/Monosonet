@@ -71,6 +71,52 @@ class KeychainUtils(private val context: Context) {
             e.printStackTrace()
         }
     }
+
+    // Refresh token helpers
+    fun storeAuthRefreshToken(token: String) {
+        try {
+            val secretKey = getOrCreateSecretKey()
+            val cipher = Cipher.getInstance(TRANSFORMATION)
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey)
+            val encryptedData = cipher.doFinal(token.toByteArray())
+            val combined = cipher.iv + encryptedData
+            context.getSharedPreferences("sonet_secure", Context.MODE_PRIVATE)
+                .edit()
+                .putString("refresh_token", android.util.Base64.encodeToString(combined, android.util.Base64.DEFAULT))
+                .apply()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun getAuthRefreshToken(): String? {
+        return try {
+            val encryptedData = context.getSharedPreferences("sonet_secure", Context.MODE_PRIVATE)
+                .getString("refresh_token", null) ?: return null
+            val combined = android.util.Base64.decode(encryptedData, android.util.Base64.DEFAULT)
+            val iv = combined.copyOfRange(0, 12)
+            val encrypted = combined.copyOfRange(12, combined.size)
+            val secretKey = getOrCreateSecretKey()
+            val cipher = Cipher.getInstance(TRANSFORMATION)
+            val spec = GCMParameterSpec(128, iv)
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, spec)
+            String(cipher.doFinal(encrypted))
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    fun clearAuthRefreshToken() {
+        try {
+            context.getSharedPreferences("sonet_secure", Context.MODE_PRIVATE)
+                .edit()
+                .remove("refresh_token")
+                .apply()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
     
     private fun getOrCreateSecretKey(): SecretKey {
         return if (keyStore.containsAlias(KEY_ALIAS)) {

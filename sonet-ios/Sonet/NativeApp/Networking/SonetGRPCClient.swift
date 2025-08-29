@@ -143,6 +143,37 @@ class SonetGRPCClient: ObservableObject {
         let response = try await client.authenticate(request)
         return response.userProfile
     }
+
+    // New: loginUser returns tokens + session info
+    func loginUser(email: String, password: String) async throws -> LoginUserResponse {
+        guard let client = userServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+
+        let credentials = AuthCredentials.with {
+            $0.email = email
+            $0.password = password
+        }
+
+        let request = LoginUserRequest.with {
+            $0.credentials = credentials
+            $0.deviceName = "mobile"
+        }
+
+        return try await client.loginUser(request)
+    }
+
+    func refreshToken(refreshToken: String) async throws -> RefreshTokenResponse {
+        guard let client = userServiceClient else {
+            throw SonetError.serviceUnavailable
+        }
+
+        let request = RefreshTokenRequest.with {
+            $0.refreshToken = refreshToken
+        }
+
+        return try await client.refreshToken(request)
+    }
     
     func registerUser(username: String, email: String, password: String) async throws -> UserProfile {
         guard let client = userServiceClient else {

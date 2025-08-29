@@ -25,6 +25,16 @@ class SonetGRPCClient(
     private val context: Context,
     private val configuration: SonetConfiguration
 ) {
+
+    // Simple wrapper to return auth tokens alongside the user profile
+    data class LoginUserResponseWrapper(
+        val userProfile: UserProfile,
+        val accessToken: String,
+        val refreshToken: String,
+        val expiresIn: Int,
+        val session: Session
+    )
+
     
     // MARK: - Properties
     private var channel: ManagedChannel? = null
@@ -134,20 +144,33 @@ class SonetGRPCClient(
     }
     
     // MARK: - Authentication Methods
-    suspend fun authenticate(email: String, password: String): UserProfile {
+    /**
+     * Authenticate and return the full Login response (user profile + tokens + session).
+     * Keeps backward-compatible conversion points in callers, but exposes tokens so
+     * clients can persist access/refresh tokens securely.
+     */
+    suspend fun authenticate(email: String, password: String): LoginUserResponseWrapper {
         return suspendCancellableCoroutine { continuation ->
             try {
-                val request = AuthRequest.newBuilder()
-                    .setEmail(email)
-                    .setPassword(password)
-                    .setSessionType(SessionType.MOBILE)
+                val request = LoginUserRequest.newBuilder()
+                    .setCredentials(AuthCredentials.newBuilder().setEmail(email).setPassword(password).build())
+                    .setDeviceName("mobile")
                     .build()
-                
-                val response = userServiceClient?.authenticate(request)
+
+                val response = userServiceClient?.loginUser(request)
                     ?: throw Exception("User service client not available")
-                
-                continuation.resume(response.userProfile)
-                
+
+                // Wrap the important pieces for callers
+                val wrapper = LoginUserResponseWrapper(
+                    userProfile = response.user,
+                    accessToken = response.accessToken,
+                    refreshToken = response.refreshToken,
+                    expiresIn = response.expiresIn,
+                    session = response.session
+                )
+
+                continuation.resume(wrapper)
+
             } catch (error: Exception) {
                 continuation.resumeWithException(error)
             }
@@ -186,6 +209,37 @@ class SonetGRPCClient(
                 
                 continuation.resume(response.session)
                 
+            } catch (error: Exception) {
+                continuation.resumeWithException(error)
+            }
+        }
+    }
+
+    // Refresh access token using a refresh token
+    data class RefreshTokenResponseWrapper(
+        val accessToken: String,
+        val refreshToken: String,
+        val expiresIn: Int
+    )
+
+    suspend fun refreshAccessToken(refreshToken: String): RefreshTokenResponseWrapper {
+        return suspendCancellableCoroutine { continuation ->
+            try {
+                val request = RefreshTokenRequest.newBuilder()
+                    .setRefreshToken(refreshToken)
+                    .build()
+
+                val response = userServiceClient?.refreshToken(request)
+                    ?: throw Exception("User service client not available")
+
+                val wrapper = RefreshTokenResponseWrapper(
+                    accessToken = response.accessToken,
+                    refreshToken = response.refreshToken,
+                    expiresIn = response.expiresIn
+                )
+
+                continuation.resume(wrapper)
+
             } catch (error: Exception) {
                 continuation.resumeWithException(error)
             }
