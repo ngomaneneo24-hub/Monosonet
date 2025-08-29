@@ -97,8 +97,9 @@ class SonetGRPCClient: ObservableObject {
         }
         #if canImport(UIKit)
         #endif
-        // Client-streaming upload: init + chunks
-        let call = client.upload(callOptions: nil)
+    // Client-streaming upload: init + chunks
+    let options = try await authCallOptions()
+    let call = client.upload(callOptions: options)
         // Send init
         var initMsg = UploadRequest()
         var initPayload = UploadInit()
@@ -174,6 +175,76 @@ class SonetGRPCClient: ObservableObject {
 
         return try await client.refreshToken(request)
     }
+
+    // MARK: - Keychain + Auth helpers
+    private let keychainService = "xyz.sonet.app"
+
+    private func getFromKeychain(key: String) async throws -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: key,
+            kSecReturnData as String: kCFBooleanTrue!,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        if status == errSecSuccess, let data = item as? Data, let str = String(data: data, encoding: .utf8) {
+            return str
+        }
+        return nil
+    }
+
+    private func storeInKeychain(key: String, value: String) async throws {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainService,
+            kSecAttrAccount as String: key,
+            kSecValueData as String: value.data(using: .utf8)!
+        ]
+
+        SecItemDelete(query as CFDictionary)
+
+        let status = SecItemAdd(query as CFDictionary, nil)
+        guard status == errSecSuccess else {
+            throw KeychainError.saveFailed
+        }
+    }
+
+    private func authCallOptions() async throws -> CallOptions? {
+        if let token = try await getFromKeychain(key: "accessToken"), !token.isEmpty {
+            var headers = HPACKHeaders()
+            headers.add(name: "authorization", value: "Bearer \(token)")
+            return CallOptions(customMetadata: headers)
+        }
+        return nil
+    }
+
+    /// Generic helper: run a call with auth header, on UNAUTHENTICATED attempt a refresh and retry once.
+    private func callWithAuthRetry<T>(_ call: @escaping (CallOptions?) async throws -> T) async throws -> T {
+        do {
+            let options = try await authCallOptions()
+            return try await call(options)
+        } catch {
+            // Check for gRPC unauthenticated
+            if let status = error as? GRPCStatus, status.code == .unauthenticated {
+                // Try refreshing token
+                guard let refresh = try await getFromKeychain(key: "refreshToken") else {
+                    throw error
+                }
+                let resp = try await refreshToken(refreshToken: refresh)
+                // Persist new tokens
+                try await storeInKeychain(key: "accessToken", value: resp.accessToken)
+                if let newRefresh = resp.refreshToken, !newRefresh.isEmpty {
+                    try await storeInKeychain(key: "refreshToken", value: newRefresh)
+                }
+                // Retry once with new access token
+                let newOptions = try await authCallOptions()
+                return try await call(newOptions)
+            }
+            throw error
+        }
+    }
     
     func registerUser(username: String, email: String, password: String) async throws -> UserProfile {
         guard let client = userServiceClient else {
@@ -205,56 +276,62 @@ class SonetGRPCClient: ObservableObject {
     
     // MARK: - Video Service Methods
     func getVideos(tab: VideoTab, page: Int, pageSize: Int) async throws -> GetVideosResponse {
-        guard let client = videoServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = videoServiceClient else {
+                throw SonetError.serviceUnavailable
+            }
+
+            let request = GetVideosRequest.with {
+                $0.tab = tab
+                $0.page = UInt32(page)
+                $0.pageSize = UInt32(pageSize)
+            }
+
+            return try await client.getVideos(request, callOptions: options)
         }
-        
-        let request = GetVideosRequest.with {
-            $0.tab = tab
-            $0.page = UInt32(page)
-            $0.pageSize = UInt32(pageSize)
-        }
-        
-        return try await client.getVideos(request)
     }
     
     func getVideoFeed(feedType: String, algorithm: String, page: Int, pageSize: Int) async throws -> VideoFeedResponse {
-        guard let client = videoServiceClient else {
-            throw SonetError.serviceUnavailable
-        }
-        
-        let request = VideoFeedRequest.with {
-            $0.feedType = feedType
-            $0.algorithm = algorithm
-            $0.pagination = PaginationRequest.with {
-                $0.page = UInt32(page)
-                $0.pageSize = UInt32(pageSize)
+        return try await callWithAuthRetry { options in
+            guard let client = videoServiceClient else {
+                throw SonetError.serviceUnavailable
             }
+
+            let request = VideoFeedRequest.with {
+                $0.feedType = feedType
+                $0.algorithm = algorithm
+                $0.pagination = PaginationRequest.with {
+                    $0.page = UInt32(page)
+                    $0.pageSize = UInt32(pageSize)
+                }
+            }
+
+            return try await client.getVideoFeed(request, callOptions: options)
         }
-        
-        return try await client.getVideoFeed(request)
     }
     
     func getPersonalizedFeed(userId: String, feedType: String, page: Int, pageSize: Int) async throws -> VideoFeedResponse {
-        guard let client = videoServiceClient else {
-            throw SonetError.serviceUnavailable
-        }
-        
-        let baseRequest = VideoFeedRequest.with {
-            $0.feedType = feedType
-            $0.algorithm = "ml_ranking"
-            $0.pagination = PaginationRequest.with {
-                $0.page = UInt32(page)
-                $0.pageSize = UInt32(pageSize)
+        return try await callWithAuthRetry { options in
+            guard let client = videoServiceClient else {
+                throw SonetError.serviceUnavailable
             }
+
+            let baseRequest = VideoFeedRequest.with {
+                $0.feedType = feedType
+                $0.algorithm = "ml_ranking"
+                $0.pagination = PaginationRequest.with {
+                    $0.page = UInt32(page)
+                    $0.pageSize = UInt32(pageSize)
+                }
+            }
+
+            let request = PersonalizedFeedRequest.with {
+                $0.userID = userId
+                $0.baseRequest = baseRequest
+            }
+
+            return try await client.getPersonalizedFeed(request, callOptions: options)
         }
-        
-        let request = PersonalizedFeedRequest.with {
-            $0.userID = userId
-            $0.baseRequest = baseRequest
-        }
-        
-        return try await client.getPersonalizedFeed(request)
     }
     
     func trackVideoEngagement(userId: String, videoId: String, eventType: String, durationMs: UInt32? = nil, completionRate: Double? = nil) async throws -> EngagementResponse {
@@ -336,18 +413,20 @@ class SonetGRPCClient: ObservableObject {
     
     // MARK: - Note Methods
     func getHomeTimeline(page: Int, pageSize: Int) async throws -> [TimelineItem] {
-        guard let client = timelineServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = timelineServiceClient else {
+                throw SonetError.serviceUnavailable
+            }
+
+            let request = GetTimelineRequest.with {
+                $0.algorithm = .hybrid
+                $0.page = UInt32(page)
+                $0.pageSize = UInt32(pageSize)
+            }
+
+            let response = try await client.getHomeTimeline(request, callOptions: options)
+            return response.items
         }
-        
-        let request = GetTimelineRequest.with {
-            $0.algorithm = .hybrid
-            $0.page = UInt32(page)
-            $0.pageSize = UInt32(pageSize)
-        }
-        
-        let response = try await client.getHomeTimeline(request)
-        return response.items
     }
     
     func getNotesBatch(noteIds: [String]) async throws -> [Note] {
@@ -364,31 +443,35 @@ class SonetGRPCClient: ObservableObject {
     }
     
     func createNote(content: String, authorId: String, mediaUrls: [String] = [], hashtags: [String] = []) async throws -> CreateNoteResponse {
-        guard let client = noteServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = noteServiceClient else {
+                throw SonetError.serviceUnavailable
+            }
+
+            let request = CreateNoteRequest.with {
+                $0.content = content
+                $0.authorID = authorId
+                $0.mediaUrls = mediaUrls
+                $0.hashtags = hashtags
+            }
+
+            return try await client.createNote(request, callOptions: options)
         }
-        
-        let request = CreateNoteRequest.with {
-            $0.content = content
-            $0.authorID = authorId
-            $0.mediaUrls = mediaUrls
-            $0.hashtags = hashtags
-        }
-        
-        return try await client.createNote(request)
     }
     
     func likeNote(noteId: String, userId: String) async throws -> LikeNoteResponse {
-        guard let client = noteServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = noteServiceClient else {
+                throw SonetError.serviceUnavailable
+            }
+
+            let request = LikeNoteRequest.with {
+                $0.noteID = noteId
+                $0.userID = userId
+            }
+
+            return try await client.likeNote(request, callOptions: options)
         }
-        
-        let request = LikeNoteRequest.with {
-            $0.noteID = noteId
-            $0.userID = userId
-        }
-        
-        return try await client.likeNote(request)
     }
     
     func unlikeNote(noteId: String, userId: String) async throws -> UnlikeNoteResponse {
