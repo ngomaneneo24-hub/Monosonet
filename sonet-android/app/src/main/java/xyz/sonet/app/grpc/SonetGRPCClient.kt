@@ -4,6 +4,11 @@ import android.content.Context
 import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
 import io.grpc.stub.StreamObserver
+import io.grpc.ClientInterceptors
+import io.grpc.ForwardingClientCall
+import io.grpc.Metadata
+import io.grpc.StatusRuntimeException
+import io.grpc.Status
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -79,15 +84,71 @@ class SonetGRPCClient(
     
     private fun setupServiceClients() {
         channel?.let { channel ->
-            userServiceClient = UserServiceGrpc.newBlockingStub(channel)
-            noteServiceClient = NoteServiceGrpc.newBlockingStub(channel)
-            timelineServiceClient = TimelineServiceGrpc.newBlockingStub(channel)
-            searchServiceClient = SearchServiceGrpc.newBlockingStub(channel)
-            messagingServiceClient = MessagingServiceGrpc.newBlockingStub(channel)
-            videoServiceClient = VideoServiceGrpc.newBlockingStub(channel)
-            notificationServiceClient = NotificationServiceGrpc.newBlockingStub(channel)
-            followServiceClient = FollowServiceGrpc.newBlockingStub(channel)
-            mediaServiceClient = MediaServiceGrpc.newBlockingStub(channel)
+            // Attach an interceptor that injects Authorization header from secure storage
+            val interceptedChannel = ClientInterceptors.intercept(channel, AuthInterceptor())
+
+            userServiceClient = UserServiceGrpc.newBlockingStub(interceptedChannel)
+            noteServiceClient = NoteServiceGrpc.newBlockingStub(interceptedChannel)
+            timelineServiceClient = TimelineServiceGrpc.newBlockingStub(interceptedChannel)
+            searchServiceClient = SearchServiceGrpc.newBlockingStub(interceptedChannel)
+            messagingServiceClient = MessagingServiceGrpc.newBlockingStub(interceptedChannel)
+            videoServiceClient = VideoServiceGrpc.newBlockingStub(interceptedChannel)
+            notificationServiceClient = NotificationServiceGrpc.newBlockingStub(interceptedChannel)
+            followServiceClient = FollowServiceGrpc.newBlockingStub(interceptedChannel)
+            mediaServiceClient = MediaServiceGrpc.newBlockingStub(interceptedChannel)
+        }
+    }
+
+    // Client interceptor to add Authorization header from KeychainUtils
+    private inner class AuthInterceptor : io.grpc.ClientInterceptor {
+        private val AUTH_KEY: Metadata.Key<String> = Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER)
+
+        override fun <ReqT, RespT> interceptCall(
+            method: io.grpc.MethodDescriptor<ReqT, RespT>,
+            callOptions: io.grpc.CallOptions,
+            next: io.grpc.Channel
+        ): io.grpc.ClientCall<ReqT, RespT> {
+            val call = next.newCall(method, callOptions)
+            return object : ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(call) {
+                override fun start(responseListener: io.grpc.ClientCall.Listener<RespT>, headers: Metadata) {
+                    try {
+                        val token = KeychainUtils(context).getAuthToken()
+                        if (!token.isNullOrEmpty()) {
+                            headers.put(AUTH_KEY, "Bearer $token")
+                        }
+                    } catch (e: Exception) {
+                        // ignore keychain issues; proceed without auth header
+                    }
+                    super.start(responseListener, headers)
+                }
+            }
+        }
+    }
+
+    // Helper to execute a suspend RPC and retry once after refreshing tokens if UNAUTHENTICATED
+    private suspend fun <T> callWithAuthRetry(block: suspend () -> T): T {
+        try {
+            return block()
+        } catch (e: StatusRuntimeException) {
+            if (e.status.code == Status.UNAUTHENTICATED.code) {
+                // Attempt refresh
+                val refreshToken = try { KeychainUtils(context).getAuthRefreshToken() } catch (_: Exception) { null }
+                if (refreshToken.isNullOrEmpty()) throw e
+
+                try {
+                    val refreshResp = refreshAccessToken(refreshToken)
+                    // Persist new tokens
+                    try { KeychainUtils(context).storeAuthToken(refreshResp.accessToken) } catch (_: Exception) {}
+                    if (refreshResp.refreshToken.isNotEmpty()) {
+                        try { KeychainUtils(context).storeAuthRefreshToken(refreshResp.refreshToken) } catch (_: Exception) {}
+                    }
+                    // Retry once
+                    return block()
+                } catch (re: Exception) {
+                    throw re
+                }
+            }
+            throw e
         }
     }
     
@@ -887,19 +948,21 @@ class SonetGRPCClient(
     
     // MARK: - Profile Methods
     suspend fun getUserProfile(userId: String): UserProfile {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = GetUserProfileRequest.newBuilder()
-                    .setUserID(userId)
-                    .build()
-                
-                val response = userServiceClient?.getUserProfile(request)
-                    ?: throw Exception("User service client not available")
-                
-                continuation.resume(response.userProfile)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = GetUserProfileRequest.newBuilder()
+                        .setUserID(userId)
+                        .build()
+
+                    val response = userServiceClient?.getUserProfile(request)
+                        ?: throw Exception("User service client not available")
+
+                    continuation.resume(response.userProfile)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
