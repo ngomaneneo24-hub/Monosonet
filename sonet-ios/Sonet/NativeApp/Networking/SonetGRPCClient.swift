@@ -4,6 +4,31 @@ import NIO
 import NIOHTTP1
 import NIOTransportServices
 
+// Actor to serialize token refresh operations so concurrent callers wait for a single refresh.
+actor TokenRefreshCoordinator {
+    private var ongoing: Task<RefreshTokenResponse, Error>?
+
+    func refresh(_ op: @escaping () async throws -> RefreshTokenResponse) async throws -> RefreshTokenResponse {
+        if let t = ongoing {
+            return try await t.value
+        }
+
+        let t = Task<RefreshTokenResponse, Error> {
+            return try await op()
+        }
+
+        ongoing = t
+        do {
+            let res = try await t.value
+            ongoing = nil
+            return res
+        } catch {
+            ongoing = nil
+            throw error
+        }
+    }
+}
+
 // MARK: - Sonet gRPC Client
 class SonetGRPCClient: ObservableObject {
     // MARK: - Published Properties
@@ -14,6 +39,7 @@ class SonetGRPCClient: ObservableObject {
     private var channel: GRPCChannel?
     private let group = PlatformSupport.makeEventLoopGroup(loopCount: 1)
     private let configuration: SonetConfiguration
+    private let tokenRefresher = TokenRefreshCoordinator()
     
     // MARK: - Service Clients
     private var userServiceClient: UserServiceClient?
@@ -222,28 +248,8 @@ class SonetGRPCClient: ObservableObject {
 
     /// Generic helper: run a call with auth header, on UNAUTHENTICATED attempt a refresh and retry once.
     private func callWithAuthRetry<T>(_ call: @escaping (CallOptions?) async throws -> T) async throws -> T {
-        do {
-            let options = try await authCallOptions()
-            return try await call(options)
-        } catch {
-            // Check for gRPC unauthenticated
-            if let status = error as? GRPCStatus, status.code == .unauthenticated {
-                // Try refreshing token
-                guard let refresh = try await getFromKeychain(key: "refreshToken") else {
-                    throw error
-                }
-                let resp = try await refreshToken(refreshToken: refresh)
-                // Persist new tokens
-                try await storeInKeychain(key: "accessToken", value: resp.accessToken)
-                if let newRefresh = resp.refreshToken, !newRefresh.isEmpty {
-                    try await storeInKeychain(key: "refreshToken", value: newRefresh)
-                }
-                // Retry once with new access token
-                let newOptions = try await authCallOptions()
-                return try await call(newOptions)
-            }
-            throw error
-        }
+    // Delegate auth/refresh orchestration to SessionManager to centralize behavior.
+    return try await SessionManager.shared.withAuthRetry(call)
     }
     
     func registerUser(username: String, email: String, password: String) async throws -> UserProfile {
@@ -335,42 +341,41 @@ class SonetGRPCClient: ObservableObject {
     }
     
     func trackVideoEngagement(userId: String, videoId: String, eventType: String, durationMs: UInt32? = nil, completionRate: Double? = nil) async throws -> EngagementResponse {
-        guard let client = videoServiceClient else {
-            throw SonetError.serviceUnavailable
-        }
-        
-        let request = EngagementEvent.with {
-            $0.userID = userId
-            $0.videoID = videoId
-            $0.eventType = eventType
-            $0.timestamp = ISO8601DateFormatter().string(from: Date())
-            if let durationMs = durationMs {
-                $0.durationMs = durationMs
+        return try await callWithAuthRetry { options in
+            guard let client = videoServiceClient else {
+                throw SonetError.serviceUnavailable
             }
-            if let completionRate = completionRate {
-                $0.completionRate = completionRate
+
+            let request = EngagementEvent.with {
+                $0.userID = userId
+                $0.videoID = videoId
+                $0.eventType = eventType
+                $0.timestamp = ISO8601DateFormatter().string(from: Date())
+                if let durationMs = durationMs {
+                    $0.durationMs = durationMs
+                }
+                if let completionRate = completionRate {
+                    $0.completionRate = completionRate
+                }
             }
+
+            return try await client.trackEngagement(request, callOptions: options)
         }
-        
-        return try await client.trackEngagement(request)
     }
     
     func streamVideoFeed(feedType: String, algorithm: String) -> AsyncThrowingStream<VideoFeedUpdate, Error> {
-        guard let client = videoServiceClient else {
-            return AsyncThrowingStream { continuation in
-                continuation.finish(throwing: SonetError.serviceUnavailable)
-            }
-        }
-        
         let request = VideoFeedRequest.with {
             $0.feedType = feedType
             $0.algorithm = algorithm
         }
-        
+
         return AsyncThrowingStream { continuation in
             Task {
                 do {
-                    let stream = client.streamVideoFeed(request)
+                    let stream = try await callWithAuthRetry { options in
+                        guard let client = videoServiceClient else { throw SonetError.serviceUnavailable }
+                        return client.streamVideoFeed(request, callOptions: options)
+                    }
                     for try await update in stream {
                         continuation.yield(update)
                     }
@@ -384,31 +389,35 @@ class SonetGRPCClient: ObservableObject {
     
     // MARK: - Video Interaction Methods
     func toggleVideoLike(videoId: String, userId: String, isLiked: Bool) async throws -> ToggleVideoLikeResponse {
-        guard let client = videoServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = videoServiceClient else {
+                throw SonetError.serviceUnavailable
+            }
+
+            let request = ToggleVideoLikeRequest.with {
+                $0.videoID = videoId
+                $0.userID = userId
+                $0.isLiked = isLiked
+            }
+
+            return try await client.toggleVideoLike(request, callOptions: options)
         }
-        
-        let request = ToggleVideoLikeRequest.with {
-            $0.videoID = videoId
-            $0.userID = userId
-            $0.isLiked = isLiked
-        }
-        
-        return try await client.toggleVideoLike(request)
     }
     
     func toggleFollow(userId: String, targetUserId: String, isFollowing: Bool) async throws -> ToggleFollowResponse {
-        guard let client = followServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = followServiceClient else {
+                throw SonetError.serviceUnavailable
+            }
+
+            let request = ToggleFollowRequest.with {
+                $0.userID = userId
+                $0.targetUserID = targetUserId
+                $0.isFollowing = isFollowing
+            }
+
+            return try await client.toggleFollow(request, callOptions: options)
         }
-        
-        let request = ToggleFollowRequest.with {
-            $0.userID = userId
-            $0.targetUserID = targetUserId
-            $0.isFollowing = isFollowing
-        }
-        
-        return try await client.toggleFollow(request)
     }
     
     // MARK: - Note Methods
@@ -430,16 +439,12 @@ class SonetGRPCClient: ObservableObject {
     }
     
     func getNotesBatch(noteIds: [String]) async throws -> [Note] {
-        guard let client = noteServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = noteServiceClient else { throw SonetError.serviceUnavailable }
+            let request = GetNotesBatchRequest.with { $0.noteIds = noteIds }
+            let response = try await client.getNotesBatch(request, callOptions: options)
+            return response.notes
         }
-        
-        let request = GetNotesBatchRequest.with {
-            $0.noteIds = noteIds
-        }
-        
-        let response = try await client.getNotesBatch(request)
-        return response.notes
     }
     
     func createNote(content: String, authorId: String, mediaUrls: [String] = [], hashtags: [String] = []) async throws -> CreateNoteResponse {
@@ -475,180 +480,151 @@ class SonetGRPCClient: ObservableObject {
     }
     
     func unlikeNote(noteId: String, userId: String) async throws -> UnlikeNoteResponse {
-        guard let client = noteServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = noteServiceClient else { throw SonetError.serviceUnavailable }
+            let request = UnlikeNoteRequest.with {
+                $0.noteID = noteId
+                $0.userID = userId
+            }
+            return try await client.unlikeNote(request, callOptions: options)
         }
-        
-        let request = UnlikeNoteRequest.with {
-            $0.noteID = noteId
-            $0.userID = userId
-        }
-        
-        return try await client.unlikeNote(request)
     }
     
     // Removed HTTP fallback now that gRPC is available
     
     // MARK: - Search Methods
     func searchUsers(query: String, page: Int, pageSize: Int) async throws -> [UserProfile] {
-        guard let client = searchServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = searchServiceClient else { throw SonetError.serviceUnavailable }
+            let request = SearchUsersRequest.with {
+                $0.query = query
+                $0.page = UInt32(page)
+                $0.pageSize = UInt32(pageSize)
+            }
+            let response = try await client.searchUsers(request, callOptions: options)
+            return response.users
         }
-        
-        let request = SearchUsersRequest.with {
-            $0.query = query
-            $0.page = UInt32(page)
-            $0.pageSize = UInt32(pageSize)
-        }
-        
-        let response = try await client.searchUsers(request)
-        return response.users
     }
     
     func searchNotes(query: String, page: Int, pageSize: Int) async throws -> [Note] {
-        guard let client = searchServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = searchServiceClient else { throw SonetError.serviceUnavailable }
+            let request = SearchNotesRequest.with {
+                $0.query = query
+                $0.page = UInt32(page)
+                $0.pageSize = UInt32(pageSize)
+            }
+            let response = try await client.searchNotes(request, callOptions: options)
+            return response.notes
         }
-        
-        let request = SearchNotesRequest.with {
-            $0.query = query
-            $0.page = UInt32(page)
-            $0.pageSize = UInt32(pageSize)
-        }
-        
-        let response = try await client.searchNotes(request)
-        return response.notes
     }
     
     func searchHashtags(query: String, page: Int, pageSize: Int) async throws -> [String] {
-        guard let client = searchServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = searchServiceClient else { throw SonetError.serviceUnavailable }
+            let request = SearchHashtagsRequest.with {
+                $0.query = query
+                $0.page = UInt32(page)
+                $0.pageSize = UInt32(pageSize)
+            }
+            let response = try await client.searchHashtags(request, callOptions: options)
+            return response.hashtags
         }
-        
-        let request = SearchHashtagsRequest.with {
-            $0.query = query
-            $0.page = UInt32(page)
-            $0.pageSize = UInt32(pageSize)
-        }
-        
-        let response = try await client.searchHashtags(request)
-        return response.hashtags
     }
     
     // MARK: - Messaging Methods
     func getConversations(userId: String, page: Int, pageSize: Int) async throws -> [Conversation] {
-        guard let client = messagingServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = messagingServiceClient else { throw SonetError.serviceUnavailable }
+            let request = GetConversationsRequest.with {
+                $0.userID = userId
+                $0.page = UInt32(page)
+                $0.pageSize = UInt32(pageSize)
+            }
+            let response = try await client.getConversations(request, callOptions: options)
+            return response.conversations
         }
-        
-        let request = GetConversationsRequest.with {
-            $0.userID = userId
-            $0.page = UInt32(page)
-            $0.pageSize = UInt32(pageSize)
-        }
-        
-        let response = try await client.getConversations(request)
-        return response.conversations
     }
     
     func getMessages(conversationId: String, page: Int, pageSize: Int) async throws -> [Message] {
-        guard let client = messagingServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = messagingServiceClient else { throw SonetError.serviceUnavailable }
+            let request = GetMessagesRequest.with {
+                $0.conversationID = conversationId
+                $0.page = UInt32(page)
+                $0.pageSize = UInt32(pageSize)
+            }
+            let response = try await client.getMessages(request, callOptions: options)
+            return response.messages
         }
-        
-        let request = GetMessagesRequest.with {
-            $0.conversationID = conversationId
-            $0.page = UInt32(page)
-            $0.pageSize = UInt32(pageSize)
-        }
-        
-        let response = try await client.getMessages(request)
-        return response.messages
     }
     
     func sendMessage(conversationId: String, senderId: String, content: String, messageType: MessageType = .text) async throws -> SendMessageResponse {
-        guard let client = messagingServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = messagingServiceClient else { throw SonetError.serviceUnavailable }
+            let request = SendMessageRequest.with {
+                $0.conversationID = conversationId
+                $0.senderID = senderId
+                $0.content = content
+                $0.messageType = messageType
+            }
+            return try await client.sendMessage(request, callOptions: options)
         }
-        
-        let request = SendMessageRequest.with {
-            $0.conversationID = conversationId
-            $0.senderID = senderId
-            $0.content = content
-            $0.messageType = messageType
-        }
-        
-        return try await client.sendMessage(request)
     }
     
     func sendTypingIndicator(conversationId: String, userId: String, isTyping: Bool) async throws -> SendTypingIndicatorResponse {
-        guard let client = messagingServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = messagingServiceClient else { throw SonetError.serviceUnavailable }
+            let request = TypingIndicatorRequest.with {
+                $0.conversationID = conversationId
+                $0.userID = userId
+                $0.isTyping = isTyping
+            }
+            return try await client.sendTypingIndicator(request, callOptions: options)
         }
-        
-        let request = TypingIndicatorRequest.with {
-            $0.conversationID = conversationId
-            $0.userID = userId
-            $0.isTyping = isTyping
-        }
-        
-        return try await client.sendTypingIndicator(request)
     }
     
     func markConversationAsRead(conversationId: String, userId: String) async throws -> MarkConversationAsReadResponse {
-        guard let client = messagingServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = messagingServiceClient else { throw SonetError.serviceUnavailable }
+            let request = MarkConversationAsReadRequest.with {
+                $0.conversationID = conversationId
+                $0.userID = userId
+            }
+            return try await client.markConversationAsRead(request, callOptions: options)
         }
-        
-        let request = MarkConversationAsReadRequest.with {
-            $0.conversationID = conversationId
-            $0.userID = userId
-        }
-        
-        return try await client.markConversationAsRead(request)
     }
     
     func deleteMessage(messageId: String) async throws -> DeleteMessageResponse {
-        guard let client = messagingServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = messagingServiceClient else { throw SonetError.serviceUnavailable }
+            let request = DeleteMessageRequest.with { $0.messageID = messageId }
+            return try await client.deleteMessage(request, callOptions: options)
         }
-        
-        let request = DeleteMessageRequest.with {
-            $0.messageID = messageId
-        }
-        
-        return try await client.deleteMessage(request)
     }
     
     func createGroup(name: String, creatorId: String, memberIds: [String]) async throws -> CreateGroupResponse {
-        guard let client = messagingServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = messagingServiceClient else { throw SonetError.serviceUnavailable }
+            let request = CreateGroupRequest.with {
+                $0.name = name
+                $0.creatorID = creatorId
+                $0.memberIDs = memberIds
+            }
+            return try await client.createGroup(request, callOptions: options)
         }
-        
-        let request = CreateGroupRequest.with {
-            $0.name = name
-            $0.creatorID = creatorId
-            $0.memberIDs = memberIds
-        }
-        
-        return try await client.createGroup(request)
     }
     
     func messageStream() -> AsyncThrowingStream<Message, Error> {
-        guard let client = messagingServiceClient else {
-            return AsyncThrowingStream { continuation in
-                continuation.finish(throwing: SonetError.serviceUnavailable)
-            }
-        }
-        
+        let request = MessageStreamRequest.with { $0.userID = "current_user" }
+
         return AsyncThrowingStream { continuation in
             Task {
                 do {
-                    let request = MessageStreamRequest.with {
-                        $0.userID = "current_user" // This should be passed from the caller
+                    let stream = try await callWithAuthRetry { options in
+                        guard let client = messagingServiceClient else { throw SonetError.serviceUnavailable }
+                        return client.messageStream(request, callOptions: options)
                     }
-                    
-                    let stream = client.messageStream(request)
                     for try await message in stream {
                         continuation.yield(message)
                     }
@@ -662,59 +638,47 @@ class SonetGRPCClient: ObservableObject {
     
     // MARK: - Notification Methods
     func getNotifications(page: Int, pageSize: Int) async throws -> [NotificationItem] {
-        guard let client = notificationServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = notificationServiceClient else { throw SonetError.serviceUnavailable }
+            let request = GetNotificationsRequest.with {
+                $0.page = UInt32(page)
+                $0.pageSize = UInt32(pageSize)
+            }
+            let response = try await client.getNotifications(request, callOptions: options)
+            return response.notifications
         }
-        
-        let request = GetNotificationsRequest.with {
-            $0.page = UInt32(page)
-            $0.pageSize = UInt32(pageSize)
-        }
-        
-        let response = try await client.getNotifications(request)
-        return response.notifications
     }
     
     func markNotificationAsRead(notificationId: String) async throws -> MarkNotificationAsReadResponse {
-        guard let client = notificationServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = notificationServiceClient else { throw SonetError.serviceUnavailable }
+            let request = MarkNotificationAsReadRequest.with { $0.notificationID = notificationId }
+            return try await client.markNotificationAsRead(request, callOptions: options)
         }
-        
-        let request = MarkNotificationAsReadRequest.with {
-            $0.notificationID = notificationId
-        }
-        
-        return try await client.markNotificationAsRead(request)
     }
     
     func markAllNotificationsAsRead() async throws -> MarkAllNotificationsAsReadResponse {
-        guard let client = notificationServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = notificationServiceClient else { throw SonetError.serviceUnavailable }
+            let request = MarkAllNotificationsAsReadRequest()
+            return try await client.markAllNotificationsAsRead(request, callOptions: options)
         }
-        
-        let request = MarkAllNotificationsAsReadRequest()
-        return try await client.markAllNotificationsAsRead(request)
     }
     
     func deleteNotification(notificationId: String) async throws -> DeleteNotificationResponse {
-        guard let client = notificationServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = notificationServiceClient else { throw SonetError.serviceUnavailable }
+            let request = DeleteNotificationRequest.with { $0.notificationID = notificationId }
+            return try await client.deleteNotification(request, callOptions: options)
         }
-        
-        let request = DeleteNotificationRequest.with {
-            $0.notificationID = notificationId
-        }
-        
-        return try await client.deleteNotification(request)
     }
     
     func clearAllNotifications() async throws -> ClearAllNotificationsResponse {
-        guard let client = notificationServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = notificationServiceClient else { throw SonetError.serviceUnavailable }
+            let request = ClearAllNotificationsRequest()
+            return try await client.clearAllNotifications(request, callOptions: options)
         }
-        
-        let request = ClearAllNotificationsRequest()
-        return try await client.clearAllNotifications(request)
     }
     
     func checkForAppUpdates() async throws -> AppUpdateInfo {
@@ -767,178 +731,155 @@ class SonetGRPCClient: ObservableObject {
     
     // MARK: - Profile Methods
     func getUserProfile(userId: String) async throws -> UserProfile {
-        guard let client = userServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = userServiceClient else { throw SonetError.serviceUnavailable }
+            let request = GetUserProfileRequest.with { $0.userID = userId }
+            let response = try await client.getUserProfile(request, callOptions: options)
+            return response.userProfile
         }
-        
-        let request = GetUserProfileRequest.with {
-            $0.userID = userId
-        }
-        
-        let response = try await client.getUserProfile(request)
-        return response.userProfile
     }
     
     func getUserPosts(userId: String, page: Int, pageSize: Int) async throws -> [Note] {
-        guard let client = noteServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = noteServiceClient else { throw SonetError.serviceUnavailable }
+            let request = GetUserPostsRequest.with {
+                $0.userID = userId
+                $0.page = UInt32(page)
+                $0.pageSize = UInt32(pageSize)
+            }
+            let response = try await client.getUserPosts(request, callOptions: options)
+            return response.notes
         }
-        
-        let request = GetUserPostsRequest.with {
-            $0.userID = userId
-            $0.page = UInt32(page)
-            $0.pageSize = UInt32(pageSize)
-        }
-        
-        let response = try await client.getUserPosts(request)
-        return response.notes
     }
     
     func getUserReplies(userId: String, page: Int, pageSize: Int) async throws -> [Note] {
-        guard let client = noteServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = noteServiceClient else { throw SonetError.serviceUnavailable }
+            let request = GetUserRepliesRequest.with {
+                $0.userID = userId
+                $0.page = UInt32(page)
+                $0.pageSize = UInt32(pageSize)
+            }
+            let response = try await client.getUserReplies(request, callOptions: options)
+            return response.notes
         }
-        
-        let request = GetUserRepliesRequest.with {
-            $0.userID = userId
-            $0.page = UInt32(page)
-            $0.pageSize = UInt32(pageSize)
-        }
-        
-        let response = try await client.getUserReplies(request)
-        return response.notes
     }
     
     func getUserMedia(userId: String, page: Int, pageSize: Int) async throws -> [Note] {
-        guard let client = noteServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = noteServiceClient else { throw SonetError.serviceUnavailable }
+            let request = GetUserMediaRequest.with {
+                $0.userID = userId
+                $0.page = UInt32(page)
+                $0.pageSize = UInt32(pageSize)
+            }
+            let response = try await client.getUserMedia(request, callOptions: options)
+            return response.notes
         }
-        
-        let request = GetUserMediaRequest.with {
-            $0.userID = userId
-            $0.page = UInt32(page)
-            $0.pageSize = UInt32(pageSize)
-        }
-        
-        let response = try await client.getUserMedia(request)
-        return response.notes
     }
     
     func getUserLikes(userId: String, page: Int, pageSize: Int) async throws -> [Note] {
-        guard let client = noteServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = noteServiceClient else { throw SonetError.serviceUnavailable }
+            let request = GetUserLikesRequest.with {
+                $0.userID = userId
+                $0.page = UInt32(page)
+                $0.pageSize = UInt32(pageSize)
+            }
+            let response = try await client.getUserLikes(request, callOptions: options)
+            return response.notes
         }
-        
-        let request = GetUserLikesRequest.with {
-            $0.userID = userId
-            $0.page = UInt32(page)
-            $0.pageSize = UInt32(pageSize)
-        }
-        
-        let response = try await client.getUserLikes(request)
-        return response.notes
     }
     
     func blockUser(userId: String, targetUserId: String) async throws -> BlockUserResponse {
-        guard let client = userServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = userServiceClient else { throw SonetError.serviceUnavailable }
+            let request = BlockUserRequest.with {
+                $0.userID = userId
+                $0.targetUserID = targetUserId
+            }
+            return try await client.blockUser(request, callOptions: options)
         }
-        
-        let request = BlockUserRequest.with {
-            $0.userID = userId
-            $0.targetUserID = targetUserId
-        }
-        
-        return try await client.blockUser(request)
     }
     
     func unblockUser(userId: String, targetUserId: String) async throws -> UnblockUserResponse {
-        guard let client = userServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = userServiceClient else { throw SonetError.serviceUnavailable }
+            let request = UnblockUserRequest.with {
+                $0.userID = userId
+                $0.targetUserID = targetUserId
+            }
+            return try await client.unblockUser(request, callOptions: options)
         }
-        
-        let request = UnblockUserRequest.with {
-            $0.userID = userId
-            $0.targetUserID = targetUserId
-        }
-        
-        return try await client.unblockUser(request)
     }
     
     // MARK: - Settings Methods
     func updateNotificationPreferences(request: UpdateNotificationPreferencesRequest) async throws -> UpdateNotificationPreferencesResponse {
-        guard let client = notificationServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = notificationServiceClient else { throw SonetError.serviceUnavailable }
+            return try await client.updateNotificationPreferences(request, callOptions: options)
         }
-        
-        return try await client.updateNotificationPreferences(request)
     }
     
     func updatePrivacySettings(request: UpdatePrivacySettingsRequest) async throws -> UpdatePrivacySettingsResponse {
-        guard let client = userServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = userServiceClient else { throw SonetError.serviceUnavailable }
+            return try await client.updatePrivacySettings(request, callOptions: options)
         }
-        
-        return try await client.updatePrivacySettings(request)
     }
     
     func updateContentPreferences(request: UpdateContentPreferencesRequest) async throws -> UpdateContentPreferencesResponse {
-        guard let client = userServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = userServiceClient else { throw SonetError.serviceUnavailable }
+            return try await client.updateContentPreferences(request, callOptions: options)
         }
-        
-        return try await client.updateContentPreferences(request)
     }
     
     func getStorageUsage() async throws -> StorageUsage {
-        guard let client = mediaServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = mediaServiceClient else { throw SonetError.serviceUnavailable }
+            let request = GetStorageUsageRequest()
+            let response = try await client.getStorageUsage(request, callOptions: options)
+            return response.storageUsage
         }
-        
-        let request = GetStorageUsageRequest()
-        let response = try await client.getStorageUsage(request)
-        return response.storageUsage
     }
     
     func clearCache() async throws -> ClearCacheResponse {
-        guard let client = mediaServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = mediaServiceClient else { throw SonetError.serviceUnavailable }
+            let request = ClearCacheRequest()
+            return try await client.clearCache(request, callOptions: options)
         }
-        
-        let request = ClearCacheRequest()
-        return try await client.clearCache(request)
     }
     
     func exportUserData() async throws -> ExportUserDataResponse {
-        guard let client = userServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = userServiceClient else { throw SonetError.serviceUnavailable }
+            let request = ExportUserDataRequest()
+            return try await client.exportUserData(request, callOptions: options)
         }
-        
-        let request = ExportUserDataRequest()
-        return try await client.exportUserData(request)
     }
 
     // MARK: - Media Like (gRPC)
     func toggleMediaLike(mediaId: String, userId: String, isLiked: Bool) async throws -> Int {
-        guard let client = mediaServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = mediaServiceClient else { throw SonetError.serviceUnavailable }
+            let request = ToggleMediaLikeRequest.with {
+                $0.mediaID = mediaId
+                $0.userID = userId
+                $0.isLiked = isLiked
+            }
+            let resp = try await client.toggleMediaLike(request, callOptions: options)
+            return Int(resp.likeCount)
         }
-        let request = ToggleMediaLikeRequest.with {
-            $0.mediaID = mediaId
-            $0.userID = userId
-            $0.isLiked = isLiked
-        }
-        let resp = try await client.toggleMediaLike(request)
-        return Int(resp.likeCount)
     }
     
     func deleteAccount() async throws -> DeleteAccountResponse {
-        guard let client = userServiceClient else {
-            throw SonetError.serviceUnavailable
+        return try await callWithAuthRetry { options in
+            guard let client = userServiceClient else { throw SonetError.serviceUnavailable }
+            let request = DeleteAccountRequest()
+            return try await client.deleteAccount(request, callOptions: options)
         }
-        
-        let request = DeleteAccountRequest()
-        return try await client.deleteAccount(request)
     }
 }
 

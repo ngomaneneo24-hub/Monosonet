@@ -25,6 +25,38 @@ import xyz.sonet.app.grpc.proto.NotificationServiceGrpc
 import xyz.sonet.app.grpc.proto.FollowServiceGrpc
 import xyz.sonet.app.grpc.proto.MediaServiceGrpc
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+
+// Coordinator to serialize token refresh operations. Multiple callers will await the same refresh.
+private class TokenRefreshCoordinator {
+    private val mutex = Mutex()
+    private var ongoing: CompletableDeferred<RefreshTokenResponseWrapper>? = null
+
+    suspend fun refresh(op: suspend () -> RefreshTokenResponseWrapper): RefreshTokenResponseWrapper {
+        // Fast path: if there's an ongoing refresh, wait for it
+        ongoing?.let { return it.await() }
+
+        return mutex.withLock {
+            // Double-check inside mutex
+            ongoing?.let { return it.await() }
+
+            val deferred = CompletableDeferred<RefreshTokenResponseWrapper>()
+            ongoing = deferred
+            try {
+                val res = op()
+                deferred.complete(res)
+                ongoing = null
+                return res
+            } catch (e: Throwable) {
+                deferred.completeExceptionally(e)
+                ongoing = null
+                throw e
+            }
+        }
+    }
+}
 
 class SonetGRPCClient(
     private val context: Context,
@@ -52,6 +84,8 @@ class SonetGRPCClient(
     private var notificationServiceClient: NotificationServiceGrpc.NotificationServiceBlockingStub? = null
     private var followServiceClient: FollowServiceGrpc.FollowServiceBlockingStub? = null
     private var mediaServiceClient: MediaServiceGrpc.MediaServiceBlockingStub? = null
+    // Coordinator to serialize token refresh operations
+    private val tokenRefresher = TokenRefreshCoordinator()
     
     // MARK: - Initialization
     init {
@@ -136,7 +170,9 @@ class SonetGRPCClient(
                 if (refreshToken.isNullOrEmpty()) throw e
 
                 try {
-                    val refreshResp = refreshAccessToken(refreshToken)
+                    val refreshResp = tokenRefresher.refresh {
+                        refreshAccessToken(refreshToken)
+                    }
                     // Persist new tokens
                     try { KeychainUtils(context).storeAuthToken(refreshResp.accessToken) } catch (_: Exception) {}
                     if (refreshResp.refreshToken.isNotEmpty()) {
@@ -309,101 +345,109 @@ class SonetGRPCClient(
     
     // MARK: - Video Service Methods
     suspend fun getVideos(tab: VideoTab, page: Int, pageSize: Int): GetVideosResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = GetVideosRequest.newBuilder()
-                    .setTab(tab.grpcType)
-                    .setPage(page.toLong())
-                    .setPageSize(pageSize.toLong())
-                    .build()
-                
-                val response = videoServiceClient?.getVideos(request)
-                    ?: throw Exception("Video service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = GetVideosRequest.newBuilder()
+                        .setTab(tab.grpcType)
+                        .setPage(page.toLong())
+                        .setPageSize(pageSize.toLong())
+                        .build()
+
+                    val response = videoServiceClient?.getVideos(request)
+                        ?: throw Exception("Video service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun getVideoFeed(feedType: String, algorithm: String, page: Int, pageSize: Int): VideoFeedResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val paginationRequest = PaginationRequest.newBuilder()
-                    .setPage(page.toLong())
-                    .setPageSize(pageSize.toLong())
-                    .build()
-                
-                val request = VideoFeedRequest.newBuilder()
-                    .setFeedType(feedType)
-                    .setAlgorithm(algorithm)
-                    .setPagination(paginationRequest)
-                    .build()
-                
-                val response = videoServiceClient?.getVideoFeed(request)
-                    ?: throw Exception("Video service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val paginationRequest = PaginationRequest.newBuilder()
+                        .setPage(page.toLong())
+                        .setPageSize(pageSize.toLong())
+                        .build()
+
+                    val request = VideoFeedRequest.newBuilder()
+                        .setFeedType(feedType)
+                        .setAlgorithm(algorithm)
+                        .setPagination(paginationRequest)
+                        .build()
+
+                    val response = videoServiceClient?.getVideoFeed(request)
+                        ?: throw Exception("Video service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun getPersonalizedFeed(userId: String, feedType: String, page: Int, pageSize: Int): VideoFeedResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val paginationRequest = PaginationRequest.newBuilder()
-                    .setPage(page.toLong())
-                    .setPageSize(pageSize.toLong())
-                    .build()
-                
-                val baseRequest = VideoFeedRequest.newBuilder()
-                    .setFeedType(feedType)
-                    .setAlgorithm("ml_ranking")
-                    .setPagination(paginationRequest)
-                    .build()
-                
-                val request = PersonalizedFeedRequest.newBuilder()
-                    .setUserId(userId)
-                    .setBaseRequest(baseRequest)
-                    .build()
-                
-                val response = videoServiceClient?.getPersonalizedFeed(request)
-                    ?: throw Exception("Video service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val paginationRequest = PaginationRequest.newBuilder()
+                        .setPage(page.toLong())
+                        .setPageSize(pageSize.toLong())
+                        .build()
+
+                    val baseRequest = VideoFeedRequest.newBuilder()
+                        .setFeedType(feedType)
+                        .setAlgorithm("ml_ranking")
+                        .setPagination(paginationRequest)
+                        .build()
+
+                    val request = PersonalizedFeedRequest.newBuilder()
+                        .setUserId(userId)
+                        .setBaseRequest(baseRequest)
+                        .build()
+
+                    val response = videoServiceClient?.getPersonalizedFeed(request)
+                        ?: throw Exception("Video service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun trackVideoEngagement(userId: String, videoId: String, eventType: String, durationMs: Long? = null, completionRate: Double? = null): EngagementResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val requestBuilder = EngagementEvent.newBuilder()
-                    .setUserId(userId)
-                    .setVideoId(videoId)
-                    .setEventType(eventType)
-                    .setTimestamp(java.time.Instant.now().toString())
-                
-                durationMs?.let { requestBuilder.setDurationMs(it) }
-                completionRate?.let { requestBuilder.setCompletionRate(it) }
-                
-                val request = requestBuilder.build()
-                
-                val response = videoServiceClient?.trackEngagement(request)
-                    ?: throw Exception("Video service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val requestBuilder = EngagementEvent.newBuilder()
+                        .setUserId(userId)
+                        .setVideoId(videoId)
+                        .setEventType(eventType)
+                        .setTimestamp(java.time.Instant.now().toString())
+
+                    durationMs?.let { requestBuilder.setDurationMs(it) }
+                    completionRate?.let { requestBuilder.setCompletionRate(it) }
+
+                    val request = requestBuilder.build()
+
+                    val response = videoServiceClient?.trackEngagement(request)
+                        ?: throw Exception("Video service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
@@ -414,10 +458,19 @@ class SonetGRPCClient(
                 .setFeedType(feedType)
                 .setAlgorithm(algorithm)
                 .build()
-            
-            val stream = videoServiceClient?.streamVideoFeed(request)
-                ?: throw Exception("Video service client not available")
-            
+
+            val stream = callWithAuthRetry {
+                suspendCancellableCoroutine { continuation ->
+                    try {
+                        val s = videoServiceClient?.streamVideoFeed(request)
+                            ?: throw Exception("Video service client not available")
+                        continuation.resume(s)
+                    } catch (error: Exception) {
+                        continuation.resumeWithException(error)
+                    }
+                }
+            }
+
             // Note: This is a simplified implementation. In production, you'd want to handle
             // the streaming response properly with proper lifecycle management
             stream.forEach { update ->
@@ -430,62 +483,68 @@ class SonetGRPCClient(
     
     // MARK: - Video Interaction Methods
     suspend fun toggleVideoLike(videoId: String, userId: String, isLiked: Boolean): ToggleVideoLikeResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = ToggleVideoLikeRequest.newBuilder()
-                    .setVideoId(videoId)
-                    .setUserId(userId)
-                    .setIsLiked(isLiked)
-                    .build()
-                
-                val response = videoServiceClient?.toggleVideoLike(request)
-                    ?: throw Exception("Video service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = ToggleVideoLikeRequest.newBuilder()
+                        .setVideoId(videoId)
+                        .setUserId(userId)
+                        .setIsLiked(isLiked)
+                        .build()
+
+                    val response = videoServiceClient?.toggleVideoLike(request)
+                        ?: throw Exception("Video service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun toggleFollow(userId: String, targetUserId: String, isFollowing: Boolean): ToggleFollowResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = ToggleFollowRequest.newBuilder()
-                    .setUserId(userId)
-                    .setTargetUserId(targetUserId)
-                    .setIsFollowing(isFollowing)
-                    .build()
-                
-                val response = followServiceClient?.toggleFollow(request)
-                    ?: throw Exception("Follow service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = ToggleFollowRequest.newBuilder()
+                        .setUserId(userId)
+                        .setTargetUserId(targetUserId)
+                        .setIsFollowing(isFollowing)
+                        .build()
+
+                    val response = followServiceClient?.toggleFollow(request)
+                        ?: throw Exception("Follow service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     // MARK: - Note Methods
     suspend fun getHomeTimeline(page: Int, pageSize: Int): List<TimelineItem> {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = GetTimelineRequest.newBuilder()
-                    .setAlgorithm(TimelineAlgorithm.HYBRID)
-                    .setPage(page.toLong())
-                    .setPageSize(pageSize.toLong())
-                    .build()
-                
-                val response = timelineServiceClient?.getHomeTimeline(request)
-                    ?: throw Exception("Timeline service client not available")
-                
-                continuation.resume(response.itemsList)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = GetTimelineRequest.newBuilder()
+                        .setAlgorithm(TimelineAlgorithm.HYBRID)
+                        .setPage(page.toLong())
+                        .setPageSize(pageSize.toLong())
+                        .build()
+
+                    val response = timelineServiceClient?.getHomeTimeline(request)
+                        ?: throw Exception("Timeline service client not available")
+
+                    continuation.resume(response.itemsList)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
@@ -510,278 +569,306 @@ class SonetGRPCClient(
     }
     
     suspend fun getNotesBatch(noteIds: List<String>): List<Note> {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = GetNotesBatchRequest.newBuilder()
-                    .addAllNoteIds(noteIds)
-                    .build()
-                
-                val response = noteServiceClient?.getNotesBatch(request)
-                    ?: throw Exception("Note service client not available")
-                
-                continuation.resume(response.notesList)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = GetNotesBatchRequest.newBuilder()
+                        .addAllNoteIds(noteIds)
+                        .build()
+
+                    val response = noteServiceClient?.getNotesBatch(request)
+                        ?: throw Exception("Note service client not available")
+
+                    continuation.resume(response.notesList)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun createNote(content: String, authorId: String, mediaUrls: List<String> = emptyList(), hashtags: List<String> = emptyList()): CreateNoteResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = CreateNoteRequest.newBuilder()
-                    .setContent(content)
-                    .setAuthorId(authorId)
-                    .addAllMediaUrls(mediaUrls)
-                    .addAllHashtags(hashtags)
-                    .build()
-                
-                val response = noteServiceClient?.createNote(request)
-                    ?: throw Exception("Note service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = CreateNoteRequest.newBuilder()
+                        .setContent(content)
+                        .setAuthorId(authorId)
+                        .addAllMediaUrls(mediaUrls)
+                        .addAllHashtags(hashtags)
+                        .build()
+
+                    val response = noteServiceClient?.createNote(request)
+                        ?: throw Exception("Note service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun likeNote(noteId: String, userId: String): LikeNoteResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = LikeNoteRequest.newBuilder()
-                    .setNoteID(noteId)
-                    .setUserID(userId)
-                    .build()
-                
-                val response = noteServiceClient?.likeNote(request)
-                    ?: throw Exception("Note service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = LikeNoteRequest.newBuilder()
+                        .setNoteID(noteId)
+                        .setUserID(userId)
+                        .build()
+
+                    val response = noteServiceClient?.likeNote(request)
+                        ?: throw Exception("Note service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun unlikeNote(noteId: String, userId: String): UnlikeNoteResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = UnlikeNoteRequest.newBuilder()
-                    .setNoteID(noteId)
-                    .setUserID(userId)
-                    .build()
-                
-                val response = noteServiceClient?.unlikeNote(request)
-                    ?: throw Exception("Note service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = UnlikeNoteRequest.newBuilder()
+                        .setNoteID(noteId)
+                        .setUserID(userId)
+                        .build()
+
+                    val response = noteServiceClient?.unlikeNote(request)
+                        ?: throw Exception("Note service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     // MARK: - Search Methods
     suspend fun searchUsers(query: String, page: Int, pageSize: Int): List<UserProfile> {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = SearchUsersRequest.newBuilder()
-                    .setQuery(query)
-                    .setPage(page.toLong())
-                    .setPageSize(pageSize.toLong())
-                    .build()
-                
-                val response = searchServiceClient?.searchUsers(request)
-                    ?: throw Exception("Search service client not available")
-                
-                continuation.resume(response.usersList)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = SearchUsersRequest.newBuilder()
+                        .setQuery(query)
+                        .setPage(page.toLong())
+                        .setPageSize(pageSize.toLong())
+                        .build()
+
+                    val response = searchServiceClient?.searchUsers(request)
+                        ?: throw Exception("Search service client not available")
+
+                    continuation.resume(response.usersList)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun searchNotes(query: String, page: Int, pageSize: Int): List<Note> {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = SearchNotesRequest.newBuilder()
-                    .setQuery(query)
-                    .setPage(page.toLong())
-                    .setPageSize(pageSize.toLong())
-                    .build()
-                
-                val response = searchServiceClient?.searchNotes(request)
-                    ?: throw Exception("Search service client not available")
-                
-                continuation.resume(response.notesList)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = SearchNotesRequest.newBuilder()
+                        .setQuery(query)
+                        .setPage(page.toLong())
+                        .setPageSize(pageSize.toLong())
+                        .build()
+
+                    val response = searchServiceClient?.searchNotes(request)
+                        ?: throw Exception("Search service client not available")
+
+                    continuation.resume(response.notesList)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun searchHashtags(query: String, page: Int, pageSize: Int): List<String> {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = SearchHashtagsRequest.newBuilder()
-                    .setQuery(query)
-                    .setPage(page.toLong())
-                    .setPageSize(pageSize.toLong())
-                    .build()
-                
-                val response = searchServiceClient?.searchHashtags(request)
-                    ?: throw Exception("Search service client not available")
-                
-                continuation.resume(response.hashtagsList)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = SearchHashtagsRequest.newBuilder()
+                        .setQuery(query)
+                        .setPage(page.toLong())
+                        .setPageSize(pageSize.toLong())
+                        .build()
+
+                    val response = searchServiceClient?.searchHashtags(request)
+                        ?: throw Exception("Search service client not available")
+
+                    continuation.resume(response.hashtagsList)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     // MARK: - Messaging Methods
     suspend fun getConversations(userId: String, page: Int, pageSize: Int): List<Conversation> {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = GetConversationsRequest.newBuilder()
-                    .setUserID(userId)
-                    .setPage(page.toLong())
-                    .setPageSize(pageSize.toLong())
-                    .build()
-                
-                val response = messagingServiceClient?.getConversations(request)
-                    ?: throw Exception("Messaging service client not available")
-                
-                continuation.resume(response.conversationsList)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = GetConversationsRequest.newBuilder()
+                        .setUserID(userId)
+                        .setPage(page.toLong())
+                        .setPageSize(pageSize.toLong())
+                        .build()
+
+                    val response = messagingServiceClient?.getConversations(request)
+                        ?: throw Exception("Messaging service client not available")
+
+                    continuation.resume(response.conversationsList)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun getMessages(conversationId: String, page: Int, pageSize: Int): List<Message> {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = GetMessagesRequest.newBuilder()
-                    .setConversationID(conversationId)
-                    .setPage(page.toLong())
-                    .setPageSize(pageSize.toLong())
-                    .build()
-                
-                val response = messagingServiceClient?.getMessages(request)
-                    ?: throw Exception("Messaging service client not available")
-                
-                continuation.resume(response.messagesList)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = GetMessagesRequest.newBuilder()
+                        .setConversationID(conversationId)
+                        .setPage(page.toLong())
+                        .setPageSize(pageSize.toLong())
+                        .build()
+
+                    val response = messagingServiceClient?.getMessages(request)
+                        ?: throw Exception("Messaging service client not available")
+
+                    continuation.resume(response.messagesList)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun sendMessage(conversationId: String, senderId: String, content: String, messageType: MessageType = MessageType.TEXT): SendMessageResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = SendMessageRequest.newBuilder()
-                    .setConversationID(conversationId)
-                    .setSenderID(senderId)
-                    .setContent(content)
-                    .setMessageType(messageType)
-                    .build()
-                
-                val response = messagingServiceClient?.sendMessage(request)
-                    ?: throw Exception("Messaging service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = SendMessageRequest.newBuilder()
+                        .setConversationID(conversationId)
+                        .setSenderID(senderId)
+                        .setContent(content)
+                        .setMessageType(messageType)
+                        .build()
+
+                    val response = messagingServiceClient?.sendMessage(request)
+                        ?: throw Exception("Messaging service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun sendTypingIndicator(conversationId: String, userId: String, isTyping: Boolean): SendTypingIndicatorResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = TypingIndicatorRequest.newBuilder()
-                    .setConversationID(conversationId)
-                    .setUserID(userId)
-                    .setIsTyping(isTyping)
-                    .build()
-                
-                val response = messagingServiceClient?.sendTypingIndicator(request)
-                    ?: throw Exception("Messaging service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = TypingIndicatorRequest.newBuilder()
+                        .setConversationID(conversationId)
+                        .setUserID(userId)
+                        .setIsTyping(isTyping)
+                        .build()
+
+                    val response = messagingServiceClient?.sendTypingIndicator(request)
+                        ?: throw Exception("Messaging service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun markConversationAsRead(conversationId: String, userId: String): MarkConversationAsReadResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = MarkConversationAsReadRequest.newBuilder()
-                    .setConversationID(conversationId)
-                    .setUserID(userId)
-                    .build()
-                
-                val response = messagingServiceClient?.markConversationAsRead(request)
-                    ?: throw Exception("Messaging service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = MarkConversationAsReadRequest.newBuilder()
+                        .setConversationID(conversationId)
+                        .setUserID(userId)
+                        .build()
+
+                    val response = messagingServiceClient?.markConversationAsRead(request)
+                        ?: throw Exception("Messaging service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun deleteMessage(messageId: String): DeleteMessageResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = DeleteMessageRequest.newBuilder()
-                    .setMessageID(messageId)
-                    .build()
-                
-                val response = messagingServiceClient?.deleteMessage(request)
-                    ?: throw Exception("Messaging service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = DeleteMessageRequest.newBuilder()
+                        .setMessageID(messageId)
+                        .build()
+
+                    val response = messagingServiceClient?.deleteMessage(request)
+                        ?: throw Exception("Messaging service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun createGroup(name: String, creatorId: String, memberIds: List<String>): CreateGroupResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = CreateGroupRequest.newBuilder()
-                    .setName(name)
-                    .setCreatorID(creatorId)
-                    .addAllMemberIDs(memberIds)
-                    .build()
-                
-                val response = messagingServiceClient?.createGroup(request)
-                    ?: throw Exception("Messaging service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = CreateGroupRequest.newBuilder()
+                        .setName(name)
+                        .setCreatorID(creatorId)
+                        .addAllMemberIDs(memberIds)
+                        .build()
+
+                    val response = messagingServiceClient?.createGroup(request)
+                        ?: throw Exception("Messaging service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
@@ -791,10 +878,19 @@ class SonetGRPCClient(
             val request = MessageStreamRequest.newBuilder()
                 .setUserID("current_user") // This should be passed from the caller
                 .build()
-            
-            val stream = messagingServiceClient?.messageStream(request)
-                ?: throw Exception("Messaging service client not available")
-            
+
+            val stream = callWithAuthRetry {
+                suspendCancellableCoroutine { continuation ->
+                    try {
+                        val s = messagingServiceClient?.messageStream(request)
+                            ?: throw Exception("Messaging service client not available")
+                        continuation.resume(s)
+                    } catch (error: Exception) {
+                        continuation.resumeWithException(error)
+                    }
+                }
+            }
+
             // Note: This is a simplified implementation. In production, you'd want to handle
             // the streaming response properly with proper lifecycle management
             stream.forEach { message ->
@@ -807,122 +903,136 @@ class SonetGRPCClient(
     
     // MARK: - Notification Methods
     suspend fun getNotifications(page: Int, pageSize: Int): List<NotificationItem> {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = GetNotificationsRequest.newBuilder()
-                    .setPage(page.toLong())
-                    .setPageSize(pageSize.toLong())
-                    .build()
-                
-                val response = notificationServiceClient?.getNotifications(request)
-                    ?: throw Exception("Notification service client not available")
-                
-                continuation.resume(response.notificationsList)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = GetNotificationsRequest.newBuilder()
+                        .setPage(page.toLong())
+                        .setPageSize(pageSize.toLong())
+                        .build()
+
+                    val response = notificationServiceClient?.getNotifications(request)
+                        ?: throw Exception("Notification service client not available")
+
+                    continuation.resume(response.notificationsList)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun markNotificationAsRead(notificationId: String): MarkNotificationAsReadResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = MarkNotificationAsReadRequest.newBuilder()
-                    .setNotificationID(notificationId)
-                    .build()
-                
-                val response = notificationServiceClient?.markNotificationAsRead(request)
-                    ?: throw Exception("Notification service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = MarkNotificationAsReadRequest.newBuilder()
+                        .setNotificationID(notificationId)
+                        .build()
+
+                    val response = notificationServiceClient?.markNotificationAsRead(request)
+                        ?: throw Exception("Notification service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun markAllNotificationsAsRead(): MarkAllNotificationsAsReadResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = MarkAllNotificationsAsReadRequest.newBuilder().build()
-                
-                val response = notificationServiceClient?.markAllNotificationsAsRead(request)
-                    ?: throw Exception("Notification service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = MarkAllNotificationsAsReadRequest.newBuilder().build()
+
+                    val response = notificationServiceClient?.markAllNotificationsAsRead(request)
+                        ?: throw Exception("Notification service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun deleteNotification(notificationId: String): DeleteNotificationResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = DeleteNotificationRequest.newBuilder()
-                    .setNotificationID(notificationId)
-                    .build()
-                
-                val response = notificationServiceClient?.deleteNotification(request)
-                    ?: throw Exception("Notification service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = DeleteNotificationRequest.newBuilder()
+                        .setNotificationID(notificationId)
+                        .build()
+
+                    val response = notificationServiceClient?.deleteNotification(request)
+                        ?: throw Exception("Notification service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun clearAllNotifications(): ClearAllNotificationsResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = ClearAllNotificationsRequest.newBuilder().build()
-                
-                val response = notificationServiceClient?.clearAllNotifications(request)
-                    ?: throw Exception("Notification service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = ClearAllNotificationsRequest.newBuilder().build()
+
+                    val response = notificationServiceClient?.clearAllNotifications(request)
+                        ?: throw Exception("Notification service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun checkForAppUpdates(): AppUpdateInfo {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = CheckForUpdatesRequest.newBuilder().build()
-                
-                val response = notificationServiceClient?.checkForUpdates(request)
-                    ?: throw Exception("Notification service client not available")
-                
-                continuation.resume(response.updateInfo)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = CheckForUpdatesRequest.newBuilder().build()
+
+                    val response = notificationServiceClient?.checkForUpdates(request)
+                        ?: throw Exception("Notification service client not available")
+
+                    continuation.resume(response.updateInfo)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun updateNotificationPreferences(preferences: NotificationPreferences): UpdateNotificationPreferencesResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = UpdateNotificationPreferencesRequest.newBuilder()
-                    .setPreferences(preferences)
-                    .build()
-                
-                val response = notificationServiceClient?.updateNotificationPreferences(request)
-                    ?: throw Exception("Notification service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = UpdateNotificationPreferencesRequest.newBuilder()
+                        .setPreferences(preferences)
+                        .build()
+
+                    val response = notificationServiceClient?.updateNotificationPreferences(request)
+                        ?: throw Exception("Notification service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
@@ -968,119 +1078,131 @@ class SonetGRPCClient(
     }
     
     suspend fun getUserPosts(userId: String, page: Int, pageSize: Int): List<Note> {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = GetUserPostsRequest.newBuilder()
-                    .setUserID(userId)
-                    .setPage(page.toLong())
-                    .setPageSize(pageSize.toLong())
-                    .build()
-                
-                val response = noteServiceClient?.getUserPosts(request)
-                    ?: throw Exception("Note service client not available")
-                
-                continuation.resume(response.notesList)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = GetUserPostsRequest.newBuilder()
+                        .setUserID(userId)
+                        .setPage(page.toLong())
+                        .setPageSize(pageSize.toLong())
+                        .build()
+
+                    val response = noteServiceClient?.getUserPosts(request)
+                        ?: throw Exception("Note service client not available")
+
+                    continuation.resume(response.notesList)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun getUserReplies(userId: String, page: Int, pageSize: Int): List<Note> {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = GetUserRepliesRequest.newBuilder()
-                    .setUserID(userId)
-                    .setPage(page.toLong())
-                    .setPageSize(pageSize.toLong())
-                    .build()
-                
-                val response = noteServiceClient?.getUserReplies(request)
-                    ?: throw Exception("Note service client not available")
-                
-                continuation.resume(response.notesList)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = GetUserRepliesRequest.newBuilder()
+                        .setUserID(userId)
+                        .setPage(page.toLong())
+                        .setPageSize(pageSize.toLong())
+                        .build()
+
+                    val response = noteServiceClient?.getUserReplies(request)
+                        ?: throw Exception("Note service client not available")
+
+                    continuation.resume(response.notesList)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun getUserMedia(userId: String, page: Int, pageSize: Int): List<Note> {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = GetUserMediaRequest.newBuilder()
-                    .setUserID(userId)
-                    .setPage(page.toLong())
-                    .setPageSize(pageSize.toLong())
-                    .build()
-                
-                val response = noteServiceClient?.getUserMedia(request)
-                    ?: throw Exception("Note service client not available")
-                
-                continuation.resume(response.notesList)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = GetUserMediaRequest.newBuilder()
+                        .setUserID(userId)
+                        .setPage(page.toLong())
+                        .setPageSize(pageSize.toLong())
+                        .build()
+
+                    val response = noteServiceClient?.getUserMedia(request)
+                        ?: throw Exception("Note service client not available")
+
+                    continuation.resume(response.notesList)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun getUserLikes(userId: String, page: Int, pageSize: Int): List<Note> {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = GetUserLikesRequest.newBuilder()
-                    .setUserID(userId)
-                    .setPage(page.toLong())
-                    .setPageSize(pageSize.toLong())
-                    .build()
-                
-                val response = noteServiceClient?.getUserLikes(request)
-                    ?: throw Exception("Note service client not available")
-                
-                continuation.resume(response.notesList)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = GetUserLikesRequest.newBuilder()
+                        .setUserID(userId)
+                        .setPage(page.toLong())
+                        .setPageSize(pageSize.toLong())
+                        .build()
+
+                    val response = noteServiceClient?.getUserLikes(request)
+                        ?: throw Exception("Note service client not available")
+
+                    continuation.resume(response.notesList)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun blockUser(userId: String, targetUserId: String): BlockUserResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = BlockUserRequest.newBuilder()
-                    .setUserID(userId)
-                    .setTargetUserID(targetUserId)
-                    .build()
-                
-                val response = userServiceClient?.blockUser(request)
-                    ?: throw Exception("User service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = BlockUserRequest.newBuilder()
+                        .setUserID(userId)
+                        .setTargetUserID(targetUserId)
+                        .build()
+
+                    val response = userServiceClient?.blockUser(request)
+                        ?: throw Exception("User service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }
     
     suspend fun unblockUser(userId: String, targetUserId: String): UnblockUserResponse {
-        return suspendCancellableCoroutine { continuation ->
-            try {
-                val request = UnblockUserRequest.newBuilder()
-                    .setUserID(userId)
-                    .setTargetUserID(targetUserId)
-                    .build()
-                
-                val response = userServiceClient?.unblockUser(request)
-                    ?: throw Exception("User service client not available")
-                
-                continuation.resume(response)
-                
-            } catch (error: Exception) {
-                continuation.resumeWithException(error)
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = UnblockUserRequest.newBuilder()
+                        .setUserID(userId)
+                        .setTargetUserID(targetUserId)
+                        .build()
+
+                    val response = userServiceClient?.unblockUser(request)
+                        ?: throw Exception("User service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
             }
         }
     }

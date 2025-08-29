@@ -3,8 +3,27 @@ import SwiftUI
 import Combine
 import Security
 
+// Actor to serialize token refresh operations for the SessionManager
+actor TokenRefreshCoordinator {
+    private var ongoing: Task<Void, Error>?
+
+    func refresh(_ op: @escaping () async throws -> Void) async throws {
+        if let t = ongoing { return try await t.value }
+        let t = Task<Void, Error> { try await op() }
+        ongoing = t
+        do {
+            try await t.value
+            ongoing = nil
+        } catch {
+            ongoing = nil
+            throw error
+        }
+    }
+}
+
 @MainActor
 class SessionManager: ObservableObject {
+    static let shared = SessionManager()
     // MARK: - Published Properties
     @Published var isAuthenticated = false
     @Published var currentUser: SonetUser?
@@ -16,6 +35,7 @@ class SessionManager: ObservableObject {
     private let keychainService = "xyz.sonet.app"
     private let userDefaults = UserDefaults.standard
     private let grpcClient: SonetGRPCClient
+    private let tokenRefresher = TokenRefreshCoordinator()
     
     // MARK: - Initialization
     init() {
@@ -217,6 +237,37 @@ class SessionManager: ObservableObject {
             return str
         }
         return nil
+    }
+
+    private func authCallOptions() async throws -> CallOptions? {
+        if let token = try await getFromKeychain(key: "accessToken"), !token.isEmpty {
+            var headers = HPACKHeaders()
+            headers.add(name: "authorization", value: "Bearer \(token)")
+            return CallOptions(customMetadata: headers)
+        }
+        return nil
+    }
+
+    /// Run a gRPC call with Authorization metadata. On UNAUTHENTICATED, attempt a serialized refresh and retry once.
+    func withAuthRetry<T>(_ call: @escaping (CallOptions?) async throws -> T) async throws -> T {
+        do {
+            let options = try await authCallOptions()
+            return try await call(options)
+        } catch {
+            if let status = error as? GRPCStatus, status.code == .unauthenticated {
+                // Ensure refresh token exists
+                guard let _ = try? await getFromKeychain(key: "refreshToken") else { throw error }
+                // Serialized refresh
+                try await tokenRefresher.refresh { [weak self] in
+                    guard let self = self else { throw AuthenticationError.unknown }
+                    try await self.refreshSession()
+                }
+                // Retry once
+                let newOptions = try await authCallOptions()
+                return try await call(newOptions)
+            }
+            throw error
+        }
     }
 }
 
