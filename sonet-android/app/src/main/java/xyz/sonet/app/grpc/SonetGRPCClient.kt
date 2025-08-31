@@ -653,6 +653,94 @@ class SonetGRPCClient(
         }
     }
     
+    suspend fun getNote(noteId: String): Note {
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val request = GetNoteRequest.newBuilder()
+                        .setNoteId(noteId)
+                        .build()
+
+                    val response = noteServiceClient?.getNote(request)
+                        ?: throw Exception("Note service client not available")
+
+                    if (!response.success) {
+                        throw Exception(response.errorMessage)
+                    }
+
+                    continuation.resume(response.note)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
+            }
+        }
+    }
+    
+    suspend fun getThread(request: GetThreadRequest): GetThreadResponse {
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val response = noteServiceClient?.getThread(request)
+                        ?: throw Exception("Note service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
+            }
+        }
+    }
+    
+    suspend fun createReply(request: CreateReplyRequest): CreateNoteResponse {
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val response = noteServiceClient?.createReply(request)
+                        ?: throw Exception("Note service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
+            }
+        }
+    }
+    
+    suspend fun likeNote(request: LikeNoteRequest): LikeNoteResponse {
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val response = noteServiceClient?.likeNote(request)
+                        ?: throw Exception("Note service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
+            }
+        }
+    }
+    
+    suspend fun renoteNote(request: RenoteNoteRequest): RenoteNoteResponse {
+        return callWithAuthRetry {
+            suspendCancellableCoroutine { continuation ->
+                try {
+                    val response = noteServiceClient?.renoteNote(request)
+                        ?: throw Exception("Note service client not available")
+
+                    continuation.resume(response)
+
+                } catch (error: Exception) {
+                    continuation.resumeWithException(error)
+                }
+            }
+        }
+    }
+    
     // MARK: - Search Methods
     suspend fun searchUsers(query: String, page: Int, pageSize: Int): List<UserProfile> {
         return callWithAuthRetry {
